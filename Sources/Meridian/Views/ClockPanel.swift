@@ -221,6 +221,32 @@ private struct WindowDragHandle: NSViewRepresentable {
     func updateNSView(_ view: DragView, context: Context) { view.onTearOff = onTearOff }
 }
 
+/// Snaps the desktop window to the top-left, top-centre or top-right of its screen.
+enum WindowPlacement: String, CaseIterable, Identifiable {
+    case left, center, right
+
+    var id: String { rawValue }
+    var label: String { rawValue.capitalized }
+
+    static var stripWindow: NSWindow? {
+        NSApp.windows.first { $0.identifier?.rawValue.contains("strip") == true && $0.isVisible }
+    }
+
+    func apply() {
+        guard let window = Self.stripWindow,
+              let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
+        let margin: CGFloat = 16
+        let x: CGFloat
+        switch self {
+        case .left: x = visible.minX + margin
+        case .center: x = visible.midX - window.frame.width / 2
+        case .right: x = visible.maxX - window.frame.width - margin
+        }
+        window.setFrameTopLeftPoint(NSPoint(x: x.rounded(), y: visible.maxY - margin))
+        window.makeKeyAndOrderFront(nil)
+    }
+}
+
 /// Holds the NSWindow hosting the panel (the menu bar popover or the desktop window).
 final class HostWindow {
     weak var window: NSWindow?
@@ -360,6 +386,16 @@ private struct MoreMenu: View {
                     closeHost()
                     openWindow(id: "strip")
                     NSApp.activate(ignoringOtherApps: true)
+                }
+            }
+            Menu("Window Position") {
+                ForEach(WindowPlacement.allCases) { placement in
+                    Button(placement.label) {
+                        if compact { closeHost() }
+                        openWindow(id: "strip")   // opens it, or brings the open one forward
+                        NSApp.activate(ignoringOtherApps: true)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { placement.apply() }
+                    }
                 }
             }
             Button("Settings…") {

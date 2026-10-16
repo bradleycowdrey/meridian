@@ -24,6 +24,7 @@ private struct ClockPanelContent: View {
     @State private var editing = false
     @State private var contentHeight: CGFloat = 0
     @State private var host = HostWindow()
+    @Environment(\.openWindow) private var openWindow
 
     /// Tallest the scrolling body may be so the whole panel stays on screen at any size.
     private var maxBodyHeight: CGFloat {
@@ -45,7 +46,10 @@ private struct ClockPanelContent: View {
                     .padding(.top, ui.xl)
                     .padding(.bottom, ui.l)
             }
-            .background(compact ? nil : WindowDragHandle())
+            // Window: drag to move. Menu bar panel (which macOS pins under its icon): drag to
+            // tear it off into a movable window at the same spot.
+            .background(WindowDragHandle(onTearOff: compact ? { tearOff() } : nil))
+            .help(compact ? "Drag to detach into a window" : "")
 
             // Everything below the header scrolls if it would outgrow the screen
             // (e.g. Extra Large with the city search open).
@@ -91,6 +95,15 @@ private struct ClockPanelContent: View {
         }
         .background(Palette.bg)
         .background(HostWindowReader(box: host))
+        // Measure the whole panel and size the hosting window to it. SwiftUI's menu bar panel
+        // (and sometimes a title-less window) doesn't grow on its own when content gets bigger,
+        // which clipped the larger sizes.
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: PanelSizeKey.self, value: proxy.size)
+            }
+        )
+        .onPreferenceChange(PanelSizeKey.self) { fitWindow(to: $0) }
         .environment(\.colorScheme, .dark)
         .onAppear {
             store.tick()
@@ -112,6 +125,48 @@ private struct ClockPanelContent: View {
         }
     }
 
+    /// Resizes the hosting window to exactly the panel's size, keeping its top edge where it is
+    /// and the whole window on screen.
+    private func fitWindow(to size: CGSize, attempt: Int = 0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + (attempt == 0 ? 0 : 0.1)) {
+            guard size.width > 1, size.height > 1 else { return }
+            guard let window = host.window, let content = window.contentView else {
+                // The window reference arrives a moment after first layout; try again briefly.
+                if attempt < 10 { fitWindow(to: size, attempt: attempt + 1) }
+                return
+            }
+            let chrome = CGSize(width: window.frame.width - content.bounds.width,
+                                height: window.frame.height - content.bounds.height)
+            var frame = window.frame
+            let top = frame.maxY
+            frame.size = CGSize(width: size.width + chrome.width, height: size.height + chrome.height)
+            frame.origin.y = top - frame.height
+            if let visible = (window.screen ?? NSScreen.main)?.visibleFrame {
+                frame.origin.x = min(max(frame.origin.x, visible.minX), visible.maxX - frame.width)
+                if frame.minY < visible.minY { frame.origin.y = visible.minY }
+                if frame.maxY > visible.maxY { frame.origin.y = visible.maxY - frame.height }
+            }
+            guard abs(frame.width - window.frame.width) > 0.5 || abs(frame.height - window.frame.height) > 0.5
+                || abs(frame.minX - window.frame.minX) > 0.5 || abs(frame.minY - window.frame.minY) > 0.5 else { return }
+            window.setFrame(frame, display: true)
+        }
+    }
+
+    /// Detaches the menu bar panel into the desktop window, placed where the panel was.
+    private func tearOff() {
+        let topLeft = host.window.map { NSPoint(x: $0.frame.minX, y: $0.frame.maxY) }
+        host.window?.close()
+        openWindow(id: "strip")
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            guard let topLeft,
+                  let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("strip") == true })
+            else { return }
+            window.setFrameTopLeftPoint(topLeft)
+            window.makeKeyAndOrderFront(nil)
+        }
+    }
+
     private var header: some View {
         HStack(spacing: ui.m) {
             AppMark(size: ui.pt(28))
@@ -126,15 +181,44 @@ private struct ClockPanelContent: View {
     }
 }
 
-/// An area that moves its window when dragged (the window has no visible title bar).
+/// An area that moves its window when dragged (the window has no visible title bar), or, in the
+/// menu bar panel, tears the panel off into a window once the pointer moves a few points.
 private struct WindowDragHandle: NSViewRepresentable {
+    var onTearOff: (() -> Void)?
+
     final class DragView: NSView {
-        override var mouseDownCanMoveWindow: Bool { true }
-        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
+        var onTearOff: (() -> Void)?
+        private var start: NSPoint?
+
+        override var mouseDownCanMoveWindow: Bool { onTearOff == nil }
+
+        override func mouseDown(with event: NSEvent) {
+            if onTearOff == nil {
+                window?.performDrag(with: event)
+            } else {
+                start = event.locationInWindow
+            }
+        }
+
+        override func mouseDragged(with event: NSEvent) {
+            guard let start, let onTearOff else { return }
+            let p = event.locationInWindow
+            if hypot(p.x - start.x, p.y - start.y) > 4 {
+                self.start = nil
+                onTearOff()
+            }
+        }
+
+        override func mouseUp(with event: NSEvent) { start = nil }
     }
 
-    func makeNSView(context: Context) -> DragView { DragView() }
-    func updateNSView(_ view: DragView, context: Context) {}
+    func makeNSView(context: Context) -> DragView {
+        let view = DragView()
+        view.onTearOff = onTearOff
+        return view
+    }
+
+    func updateNSView(_ view: DragView, context: Context) { view.onTearOff = onTearOff }
 }
 
 /// Holds the NSWindow hosting the panel (the menu bar popover or the desktop window).
@@ -154,6 +238,11 @@ private struct HostWindowReader: NSViewRepresentable {
     func updateNSView(_ view: NSView, context: Context) {
         DispatchQueue.main.async { box.window = view.window }
     }
+}
+
+private struct PanelSizeKey: PreferenceKey {
+    static let defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
 }
 
 private struct ContentHeightKey: PreferenceKey {

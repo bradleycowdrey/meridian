@@ -9,85 +9,85 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  /* bradcowdrey.com tokens */
+  /* apple.com layout, bradcowdrey.com colours */
   :root {
-    --bg: #1A1816; --raised: #1C1A18; --subtle: #222018; --border: #2A2520;
+    --bg: #1A1816; --tile: #23201D; --raised: #1C1A18; --border: #2A2520; --border-strong: #3A3530;
     --text: #FFFFFF; --cream: #FFF1E5; --secondary: #E0D8D0; --muted: #B0A898; --faint: #807870;
-    --crimson: #990F3D;
+    --crimson: #990F3D; --accent: #E04A7A;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-font-smoothing: antialiased; }
-  body { background: var(--bg); color: var(--text); font: 400 17px/1.6 Inter, system-ui, -apple-system, sans-serif; }
+  body { background: var(--bg); color: var(--text); font: 400 17px/1.47 -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif; letter-spacing: -.01em; }
   a { color: inherit; text-decoration: none; }
-  .top-bar { height: 3px; background: var(--crimson); }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 80px; }
-  nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 0.5px solid var(--border); margin-bottom: 44px; }
-  .nav-name { font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
-  .nav-links { display: flex; gap: 24px; font-size: 13px; color: var(--muted); }
-  .nav-links a:hover { color: var(--text); }
-  .hero { display: flex; gap: 28px; align-items: flex-start; margin-bottom: 40px; }
-  .hero img { width: 112px; height: 112px; flex: none; }
-  h1 { font-size: 32px; font-weight: 500; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 8px; }
-  .tagline { font-size: 16px; font-style: italic; color: #C4B8A8; margin-bottom: 20px; }
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .ghost { display: inline-flex; align-items: center; height: 36px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--border);
-    font-size: 14px; font-weight: 500; color: var(--text); background: transparent; transition: background .15s, color .15s; cursor: pointer; font-family: inherit; }
-  .ghost:hover, .ghost.filled { background: #fff; color: var(--bg); border-color: transparent; }
-  .ghost[disabled] { color: var(--faint); cursor: default; }
-  .ghost[disabled]:hover { background: transparent; color: var(--faint); border-color: var(--border); }
-  .fine { font-size: 13px; color: var(--faint); }
-  .label { font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 56px 0 16px; }
+  .globalnav { position: sticky; top: 0; z-index: 10; background: rgba(26,24,22,.72); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 0.5px solid var(--border); }
+  .globalnav .in { max-width: 1024px; margin: 0 auto; padding: 0 16px; height: 48px; display: flex; align-items: center; gap: 24px; font-size: 12px; color: var(--secondary); }
+  .globalnav .brand { font-weight: 600; font-size: 14px; color: var(--text); margin-right: auto; }
+  .globalnav a:hover { color: var(--text); }
+  .globalnav .cta { background: #fff; color: var(--bg); border-radius: 980px; padding: 4px 12px; font-weight: 500; }
+  .wrap { max-width: 1024px; margin: 0 auto; padding: 0 16px 96px; }
+  .hero { text-align: center; padding: 88px 0 56px; }
+  .hero img { width: 120px; height: 120px; margin-bottom: 24px; }
+  .eyebrow-l { color: var(--accent); font-size: 21px; font-weight: 600; margin-bottom: 6px; }
+  h1 { font-size: clamp(48px, 9vw, 80px); font-weight: 600; letter-spacing: -.035em; line-height: 1.05; }
+  .sub { font-size: clamp(21px, 3vw, 28px); font-weight: 600; letter-spacing: -.02em; color: var(--muted); margin: 8px auto 28px; max-width: 640px; line-height: 1.15; text-wrap: balance; }
+  .actions { display: flex; justify-content: center; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 980px; font-size: 17px; font-weight: 500; background: #fff; color: var(--bg); border: 0; cursor: pointer; font-family: inherit; transition: background .15s; }
+  .pill:hover { background: var(--cream); }
+  .textlink { color: var(--cream); font-size: 17px; }
+  .textlink:hover { text-decoration: underline; }
+  .fine { font-size: 14px; color: var(--faint); margin-top: 16px; }
+  .section-h { font-size: clamp(32px, 5vw, 48px); font-weight: 600; letter-spacing: -.03em; line-height: 1.08; margin: 96px 0 24px; }
 
   /* Live demo: mirrors the Mac app's ClockPanel. */
-  .panel { background: var(--bg); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; user-select: none;
-    box-shadow: 0 30px 80px rgba(0,0,0,.5); }
-  .panel .rule { height: 3px; background: var(--crimson); }
-  .panel .inner { padding: 20px 24px 24px; display: flex; flex-direction: column; }
-  .hdr { padding-bottom: 16px; border-bottom: 0.5px solid var(--border); }
-  .body { display: flex; flex-direction: column; gap: 16px; padding: 24px 0; }
+  .panel { background: var(--bg); border-radius: 28px; padding: 32px; user-select: none; box-shadow: 0 0 0 0.5px var(--border), 0 40px 100px rgba(0,0,0,.55); display: flex; flex-direction: column; gap: 24px; }
   .hdr { display: flex; align-items: center; gap: 12px; }
-  .hdr .name { font-size: 17px; font-weight: 500; }
+  .hdr .name { font-size: 19px; font-weight: 600; letter-spacing: -.02em; }
   .hdr .sp { flex: 1; }
-  .mark { width: 28px; height: 28px; border-radius: 7px; background: var(--subtle); border: 1px solid var(--border); position: relative; display: grid; place-items: center; }
+  .mark { width: 28px; height: 28px; border-radius: 7px; background: #222018; position: relative; display: grid; place-items: center; }
   .mark i { display: block; width: 17px; height: 3px; border-radius: 3px; margin: 1.5px 0; }
   .mark::after { content: ""; position: absolute; width: 7px; height: 19px; border: 1.7px solid #fff; border-radius: 9px; }
-  .icon { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--muted);
-    display: grid; place-items: center; cursor: pointer; font: 500 15px/1 Inter, system-ui, sans-serif; }
-  .icon:hover { background: var(--subtle); color: var(--text); }
+  .btn { display: inline-flex; align-items: center; height: 34px; padding: 0 20px; border-radius: 980px; border: 0; font: 600 14px/1 -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+    background: var(--border); color: var(--text); cursor: pointer; transition: background .15s, transform .1s; }
+  .btn:hover { background: var(--border-strong); }
+  .btn.prime { background: #fff; color: var(--bg); }
+  .btn.prime:hover { background: var(--cream); }
+  .btn[disabled] { color: var(--faint); cursor: default; }
+  .btn[disabled]:hover { background: var(--border); }
+  .icon { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--border); color: var(--muted);
+    display: grid; place-items: center; cursor: pointer; font: 500 16px/1 -apple-system, Inter, sans-serif; }
+  .icon:hover { background: var(--border-strong); color: var(--text); }
   .travel { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
   .travel .sp { flex: 1; }
-  .eyebrow { font-size: 11px; font-weight: 500; letter-spacing: .11em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .eyebrow { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
   .eyebrow.away { color: var(--cream); }
-  .moment { font-size: 28px; font-weight: 500; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .moment { font-size: 34px; font-weight: 600; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .ctrls { display: flex; gap: 8px; align-items: center; }
-  .ctrls .ghost { height: 32px; padding: 0 16px; font-size: 13px; }
-
+  .tile { background: var(--tile); border-radius: 22px; padding: 20px; }
   .search { display: flex; flex-direction: column; gap: 8px; }
   .search[hidden] { display: none; }
-  .search .box { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 10px; background: var(--raised); border: 1px solid var(--border); color: var(--faint); }
+  .search .box { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 12px; background: var(--bg); color: var(--faint); border: 1px solid transparent; }
   .search .box:focus-within { border-color: var(--faint); }
-  .search input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font: 400 15px Inter, system-ui, sans-serif; }
+  .search input { flex: 1; background: none; border: 0; outline: 0; color: var(--text); font: 400 15px -apple-system, Inter, system-ui, sans-serif; }
   .search input::placeholder { color: var(--faint); }
   .results { max-height: 240px; overflow: auto; }
-  .result { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 12px; border-radius: 8px; cursor: pointer; }
-  .result:hover { background: var(--subtle); }
-  .result .n { font-size: 15px; font-weight: 500; line-height: 1.2; }
+  .result { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 12px; border-radius: 12px; cursor: pointer; }
+  .result:hover { background: var(--border); }
+  .result .n { font-size: 15px; font-weight: 600; line-height: 1.2; }
   .result .r { font-size: 13px; color: var(--faint); line-height: 1.2; }
   .result .sp { flex: 1; }
   .result .t { font-size: 15px; font-weight: 500; color: var(--secondary); font-variant-numeric: tabular-nums; }
   .result .o { font-size: 13px; color: var(--faint); width: 72px; text-align: right; }
   .result .plus { color: var(--muted); font-size: 18px; }
-
-  .grid { display: grid; grid-template-columns: 184px 1fr; align-items: start; }
+  .grid { display: grid; grid-template-columns: 176px 1fr; align-items: start; }
   .labels .spacer { height: 12px; margin-bottom: 8px; }
   .lrow { height: 48px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; padding-right: 16px; }
   .lrow .txt { flex: 1; min-width: 0; }
-  .lrow .name { font-size: 15px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lrow .name { font-size: 15px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lrow .meta { font-size: 13px; line-height: 1.3; color: var(--secondary); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lrow .meta i { font-style: normal; color: var(--faint); margin-left: 6px; }
-  .lrow .meta b { font-weight: 500; font-size: 11px; color: var(--cream); border: 1px solid var(--border); border-radius: 99px; padding: 0 6px; margin-left: 6px; }
+  .lrow .meta b { font-weight: 500; font-size: 11px; color: var(--cream); background: var(--border); border-radius: 99px; padding: 1px 7px; margin-left: 6px; }
   .lrow .handle { width: 20px; color: var(--faint); cursor: grab; text-align: center; font-size: 15px; touch-action: none; }
-  .lrow .del { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--crimson); color: #fff; font: 500 16px/22px Inter, sans-serif; cursor: pointer; flex: none; }
+  .lrow .del { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--crimson); color: #fff; font: 500 16px/22px -apple-system, Inter, sans-serif; cursor: pointer; flex: none; }
   .lrow.lifted { opacity: .6; }
   .ribbons { position: relative; overflow: hidden; cursor: grab; touch-action: pan-y;
     -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
@@ -99,111 +99,110 @@
   .row { height: 48px; margin-bottom: 8px; }
   .dot { flex: none; display: flex; justify-content: center; }
   .dot i { width: 16px; height: 3px; border-radius: 3px; background: var(--cream); }
-  .cell { flex: none; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
+  .cell { flex: none; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
     font-size: 17px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .cell small { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
   .cell sup { font-size: 11px; vertical-align: top; }
   .cell.midnight::before { content: ""; position: absolute; left: -3px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--crimson); }
-  .lens { position: absolute; top: 16px; border: 2px solid #fff; border-radius: 12px; background: rgba(255,255,255,.06); pointer-events: none; }
+  .lens { position: absolute; top: 16px; border: 2px solid #fff; border-radius: 14px; background: rgba(255,255,255,.06); pointer-events: none; }
   .foot { display: flex; gap: 16px; font-size: 12px; color: var(--faint); flex-wrap: wrap; }
   .foot .sp { flex: 1; }
   .foot a:hover { color: var(--muted); }
 
-  .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 32px; }
-  .feature { padding: 16px 0; border-bottom: 0.5px solid #201E1C; }
-  .feature b { display: block; font-weight: 500; }
-  .feature span { color: var(--muted); font-size: 15px; }
-  ol { padding-left: 20px; color: var(--secondary); } ol li { margin: 8px 0; }
-  code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: var(--subtle); padding: 2px 6px; border-radius: 4px; }
-  footer { border-top: 0.5px solid var(--border); margin-top: 64px; padding-top: 20px; font-size: 11px; color: var(--faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+  .ftile { background: var(--tile); border-radius: 28px; padding: 32px; min-height: 220px; display: flex; flex-direction: column; }
+  .ftile .k { color: var(--accent); font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .ftile h3 { font-size: 28px; font-weight: 600; letter-spacing: -.025em; line-height: 1.12; margin-bottom: 12px; }
+  .ftile p { color: var(--muted); font-size: 17px; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+  .step { background: var(--tile); border-radius: 28px; padding: 28px; }
+  .step .num { font-size: 48px; font-weight: 600; letter-spacing: -.03em; color: var(--faint); line-height: 1; margin-bottom: 16px; }
+  .step p { color: var(--secondary); font-size: 17px; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: var(--bg); padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+  footer { border-top: 0.5px solid var(--border); margin-top: 96px; padding-top: 20px; font-size: 12px; color: var(--faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  footer .bar { height: 3px; background: var(--crimson); width: 48px; border-radius: 2px; margin-bottom: 12px; }
   @media (max-width: 720px) {
-    .hero { flex-direction: column; gap: 16px; }
+    .hero { padding: 56px 0 40px; }
     .hero img { width: 88px; height: 88px; }
-    .panel .inner { padding: 16px; }
-    .grid { grid-template-columns: 128px 1fr; }
+    .panel { padding: 18px; border-radius: 22px; gap: 20px; }
+    .tile { padding: 12px; border-radius: 18px; }
+    .grid { grid-template-columns: 116px 1fr; }
     .lrow { padding-right: 8px; }
     .lrow .meta i { display: none; }
-    .moment { font-size: 22px; }
+    .moment { font-size: 24px; }
+    .globalnav .hide-s { display: none; }
   }
 </style>
 </head>
 <body>
-<div class="top-bar"></div>
+<nav class="globalnav"><div class="in">
+  <a class="brand" href="https://bradcowdrey.com">Bradley Cowdrey</a>
+  <a class="hide-s" href="#demo">Overview</a>
+  <a class="hide-s" href="#install">Install</a>
+  <a href="https://github.com/bc101101/meridian">Source</a>
+  <a class="cta" href="https://github.com/bc101101/meridian/releases/latest/download/Meridian.dmg">Download</a>
+</div></nav>
 <div class="wrap">
-  <nav>
-    <a class="nav-name" href="https://bradcowdrey.com">Bradley Cowdrey</a>
-    <div class="nav-links">
-      <a href="#demo">Demo</a>
-      <a href="#install">Install</a>
-      <a href="https://github.com/bc101101/meridian">Source</a>
-    </div>
-  </nav>
-
-  <div class="hero">
+  <section class="hero">
     <img src="icon.png" alt="Meridian app icon">
-    <div>
-      <h1>Meridian</h1>
-      <p class="tagline">Every time zone at a glance, in your menu bar.</p>
-      <div class="actions">
-        <a class="ghost filled" href="https://github.com/bc101101/meridian/releases/latest/download/Meridian.dmg">Download for Mac</a>
-        <a class="ghost" href="https://github.com/bc101101/meridian">View source</a>
-        <span class="fine">Free · Open source · macOS 14+</span>
+    <div class="eyebrow-l">Free for Mac</div>
+    <h1>Meridian.</h1>
+    <p class="sub">Every time zone at a glance. Right in your menu bar.</p>
+    <div class="actions">
+      <a class="pill" href="https://github.com/bc101101/meridian/releases/latest/download/Meridian.dmg">Download</a>
+      <a class="textlink" href="#demo">Try it below ›</a>
+    </div>
+    <p class="fine">macOS 14 or later · Apple silicon and Intel · Open source</p>
+  </section>
+
+  <div class="panel" tabindex="0" id="panel" aria-label="Interactive time zone strip">
+    <div class="hdr" id="demo">
+      <div class="mark"><i style="background:#FFF1E5"></i><i style="background:#807870"></i><i style="background:#B0A898"></i></div>
+      <div class="name">Meridian</div>
+      <div class="sp"></div>
+      <button class="btn" id="editBtn">Edit</button>
+      <button class="btn prime" id="addBtn">Add</button>
+    </div>
+    <div class="travel">
+      <div><div class="eyebrow" id="rel">Now, your time</div><div class="moment" id="moment"></div></div>
+      <div class="sp"></div>
+      <div class="ctrls">
+        <button class="icon" id="prev" aria-label="One hour earlier">‹</button>
+        <button class="btn" id="now" disabled>Now</button>
+        <button class="icon" id="next" aria-label="One hour later">›</button>
       </div>
     </div>
-  </div>
-
-  <div class="label" id="demo">Try it</div>
-  <div class="panel" tabindex="0" id="panel" aria-label="Interactive time zone strip">
-    <div class="rule"></div>
-    <div class="inner">
-      <div class="hdr">
-        <div class="mark"><i style="background:#FFF1E5"></i><i style="background:#807870"></i><i style="background:#B0A898"></i></div>
-        <div class="name">Meridian</div>
-        <div class="sp"></div>
-        <button class="ghost" id="addBtn">Add</button>
-        <button class="ghost" id="editBtn">Edit</button>
-      </div>
-      <div class="body">
-      <div class="search" id="search" hidden>
-        <div class="box">⌕ <input id="q" placeholder="Add a city, PST, UTC+5…" autocomplete="off"></div>
-        <div class="results" id="results"></div>
-      </div>
-      <div class="travel">
-        <div><div class="eyebrow" id="rel">Now · your time</div><div class="moment" id="moment"></div></div>
-        <div class="sp"></div>
-        <div class="ctrls">
-          <button class="icon" id="prev" aria-label="One hour earlier">‹</button>
-          <button class="ghost" id="now" disabled>Now</button>
-          <button class="icon" id="next" aria-label="One hour later">›</button>
-        </div>
-      </div>
+    <div class="tile search" id="search" hidden>
+      <div class="box">⌕ <input id="q" placeholder="Add a city, PST, UTC+5…" autocomplete="off"></div>
+      <div class="results" id="results"></div>
+    </div>
+    <div class="tile">
       <div class="grid">
         <div class="labels" id="labels"></div>
         <div class="ribbons" id="ribbons"><div class="track" id="track"></div><div class="lens" id="lens"></div></div>
       </div>
-      </div>
-      <div class="foot"><a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a><span class="sp"></span><span id="hint">Drag, scroll or ← → to travel</span></div>
     </div>
+    <div class="foot"><a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a><span class="sp"></span><span id="hint">Drag, scroll or ← → to travel</span></div>
   </div>
 
-  <div class="label">Simple on purpose</div>
-  <div class="features">
-    <div class="feature"><b>Day and night, side by side</b><span>One row per city. Each column is the same moment everywhere.</span></div>
-    <div class="feature"><b>Time travel</b><span>Drag, scroll or click an hour to plan across zones. Now snaps back.</span></div>
-    <div class="feature"><b>Meeting overlap</b><span>A cream mark shows when everyone is in working hours.</span></div>
-    <div class="feature"><b>Add, remove, reorder</b><span>Add by city, airport code, PST or UTC+5. Edit to delete or drag into order.</span></div>
-    <div class="feature"><b>Copy the moment</b><span>Paste one time for every city into a chat or invite.</span></div>
-    <div class="feature"><b>Menu bar or desktop</b><span>An icon or “LON 14:32” in the menu bar, plus a floating window.</span></div>
+  <h2 class="section-h">Simple on purpose.</h2>
+  <div class="tiles">
+    <div class="ftile"><div class="k">At a glance</div><h3>Day and night, side by side.</h3><p>One row per city. Every column is the same moment everywhere.</p></div>
+    <div class="ftile"><div class="k">Plan ahead</div><h3>Travel through time.</h3><p>Drag, scroll or click any hour. Now snaps you back.</p></div>
+    <div class="ftile"><div class="k">Meetings</div><h3>See when everyone’s working.</h3><p>A cream mark lights up the hours that work for every city.</p></div>
+    <div class="ftile"><div class="k">Your list</div><h3>Add, remove, reorder.</h3><p>Search by city, airport code, PST or UTC+5. Edit to delete or drag into place.</p></div>
+    <div class="ftile"><div class="k">Share</div><h3>Copy the moment.</h3><p>One click puts the time for every city on your clipboard.</p></div>
+    <div class="ftile"><div class="k">Anywhere</div><h3>Menu bar or desktop.</h3><p>A globe or “LON 14:32” up top, plus a floating window.</p></div>
   </div>
 
-  <div class="label" id="install">Install</div>
-  <ol>
-    <li>Download <b>Meridian.dmg</b> and drag Meridian into Applications.</li>
-    <li>First launch: right-click Meridian and choose <b>Open</b>, or run <code>xattr -dr com.apple.quarantine /Applications/Meridian.app</code></li>
-    <li>Click the globe in your menu bar, then <b>Add</b> your cities.</li>
-  </ol>
+  <h2 class="section-h" id="install">Get started.</h2>
+  <div class="steps">
+    <div class="step"><div class="num">1</div><p>Download <b>Meridian.dmg</b> and drag Meridian into Applications.</p></div>
+    <div class="step"><div class="num">2</div><p>First launch: right-click Meridian and choose <b>Open</b>. Or run <code>xattr -dr com.apple.quarantine /Applications/Meridian.app</code></p></div>
+    <div class="step"><div class="num">3</div><p>Click the globe in your menu bar, then <b>Add</b> your cities.</p></div>
+  </div>
 
-  <footer><span>© 2026 Bradley Cowdrey</span><span>Free and open source</span></footer>
+  <footer><div><div class="bar"></div>© 2026 Bradley Cowdrey</div><span>Free and open source · <a href="https://github.com/bc101101/meridian">GitHub</a></span></footer>
 </div>
 
 <script>
@@ -215,8 +214,8 @@
 
   const ROW = 48, GAP = 8, WORK = [9, 18];
   const cellW = () => innerWidth <= 720 ? 44 : 52;
-  const stops = [[0,0x22201C],[5,0x26231F],[6.5,0x4A4540],[8,0xB0A898],[9.5,0xE0D8D0],[12,0xFFF1E5],[15,0xFFF1E5],
-                 [17.5,0xE0D8D0],[19,0x807870],[20.5,0x3A3530],[22,0x2A2520],[24,0x22201C]];
+  const stops = [[0,0x161412],[5,0x1A1816],[6.5,0x4A4540],[8,0xB0A898],[9.5,0xE0D8D0],[12,0xFFF1E5],[15,0xFFF1E5],
+                 [17.5,0xE0D8D0],[19,0x807870],[20.5,0x34302B],[22,0x1C1A17],[24,0x161412]];
   const rgb = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255];
   const sky = (h, dim) => {
     for (let i = 0; i < stops.length - 1; i++) {
@@ -254,9 +253,9 @@
     $("moment").textContent = `${m.weekday} ${m.day} ${m.month}, ${pad(m.hour)}:${m.minute}`;
     const d = Math.floor(Math.abs(base) / 24), h = Math.abs(base) % 24;
     const span = [d ? d + " d" : "", h ? h + " h" : ""].filter(Boolean).join(" ");
-    $("rel").textContent = base === 0 ? "Now · your time" : base > 0 ? `In ${span}` : `${span} ago`;
+    $("rel").textContent = base === 0 ? "Now, your time" : base > 0 ? `In ${span}` : `${span} ago`;
     $("rel").classList.toggle("away", base !== 0);
-    const nowBtn = $("now"); nowBtn.disabled = offset === 0; nowBtn.classList.toggle("filled", offset !== 0);
+    const nowBtn = $("now"); nowBtn.disabled = offset === 0; nowBtn.classList.toggle("prime", offset !== 0);
 
     $("labels").innerHTML = '<div class="spacer"></div>' + cities.map(([name, tz], idx) => {
       const p = parts(moment, tz), there = dayKey(moment, tz), here = dayKey(moment, local);
@@ -288,7 +287,7 @@
     lens.style.height = cities.length * (ROW + GAP) + "px";
     lens.style.left = width / 2 - (CELL + 4) / 2 - 2 + "px";
     $("editBtn").textContent = editing ? "Done" : "Edit";
-    $("editBtn").classList.toggle("filled", editing);
+    $("editBtn").classList.toggle("prime", editing);
     $("hint").textContent = editing ? "Drag ≡ to reorder" : "Drag, scroll or ← → to travel";
   }
 
@@ -326,7 +325,7 @@
   function addCity([n, z]) { if (cities.length < 12) cities.push([n, z]); $("q").value = ""; renderResults(); render(); }
   function toggleAdd(on = !adding) {
     adding = on; if (on) editing = false;
-    $("search").hidden = !on; $("addBtn").textContent = on ? "Done" : "Add"; $("addBtn").classList.toggle("filled", on);
+    $("search").hidden = !on; $("addBtn").textContent = on ? "Done" : "Add";
     if (on) { $("q").focus(); renderResults(); }
     render();
   }

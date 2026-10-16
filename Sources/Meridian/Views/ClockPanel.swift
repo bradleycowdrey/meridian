@@ -13,39 +13,31 @@ struct ClockPanel: View {
     @State private var copied = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // The crimson rule from bradcowdrey.com.
-            Palette.crimson.frame(height: 3)
+        VStack(alignment: .leading, spacing: Space.xl) {
+            header
 
-            VStack(alignment: .leading, spacing: 0) {
-                header
-                    .padding(.bottom, Space.l)
-                Palette.border.frame(height: 0.5)
+            // Hero: the moment you're looking at, apple.com-style headline.
+            TravelBar(copied: $copied)
 
-                // Content: search, the moment and the strip read as one group.
-                VStack(alignment: .leading, spacing: Space.l) {
-                    if adding || store.places.isEmpty {
-                        AddCityField()
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-                    TravelBar(copied: $copied)
-                    if !store.places.isEmpty {
-                        StripView(
-                            cellWidth: compact ? 48 : 52,
-                            rowHeight: compact ? 44 : 48,
-                            labelWidth: compact ? 168 : 184,
-                            editing: editing
-                        )
-                    }
-                }
-                .padding(.vertical, Space.xl)
-
-                footer
+            if adding || store.places.isEmpty {
+                Tile { AddCityField() }
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
-            .padding(.horizontal, compact ? Space.l + Space.xs : Space.xl)
-            .padding(.top, Space.l + Space.xs)
-            .padding(.bottom, compact ? Space.l + Space.xs : Space.xl)
+
+            if !store.places.isEmpty {
+                Tile {
+                    StripView(
+                        cellWidth: compact ? 48 : 52,
+                        rowHeight: compact ? 44 : 48,
+                        labelWidth: compact ? 160 : 176,
+                        editing: editing
+                    )
+                }
+            }
+
+            footer
         }
+        .padding(compact ? Space.xl : Space.xl + Space.s)
         .background(Palette.bg)
         .environment(\.colorScheme, .dark)
         .onAppear { store.tick() }
@@ -65,20 +57,21 @@ struct ClockPanel: View {
             AppMark(size: 28)
             Text(Brand.appName)
                 .font(TypeScale.title)
+                .tracking(-0.2)
                 .foregroundStyle(Palette.textPrimary)
             Spacer()
-            Button(adding ? "Done" : "Add") {
-                withAnimation(.snappy) { adding.toggle(); if adding { editing = false } }
-            }
-            .buttonStyle(GhostButtonStyle(filled: adding))
-            .disabled(!store.canAdd && !adding)
-            .help(store.canAdd ? "Add a city" : "You can track up to \(ZoneStore.maxPlaces) cities")
             Button(editing ? "Done" : "Edit") {
                 withAnimation(.snappy) { editing.toggle(); if editing { adding = false } }
             }
-            .buttonStyle(GhostButtonStyle(filled: editing))
+            .buttonStyle(PillButtonStyle(prominent: editing))
             .disabled(store.places.isEmpty)
             .help("Remove or reorder cities")
+            Button(adding ? "Done" : "Add") {
+                withAnimation(.snappy) { adding.toggle(); if adding { editing = false } }
+            }
+            .buttonStyle(PillButtonStyle(prominent: true))
+            .disabled(!store.canAdd && !adding)
+            .help(store.canAdd ? "Add a city" : "You can track up to \(ZoneStore.maxPlaces) cities")
             if compact {
                 IconButton(symbol: "macwindow", help: "Open as a desktop window") {
                     openWindow(id: "strip")
@@ -122,12 +115,10 @@ struct TravelBar: View {
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text(relativeLabel)
                     .font(TypeScale.eyebrow)
-                    .textCase(.uppercase)
-                    .tracking(1.2)
-                    .foregroundStyle(store.offsetHours == 0 ? Palette.textMuted : Palette.cream)
+                    .foregroundStyle(store.offsetHours == 0 ? Palette.accent : Palette.cream)
                 Text(TimeMath.fullMoment(moment, in: .current, use24h: store.use24h))
                     .font(TypeScale.display)
-                    .tracking(-0.5)
+                    .tracking(-0.9)
                     .foregroundStyle(Palette.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -136,7 +127,7 @@ struct TravelBar: View {
             HStack(spacing: Space.s) {
                 IconButton(symbol: "chevron.left", help: "One hour earlier") { store.travel(-1) }
                 Button("Now") { store.backToNow() }
-                    .buttonStyle(GhostButtonStyle(filled: store.offsetHours != 0))
+                    .buttonStyle(PillButtonStyle(prominent: store.offsetHours != 0))
                     .disabled(store.offsetHours == 0)
                 IconButton(symbol: "chevron.right", help: "One hour later") { store.travel(1) }
                 IconButton(symbol: copied ? "checkmark" : "doc.on.doc", help: "Copy this moment for every city") {
@@ -154,7 +145,7 @@ struct TravelBar: View {
 
     private var relativeLabel: String {
         let h = store.offsetHours
-        if h == 0 { return "Now · your time" }
+        if h == 0 { return "Now, your time" }
         let days = abs(h) / 24
         let hours = abs(h) % 24
         var parts: [String] = []
@@ -184,11 +175,11 @@ struct AddCityField: View {
             .font(.system(size: 15))
             .foregroundStyle(Palette.textPrimary)
             .padding(.horizontal, Space.m)
-            .frame(height: 40)
-            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Palette.raised))
+            .frame(height: 44)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.bg))
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(focused ? Palette.textFaint : Palette.border, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(focused ? Palette.textFaint : .clear, lineWidth: 1)
             )
 
             if !results.isEmpty {
@@ -281,9 +272,8 @@ struct IconButton: View {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(hovering ? Palette.textPrimary : Palette.textMuted)
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(hovering ? Palette.subtle : .clear))
-                .overlay(Circle().strokeBorder(Palette.border, lineWidth: 1))
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(hovering ? Palette.borderStrong : Palette.border))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -292,34 +282,46 @@ struct IconButton: View {
     }
 }
 
-/// bradcowdrey.com's ghost button: hairline border, inverts to white when active.
-struct GhostButtonStyle: ButtonStyle {
-    var filled = false
+/// apple.com-style pill: white for the primary action, warm grey for secondary.
+struct PillButtonStyle: ButtonStyle {
+    var prominent = false
 
     func makeBody(configuration: Configuration) -> some View {
-        GhostBody(configuration: configuration, filled: filled)
+        PillBody(configuration: configuration, prominent: prominent)
     }
 
-    private struct GhostBody: View {
+    private struct PillBody: View {
         let configuration: ButtonStyleConfiguration
-        let filled: Bool
+        let prominent: Bool
         @Environment(\.isEnabled) private var isEnabled
         @State private var hovering = false
 
         var body: some View {
-            let inverted = filled || (hovering && isEnabled)
             configuration.label
-                .font(.system(size: 13, weight: .medium))
-                .padding(.horizontal, Space.l)
-                .frame(height: 32)
-                .foregroundStyle(inverted ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textFaint))
-                .background(Capsule().fill(inverted ? Color.white : .clear))
-                .overlay(Capsule().strokeBorder(inverted ? .clear : Palette.border, lineWidth: 1))
+                .font(.system(size: 14, weight: .semibold))
+                .padding(.horizontal, Space.l + Space.xs)
+                .frame(height: 34)
+                .foregroundStyle(prominent ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textFaint))
+                .background(
+                    Capsule().fill(prominent ? (hovering ? Palette.cream : Color.white) : (hovering && isEnabled ? Palette.borderStrong : Palette.border))
+                )
                 .opacity(configuration.isPressed ? 0.8 : 1)
+                .scaleEffect(configuration.isPressed ? 0.97 : 1)
                 .contentShape(Capsule())
                 .onHover { hovering = $0 }
                 .animation(.easeOut(duration: 0.15), value: hovering)
         }
+    }
+}
+
+/// Large rounded raised surface, like the product tiles on apple.com.
+struct Tile<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content()
+            .padding(Space.l + Space.xs)
+            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.raisedTile))
     }
 }
 
@@ -335,8 +337,8 @@ struct RowButtonStyle: ButtonStyle {
         var body: some View {
             configuration.label
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(configuration.isPressed ? Palette.border : (hovering ? Palette.subtle : .clear))
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(configuration.isPressed ? Palette.borderStrong : (hovering ? Palette.border : .clear))
                 )
                 .onHover { hovering = $0 }
         }

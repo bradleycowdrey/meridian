@@ -13,6 +13,11 @@ enum Palette {
     static let textMuted = Color(hex: 0xB0A898)
     static let textFaint = Color(hex: 0x807870)
     static let crimson = Color(hex: 0x990F3D)
+    /// Raised tile surface and stronger hover fill, a step up from bg on the same warm scale.
+    static let raisedTile = Color(hex: 0x23201D)
+    static let borderStrong = Color(hex: 0x3A3530)
+    /// Crimson lifted for legibility as text on dark (eyebrows), same hue as #990F3D.
+    static let accent = Color(hex: 0xE04A7A)
 }
 
 enum Space {
@@ -24,12 +29,13 @@ enum Space {
 }
 
 enum TypeScale {
-    static let eyebrow = Font.system(size: 11, weight: .medium)
+    // apple.com rhythm: semibold headlines, tight tracking, regular body.
+    static let eyebrow = Font.system(size: 13, weight: .semibold)
     static let meta = Font.system(size: 13, weight: .regular)
-    static let body = Font.system(size: 15, weight: .medium)
+    static let body = Font.system(size: 15, weight: .semibold)
     static let cell = Font.system(size: 17, weight: .medium)
-    static let title = Font.system(size: 17, weight: .medium)
-    static let display = Font.system(size: 28, weight: .medium)
+    static let title = Font.system(size: 19, weight: .semibold)
+    static let display = Font.system(size: 34, weight: .semibold)
 }
 
 extension Color {

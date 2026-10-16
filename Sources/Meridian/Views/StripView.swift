@@ -67,10 +67,10 @@ struct StripView: View {
                     .frame(width: stripWidth)
 
                     // The "now" lens.
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(.white.opacity(0.06))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .strokeBorder(.white, lineWidth: 2)
                         )
                         .frame(width: cellWidth + Space.xs, height: CGFloat(store.places.count) * pitch)
@@ -239,7 +239,7 @@ private struct HourCell: View {
         .foregroundStyle(style.text)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(style.fill.opacity(dimmed ? 0.72 : 1))
         )
         .overlay(alignment: .leading) {
@@ -281,8 +281,8 @@ private struct OverlapMark: View {
 /// cream in daylight.
 enum DayColor {
     private static let stops: [(Double, UInt32)] = [
-        (0, 0x22201C),
-        (5, 0x26231F),
+        (0, 0x161412),
+        (5, 0x1A1816),
         (6.5, 0x4A4540),
         (8, 0xB0A898),
         (9.5, 0xE0D8D0),
@@ -290,9 +290,9 @@ enum DayColor {
         (15, 0xFFF1E5),
         (17.5, 0xE0D8D0),
         (19, 0x807870),
-        (20.5, 0x3A3530),
-        (22, 0x2A2520),
-        (24, 0x22201C),
+        (20.5, 0x34302B),
+        (22, 0x1C1A17),
+        (24, 0x161412),
     ]
 
     static func style(at hour: Double) -> (fill: Color, text: Color) {

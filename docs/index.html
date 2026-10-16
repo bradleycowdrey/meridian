@@ -91,7 +91,7 @@
   .sizes button { height: 32px; min-width: 44px; padding: 0 14px; border: 0; border-radius: 980px; background: none; color: var(--muted); font: 600 13px -apple-system, Inter, sans-serif; cursor: pointer; }
   .sizes button.on { background: #fff; color: var(--bg); }
   .tile { background: var(--tile); border-radius: 22px; padding: 20px; }
-  .tile.strip { padding-top: 8px; }
+  .tile.strip { padding-top: 20px; }
   .search { display: flex; flex-direction: column; gap: 8px; }
   .search[hidden] { display: none; }
   .search .box { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 12px; background: var(--bg); color: var(--faint); border: 1px solid transparent; }
@@ -108,7 +108,7 @@
   .result .o { font-size: 13px; color: var(--muted); width: 72px; text-align: right; }
   .result .plus { color: var(--muted); font-size: 18px; }
   .grid { display: grid; grid-template-columns: 176px 1fr; align-items: start; }
-  .labels .spacer { height: 12px; margin-bottom: 8px; }
+  .labels .spacer { height: 20px; margin-bottom: 8px; }
   .lrow { height: 48px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; padding-right: 16px; }
   .lrow .txt { flex: 1; min-width: 0; }
   .lrow .name { font-size: 15px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -124,10 +124,14 @@
   .ribbons:active { cursor: grabbing; }
   .track { will-change: transform; }
   .row, .dots { display: flex; gap: 8px; }
-  .dots { height: 12px; margin-bottom: 8px; align-items: center; }
+  .dots { height: 20px; margin-bottom: 8px; align-items: flex-end; }
   .row { height: 48px; margin-bottom: 8px; }
-  .dot { flex: none; display: flex; justify-content: center; }
-  .dot i { width: 16px; height: 3px; border-radius: 3px; background: var(--cream); }
+  .dot { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; height: 20px; }
+  .dot span { font-size: 11px; font-weight: 500; line-height: 1; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .dot.center span { color: #fff; font-weight: 600; }
+  .dot.now span { color: var(--cream); font-weight: 600; }
+  .dot i { width: 16px; height: 3px; border-radius: 3px; background: transparent; }
+  .dot i.on { background: var(--cream); }
   .cell { flex: none; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
     font-size: 17px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .cell.center { font-weight: 600; }
@@ -135,7 +139,7 @@
   .cell small { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
   .cell sup { font-size: 11px; vertical-align: top; }
   .cell.midnight::before { content: ""; position: absolute; left: -5px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--crimson); }
-  .lens { position: absolute; top: 15px; border: 2px solid #fff; border-radius: 15px; background: rgba(255,255,255,.06); pointer-events: none; }
+  .lens { position: absolute; top: 23px; border: 2px solid #fff; border-radius: 15px; background: rgba(255,255,255,.06); pointer-events: none; }
   .foot { display: flex; gap: 16px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .foot .sp { flex: 1; }
   .foot a:hover { color: var(--muted); }
@@ -307,7 +311,8 @@
     let html = '<div class="dots">';
     for (const i of idx) {
       const all = cities.length > 1 && cities.every(([, tz]) => isWork(+parts(at(i), tz).hour));
-      html += `<div class="dot" style="width:${CELL - GAP}px">${all ? "<i></i>" : ""}</div>`;
+      const lab = i === 0 ? "Now" : (i > 0 ? `+${i}` : `−${-i}`);
+      html += `<div class="dot${i === 0 ? " now" : ""}${i === base ? " center" : ""}" style="width:${CELL - GAP}px" title="${i === 0 ? "The current hour" : Math.abs(i) + (Math.abs(i) === 1 ? " hour " : " hours ") + (i > 0 ? "from now" : "ago")}"><span>${lab}</span><i class="${all ? "on" : ""}"></i></div>`;
     }
     html += "</div>";
     for (const [, tz] of cities) {

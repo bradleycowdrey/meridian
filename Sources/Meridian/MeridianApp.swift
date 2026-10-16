@@ -41,13 +41,18 @@ struct MeridianApp: App {
 
 struct MenuBarLabel: View {
     @EnvironmentObject private var store: ZoneStore
+    @ObservedObject private var updater = Updater.shared
 
     var body: some View {
+        // A trailing dot in the menu bar whenever an update is waiting.
+        let dot = updater.latest == nil ? "" : " •"
         if store.menuBarStyle == .cityTime, let place = store.menuBarPlace {
-            Text("\(place.tag) \(TimeMath.time(store.now, in: place.timeZone, use24h: store.use24h))")
+            Text("\(place.tag) \(TimeMath.time(store.now, in: place.timeZone, use24h: store.use24h))\(dot)")
                 .monospacedDigit()
-        } else {
+        } else if dot.isEmpty {
             Image(systemName: "globe")
+        } else {
+            Text("\(Image(systemName: "globe"))\(dot)")
         }
     }
 }
@@ -65,6 +70,8 @@ private struct WindowConfigurator: NSViewRepresentable {
             window.collectionBehavior = floatOnTop ? [.canJoinAllSpaces, .fullScreenAuxiliary] : [.managed]
             window.isMovableByWindowBackground = true
             window.titlebarAppearsTransparent = true
+            // Reopen where the user last dragged it.
+            if window.frameAutosaveName.isEmpty { window.setFrameAutosaveName("MeridianStripWindow") }
         }
     }
 }

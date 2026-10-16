@@ -42,7 +42,7 @@ final class Updater: ObservableObject {
 
     let currentVersion: String
     private var timer: Timer?
-    private static let interval: TimeInterval = 6 * 3600
+    private static let interval: TimeInterval = 3600
 
     private init() {
         currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -64,7 +64,8 @@ final class Updater: ObservableObject {
         }
     }
 
-    private func checkIfDue() async {
+    /// Checks if the last check is over an hour old (also called whenever the panel opens).
+    func checkIfDue() async {
         guard automatic else { return }
         if let lastChecked, Date().timeIntervalSince(lastChecked) < Self.interval { return }
         await check(userInitiated: false)
@@ -150,10 +151,9 @@ final class Updater: ObservableObject {
     private func relaunch(replacing target: URL, with staged: URL, scratch: URL) throws {
         let script = scratch.appendingPathComponent("install.sh")
         try Self.installScript.write(to: script, atomically: true, encoding: .utf8)
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = [script.path, String(ProcessInfo.processInfo.processIdentifier), target.path, staged.path]
-        try process.run()
+        // Spawn in a new session: launchd kills an app's whole process group when it quits,
+        // which would take a plain child process (and the update) down with it.
+        try Self.spawnDetached("/bin/sh", [script.path, String(ProcessInfo.processInfo.processIdentifier), target.path, staged.path])
         NSApp.terminate(nil)
     }
 
@@ -161,6 +161,9 @@ final class Updater: ObservableObject {
     #!/bin/sh
     # $1 = pid to wait for, $2 = installed app, $3 = staged new app
     PID="$1"; TARGET="$2"; NEW="$3"
+    mkdir -p "$HOME/Library/Logs"
+    exec >>"$HOME/Library/Logs/Meridian-update.log" 2>&1
+    echo "$(date) updating $TARGET from $NEW (waiting for pid $PID)"
     i=0
     while kill -0 "$PID" 2>/dev/null && [ $i -lt 300 ]; do sleep 0.1; i=$((i+1)); done
     rm -rf "$TARGET.old"
@@ -172,6 +175,7 @@ final class Updater: ObservableObject {
       fi
     fi
     /usr/bin/xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null
+    echo "$(date) relaunching"
     /usr/bin/open "$TARGET"
     """
 
@@ -242,6 +246,20 @@ final class Updater: ObservableObject {
         guard FileManager.default.fileExists(atPath: source.path) else { throw UpdateError.noApp }
         try await run("/usr/bin/ditto", [source.path, staged.path])
         return staged
+    }
+
+    /// posix_spawn with POSIX_SPAWN_SETSID (0x0400): the child gets its own session and process
+    /// group, so it keeps running after Meridian exits.
+    private static func spawnDetached(_ tool: String, _ arguments: [String]) throws {
+        var attributes: posix_spawnattr_t?
+        posix_spawnattr_init(&attributes)
+        defer { posix_spawnattr_destroy(&attributes) }
+        posix_spawnattr_setflags(&attributes, Int16(0x0400))
+        let argv: [UnsafeMutablePointer<CChar>?] = ([tool] + arguments).map { strdup($0) } + [nil]
+        defer { argv.forEach { free($0) } }
+        var pid: pid_t = 0
+        let status = posix_spawn(&pid, tool, nil, &attributes, argv, environ)
+        guard status == 0 else { throw UpdateError.tool("posix_spawn", status) }
     }
 
     private static func run(_ tool: String, _ arguments: [String]) async throws {

@@ -15,7 +15,8 @@ struct StripView: View {
     @State private var hoverIndex: Int?
     private var rowSpacing: CGFloat { ui.gutter }
     private var cellGap: CGFloat { ui.gutter }
-    private var overlapRowHeight: CGFloat { ui.pt(12) }
+    /// Column header: hours from now ("−5 … Now … +2") with the meeting-overlap mark beneath.
+    private var overlapRowHeight: CGFloat { ui.pt(20) }
 
     private var pitch: CGFloat { rowHeight + rowSpacing }
 
@@ -43,8 +44,12 @@ struct StripView: View {
                     VStack(spacing: rowSpacing) {
                         HStack(spacing: cellGap) {
                             ForEach((base - half)...(base + half), id: \.self) { index in
-                                OverlapMark(isOverlap: allWorking(at: anchor.addingTimeInterval(Double(index) * 3600)))
-                                    .frame(width: cellWidth - cellGap, height: overlapRowHeight)
+                                ColumnHeader(
+                                    hoursFromNow: index,
+                                    isCenter: index == base,
+                                    isOverlap: allWorking(at: anchor.addingTimeInterval(Double(index) * 3600))
+                                )
+                                .frame(width: cellWidth - cellGap, height: overlapRowHeight)
                             }
                         }
                         ForEach(store.places) { place in
@@ -276,6 +281,31 @@ private struct HourCell: View {
         if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium)) }
         if !suffix.isEmpty { text = text + Text(suffix).font(ui.font(10, .medium)) }
         return text
+    }
+}
+
+private struct ColumnHeader: View {
+    @Environment(\.metrics) private var ui
+    let hoursFromNow: Int
+    let isCenter: Bool
+    let isOverlap: Bool
+
+    private var label: String {
+        hoursFromNow == 0 ? "Now" : (hoursFromNow > 0 ? "+\(hoursFromNow)" : "−\(-hoursFromNow)")
+    }
+
+    var body: some View {
+        VStack(spacing: ui.pt(3)) {
+            Text(label)
+                .font(ui.font(11, hoursFromNow == 0 || isCenter ? .semibold : .medium))
+                .monospacedDigit()
+                .foregroundStyle(hoursFromNow == 0 ? Palette.cream : (isCenter ? Palette.textPrimary : Palette.textMuted))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            OverlapMark(isOverlap: isOverlap)
+        }
+        .frame(maxHeight: .infinity, alignment: .bottom)
+        .help(hoursFromNow == 0 ? "The current hour" : "\(abs(hoursFromNow)) hour\(abs(hoursFromNow) == 1 ? "" : "s") \(hoursFromNow > 0 ? "from now" : "ago")")
     }
 }
 

@@ -34,13 +34,18 @@ private struct ClockPanelContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // bradcowdrey.com's signature crimson rule.
-            Palette.crimson.frame(height: 3)
+            // Crimson rule and header together act as the window's title bar: drag anywhere
+            // that isn't a button to move the window.
+            VStack(alignment: .leading, spacing: 0) {
+                // bradcowdrey.com's signature crimson rule.
+                Palette.crimson.frame(height: 3)
 
-            header
-                .padding(.horizontal, ui.xl)
-                .padding(.top, ui.xl)
-                .padding(.bottom, ui.l)
+                header
+                    .padding(.horizontal, ui.xl)
+                    .padding(.top, ui.xl)
+                    .padding(.bottom, ui.l)
+            }
+            .background(compact ? nil : WindowDragHandle())
 
             // Everything below the header scrolls if it would outgrow the screen
             // (e.g. Extra Large with the city search open).
@@ -55,7 +60,7 @@ private struct ClockPanelContent: View {
                     }
 
                     if !store.places.isEmpty {
-                        Tile(tightTop: true) {
+                        Tile {
                             StripView(
                                 cellWidth: ui.cellWidth(compact: compact),
                                 rowHeight: ui.rowHeight(compact: compact),
@@ -87,7 +92,10 @@ private struct ClockPanelContent: View {
         .background(Palette.bg)
         .background(HostWindowReader(box: host))
         .environment(\.colorScheme, .dark)
-        .onAppear { store.tick() }
+        .onAppear {
+            store.tick()
+            Task { await Updater.shared.checkIfDue() }
+        }
         .focusable()
         .focusEffectDisabled()
         .onKeyPress(.leftArrow) { store.travel(-1); return .handled }
@@ -116,6 +124,17 @@ private struct ClockPanelContent: View {
             MoreMenu(compact: compact, closeHost: { host.window?.close() })
         }
     }
+}
+
+/// An area that moves its window when dragged (the window has no visible title bar).
+private struct WindowDragHandle: NSViewRepresentable {
+    final class DragView: NSView {
+        override var mouseDownCanMoveWindow: Bool { true }
+        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
+    }
+
+    func makeNSView(context: Context) -> DragView { DragView() }
+    func updateNSView(_ view: DragView, context: Context) {}
 }
 
 /// Holds the NSWindow hosting the panel (the menu bar popover or the desktop window).
@@ -285,7 +304,32 @@ private struct UpdateBanner: View {
     @Environment(\.metrics) private var ui
 
     var body: some View {
-        Group {
+        VStack(alignment: .leading, spacing: ui.s) {
+            // An available update is always shown, above any other status, until it's installed.
+            if let release = updater.latest {
+                row {
+                    Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
+                    Text("Meridian \(release.version) is available")
+                        .font(ui.font(14, .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("You have \(updater.currentVersion)")
+                        .font(ui.meta)
+                        .foregroundStyle(Palette.textMuted)
+                    Spacer(minLength: ui.s)
+                    switch updater.phase {
+                    case .downloading:
+                        ProgressView().controlSize(.small)
+                        message("Downloading…")
+                    case .installing:
+                        ProgressView().controlSize(.small)
+                        message("Installing, Meridian will restart…")
+                    default:
+                        Button("Update") { Task { await updater.install() } }
+                            .buttonStyle(PillButtonStyle(prominent: true))
+                    }
+                }
+            }
+
             if updater.userChecking {
                 row {
                     ProgressView().controlSize(.small)
@@ -309,28 +353,6 @@ private struct UpdateBanner: View {
                             .buttonStyle(PillButtonStyle())
                     }
                     IconButton(symbol: "xmark", help: "Dismiss") { updater.dismissNotice() }
-                }
-            } else if let release = updater.latest {
-                row {
-                    Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
-                    Text("Meridian \(release.version) is available")
-                        .font(ui.font(14, .semibold))
-                        .foregroundStyle(Palette.textPrimary)
-                    Text("You have \(updater.currentVersion)")
-                        .font(ui.meta)
-                        .foregroundStyle(Palette.textMuted)
-                    Spacer(minLength: ui.s)
-                    switch updater.phase {
-                    case .downloading:
-                        ProgressView().controlSize(.small)
-                        message("Downloading…")
-                    case .installing:
-                        ProgressView().controlSize(.small)
-                        message("Installing, Meridian will restart…")
-                    default:
-                        Button("Update") { Task { await updater.install() } }
-                            .buttonStyle(PillButtonStyle(prominent: true))
-                    }
                 }
             }
         }

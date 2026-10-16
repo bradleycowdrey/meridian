@@ -39,6 +39,8 @@ struct StripView: View {
                     }
                 }
                 .frame(width: labelWidth, alignment: .leading)
+                // Above the strip, so the city controls (delete, drag handle) always get the click.
+                .zIndex(1)
 
                 ZStack(alignment: .top) {
                     VStack(spacing: rowSpacing) {
@@ -93,6 +95,9 @@ struct StripView: View {
                 }
                 .frame(width: stripWidth)
                 .clipped()
+                // Clipping hides the off-screen hour tiles but doesn't stop them catching clicks;
+                // limit hit-testing to the visible strip so they can't cover the city column.
+                .contentShape(Rectangle())
                 .mask(
                     LinearGradient(
                         stops: [

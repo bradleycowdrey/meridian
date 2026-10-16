@@ -1,7 +1,7 @@
 name: Release
 
 # Every push to main builds the app and publishes the DMG on GitHub Releases as v<VERSION>,
-# plus a stable Meridian.dmg so https://github.com/bc101101/meridian/releases/latest/download/Meridian.dmg
+# plus a stable Meridian.dmg so https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg
 # always serves the newest build. Bump VERSION for a new release; pushing again with the same
 # VERSION replaces that release's files.
 on:

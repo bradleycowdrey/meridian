@@ -24,6 +24,10 @@ private struct ClockPanelContent: View {
     @State private var adding = false
     @State private var editing = false
     @State private var contentHeight: CGFloat = 0
+    /// Height of the window's hidden title bar. The panel draws under it (so the crimson rule
+    /// is at the very top), and SwiftUI still adds it to the window height, so it's subtracted
+    /// at the bottom to keep the window exactly the size of the panel.
+    @State private var titleBarInset: CGFloat = 0
     @State private var host = HostWindow()
     @Environment(\.openWindow) private var openWindow
 
@@ -113,9 +117,11 @@ private struct ClockPanelContent: View {
             .frame(height: contentHeight > 0 ? min(contentHeight, maxBodyHeight) : nil)
             .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
         }
+        .padding(.bottom, -titleBarInset)
         .background(Palette.bg)
         // Use the full window: the crimson rule sits at the very top, under the hidden title bar.
         .ignoresSafeArea()
+        .background(Palette.bg.ignoresSafeArea())
         .background(HostWindowReader(box: { host.isDesktop = !compact; return host }()))
         // Measure the whole panel and size the hosting window to it. SwiftUI's menu bar panel
         // (and sometimes a title-less window) doesn't grow on its own when content gets bigger,
@@ -173,7 +179,12 @@ private struct ClockPanelContent: View {
                 if frame.minY < visible.minY { frame.origin.y = visible.minY }
                 if frame.maxY > visible.maxY { frame.origin.y = visible.maxY - frame.height }
             }
-            SelfTest.log("fitWindow content \(size) window \(window.frame) -> \(frame)")
+            if !compact {
+                let inset = max(0, window.frame.height - window.contentLayoutRect.height)
+                if abs(inset - titleBarInset) > 0.5 { titleBarInset = inset }
+                window.backgroundColor = NSColor(Palette.bg)
+            }
+            SelfTest.log("fitWindow content \(size) window \(window.frame) -> \(frame) titleBarInset \(titleBarInset)")
             if abs(frame.width - window.frame.width) > 0.5 || abs(frame.height - window.frame.height) > 0.5
                 || abs(frame.minX - window.frame.minX) > 0.5 || abs(frame.minY - window.frame.minY) > 0.5 {
                 window.setFrame(frame, display: true)
@@ -755,7 +766,7 @@ struct AddCityField: View {
                         }
                     }
                 }
-                .frame(maxHeight: ui.pt(240))
+                .frame(maxHeight: ui.pt(168))   // about three results, so the strip stays in view
             }
         }
         .onAppear { focused = true }

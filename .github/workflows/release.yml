@@ -64,8 +64,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.dmg dist/*.sha256 --repo "$GITHUB_REPOSITORY" --clobber
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --latest
+            # Never replace a published version's files; bump VERSION to release new code.
+            echo "Release $TAG already exists; not overwriting it."
           else
             gh release create "$TAG" dist/*.dmg dist/*.sha256 \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \

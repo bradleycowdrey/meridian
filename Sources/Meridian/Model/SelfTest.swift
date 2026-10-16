@@ -7,16 +7,16 @@ import AppKit
 /// Inert unless that launch argument is present.
 @MainActor
 enum SelfTest {
-    static let outputDir: URL? = {
+    nonisolated static let outputDir: URL? = {
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "--selftest"), i + 1 < args.count else { return nil }
         return URL(fileURLWithPath: args[i + 1], isDirectory: true)
     }()
 
-    static var isActive: Bool { outputDir != nil }
+    nonisolated static var isActive: Bool { outputDir != nil }
 
     /// Diagnostic line on stderr (captured by CI as app.log); silent outside the self-test.
-    static func log(_ message: @autoclosure () -> String) {
+    nonisolated static func log(_ message: @autoclosure () -> String) {
         guard isActive else { return }
         FileHandle.standardError.write(Data(("[selftest] " + message() + "\n").utf8))
     }

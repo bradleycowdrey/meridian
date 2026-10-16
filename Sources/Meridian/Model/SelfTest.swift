@@ -14,6 +14,12 @@ enum SelfTest {
     }()
 
     static var isActive: Bool { outputDir != nil }
+
+    /// Diagnostic line on stderr (captured by CI as app.log); silent outside the self-test.
+    static func log(_ message: @autoclosure () -> String) {
+        guard isActive else { return }
+        FileHandle.standardError.write(Data(("[selftest] " + message() + "\n").utf8))
+    }
     private static var started = false
 
     static func run(store: ZoneStore, adding: Binding<Bool>, host: HostWindow) async {

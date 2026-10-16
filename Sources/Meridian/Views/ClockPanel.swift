@@ -94,6 +94,8 @@ private struct ClockPanelContent: View {
             .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
         }
         .background(Palette.bg)
+        // Use the full window: the crimson rule sits at the very top, under the hidden title bar.
+        .ignoresSafeArea()
         .background(HostWindowReader(box: host))
         // Measure the whole panel and size the hosting window to it. SwiftUI's menu bar panel
         // (and sometimes a title-less window) doesn't grow on its own when content gets bigger,
@@ -151,9 +153,12 @@ private struct ClockPanelContent: View {
                 if frame.minY < visible.minY { frame.origin.y = visible.minY }
                 if frame.maxY > visible.maxY { frame.origin.y = visible.maxY - frame.height }
             }
-            guard abs(frame.width - window.frame.width) > 0.5 || abs(frame.height - window.frame.height) > 0.5
-                || abs(frame.minX - window.frame.minX) > 0.5 || abs(frame.minY - window.frame.minY) > 0.5 else { return }
-            window.setFrame(frame, display: true)
+            SelfTest.log("fitWindow content \(size) window \(window.frame) -> \(frame)")
+            if abs(frame.width - window.frame.width) > 0.5 || abs(frame.height - window.frame.height) > 0.5
+                || abs(frame.minX - window.frame.minX) > 0.5 || abs(frame.minY - window.frame.minY) > 0.5 {
+                window.setFrame(frame, display: true)
+            }
+            host.keepOnScreen()
         }
     }
 
@@ -281,9 +286,41 @@ enum WindowPlacement: String, CaseIterable, Identifiable {
     }
 }
 
-/// Holds the NSWindow hosting the panel (the menu bar popover or the desktop window).
+/// Holds the NSWindow hosting the panel (the menu bar popover or the desktop window), and keeps
+/// that window fully on screen: after any resize, from SwiftUI or from us, it is pulled back
+/// inside the screen's visible area (top edge first, so the header is never lost).
 final class HostWindow {
-    weak var window: NSWindow?
+    weak var window: NSWindow? {
+        didSet { if window !== oldValue { observe() } }
+    }
+    private var observers: [NSObjectProtocol] = []
+
+    private func observe() {
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers = []
+        guard let window else { return }
+        for name in [NSWindow.didResizeNotification, NSWindow.didChangeScreenNotification] {
+            observers.append(NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
+                self?.keepOnScreen()
+            })
+        }
+        keepOnScreen()
+    }
+
+    func keepOnScreen() {
+        guard let window, let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
+        var origin = window.frame.origin
+        let size = window.frame.size
+        origin.x = min(max(origin.x, visible.minX), max(visible.minX, visible.maxX - size.width))
+        if origin.y + size.height > visible.maxY { origin.y = visible.maxY - size.height }
+        if origin.y < visible.minY { origin.y = min(visible.minY, visible.maxY - size.height) }
+        if origin != window.frame.origin {
+            SelfTest.log("keepOnScreen moved \(window.frame) -> origin \(origin) visible \(visible)")
+            window.setFrameOrigin(origin)
+        }
+    }
+
+    deinit { observers.forEach(NotificationCenter.default.removeObserver) }
 }
 
 private struct HostWindowReader: NSViewRepresentable {
@@ -291,12 +328,12 @@ private struct HostWindowReader: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        DispatchQueue.main.async { box.window = view.window }
+        DispatchQueue.main.async { if box.window !== view.window { box.window = view.window } }
         return view
     }
 
     func updateNSView(_ view: NSView, context: Context) {
-        DispatchQueue.main.async { box.window = view.window }
+        DispatchQueue.main.async { if box.window !== view.window { box.window = view.window } }
     }
 }
 

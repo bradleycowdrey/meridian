@@ -65,6 +65,16 @@
   .eyebrow.away::before { display: none; }
   .moment { font-size: 34px; font-weight: 600; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .ctrls { display: flex; gap: 8px; align-items: center; }
+  .seg { display: flex; align-items: center; padding: 3px; border-radius: 980px; background: var(--tile); box-shadow: inset 0 0 0 0.5px var(--border-strong); }
+  .seg button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 26px; padding: 0; border: 0; border-radius: 980px; background: none;
+    color: var(--secondary); font: 500 13px/1 -apple-system, Inter, sans-serif; cursor: pointer; transition: background .15s, color .15s; }
+  #addBtn { width: 104px; } #editBtn { width: 80px; }
+  .seg button i { font-style: normal; font-size: 11px; font-weight: 700; }
+  .seg button:hover { background: var(--border); color: #fff; }
+  .seg button.on { background: var(--cream); color: var(--bg); }
+  .seg b { width: 1px; height: 14px; background: var(--border-strong); }
+  .seg.active b { opacity: 0; }
+  .more .icon { width: 32px; height: 32px; background: var(--tile); box-shadow: inset 0 0 0 0.5px var(--border-strong); color: var(--secondary); }
   .more { position: relative; }
   .menu { position: absolute; right: 0; top: 40px; z-index: 5; min-width: 200px; padding: 6px; border-radius: 12px; background: rgba(42,37,32,.92);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 0 0 0.5px #3A3530, 0 12px 32px rgba(0,0,0,.5); font-size: 13px; }
@@ -186,8 +196,7 @@
       <div class="mark"><i style="background:#FFF1E5"></i><i style="background:#807870"></i><i style="background:#B0A898"></i></div>
       <div class="name">Meridian</div>
       <div class="sp"></div>
-      <button class="btn" id="editBtn">Edit</button>
-      <button class="btn prime" id="addBtn">Add</button>
+      <div class="seg"><button id="addBtn"><i>＋</i><span>Add City</span></button><b></b><button id="editBtn"><i>✎</i><span>Edit</span></button></div>
       <div class="more"><button class="icon" id="moreBtn" aria-label="More">⋯</button>
         <div class="menu" id="menu" hidden></div></div>
     </div>
@@ -314,8 +323,11 @@
     lens.style.width = CELL + 4 + "px";
     lens.style.height = cities.length * (ROW + GAP) + "px";
     lens.style.left = width / 2 - (CELL + 4) / 2 - 2 + "px";
-    $("editBtn").textContent = editing ? "Done" : "Edit";
-    $("editBtn").classList.toggle("prime", editing);
+    $("editBtn").innerHTML = editing ? "<i>✓</i><span>Done</span>" : "<i>✎</i><span>Edit</span>";
+    $("editBtn").classList.toggle("on", editing);
+    $("addBtn").innerHTML = adding ? "<i>✓</i><span>Done</span>" : "<i>＋</i><span>Add City</span>";
+    $("addBtn").classList.toggle("on", adding);
+    document.querySelector(".seg").classList.toggle("active", adding || editing);
   }
 
   const travel = n => { offset += n; render(); };
@@ -352,7 +364,7 @@
   function addCity([n, z]) { if (cities.length < 12) cities.push([n, z]); $("q").value = ""; renderResults(); render(); }
   function toggleAdd(on = !adding) {
     adding = on; if (on) editing = false;
-    $("search").hidden = !on; $("addBtn").textContent = on ? "Done" : "Add";
+    $("search").hidden = !on;
     if (on) { $("q").focus(); renderResults(); }
     render();
   }

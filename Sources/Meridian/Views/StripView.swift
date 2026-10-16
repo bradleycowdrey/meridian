@@ -362,7 +362,10 @@ private struct ScrollWheelCatcher: NSViewRepresentable {
                 guard let self, let window = self.window, event.window === window else { return event }
                 let point = self.convert(event.locationInWindow, from: nil)
                 guard self.bounds.contains(point) else { return event }
-                let delta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) ? -event.scrollingDeltaX : event.scrollingDeltaY
+                // Horizontal swipes (or Shift + wheel) travel in time; vertical scrolling
+                // is left for the panel so it can scroll at large sizes.
+                guard abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) else { return event }
+                let delta = -event.scrollingDeltaX
                 self.accumulated += event.hasPreciseScrollingDeltas ? delta : delta * 12
                 if abs(self.accumulated) >= 32 {
                     let steps = Int(self.accumulated / 32)

@@ -20,40 +20,66 @@ private struct ClockPanelContent: View {
     let compact: Bool
     @State private var adding = false
     @State private var editing = false
+    @State private var contentHeight: CGFloat = 0
+
+    /// Tallest the scrolling body may be so the whole panel stays on screen at any size.
+    private var maxBodyHeight: CGFloat {
+        let screen = NSScreen.main?.visibleFrame.height ?? 800
+        let chrome = 3 + ui.xl + ui.pt(34) + ui.l   // crimson rule + header
+        return max(ui.pt(240), screen - chrome - ui.pt(compact ? 32 : 64))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // bradcowdrey.com's signature crimson rule.
             Palette.crimson.frame(height: 3)
 
-            VStack(alignment: .leading, spacing: ui.xl) {
-                header
-                UpdateBanner()
-                TravelBar()
+            header
+                .padding(.horizontal, ui.xl)
+                .padding(.top, ui.xl)
+                .padding(.bottom, ui.l)
 
-                if adding || store.places.isEmpty {
-                    Tile { AddCityField() }
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
+            // Everything below the header scrolls if it would outgrow the screen
+            // (e.g. Extra Large with the city search open).
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: ui.xl) {
+                    UpdateBanner()
+                    TravelBar()
 
-                if !store.places.isEmpty {
-                    Tile(tightTop: true) {
-                        StripView(
-                            cellWidth: ui.cellWidth(compact: compact),
-                            rowHeight: ui.rowHeight(compact: compact),
-                            labelWidth: ui.labelWidth(compact: compact),
-                            editing: editing
-                        )
+                    if adding || store.places.isEmpty {
+                        Tile { AddCityField() }
+                            .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                }
 
-                Link(destination: Brand.website) {
-                    Text("\(Brand.author) · \(Brand.websiteHost)")
+                    if !store.places.isEmpty {
+                        Tile(tightTop: true) {
+                            StripView(
+                                cellWidth: ui.cellWidth(compact: compact),
+                                rowHeight: ui.rowHeight(compact: compact),
+                                labelWidth: ui.labelWidth(compact: compact),
+                                editing: editing
+                            )
+                        }
+                    }
+
+                    Link(destination: Brand.website) {
+                        Text("\(Brand.author) · \(Brand.websiteHost)")
+                    }
+                    .font(ui.font(12))
+                    .foregroundStyle(Palette.textMuted)
                 }
-                .font(ui.font(12))
-                .foregroundStyle(Palette.textMuted)
+                .padding(.horizontal, ui.xl)
+                .padding(.top, ui.s)
+                .padding(.bottom, ui.xl)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
+                    }
+                )
             }
-            .padding(ui.xl)
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(height: contentHeight > 0 ? min(contentHeight, maxBodyHeight) : nil)
+            .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
         }
         .background(Palette.bg)
         .environment(\.colorScheme, .dark)
@@ -82,19 +108,87 @@ private struct ClockPanelContent: View {
                 .tracking(-0.2)
                 .foregroundStyle(Palette.textPrimary)
             Spacer()
-            Button(editing ? "Done" : "Edit") {
-                withAnimation(.snappy) { editing.toggle(); if editing { adding = false } }
-            }
-            .buttonStyle(PillButtonStyle(prominent: editing))
-            .disabled(store.places.isEmpty)
-            .help("Remove or reorder cities")
-            Button(adding ? "Done" : "Add") {
+            ListControls(adding: $adding, editing: $editing)
+            MoreMenu(compact: compact)
+        }
+    }
+}
+
+private struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+/// One hairline capsule holding Add City | Edit. Quiet at rest; the active segment fills cream.
+private struct ListControls: View {
+    @EnvironmentObject private var store: ZoneStore
+    @Environment(\.metrics) private var ui
+    @Binding var adding: Bool
+    @Binding var editing: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Segment(
+                symbol: adding ? "checkmark" : "plus",
+                title: adding ? "Done" : "Add City",
+                width: ui.pt(104),
+                active: adding,
+                enabled: store.canAdd || adding,
+                help: store.canAdd ? "Add a city" : "You can track up to \(ZoneStore.maxPlaces) cities"
+            ) {
                 withAnimation(.snappy) { adding.toggle(); if adding { editing = false } }
             }
-            .buttonStyle(PillButtonStyle(prominent: true))
-            .disabled(!store.canAdd && !adding)
-            .help(store.canAdd ? "Add a city" : "You can track up to \(ZoneStore.maxPlaces) cities")
-            MoreMenu(compact: compact)
+            Palette.borderStrong.frame(width: 1, height: ui.pt(14))
+                .opacity(adding || editing ? 0 : 1)
+            Segment(
+                symbol: editing ? "checkmark" : "pencil",
+                title: editing ? "Done" : "Edit",
+                width: ui.pt(80),
+                active: editing,
+                enabled: !store.places.isEmpty,
+                help: "Remove or reorder cities"
+            ) {
+                withAnimation(.snappy) { editing.toggle(); if editing { adding = false } }
+            }
+        }
+        .padding(ui.pt(3))
+        .background(Capsule().fill(Palette.raisedTile))
+        .overlay(Capsule().strokeBorder(Palette.borderStrong, lineWidth: 0.5))
+    }
+
+    private struct Segment: View {
+        @Environment(\.metrics) private var ui
+        let symbol: String
+        let title: String
+        /// Fixed so the control doesn't change width when a label becomes "Done".
+        let width: CGFloat
+        let active: Bool
+        let enabled: Bool
+        let help: String
+        let action: () -> Void
+        @State private var hovering = false
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: ui.pt(6)) {
+                    Image(systemName: symbol)
+                        .font(ui.font(11, .semibold))
+                    Text(title)
+                        .font(ui.font(13, .medium))
+                }
+                .frame(width: width, height: ui.pt(26))
+                .foregroundStyle(active ? Palette.bg : (enabled ? (hovering ? Palette.textPrimary : Palette.textSecondary) : Palette.textFaint))
+                .background(
+                    Capsule().fill(active ? Palette.cream : (hovering && enabled ? Palette.border : .clear))
+                )
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(!enabled)
+            .onHover { hovering = $0 }
+            .animation(.easeOut(duration: 0.15), value: hovering)
+            .animation(.snappy, value: active)
+            .help(help)
         }
     }
 }
@@ -144,10 +238,11 @@ private struct MoreMenu: View {
             Button("Quit Meridian") { NSApp.terminate(nil) }
         } label: {
             Image(systemName: "ellipsis")
-                .font(ui.font(14, .semibold))
-                .foregroundStyle(Palette.textPrimary)
-                .frame(width: ui.pt(34), height: ui.pt(34))
-                .background(Circle().fill(Palette.border))
+                .font(ui.font(13, .semibold))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(width: ui.pt(32), height: ui.pt(32))
+                .background(Circle().fill(Palette.raisedTile))
+                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5))
                 .contentShape(Circle())
         }
         .menuStyle(.button)

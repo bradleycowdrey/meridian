@@ -681,6 +681,15 @@ struct TravelBar: View {
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .lineLimit(1)
+            if dayOffset != 0 {
+                Text(dayOffset > 0 ? "+\(dayOffset) day\(dayOffset == 1 ? "" : "s")" : "−\(-dayOffset) day\(dayOffset == -1 ? "" : "s")")
+                    .font(ui.font(11, .medium))
+                    .foregroundStyle(Palette.cream)
+                    .padding(.horizontal, ui.pt(7))
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Palette.borderStrong))
+                    .transition(.opacity)
+            }
             Spacer(minLength: ui.m)
             IconButton(symbol: "chevron.left", help: "One hour earlier", small: true) { store.travel(-1) }
             Button("Now") { store.backToNow() }
@@ -689,6 +698,14 @@ struct TravelBar: View {
             IconButton(symbol: "chevron.right", help: "One hour later", small: true) { store.travel(1) }
         }
         .animation(.snappy, value: store.offsetHours)
+    }
+
+    /// Calendar days between today and the moment being viewed (your own time zone).
+    private var dayOffset: Int {
+        let calendar = Calendar.current
+        let from = calendar.startOfDay(for: store.now)
+        let to = calendar.startOfDay(for: store.selectedMoment())
+        return calendar.dateComponents([.day], from: from, to: to).day ?? 0
     }
 
     private var relativeLabel: String {

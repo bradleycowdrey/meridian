@@ -176,6 +176,9 @@ private struct ClockPanelContent: View {
                 .foregroundStyle(Palette.textPrimary)
             Spacer()
             ListControls(adding: $adding, editing: $editing)
+            if compact {
+                HeaderCircleButton(symbol: "macwindow", help: "Open as Window") { tearOff() }
+            }
             MoreMenu(compact: compact, closeHost: { host.window?.close() })
         }
     }
@@ -219,6 +222,32 @@ private struct WindowDragHandle: NSViewRepresentable {
     }
 
     func updateNSView(_ view: DragView, context: Context) { view.onTearOff = onTearOff }
+}
+
+/// Outlined circle button matching the ⋯ menu, for header actions.
+private struct HeaderCircleButton: View {
+    @Environment(\.metrics) private var ui
+    let symbol: String
+    let help: String
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(ui.font(13, .semibold))
+                .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
+                .frame(width: ui.pt(32), height: ui.pt(32))
+                .background(Circle().fill(hovering ? Palette.border : Palette.raisedTile))
+                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovering)
+        .help(help)
+        .accessibilityLabel(help)
+    }
 }
 
 /// Snaps the desktop window to the top-left, top-centre or top-right of its screen.

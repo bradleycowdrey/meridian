@@ -127,7 +127,19 @@ struct Metrics {
     func cellWidth(compact: Bool) -> CGFloat { tileWidth(compact: compact) + gutter }   // column pitch
     func rowHeight(compact: Bool) -> CGFloat { pt(compact ? 44 : 48) }
     func labelWidth(compact: Bool) -> CGFloat { pt(compact ? 152 : 176) }
-    var popoverWidth: CGFloat { pt(600) }
+    var tilePadding: CGFloat { pt(20) }
+
+    /// Panel width built from its parts, so the strip always shows whole hour columns:
+    /// 7 in the menu bar popover, 11 in the window. If that wouldn't fit on screen at this
+    /// size, drop two columns at a time (keeping one centred "now" column).
+    func panelWidth(compact: Bool, screenWidth: CGFloat) -> CGFloat {
+        func width(_ columns: Int) -> CGFloat {
+            2 * xl + 2 * tilePadding + labelWidth(compact: compact) + CGFloat(columns) * cellWidth(compact: compact)
+        }
+        var columns = compact ? 7 : 11
+        while columns > 5 && width(columns) > screenWidth { columns -= 2 }
+        return width(columns)
+    }
 }
 
 private struct MetricsKey: EnvironmentKey {

@@ -9,7 +9,9 @@ struct ClockPanel: View {
 
     var body: some View {
         let ui = Metrics(scale: store.uiSize.scale, family: store.appFont)
+        let screen = NSScreen.main?.visibleFrame.width ?? 1440
         ClockPanelContent(compact: compact)
+            .frame(width: ui.panelWidth(compact: compact, screenWidth: screen - 48))
             .environment(\.metrics, ui)
     }
 }
@@ -21,6 +23,7 @@ private struct ClockPanelContent: View {
     @State private var adding = false
     @State private var editing = false
     @State private var contentHeight: CGFloat = 0
+    @State private var host = HostWindow()
 
     /// Tallest the scrolling body may be so the whole panel stays on screen at any size.
     private var maxBodyHeight: CGFloat {
@@ -82,6 +85,7 @@ private struct ClockPanelContent: View {
             .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
         }
         .background(Palette.bg)
+        .background(HostWindowReader(box: host))
         .environment(\.colorScheme, .dark)
         .onAppear { store.tick() }
         .focusable()
@@ -109,8 +113,27 @@ private struct ClockPanelContent: View {
                 .foregroundStyle(Palette.textPrimary)
             Spacer()
             ListControls(adding: $adding, editing: $editing)
-            MoreMenu(compact: compact)
+            MoreMenu(compact: compact, closeHost: { host.window?.close() })
         }
+    }
+}
+
+/// Holds the NSWindow hosting the panel (the menu bar popover or the desktop window).
+final class HostWindow {
+    weak var window: NSWindow?
+}
+
+private struct HostWindowReader: NSViewRepresentable {
+    let box: HostWindow
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { box.window = view.window }
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        DispatchQueue.main.async { box.window = view.window }
     }
 }
 
@@ -201,6 +224,8 @@ private struct MoreMenu: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
     let compact: Bool
+    /// Closes the menu bar panel this menu lives in.
+    let closeHost: () -> Void
 
     var body: some View {
         Menu {
@@ -224,6 +249,7 @@ private struct MoreMenu: View {
             Divider()
             if compact {
                 Button("Open as Window") {
+                    closeHost()
                     openWindow(id: "strip")
                     NSApp.activate(ignoringOtherApps: true)
                 }

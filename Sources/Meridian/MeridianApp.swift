@@ -14,7 +14,6 @@ struct MeridianApp: App {
     var body: some Scene {
         MenuBarExtra {
             ClockPanel(compact: true)
-                .frame(width: Metrics(scale: store.uiSize.scale).popoverWidth)
                 .environmentObject(store)
                 .environmentObject(updater)
         } label: {
@@ -27,12 +26,12 @@ struct MeridianApp: App {
             ClockPanel()
                 .environmentObject(store)
                 .environmentObject(updater)
-                .frame(minWidth: Metrics(scale: store.uiSize.scale).pt(760), minHeight: Metrics(scale: store.uiSize.scale).pt(320))
                 .background(WindowConfigurator(floatOnTop: store.floatOnTop))
         }
+        // The window is exactly the panel's size (whole hour columns, measured height) and
+        // follows it when the size setting changes, so nothing can be cut off.
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
-        .defaultSize(width: 960, height: 440)
 
         Settings {
             SettingsView().environmentObject(store).environmentObject(updater)

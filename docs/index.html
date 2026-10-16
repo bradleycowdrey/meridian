@@ -123,7 +123,7 @@
             mask-image: linear-gradient(to right, transparent, #000 11%, #000 89%, transparent); }
   .ribbons:active { cursor: grabbing; }
   .track { will-change: transform; }
-  .row, .dots { display: flex; gap: 4px; }
+  .row, .dots { display: flex; gap: 8px; }
   .dots { height: 12px; margin-bottom: 8px; align-items: center; }
   .row { height: 48px; margin-bottom: 8px; }
   .dot { flex: none; display: flex; justify-content: center; }
@@ -134,8 +134,8 @@
   .cell:hover:not(.center) { box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .cell small { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
   .cell sup { font-size: 11px; vertical-align: top; }
-  .cell.midnight::before { content: ""; position: absolute; left: -3px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--crimson); }
-  .lens { position: absolute; top: 16px; border: 2px solid #fff; border-radius: 14px; background: rgba(255,255,255,.06); pointer-events: none; }
+  .cell.midnight::before { content: ""; position: absolute; left: -5px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--crimson); }
+  .lens { position: absolute; top: 15px; border: 2px solid #fff; border-radius: 15px; background: rgba(255,255,255,.06); pointer-events: none; }
   .foot { display: flex; gap: 16px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .foot .sp { flex: 1; }
   .foot a:hover { color: var(--muted); }
@@ -249,8 +249,9 @@
                 ["Dubai", "Asia/Dubai"], ["Mumbai", "Asia/Kolkata"], ["Tokyo", "Asia/Tokyo"]];
   if (!cities.some(c => c[1] === local)) cities.unshift([local.split("/").pop().replace(/_/g, " "), local]);
 
-  const ROW = 48, GAP = 8, WORK = [9, 18];
-  const cellW = () => innerWidth <= 720 ? 44 : 52;
+  // Same geometry as Metrics in the app: even 8px gutter both ways, lens stroke centred in it.
+  const ROW = 48, GAP = 8, OUT = GAP / 2 + 1, WORK = [9, 18];
+  const cellW = () => (innerWidth <= 720 ? 42 : 46) + GAP;  // tile + gutter = column pitch
   const stops = [[0,0x161412],[5,0x1A1816],[6.5,0x4A4540],[8,0xB0A898],[9.5,0xE0D8D0],[12,0xFFF1E5],[15,0xFFF1E5],
                  [17.5,0xE0D8D0],[19,0x807870],[20.5,0x34302B],[22,0x1C1A17],[24,0x161412]];
   const rgb = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255];
@@ -306,23 +307,25 @@
     let html = '<div class="dots">';
     for (const i of idx) {
       const all = cities.length > 1 && cities.every(([, tz]) => isWork(+parts(at(i), tz).hour));
-      html += `<div class="dot" style="width:${CELL - 4}px">${all ? "<i></i>" : ""}</div>`;
+      html += `<div class="dot" style="width:${CELL - GAP}px">${all ? "<i></i>" : ""}</div>`;
     }
     html += "</div>";
     for (const [, tz] of cities) {
       html += '<div class="row">';
       for (const i of idx) {
         const p = parts(at(i), tz), hr = +p.hour, mn = +p.minute, s = sky(hr + mn / 60, !isWork(hr));
-        html += `<div class="cell${i === base ? " center" : ""}${hr === 0 ? " midnight" : ""}" data-i="${i}" style="width:${CELL - 4}px;color:${s.text};background:${s.fill}">` +
+        html += `<div class="cell${i === base ? " center" : ""}${hr === 0 ? " midnight" : ""}" data-i="${i}" style="width:${CELL - GAP}px;color:${s.text};background:${s.fill}">` +
           `<span>${pad(hr)}${mn ? `<sup>:${pad(mn)}</sup>` : ""}</span>${hr === 0 ? `<small>${p.weekday}</small>` : ""}</div>`;
       }
       html += "</div>";
     }
     track.innerHTML = html;
     track.style.transform = `translateX(${width / 2 - (idx.length * CELL) / 2 - frac * CELL}px)`;
-    lens.style.width = CELL + 4 + "px";
-    lens.style.height = cities.length * (ROW + GAP) + "px";
-    lens.style.left = width / 2 - (CELL + 4) / 2 - 2 + "px";
+    // Centre cell's centre sits at width/2 - GAP/2 (flex row has no trailing gap).
+    const lensW = CELL - GAP + 2 * OUT;
+    lens.style.width = lensW + "px";
+    lens.style.height = cities.length * (ROW + GAP) - GAP + 2 * OUT + "px";
+    lens.style.left = width / 2 - GAP / 2 - lensW / 2 + "px";
     $("editBtn").innerHTML = editing ? "<i>✓</i><span>Done</span>" : "<i>✎</i><span>Edit</span>";
     $("editBtn").classList.toggle("on", editing);
     $("addBtn").innerHTML = adding ? "<i>✓</i><span>Done</span>" : "<i>＋</i><span>Add City</span>";

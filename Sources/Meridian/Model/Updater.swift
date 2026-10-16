@@ -27,6 +27,17 @@ final class Updater: ObservableObject {
     @Published private(set) var phase: Phase = .idle
     @Published private(set) var latest: Release?
     @Published private(set) var lastChecked: Date?
+    /// Short status shown inline in the panel (never a modal alert: a menu bar app's panel
+    /// floats above normal windows, so alerts end up hidden behind it).
+    @Published private(set) var notice: Notice?
+    /// True while a check the user asked for is running, so the panel can show "Checking…".
+    @Published private(set) var userChecking = false
+
+    struct Notice: Equatable {
+        let id = UUID()
+        let text: String
+        let isError: Bool
+    }
     @Published var automatic: Bool { didSet { UserDefaults.standard.set(automatic, forKey: "updates.automatic") } }
 
     let currentVersion: String
@@ -64,6 +75,8 @@ final class Updater: ObservableObject {
     func check(userInitiated: Bool) async {
         guard !isBusy else { return }
         phase = .checking
+        if userInitiated { userChecking = true; notice = nil }
+        defer { userChecking = false }
         do {
             var request = URLRequest(url: Brand.releasesAPI, timeoutInterval: 20)
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -78,30 +91,15 @@ final class Updater: ObservableObject {
             if Self.isNewer(release.version, than: currentVersion) {
                 latest = release
                 phase = .available
-                if userInitiated { offerInstall(release) }
+                // The panel's banner offers "Update"; nothing modal.
             } else {
                 latest = nil
                 phase = .upToDate
-                if userInitiated {
-                    alert("You’re up to date", "Meridian \(currentVersion) is the newest version.")
-                }
+                if userInitiated { post("You’re up to date. Meridian \(currentVersion) is the newest version.") }
             }
         } catch {
             phase = .failed(error.localizedDescription)
-            if userInitiated { alert("Couldn’t check for updates", error.localizedDescription) }
-        }
-    }
-
-    private func offerInstall(_ release: Release) {
-        let alert = NSAlert()
-        alert.messageText = "Meridian \(release.version) is available"
-        alert.informativeText = "You have \(currentVersion). Meridian will download the update, restart, and keep all your cities and settings."
-            + (release.notes.isEmpty ? "" : "\n\n" + String(release.notes.prefix(600)))
-        alert.addButton(withTitle: "Install and Restart")
-        alert.addButton(withTitle: "Later")
-        NSApp.activate(ignoringOtherApps: true)
-        if alert.runModal() == .alertFirstButtonReturn {
-            Task { await install() }
+            if userInitiated { post("Couldn’t check for updates. \(error.localizedDescription)", error: true) }
         }
     }
 
@@ -137,13 +135,13 @@ final class Updater: ObservableObject {
                 // Can't replace in place (e.g. read-only location): hand the DMG to Finder instead.
                 NSWorkspace.shared.open(dmg)
                 phase = .available
-                alert("Finish the update in Finder", "Drag the new Meridian into Applications, replacing the old one.")
+                post("Finish in Finder: drag the new Meridian into Applications, replacing the old one.")
                 return
             }
             try relaunch(replacing: target, with: staged, scratch: work)
         } catch {
             phase = .failed(error.localizedDescription)
-            alert("Update failed", "\(error.localizedDescription)\n\nYou can download it from \(release.page.absoluteString)")
+            post("Update failed. \(error.localizedDescription)", error: true)
         }
     }
 
@@ -262,12 +260,22 @@ final class Updater: ObservableObject {
         }
     }
 
-    private func alert(_ title: String, _ message: String) {
-        let alert = NSAlert()
-        alert.messageText = title
-        alert.informativeText = message
-        NSApp.activate(ignoringOtherApps: true)
-        alert.runModal()
+    /// Shows a message in the panel. Confirmations fade after a few seconds; errors stay until dismissed.
+    private func post(_ text: String, error: Bool = false) {
+        let notice = Notice(text: text, isError: error)
+        self.notice = notice
+        guard !error else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(6))
+            if self.notice == notice { self.notice = nil }
+        }
+    }
+
+    func dismissNotice() { notice = nil }
+
+    /// Opens the release page in the browser as a manual fallback.
+    func openReleasePage() {
+        NSWorkspace.shared.open(latest?.page ?? Brand.repository.appendingPathComponent("releases/latest"))
     }
 }
 

@@ -13,8 +13,8 @@ struct StripView: View {
 
     @State private var drag: CGFloat = 0
     @State private var hoverIndex: Int?
-    private var rowSpacing: CGFloat { ui.s }
-    private var cellGap: CGFloat { ui.xs }
+    private var rowSpacing: CGFloat { ui.gutter }
+    private var cellGap: CGFloat { ui.gutter }
     private var overlapRowHeight: CGFloat { ui.pt(12) }
 
     private var pitch: CGFloat { rowHeight + rowSpacing }
@@ -73,14 +73,17 @@ struct StripView: View {
                     .frame(width: stripWidth)
 
                     // The "now" lens.
-                    RoundedRectangle(cornerRadius: ui.pt(14), style: .continuous)
+                    RoundedRectangle(cornerRadius: ui.lensRadius, style: .continuous)
                         .fill(.white.opacity(0.06))
                         .overlay(
-                            RoundedRectangle(cornerRadius: ui.pt(14), style: .continuous)
-                                .strokeBorder(.white, lineWidth: 2)
+                            RoundedRectangle(cornerRadius: ui.lensRadius, style: .continuous)
+                                .strokeBorder(.white, lineWidth: ui.lensStroke)
                         )
-                        .frame(width: cellWidth + ui.xs, height: CGFloat(store.places.count) * pitch)
-                        .padding(.top, overlapRowHeight + rowSpacing / 2)
+                        .frame(
+                            width: cellWidth - cellGap + 2 * ui.lensOutset,
+                            height: CGFloat(store.places.count) * pitch - rowSpacing + 2 * ui.lensOutset
+                        )
+                        .padding(.top, overlapRowHeight + rowSpacing - ui.lensOutset)
                         .allowsHitTesting(false)
                 }
                 .frame(width: stripWidth)
@@ -110,7 +113,7 @@ struct StripView: View {
                 .onScrollWheel { delta in store.travel(delta) }
             }
         }
-        .frame(height: overlapRowHeight + CGFloat(store.places.count) * pitch + rowSpacing / 2)
+        .frame(height: overlapRowHeight + CGFloat(store.places.count) * pitch + ui.lensOutset)
     }
 
     private func hour(_ date: Date, _ zone: TimeZone) -> Int {
@@ -248,13 +251,14 @@ private struct HourCell: View {
         .foregroundStyle(style.text)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: ui.pt(10), style: .continuous)
+            RoundedRectangle(cornerRadius: ui.tileRadius, style: .continuous)
                 .fill(style.fill.opacity(dimmed ? 0.72 : 1))
         )
         .overlay(alignment: .leading) {
             // Midnight divider: a new day starts here.
             if hour == 0 {
-                Capsule().fill(Palette.crimson).frame(width: 2).padding(.vertical, ui.s).offset(x: -3)
+                // Midnight marker: 2pt crimson line centred in the gutter before the cell.
+                Capsule().fill(Palette.crimson).frame(width: 2).padding(.vertical, ui.s).offset(x: -(ui.gutter / 2 + 1))
             }
         }
     }

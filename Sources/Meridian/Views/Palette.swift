@@ -116,8 +116,15 @@ struct Metrics {
     var title: Font { font(19, .semibold) }
     var display: Font { font(34, .semibold) }
 
-    // Strip geometry
-    func cellWidth(compact: Bool) -> CGFloat { pt(compact ? 46 : 52) }
+    // Strip geometry: one even gutter in both directions; the "now" lens's 2pt stroke sits
+    // exactly centred in that gutter, and its corners are concentric with the tiles'.
+    var gutter: CGFloat { 2 * pt(4) }                    // always even: 6 / 8 / 8 / 8 / 10
+    var tileRadius: CGFloat { pt(10) }
+    let lensStroke: CGFloat = 2
+    var lensOutset: CGFloat { gutter / 2 + lensStroke / 2 }  // stroke centre on the gutter's midline
+    var lensRadius: CGFloat { tileRadius + lensOutset }      // concentric with the tile corners
+    func tileWidth(compact: Bool) -> CGFloat { pt(compact ? 42 : 46) }
+    func cellWidth(compact: Bool) -> CGFloat { tileWidth(compact: compact) + gutter }   // column pitch
     func rowHeight(compact: Bool) -> CGFloat { pt(compact ? 44 : 48) }
     func labelWidth(compact: Bool) -> CGFloat { pt(compact ? 152 : 176) }
     var popoverWidth: CGFloat { pt(600) }

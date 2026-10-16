@@ -259,34 +259,76 @@ private struct UpdateBanner: View {
     @Environment(\.metrics) private var ui
 
     var body: some View {
-        if let release = updater.latest {
-            HStack(spacing: ui.m) {
-                Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
-                Text("Meridian \(release.version) is available")
-                    .font(ui.font(14, .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-                Text("You have \(updater.currentVersion)")
-                    .font(ui.meta)
-                    .foregroundStyle(Palette.textMuted)
-                Spacer(minLength: ui.s)
-                switch updater.phase {
-                case .downloading:
+        Group {
+            if updater.userChecking {
+                row {
                     ProgressView().controlSize(.small)
-                    Text("Downloading…").font(ui.meta).foregroundStyle(Palette.textMuted)
-                case .installing:
-                    ProgressView().controlSize(.small)
-                    Text("Installing…").font(ui.meta).foregroundStyle(Palette.textMuted)
-                default:
-                    Button("Update") { Task { await updater.install() } }
-                        .buttonStyle(PillButtonStyle(prominent: true))
+                    message("Checking for updates…")
+                }
+            } else if let notice = updater.notice {
+                row {
+                    Image(systemName: notice.isError ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
+                        .font(ui.font(14, .semibold))
+                        .foregroundStyle(notice.isError ? Palette.crimson : Palette.cream)
+                    message(notice.text)
+                    Spacer(minLength: ui.s)
+                    if notice.isError {
+                        Button("Retry") {
+                            Task {
+                                if updater.latest != nil { await updater.install() } else { await updater.check(userInitiated: true) }
+                            }
+                        }
+                        .buttonStyle(PillButtonStyle())
+                        Button("Download") { updater.openReleasePage() }
+                            .buttonStyle(PillButtonStyle())
+                    }
+                    IconButton(symbol: "xmark", help: "Dismiss") { updater.dismissNotice() }
+                }
+            } else if let release = updater.latest {
+                row {
+                    Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
+                    Text("Meridian \(release.version) is available")
+                        .font(ui.font(14, .semibold))
+                        .foregroundStyle(Palette.textPrimary)
+                    Text("You have \(updater.currentVersion)")
+                        .font(ui.meta)
+                        .foregroundStyle(Palette.textMuted)
+                    Spacer(minLength: ui.s)
+                    switch updater.phase {
+                    case .downloading:
+                        ProgressView().controlSize(.small)
+                        message("Downloading…")
+                    case .installing:
+                        ProgressView().controlSize(.small)
+                        message("Installing, Meridian will restart…")
+                    default:
+                        Button("Update") { Task { await updater.install() } }
+                            .buttonStyle(PillButtonStyle(prominent: true))
+                    }
                 }
             }
-            .padding(.leading, ui.l)
-            .padding(.trailing, ui.s)
-            .padding(.vertical, ui.s)
-            .background(Capsule().fill(Palette.raisedTile))
-            .transition(.move(edge: .top).combined(with: .opacity))
         }
+        .animation(.snappy, value: updater.notice)
+        .animation(.snappy, value: updater.userChecking)
+        .animation(.snappy, value: updater.latest)
+    }
+
+    private func message(_ text: String) -> some View {
+        Text(text)
+            .font(ui.meta)
+            .foregroundStyle(Palette.textSecondary)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func row<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        HStack(spacing: ui.m) { content() }
+            .frame(maxWidth: .infinity, minHeight: ui.pt(34), alignment: .leading)
+            .padding(.leading, ui.l)
+            .padding(.trailing, ui.pt(6))
+            .padding(.vertical, ui.pt(6))
+            .background(RoundedRectangle(cornerRadius: ui.pt(22), style: .continuous).fill(Palette.raisedTile))
+            .transition(.move(edge: .top).combined(with: .opacity))
     }
 }
 

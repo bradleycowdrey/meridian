@@ -8,7 +8,7 @@ struct ClockPanel: View {
     var compact = false
 
     var body: some View {
-        let ui = Metrics(scale: store.uiSize.scale)
+        let ui = Metrics(scale: store.uiSize.scale, family: store.appFont)
         ClockPanelContent(compact: compact)
             .environment(\.metrics, ui)
     }
@@ -28,6 +28,7 @@ private struct ClockPanelContent: View {
 
             VStack(alignment: .leading, spacing: ui.xl) {
                 header
+                UpdateBanner()
                 TravelBar()
 
                 if adding || store.places.isEmpty {
@@ -49,7 +50,7 @@ private struct ClockPanelContent: View {
                 Link(destination: Brand.website) {
                     Text("\(Brand.author) · \(Brand.websiteHost)")
                 }
-                .font(.system(size: ui.pt(12)))
+                .font(ui.font(12))
                 .foregroundStyle(Palette.textMuted)
             }
             .padding(ui.xl)
@@ -101,6 +102,7 @@ private struct ClockPanelContent: View {
 /// Everything secondary lives behind one ⋯ button.
 private struct MoreMenu: View {
     @EnvironmentObject private var store: ZoneStore
+    @EnvironmentObject private var updater: Updater
     @Environment(\.metrics) private var ui
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
@@ -108,10 +110,18 @@ private struct MoreMenu: View {
 
     var body: some View {
         Menu {
+            if let release = updater.latest {
+                Button("Install Meridian \(release.version)…") { Task { await updater.install() } }
+                    .disabled(updater.isBusy)
+                Divider()
+            }
             Button("Copy This Moment") { store.copyMoment() }
             Divider()
             Picker("Size", selection: $store.uiSize) {
                 ForEach(UISize.allCases) { Text($0.label).tag($0) }
+            }
+            Picker("Font", selection: $store.appFont) {
+                ForEach(AppFont.allCases) { Text($0.label).tag($0) }
             }
             Button("Larger  ⌘+") { store.stepSize(1) }
                 .disabled(store.uiSize.larger == nil)
@@ -128,11 +138,13 @@ private struct MoreMenu: View {
                 openSettings()
                 NSApp.activate(ignoringOtherApps: true)
             }
+            Button("Check for Updates…") { Task { await updater.check(userInitiated: true) } }
+                .disabled(updater.isBusy || !updater.canSelfUpdate)
             Divider()
             Button("Quit Meridian") { NSApp.terminate(nil) }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: ui.pt(14), weight: .semibold))
+                .font(ui.font(14, .semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .frame(width: ui.pt(34), height: ui.pt(34))
                 .background(Circle().fill(Palette.border))
@@ -143,6 +155,43 @@ private struct MoreMenu: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .help("More")
+    }
+}
+
+/// Shown only when a newer version is out: one line and one button.
+private struct UpdateBanner: View {
+    @EnvironmentObject private var updater: Updater
+    @Environment(\.metrics) private var ui
+
+    var body: some View {
+        if let release = updater.latest {
+            HStack(spacing: ui.m) {
+                Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
+                Text("Meridian \(release.version) is available")
+                    .font(ui.font(14, .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("You have \(updater.currentVersion)")
+                    .font(ui.meta)
+                    .foregroundStyle(Palette.textMuted)
+                Spacer(minLength: ui.s)
+                switch updater.phase {
+                case .downloading:
+                    ProgressView().controlSize(.small)
+                    Text("Downloading…").font(ui.meta).foregroundStyle(Palette.textMuted)
+                case .installing:
+                    ProgressView().controlSize(.small)
+                    Text("Installing…").font(ui.meta).foregroundStyle(Palette.textMuted)
+                default:
+                    Button("Update") { Task { await updater.install() } }
+                        .buttonStyle(PillButtonStyle(prominent: true))
+                }
+            }
+            .padding(.leading, ui.l)
+            .padding(.trailing, ui.s)
+            .padding(.vertical, ui.s)
+            .background(Capsule().fill(Palette.raisedTile))
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
     }
 }
 
@@ -214,7 +263,7 @@ struct AddCityField: View {
                     .focused($focused)
                     .onSubmit { if let first = results.first { add(first) } }
             }
-            .font(.system(size: ui.pt(15)))
+            .font(ui.font(15))
             .foregroundStyle(Palette.textPrimary)
             .padding(.horizontal, ui.m)
             .frame(height: ui.pt(44))
@@ -250,7 +299,7 @@ struct AddCityField: View {
                                             .frame(width: ui.pt(72), alignment: .trailing)
                                     }
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: ui.pt(17)))
+                                        .font(ui.font(17))
                                         .foregroundStyle(Palette.textMuted)
                                 }
                                 .padding(.horizontal, ui.m)
@@ -309,7 +358,7 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: ui.pt(14), weight: .semibold))
+                .font(ui.font(14, .semibold))
                 .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
                 .frame(width: ui.pt(34), height: ui.pt(34))
                 .background(Circle().fill(hovering ? Palette.borderStrong : Palette.border))
@@ -338,7 +387,7 @@ struct PillButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(size: ui.pt(14), weight: .semibold))
+                .font(ui.font(14, .semibold))
                 .padding(.horizontal, ui.pt(20))
                 .frame(height: ui.pt(34))
                 .foregroundStyle(prominent ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textMuted))

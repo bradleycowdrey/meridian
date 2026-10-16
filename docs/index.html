@@ -75,7 +75,9 @@
   .menu button.on::before { content: "✓"; }
   .menu button span { margin-left: auto; color: var(--muted); }
   .menu hr { border: 0; border-top: 0.5px solid #3A3530; margin: 5px 4px; }
-  .sizes { display: flex; justify-content: center; gap: 4px; margin: 0 auto 20px; padding: 4px; width: max-content; border-radius: 980px; background: var(--tile); }
+  .controls { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .panel.inter, .panel.inter * { font-family: Inter, -apple-system, sans-serif !important; }
+  .sizes { display: flex; justify-content: center; gap: 4px; margin: 0; padding: 4px; width: max-content; border-radius: 980px; background: var(--tile); }
   .sizes button { height: 32px; min-width: 44px; padding: 0 14px; border: 0; border-radius: 980px; background: none; color: var(--muted); font: 600 13px -apple-system, Inter, sans-serif; cursor: pointer; }
   .sizes button.on { background: #fff; color: var(--bg); }
   .tile { background: var(--tile); border-radius: 22px; padding: 20px; }
@@ -177,7 +179,8 @@
     <p class="fine">macOS 14 or later · Apple silicon and Intel · Open source</p>
   </section>
 
-  <div class="sizes" id="sizes" role="radiogroup" aria-label="Size"></div>
+  <div class="controls"><div class="sizes" id="sizes" role="radiogroup" aria-label="Size"></div>
+  <div class="sizes" id="fonts" role="radiogroup" aria-label="Font"><button data-f="system" class="on">SF Pro</button><button data-f="inter">Inter</button></div></div>
   <div class="panel" tabindex="0" id="panel" aria-label="Interactive time zone strip">
     <div class="hdr" id="demo">
       <div class="mark"><i style="background:#FFF1E5"></i><i style="background:#807870"></i><i style="background:#B0A898"></i></div>
@@ -444,6 +447,12 @@
     if (e.key === "+" || e.key === "=") { setSize(sizeIdx + 1); e.preventDefault(); }
     if (e.key === "-") { setSize(sizeIdx - 1); e.preventDefault(); }
   });
+  $("fonts").onclick = e => {
+    const b = e.target.closest("[data-f]"); if (!b) return;
+    $("panel").classList.toggle("inter", b.dataset.f === "inter");
+    [...$("fonts").children].forEach(x => x.classList.toggle("on", x === b));
+    render();
+  };
   addEventListener("resize", render);
   setInterval(render, 15000);
   setSize(2);

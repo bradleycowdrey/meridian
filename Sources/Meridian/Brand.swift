@@ -8,6 +8,7 @@ enum Brand {
     static let websiteHost = "bradcowdrey.com"
     static let website = URL(string: "https://bradcowdrey.com")!
     static let repository = URL(string: "https://github.com/bradleycowdrey/meridian")!
+    static let releasesAPI = URL(string: "https://api.github.com/repos/bradleycowdrey/meridian/releases/latest")!
     static let issues = URL(string: "https://github.com/bradleycowdrey/meridian/issues")!
     static let copyright = "© 2026 Bradley Cowdrey · bradcowdrey.com"
 }

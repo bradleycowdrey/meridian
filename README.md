@@ -26,6 +26,8 @@ instant everywhere, so the line through the middle is *now*.
 - **Fast search**: city names, airport codes (`SFO`, `LHR`), abbreviations (`PST`, `CET`) or offsets (`UTC+5:30`).
 - **The details**: day-change markers, half-hour and 45-minute zones, a `+1 day` badge, 12/24-hour time, custom city names, drag to reorder.
 - **Menu bar first**: show an icon, or a city and its time (`LON 14:32`). Open it as a desktop window that can float above everything.
+- **Five sizes** (Extra Small to Extra Large, ⌘+ / ⌘−) and a choice of **SF Pro** or **Inter**, the typeface of bradcowdrey.com.
+- **Automatic updates**: Meridian checks GitHub Releases on launch and every few hours, verifies the download's SHA-256, then installs and restarts in one click. Turn it off or check manually in **Settings → General → Updates** or the ⋯ menu.
 - Open at login. No account, no tracking, no network access. About 1 MB.
 
 Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or later.
@@ -77,3 +79,5 @@ docs/                     Download page with a live web demo
 ## License
 
 MIT © 2026 Bradley Cowdrey · [bradcowdrey.com](https://bradcowdrey.com)
+
+Bundles the [Inter](https://rsms.me/inter/) typeface by Rasmus Andersson under the SIL Open Font License 1.1 (`Resources/Fonts/Inter-LICENSE.txt`).

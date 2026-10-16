@@ -1,4 +1,6 @@
 import SwiftUI
+import AppKit
+import CoreText
 
 /// bradcowdrey.com design tokens (warm near-black, cream, crimson; Inter-like 400/500 weights),
 /// plus the 8-pt spacing grid and type scale used across the app.
@@ -49,11 +51,54 @@ enum UISize: String, CaseIterable, Identifiable {
     var larger: UISize? { UISize.allCases.firstIndex(of: self).flatMap { $0 < UISize.allCases.count - 1 ? UISize.allCases[$0 + 1] : nil } }
 }
 
+/// The two typefaces: the Mac's own SF Pro, or Inter to match bradcowdrey.com.
+enum AppFont: String, CaseIterable, Identifiable {
+    case system, inter
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .system: return "System (SF Pro)"
+        case .inter: return "Inter (bradcowdrey.com)"
+        }
+    }
+}
+
+/// Registers the Inter files bundled in Contents/Resources/Fonts for this process only.
+enum FontRegistry {
+    private(set) static var interAvailable = false
+
+    static func registerBundledFonts() {
+        guard let folder = Bundle.main.resourceURL?.appendingPathComponent("Fonts"),
+              let files = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+        else { return }
+        for file in files where file.pathExtension.lowercased() == "ttf" {
+            CTFontManagerRegisterFontsForURL(file as CFURL, .process, nil)
+        }
+        interAvailable = NSFont(name: "Inter-Regular", size: 12) != nil
+    }
+}
+
 /// Size-aware design tokens: an 8-pt spacing grid and an apple.com-style type scale.
 struct Metrics {
     let scale: CGFloat
+    var family: AppFont = .system
 
     func pt(_ value: CGFloat) -> CGFloat { (value * scale).rounded() }
+
+    /// A font at a scaled size in the chosen family. Inter falls back to SF if it isn't bundled.
+    func font(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        let points = pt(size)
+        guard family == .inter, FontRegistry.interAvailable else { return .system(size: points, weight: weight) }
+        let face: String
+        switch weight {
+        case .semibold, .bold, .heavy, .black: face = "Inter-SemiBold"
+        case .medium: face = "Inter-Medium"
+        default: face = "Inter-Regular"
+        }
+        return .custom(face, fixedSize: points)
+    }
 
     // Spacing grid
     var xs: CGFloat { pt(4) }
@@ -63,13 +108,13 @@ struct Metrics {
     var xl: CGFloat { pt(24) }
 
     // Type scale: semibold headlines, tight tracking, regular body
-    var eyebrow: Font { .system(size: pt(13), weight: .semibold) }
-    var meta: Font { .system(size: pt(13), weight: .regular) }
-    var body: Font { .system(size: pt(15), weight: .semibold) }
-    var cell: Font { .system(size: pt(17), weight: .medium) }
-    var cellNow: Font { .system(size: pt(17), weight: .semibold) }
-    var title: Font { .system(size: pt(19), weight: .semibold) }
-    var display: Font { .system(size: pt(34), weight: .semibold) }
+    var eyebrow: Font { font(13, .semibold) }
+    var meta: Font { font(13) }
+    var body: Font { font(15, .semibold) }
+    var cell: Font { font(17, .medium) }
+    var cellNow: Font { font(17, .semibold) }
+    var title: Font { font(19, .semibold) }
+    var display: Font { font(34, .semibold) }
 
     // Strip geometry
     func cellWidth(compact: Bool) -> CGFloat { pt(compact ? 46 : 52) }

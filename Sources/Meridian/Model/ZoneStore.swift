@@ -29,6 +29,7 @@ final class ZoneStore: ObservableObject {
     @Published var floatOnTop: Bool { didSet { defaults.set(floatOnTop, forKey: "floatOnTop") } }
     @Published var menuBarStyle: MenuBarStyle { didSet { defaults.set(menuBarStyle.rawValue, forKey: "menuBarStyle") } }
     @Published var uiSize: UISize { didSet { defaults.set(uiSize.rawValue, forKey: "uiSize") } }
+    @Published var appFont: AppFont { didSet { defaults.set(appFont.rawValue, forKey: "appFont") } }
     @Published var menuBarPlaceID: UUID? { didSet { defaults.set(menuBarPlaceID?.uuidString, forKey: "menuBarPlaceID") } }
 
     private let defaults = UserDefaults.standard
@@ -48,6 +49,7 @@ final class ZoneStore: ObservableObject {
         menuBarStyle = MenuBarStyle(rawValue: d.string(forKey: "menuBarStyle") ?? "") ?? .icon
         menuBarPlaceID = d.string(forKey: "menuBarPlaceID").flatMap(UUID.init(uuidString:))
         uiSize = UISize(rawValue: d.string(forKey: "uiSize") ?? "") ?? .medium
+        appFont = AppFont(rawValue: d.string(forKey: "appFont") ?? "") ?? .system
 
         ticker = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }

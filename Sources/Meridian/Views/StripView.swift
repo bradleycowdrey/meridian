@@ -140,7 +140,7 @@ private struct PlaceLabel: View {
         HStack(spacing: ui.s) {
             if editing {
                 Image(systemName: "line.3.horizontal")
-                    .font(.system(size: ui.pt(13), weight: .medium))
+                    .font(ui.font(13, .medium))
                     .foregroundStyle(Palette.textMuted)
                     .frame(width: ui.pt(20), height: ui.pt(32))
                     .contentShape(Rectangle())
@@ -161,7 +161,7 @@ private struct PlaceLabel: View {
                         .monospacedDigit()
                     if shift != 0 {
                         Text(shift > 0 ? "+1 day" : "−1 day")
-                            .font(.system(size: ui.pt(11), weight: .medium))
+                            .font(ui.font(11, .medium))
                             .foregroundStyle(Palette.cream)
                             .padding(.horizontal, ui.pt(7))
                             .padding(.vertical, 1)
@@ -180,7 +180,7 @@ private struct PlaceLabel: View {
                     withAnimation(.snappy) { store.remove(place) }
                 } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.system(size: ui.pt(17)))
+                        .font(ui.font(17))
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(.white, Palette.crimson)
                         .frame(width: ui.pt(28), height: ui.pt(28))
@@ -240,7 +240,7 @@ private struct HourCell: View {
                 .monospacedDigit()
             if hour == 0 {
                 Text(TimeMath.weekday(date, in: zone))
-                    .font(.system(size: ui.pt(10), weight: .medium))
+                    .font(ui.font(10, .medium))
                     .textCase(.uppercase)
                     .tracking(0.6)
             }
@@ -269,8 +269,8 @@ private struct HourCell: View {
             suffix = hour < 12 ? "am" : "pm"
         }
         var text = Text(main)
-        if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(.system(size: ui.pt(11), weight: .medium)) }
-        if !suffix.isEmpty { text = text + Text(suffix).font(.system(size: ui.pt(10), weight: .medium)) }
+        if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium)) }
+        if !suffix.isEmpty { text = text + Text(suffix).font(ui.font(10, .medium)) }
         return text
     }
 }

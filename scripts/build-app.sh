@@ -16,6 +16,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Meridian"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist > "$APP/Contents/Info.plist"
+# Bundled fonts (Inter, SIL Open Font License) for the Font setting.
+cp -R Resources/Fonts "$APP/Contents/Resources/Fonts"
 
 # Icon: 1024px PNG -> .icns
 ICONSET="$(mktemp -d)/AppIcon.iconset"

@@ -4,12 +4,19 @@ import AppKit
 @main
 struct MeridianApp: App {
     @StateObject private var store = ZoneStore()
+    @ObservedObject private var updater = Updater.shared
+
+    init() {
+        FontRegistry.registerBundledFonts()
+        Task { @MainActor in Updater.shared.start() }
+    }
 
     var body: some Scene {
         MenuBarExtra {
             ClockPanel(compact: true)
                 .frame(width: Metrics(scale: store.uiSize.scale).popoverWidth)
                 .environmentObject(store)
+                .environmentObject(updater)
         } label: {
             MenuBarLabel().environmentObject(store)
         }
@@ -19,6 +26,7 @@ struct MeridianApp: App {
         Window(Brand.appName, id: "strip") {
             ClockPanel()
                 .environmentObject(store)
+                .environmentObject(updater)
                 .frame(minWidth: Metrics(scale: store.uiSize.scale).pt(760), minHeight: Metrics(scale: store.uiSize.scale).pt(320))
                 .background(WindowConfigurator(floatOnTop: store.floatOnTop))
         }
@@ -27,7 +35,7 @@ struct MeridianApp: App {
         .defaultSize(width: 960, height: 440)
 
         Settings {
-            SettingsView().environmentObject(store)
+            SettingsView().environmentObject(store).environmentObject(updater)
         }
     }
 }

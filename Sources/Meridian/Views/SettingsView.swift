@@ -71,6 +71,9 @@ private struct GeneralSettings: View {
             Picker("Size", selection: $store.uiSize) {
                 ForEach(UISize.allCases) { Text($0.label).tag($0) }
             }
+            Picker("Font", selection: $store.appFont) {
+                ForEach(AppFont.allCases) { Text($0.label).tag($0) }
+            }
             Toggle("24-hour clock", isOn: $store.use24h)
             Toggle("Highlight working hours", isOn: $store.showWorkHours)
             if store.showWorkHours {
@@ -79,8 +82,38 @@ private struct GeneralSettings: View {
             }
             Toggle("Keep desktop window on top", isOn: $store.floatOnTop)
             Toggle("Open at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.launchAtLogin = $0 }))
+            UpdateSettings()
         }
         .formStyle(.grouped)
+    }
+}
+
+private struct UpdateSettings: View {
+    @EnvironmentObject private var updater: Updater
+
+    var body: some View {
+        Section("Updates") {
+            Toggle("Check for updates automatically", isOn: $updater.automatic)
+            LabeledContent("Version \(updater.currentVersion)") {
+                Button("Check Now") { Task { await updater.check(userInitiated: true) } }
+                    .disabled(updater.isBusy || !updater.canSelfUpdate)
+            }
+            Text(status).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private var status: String {
+        switch updater.phase {
+        case .checking: return "Checking…"
+        case .downloading: return "Downloading the update…"
+        case .installing: return "Installing…"
+        case .available: return "Meridian \(updater.latest?.version ?? "") is available."
+        case .failed(let message): return message
+        default:
+            guard updater.canSelfUpdate else { return "Updates work in the installed app, not in a development build." }
+            guard let date = updater.lastChecked else { return "Not checked yet." }
+            return "Up to date. Last checked " + date.formatted(.relative(presentation: .named)) + "."
+        }
     }
 }
 

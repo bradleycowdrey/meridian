@@ -5,15 +5,17 @@ import AppKit
 /// so "now" (or any travelled-to hour) reads as one straight line down the centre.
 struct StripView: View {
     @EnvironmentObject private var store: ZoneStore
+    @Environment(\.metrics) private var ui
     var cellWidth: CGFloat = 52
     var rowHeight: CGFloat = 48
     var labelWidth: CGFloat = 176
     var editing = false
 
     @State private var drag: CGFloat = 0
-    private let rowSpacing = Space.s
-    private let cellGap = Space.xs
-    private let overlapRowHeight: CGFloat = 12
+    @State private var hoverIndex: Int?
+    private var rowSpacing: CGFloat { ui.s }
+    private var cellGap: CGFloat { ui.xs }
+    private var overlapRowHeight: CGFloat { ui.pt(12) }
 
     private var pitch: CGFloat { rowHeight + rowSpacing }
 
@@ -32,7 +34,7 @@ struct StripView: View {
                     Color.clear.frame(height: overlapRowHeight)
                     ForEach(store.places) { place in
                         PlaceLabel(place: place, moment: moment, editing: editing, pitch: pitch)
-                            .frame(width: labelWidth - Space.l, height: rowHeight, alignment: .leading)
+                            .frame(width: labelWidth - ui.l, height: rowHeight, alignment: .leading)
                     }
                 }
                 .frame(width: labelWidth, alignment: .leading)
@@ -54,10 +56,14 @@ struct StripView: View {
                                         zone: place.timeZone,
                                         use24h: store.use24h,
                                         dimmed: store.showWorkHours && !store.isWorkHour(hour(date, place.timeZone)),
-                                        isCenter: index == base
+                                        isCenter: index == base,
+                                        hovered: hoverIndex == index && index != base
                                     )
                                     .frame(width: cellWidth - cellGap, height: rowHeight)
                                     .contentShape(Rectangle())
+                                    .onHover { inside in
+                                        if inside { hoverIndex = index } else if hoverIndex == index { hoverIndex = nil }
+                                    }
                                     .onTapGesture { store.travel(index - store.offsetHours) }
                                 }
                             }
@@ -67,13 +73,13 @@ struct StripView: View {
                     .frame(width: stripWidth)
 
                     // The "now" lens.
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: ui.pt(14), style: .continuous)
                         .fill(.white.opacity(0.06))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: ui.pt(14), style: .continuous)
                                 .strokeBorder(.white, lineWidth: 2)
                         )
-                        .frame(width: cellWidth + Space.xs, height: CGFloat(store.places.count) * pitch)
+                        .frame(width: cellWidth + ui.xs, height: CGFloat(store.places.count) * pitch)
                         .padding(.top, overlapRowHeight + rowSpacing / 2)
                         .allowsHitTesting(false)
                 }
@@ -83,8 +89,8 @@ struct StripView: View {
                     LinearGradient(
                         stops: [
                             .init(color: .clear, location: 0),
-                            .init(color: .black, location: 0.06),
-                            .init(color: .black, location: 0.94),
+                            .init(color: .black, location: 0.11),
+                            .init(color: .black, location: 0.89),
                             .init(color: .clear, location: 1),
                         ],
                         startPoint: .leading, endPoint: .trailing
@@ -121,6 +127,7 @@ struct StripView: View {
 
 private struct PlaceLabel: View {
     @EnvironmentObject private var store: ZoneStore
+    @Environment(\.metrics) private var ui
     let place: Place
     let moment: Date
     let editing: Bool
@@ -130,12 +137,12 @@ private struct PlaceLabel: View {
 
     var body: some View {
         let shift = TimeMath.dayShift(moment, zone: place.timeZone)
-        HStack(spacing: Space.s) {
+        HStack(spacing: ui.s) {
             if editing {
                 Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.textFaint)
-                    .frame(width: 20, height: 32)
+                    .font(.system(size: ui.pt(13), weight: .medium))
+                    .foregroundStyle(Palette.textMuted)
+                    .frame(width: ui.pt(20), height: ui.pt(32))
                     .contentShape(Rectangle())
                     .help("Drag to reorder")
                     .gesture(reorderGesture)
@@ -145,26 +152,26 @@ private struct PlaceLabel: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(place.name)
-                    .font(TypeScale.body)
+                    .font(ui.body)
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: ui.pt(6)) {
                     Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
                         .foregroundStyle(Palette.textSecondary)
                         .monospacedDigit()
                     if shift != 0 {
                         Text(shift > 0 ? "+1 day" : "−1 day")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: ui.pt(11), weight: .medium))
                             .foregroundStyle(Palette.cream)
-                            .padding(.horizontal, 6)
+                            .padding(.horizontal, ui.pt(7))
                             .padding(.vertical, 1)
-                            .overlay(Capsule().strokeBorder(Palette.border))
+                            .background(Capsule().fill(Palette.borderStrong))
                     } else {
                         Text(place.offsetLabel(at: moment))
-                            .foregroundStyle(Palette.textFaint)
+                            .foregroundStyle(Palette.textMuted)
                     }
                 }
-                .font(TypeScale.meta)
+                .font(ui.meta)
                 .lineLimit(1)
             }
             Spacer(minLength: 0)
@@ -173,10 +180,10 @@ private struct PlaceLabel: View {
                     withAnimation(.snappy) { store.remove(place) }
                 } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 17))
+                        .font(.system(size: ui.pt(17)))
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(.white, Palette.crimson)
-                        .frame(width: 28, height: 28)
+                        .frame(width: ui.pt(28), height: ui.pt(28))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -211,11 +218,13 @@ private struct PlaceLabel: View {
 }
 
 private struct HourCell: View {
+    @Environment(\.metrics) private var ui
     let date: Date
     let zone: TimeZone
     let use24h: Bool
     let dimmed: Bool
     let isCenter: Bool
+    var hovered = false
 
     var body: some View {
         var calendar = Calendar(identifier: .gregorian)
@@ -227,11 +236,11 @@ private struct HourCell: View {
 
         return VStack(spacing: 1) {
             hourText(hour: hour, minute: minute)
-                .font(TypeScale.cell)
+                .font(isCenter ? ui.cellNow : ui.cell)
                 .monospacedDigit()
             if hour == 0 {
                 Text(TimeMath.weekday(date, in: zone))
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: ui.pt(10), weight: .medium))
                     .textCase(.uppercase)
                     .tracking(0.6)
             }
@@ -239,13 +248,13 @@ private struct HourCell: View {
         .foregroundStyle(style.text)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: ui.pt(10), style: .continuous)
                 .fill(style.fill.opacity(dimmed ? 0.72 : 1))
         )
         .overlay(alignment: .leading) {
             // Midnight divider: a new day starts here.
             if hour == 0 {
-                Capsule().fill(Palette.crimson).frame(width: 2).padding(.vertical, Space.s).offset(x: -3)
+                Capsule().fill(Palette.crimson).frame(width: 2).padding(.vertical, ui.s).offset(x: -3)
             }
         }
     }
@@ -260,19 +269,20 @@ private struct HourCell: View {
             suffix = hour < 12 ? "am" : "pm"
         }
         var text = Text(main)
-        if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(.system(size: 11, weight: .medium)) }
-        if !suffix.isEmpty { text = text + Text(suffix).font(.system(size: 10, weight: .medium)) }
+        if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(.system(size: ui.pt(11), weight: .medium)) }
+        if !suffix.isEmpty { text = text + Text(suffix).font(.system(size: ui.pt(10), weight: .medium)) }
         return text
     }
 }
 
 private struct OverlapMark: View {
+    @Environment(\.metrics) private var ui
     let isOverlap: Bool
 
     var body: some View {
         Capsule()
             .fill(isOverlap ? Palette.cream : .clear)
-            .frame(width: 16, height: 3)
+            .frame(width: ui.pt(16), height: 3)
             .help(isOverlap ? "Everyone is in working hours" : "")
     }
 }

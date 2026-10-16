@@ -16,26 +16,77 @@ enum Palette {
     /// Raised tile surface and stronger hover fill, a step up from bg on the same warm scale.
     static let raisedTile = Color(hex: 0x23201D)
     static let borderStrong = Color(hex: 0x3A3530)
-    /// Crimson lifted for legibility as text on dark (eyebrows), same hue as #990F3D.
-    static let accent = Color(hex: 0xE04A7A)
 }
 
-enum Space {
-    static let xs: CGFloat = 4
-    static let s: CGFloat = 8
-    static let m: CGFloat = 12
-    static let l: CGFloat = 16
-    static let xl: CGFloat = 24
+/// The five interface sizes. Everything (type, cells, spacing, popover width) scales together,
+/// rounded to whole points so edges stay crisp.
+enum UISize: String, CaseIterable, Identifiable {
+    case extraSmall, small, medium, large, extraLarge
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .extraSmall: return "Extra Small"
+        case .small: return "Small"
+        case .medium: return "Medium"
+        case .large: return "Large"
+        case .extraLarge: return "Extra Large"
+        }
+    }
+
+    var scale: CGFloat {
+        switch self {
+        case .extraSmall: return 0.82
+        case .small: return 0.91
+        case .medium: return 1.0
+        case .large: return 1.12
+        case .extraLarge: return 1.26
+        }
+    }
+
+    var smaller: UISize? { UISize.allCases.firstIndex(of: self).flatMap { $0 > 0 ? UISize.allCases[$0 - 1] : nil } }
+    var larger: UISize? { UISize.allCases.firstIndex(of: self).flatMap { $0 < UISize.allCases.count - 1 ? UISize.allCases[$0 + 1] : nil } }
 }
 
-enum TypeScale {
-    // apple.com rhythm: semibold headlines, tight tracking, regular body.
-    static let eyebrow = Font.system(size: 13, weight: .semibold)
-    static let meta = Font.system(size: 13, weight: .regular)
-    static let body = Font.system(size: 15, weight: .semibold)
-    static let cell = Font.system(size: 17, weight: .medium)
-    static let title = Font.system(size: 19, weight: .semibold)
-    static let display = Font.system(size: 34, weight: .semibold)
+/// Size-aware design tokens: an 8-pt spacing grid and an apple.com-style type scale.
+struct Metrics {
+    let scale: CGFloat
+
+    func pt(_ value: CGFloat) -> CGFloat { (value * scale).rounded() }
+
+    // Spacing grid
+    var xs: CGFloat { pt(4) }
+    var s: CGFloat { pt(8) }
+    var m: CGFloat { pt(12) }
+    var l: CGFloat { pt(16) }
+    var xl: CGFloat { pt(24) }
+
+    // Type scale: semibold headlines, tight tracking, regular body
+    var eyebrow: Font { .system(size: pt(13), weight: .semibold) }
+    var meta: Font { .system(size: pt(13), weight: .regular) }
+    var body: Font { .system(size: pt(15), weight: .semibold) }
+    var cell: Font { .system(size: pt(17), weight: .medium) }
+    var cellNow: Font { .system(size: pt(17), weight: .semibold) }
+    var title: Font { .system(size: pt(19), weight: .semibold) }
+    var display: Font { .system(size: pt(34), weight: .semibold) }
+
+    // Strip geometry
+    func cellWidth(compact: Bool) -> CGFloat { pt(compact ? 46 : 52) }
+    func rowHeight(compact: Bool) -> CGFloat { pt(compact ? 44 : 48) }
+    func labelWidth(compact: Bool) -> CGFloat { pt(compact ? 152 : 176) }
+    var popoverWidth: CGFloat { pt(600) }
+}
+
+private struct MetricsKey: EnvironmentKey {
+    static let defaultValue = Metrics(scale: 1)
+}
+
+extension EnvironmentValues {
+    var metrics: Metrics {
+        get { self[MetricsKey.self] }
+        set { self[MetricsKey.self] = newValue }
+    }
 }
 
 extension Color {

@@ -39,8 +39,9 @@
   .section-h { font-size: clamp(32px, 5vw, 48px); font-weight: 600; letter-spacing: -.03em; line-height: 1.08; margin: 96px 0 24px; }
 
   /* Live demo: mirrors the Mac app's ClockPanel. */
-  .panel { background: var(--bg); border-radius: 28px; padding: 32px; user-select: none; box-shadow: 0 0 0 0.5px var(--border), 0 40px 100px rgba(0,0,0,.55); display: flex; flex-direction: column; gap: 24px; }
-  .hdr { display: flex; align-items: center; gap: 12px; }
+  .panel { position: relative; overflow: hidden; zoom: var(--z, 1); background: var(--bg); border-radius: 28px; padding: 27px 24px 24px; user-select: none; box-shadow: 0 0 0 0.5px var(--border), 0 40px 100px rgba(0,0,0,.55); display: flex; flex-direction: column; gap: 24px; }
+  .panel::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--crimson); }
+  .hdr { display: flex; align-items: center; gap: 12px; position: relative; }
   .hdr .name { font-size: 19px; font-weight: 600; letter-spacing: -.02em; }
   .hdr .sp { flex: 1; }
   .mark { width: 28px; height: 28px; border-radius: 7px; background: #222018; position: relative; display: grid; place-items: center; }
@@ -58,11 +59,27 @@
   .icon:hover { background: var(--border-strong); color: var(--text); }
   .travel { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
   .travel .sp { flex: 1; }
-  .eyebrow { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+  .eyebrow { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--crimson); }
   .eyebrow.away { color: var(--cream); }
+  .eyebrow.away::before { display: none; }
   .moment { font-size: 34px; font-weight: 600; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .ctrls { display: flex; gap: 8px; align-items: center; }
+  .more { position: relative; }
+  .menu { position: absolute; right: 0; top: 40px; z-index: 5; min-width: 200px; padding: 6px; border-radius: 12px; background: rgba(42,37,32,.92);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 0 0 0.5px #3A3530, 0 12px 32px rgba(0,0,0,.5); font-size: 13px; }
+  .menu[hidden] { display: none; }
+  .menu button { display: flex; width: 100%; justify-content: flex-start; gap: 6px; padding: 4px 10px; border: 0; border-radius: 6px; background: none; color: var(--text); font: 400 13px/20px -apple-system, Inter, sans-serif; cursor: pointer; text-align: left; }
+  .menu button:hover { background: #0A64D2; }
+  .menu button::before { content: ""; width: 14px; flex: none; }
+  .menu button.on::before { content: "✓"; }
+  .menu button span { margin-left: auto; color: var(--muted); }
+  .menu hr { border: 0; border-top: 0.5px solid #3A3530; margin: 5px 4px; }
+  .sizes { display: flex; justify-content: center; gap: 4px; margin: 0 auto 20px; padding: 4px; width: max-content; border-radius: 980px; background: var(--tile); }
+  .sizes button { height: 32px; min-width: 44px; padding: 0 14px; border: 0; border-radius: 980px; background: none; color: var(--muted); font: 600 13px -apple-system, Inter, sans-serif; cursor: pointer; }
+  .sizes button.on { background: #fff; color: var(--bg); }
   .tile { background: var(--tile); border-radius: 22px; padding: 20px; }
+  .tile.strip { padding-top: 8px; }
   .search { display: flex; flex-direction: column; gap: 8px; }
   .search[hidden] { display: none; }
   .search .box { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 12px; background: var(--bg); color: var(--faint); border: 1px solid transparent; }
@@ -73,10 +90,10 @@
   .result { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 12px; border-radius: 12px; cursor: pointer; }
   .result:hover { background: var(--border); }
   .result .n { font-size: 15px; font-weight: 600; line-height: 1.2; }
-  .result .r { font-size: 13px; color: var(--faint); line-height: 1.2; }
+  .result .r { font-size: 13px; color: var(--muted); line-height: 1.2; }
   .result .sp { flex: 1; }
   .result .t { font-size: 15px; font-weight: 500; color: var(--secondary); font-variant-numeric: tabular-nums; }
-  .result .o { font-size: 13px; color: var(--faint); width: 72px; text-align: right; }
+  .result .o { font-size: 13px; color: var(--muted); width: 72px; text-align: right; }
   .result .plus { color: var(--muted); font-size: 18px; }
   .grid { display: grid; grid-template-columns: 176px 1fr; align-items: start; }
   .labels .spacer { height: 12px; margin-bottom: 8px; }
@@ -84,14 +101,14 @@
   .lrow .txt { flex: 1; min-width: 0; }
   .lrow .name { font-size: 15px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lrow .meta { font-size: 13px; line-height: 1.3; color: var(--secondary); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .lrow .meta i { font-style: normal; color: var(--faint); margin-left: 6px; }
-  .lrow .meta b { font-weight: 500; font-size: 11px; color: var(--cream); background: var(--border); border-radius: 99px; padding: 1px 7px; margin-left: 6px; }
-  .lrow .handle { width: 20px; color: var(--faint); cursor: grab; text-align: center; font-size: 15px; touch-action: none; }
+  .lrow .meta i { font-style: normal; color: var(--muted); margin-left: 6px; }
+  .lrow .meta b { font-weight: 500; font-size: 11px; color: var(--cream); background: var(--border-strong); border-radius: 99px; padding: 1px 7px; margin-left: 6px; }
+  .lrow .handle { width: 20px; color: var(--muted); cursor: grab; text-align: center; font-size: 15px; touch-action: none; }
   .lrow .del { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--crimson); color: #fff; font: 500 16px/22px -apple-system, Inter, sans-serif; cursor: pointer; flex: none; }
   .lrow.lifted { opacity: .6; }
   .ribbons { position: relative; overflow: hidden; cursor: grab; touch-action: pan-y;
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
-            mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent); }
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 11%, #000 89%, transparent);
+            mask-image: linear-gradient(to right, transparent, #000 11%, #000 89%, transparent); }
   .ribbons:active { cursor: grabbing; }
   .track { will-change: transform; }
   .row, .dots { display: flex; gap: 4px; }
@@ -101,11 +118,13 @@
   .dot i { width: 16px; height: 3px; border-radius: 3px; background: var(--cream); }
   .cell { flex: none; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
     font-size: 17px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .cell.center { font-weight: 600; }
+  .cell:hover:not(.center) { box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .cell small { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
   .cell sup { font-size: 11px; vertical-align: top; }
   .cell.midnight::before { content: ""; position: absolute; left: -3px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px; background: var(--crimson); }
   .lens { position: absolute; top: 16px; border: 2px solid #fff; border-radius: 14px; background: rgba(255,255,255,.06); pointer-events: none; }
-  .foot { display: flex; gap: 16px; font-size: 12px; color: var(--faint); flex-wrap: wrap; }
+  .foot { display: flex; gap: 16px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .foot .sp { flex: 1; }
   .foot a:hover { color: var(--muted); }
 
@@ -129,6 +148,9 @@
     .grid { grid-template-columns: 116px 1fr; }
     .lrow { padding-right: 8px; }
     .lrow .meta i { display: none; }
+    .hdr { flex-wrap: wrap; row-gap: 12px; }
+    .hdr .sp { flex-basis: 100%; height: 0; order: 1; }
+    .hdr .btn, .hdr .more { order: 2; }
     .moment { font-size: 24px; }
     .globalnav .hide-s { display: none; }
   }
@@ -155,6 +177,7 @@
     <p class="fine">macOS 14 or later · Apple silicon and Intel · Open source</p>
   </section>
 
+  <div class="sizes" id="sizes" role="radiogroup" aria-label="Size"></div>
   <div class="panel" tabindex="0" id="panel" aria-label="Interactive time zone strip">
     <div class="hdr" id="demo">
       <div class="mark"><i style="background:#FFF1E5"></i><i style="background:#807870"></i><i style="background:#B0A898"></i></div>
@@ -162,6 +185,8 @@
       <div class="sp"></div>
       <button class="btn" id="editBtn">Edit</button>
       <button class="btn prime" id="addBtn">Add</button>
+      <div class="more"><button class="icon" id="moreBtn" aria-label="More">⋯</button>
+        <div class="menu" id="menu" hidden></div></div>
     </div>
     <div class="travel">
       <div><div class="eyebrow" id="rel">Now, your time</div><div class="moment" id="moment"></div></div>
@@ -176,13 +201,13 @@
       <div class="box">⌕ <input id="q" placeholder="Add a city, PST, UTC+5…" autocomplete="off"></div>
       <div class="results" id="results"></div>
     </div>
-    <div class="tile">
+    <div class="tile strip">
       <div class="grid">
         <div class="labels" id="labels"></div>
         <div class="ribbons" id="ribbons"><div class="track" id="track"></div><div class="lens" id="lens"></div></div>
       </div>
     </div>
-    <div class="foot"><a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a><span class="sp"></span><span id="hint">Drag, scroll or ← → to travel</span></div>
+    <div class="foot"><a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a></div>
   </div>
 
   <h2 class="section-h">Simple on purpose.</h2>
@@ -276,7 +301,7 @@
       html += '<div class="row">';
       for (const i of idx) {
         const p = parts(at(i), tz), hr = +p.hour, mn = +p.minute, s = sky(hr + mn / 60, !isWork(hr));
-        html += `<div class="cell${hr === 0 ? " midnight" : ""}" data-i="${i}" style="width:${CELL - 4}px;color:${s.text};background:${s.fill}">` +
+        html += `<div class="cell${i === base ? " center" : ""}${hr === 0 ? " midnight" : ""}" data-i="${i}" style="width:${CELL - 4}px;color:${s.text};background:${s.fill}">` +
           `<span>${pad(hr)}${mn ? `<sup>:${pad(mn)}</sup>` : ""}</span>${hr === 0 ? `<small>${p.weekday}</small>` : ""}</div>`;
       }
       html += "</div>";
@@ -288,7 +313,6 @@
     lens.style.left = width / 2 - (CELL + 4) / 2 - 2 + "px";
     $("editBtn").textContent = editing ? "Done" : "Edit";
     $("editBtn").classList.toggle("prime", editing);
-    $("hint").textContent = editing ? "Drag ≡ to reorder" : "Drag, scroll or ← → to travel";
   }
 
   const travel = n => { offset += n; render(); };
@@ -369,7 +393,7 @@
     if (startX === null) return;
     const dx = e.clientX - startX;
     if (!dragging && Math.abs(dx) > 3) { dragging = true; ribbons.setPointerCapture(e.pointerId); }
-    if (dragging) { drag = dx; render(); }
+    if (dragging) { drag = dx / zoom; render(); }
   });
   const end = () => {
     if (startX === null) return;
@@ -389,9 +413,40 @@
     if (e.key === "ArrowLeft") { travel(-1); e.preventDefault(); }
     if (e.key === "ArrowRight") { travel(1); e.preventDefault(); }
   });
+  // Five sizes, same scale factors as the Mac app (UISize).
+  const SIZES = [["XS", "Extra Small", .82], ["S", "Small", .91], ["M", "Medium", 1], ["L", "Large", 1.12], ["XL", "Extra Large", 1.26]];
+  let sizeIdx = 2, zoom = 1;
+  function setSize(i) {
+    sizeIdx = Math.max(0, Math.min(4, i)); zoom = SIZES[sizeIdx][2];
+    $("panel").style.setProperty("--z", zoom);
+    $("sizes").innerHTML = SIZES.map(([k, name], j) => `<button role="radio" aria-checked="${j === sizeIdx}" title="${name}" class="${j === sizeIdx ? "on" : ""}" data-s="${j}">${k}</button>`).join("");
+    renderMenu(); render();
+  }
+  $("sizes").onclick = e => { const b = e.target.closest("[data-s]"); if (b) setSize(+b.dataset.s); };
+  function renderMenu() {
+    $("menu").innerHTML = '<button data-a="copy">Copy This Moment</button><hr>' +
+      SIZES.map(([, name], j) => `<button data-s="${j}" class="${j === sizeIdx ? "on" : ""}">${name}</button>`).join("") +
+      '<hr><button data-a="bigger">Larger<span>⌘+</span></button><button data-a="smaller">Smaller<span>⌘−</span></button>';
+  }
+  $("moreBtn").onclick = e => { e.stopPropagation(); $("menu").hidden = !$("menu").hidden; };
+  document.addEventListener("click", () => { $("menu").hidden = true; });
+  $("menu").onclick = e => {
+    e.stopPropagation();
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.s) setSize(+b.dataset.s);
+    if (b.dataset.a === "bigger") setSize(sizeIdx + 1);
+    if (b.dataset.a === "smaller") setSize(sizeIdx - 1);
+    if (b.dataset.a === "copy") navigator.clipboard?.writeText(cities.map(([n, z]) => { const p = parts(new Date(), z); return `${n}: ${pad(p.hour)}:${p.minute}`; }).join("\n"));
+    $("menu").hidden = true;
+  };
+  $("panel").addEventListener("keydown", e => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    if (e.key === "+" || e.key === "=") { setSize(sizeIdx + 1); e.preventDefault(); }
+    if (e.key === "-") { setSize(sizeIdx - 1); e.preventDefault(); }
+  });
   addEventListener("resize", render);
   setInterval(render, 15000);
-  render();
+  setSize(2);
 })();
 </script>
 </body>

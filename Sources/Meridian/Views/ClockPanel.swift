@@ -1,43 +1,59 @@
 import SwiftUI
 import AppKit
 
-/// The whole app in one panel: header, time-travel bar, ribbons. Used by both the
+/// The whole app in one panel: header, the moment, ribbons. Used by both the
 /// menu bar popover and the desktop window.
 struct ClockPanel: View {
     @EnvironmentObject private var store: ZoneStore
-    @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
     var compact = false
-    @State private var adding = false
-    @State private var editing = false
-    @State private var copied = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.xl) {
-            header
+        let ui = Metrics(scale: store.uiSize.scale)
+        ClockPanelContent(compact: compact)
+            .environment(\.metrics, ui)
+    }
+}
 
-            // Hero: the moment you're looking at, apple.com-style headline.
-            TravelBar(copied: $copied)
+private struct ClockPanelContent: View {
+    @EnvironmentObject private var store: ZoneStore
+    @Environment(\.metrics) private var ui
+    let compact: Bool
+    @State private var adding = false
+    @State private var editing = false
 
-            if adding || store.places.isEmpty {
-                Tile { AddCityField() }
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // bradcowdrey.com's signature crimson rule.
+            Palette.crimson.frame(height: 3)
 
-            if !store.places.isEmpty {
-                Tile {
-                    StripView(
-                        cellWidth: compact ? 48 : 52,
-                        rowHeight: compact ? 44 : 48,
-                        labelWidth: compact ? 160 : 176,
-                        editing: editing
-                    )
+            VStack(alignment: .leading, spacing: ui.xl) {
+                header
+                TravelBar()
+
+                if adding || store.places.isEmpty {
+                    Tile { AddCityField() }
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-            }
 
-            footer
+                if !store.places.isEmpty {
+                    Tile(tightTop: true) {
+                        StripView(
+                            cellWidth: ui.cellWidth(compact: compact),
+                            rowHeight: ui.rowHeight(compact: compact),
+                            labelWidth: ui.labelWidth(compact: compact),
+                            editing: editing
+                        )
+                    }
+                }
+
+                Link(destination: Brand.website) {
+                    Text("\(Brand.author) · \(Brand.websiteHost)")
+                }
+                .font(.system(size: ui.pt(12)))
+                .foregroundStyle(Palette.textMuted)
+            }
+            .padding(ui.xl)
         }
-        .padding(compact ? Space.xl : Space.xl + Space.s)
         .background(Palette.bg)
         .environment(\.colorScheme, .dark)
         .onAppear { store.tick() }
@@ -50,13 +66,18 @@ struct ClockPanel: View {
             withAnimation(.snappy) { adding = false; editing = false }
             return .handled
         }
+        .onKeyPress(characters: CharacterSet(charactersIn: "+=-"), phases: .down) { press in
+            guard press.modifiers.contains(.command) else { return .ignored }
+            store.stepSize(press.characters == "-" ? -1 : 1)
+            return .handled
+        }
     }
 
     private var header: some View {
-        HStack(spacing: Space.m) {
-            AppMark(size: 28)
+        HStack(spacing: ui.m) {
+            AppMark(size: ui.pt(28))
             Text(Brand.appName)
-                .font(TypeScale.title)
+                .font(ui.title)
                 .tracking(-0.2)
                 .foregroundStyle(Palette.textPrimary)
             Spacer()
@@ -72,72 +93,92 @@ struct ClockPanel: View {
             .buttonStyle(PillButtonStyle(prominent: true))
             .disabled(!store.canAdd && !adding)
             .help(store.canAdd ? "Add a city" : "You can track up to \(ZoneStore.maxPlaces) cities")
+            MoreMenu(compact: compact)
+        }
+    }
+}
+
+/// Everything secondary lives behind one ⋯ button.
+private struct MoreMenu: View {
+    @EnvironmentObject private var store: ZoneStore
+    @Environment(\.metrics) private var ui
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
+    let compact: Bool
+
+    var body: some View {
+        Menu {
+            Button("Copy This Moment") { store.copyMoment() }
+            Divider()
+            Picker("Size", selection: $store.uiSize) {
+                ForEach(UISize.allCases) { Text($0.label).tag($0) }
+            }
+            Button("Larger  ⌘+") { store.stepSize(1) }
+                .disabled(store.uiSize.larger == nil)
+            Button("Smaller  ⌘−") { store.stepSize(-1) }
+                .disabled(store.uiSize.smaller == nil)
+            Divider()
             if compact {
-                IconButton(symbol: "macwindow", help: "Open as a desktop window") {
+                Button("Open as Window") {
                     openWindow(id: "strip")
                     NSApp.activate(ignoringOtherApps: true)
                 }
             }
-            IconButton(symbol: "gearshape", help: "Settings") {
+            Button("Settings…") {
                 openSettings()
                 NSApp.activate(ignoringOtherApps: true)
             }
+            Divider()
+            Button("Quit Meridian") { NSApp.terminate(nil) }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: ui.pt(14), weight: .semibold))
+                .foregroundStyle(Palette.textPrimary)
+                .frame(width: ui.pt(34), height: ui.pt(34))
+                .background(Circle().fill(Palette.border))
+                .contentShape(Circle())
         }
-    }
-
-    private var footer: some View {
-        HStack(spacing: Space.l) {
-            Link(destination: Brand.website) {
-                Text("\(Brand.author) · \(Brand.websiteHost)")
-            }
-            .foregroundStyle(Palette.textFaint)
-            Spacer()
-            Text(editing ? "Drag ≡ to reorder" : "Drag, scroll or ← → to travel")
-                .foregroundStyle(Palette.textFaint)
-            if compact {
-                Button("Quit") { NSApp.terminate(nil) }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Palette.textFaint)
-            }
-        }
-        .font(.system(size: 12))
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("More")
     }
 }
 
-/// "Now" / "In 3 h" with the moment in your own zone, and the travel controls.
+/// The moment you're looking at, apple.com-style, and the travel controls.
 struct TravelBar: View {
     @EnvironmentObject private var store: ZoneStore
-    @Binding var copied: Bool
+    @Environment(\.metrics) private var ui
 
     var body: some View {
         let moment = store.selectedMoment()
-        HStack(alignment: .bottom, spacing: Space.m) {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                Text(relativeLabel)
-                    .font(TypeScale.eyebrow)
-                    .foregroundStyle(store.offsetHours == 0 ? Palette.accent : Palette.cream)
+        HStack(alignment: .bottom, spacing: ui.m) {
+            VStack(alignment: .leading, spacing: ui.xs) {
+                HStack(spacing: ui.pt(6)) {
+                    if store.offsetHours == 0 {
+                        Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
+                    }
+                    Text(relativeLabel)
+                        .font(ui.eyebrow)
+                        .foregroundStyle(store.offsetHours == 0 ? Palette.textMuted : Palette.cream)
+                }
                 Text(TimeMath.fullMoment(moment, in: .current, use24h: store.use24h))
-                    .font(TypeScale.display)
-                    .tracking(-0.9)
+                    .font(ui.display)
+                    .tracking(-0.9 * ui.scale)
                     .foregroundStyle(Palette.textPrimary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            Spacer()
-            HStack(spacing: Space.s) {
+            Spacer(minLength: ui.m)
+            HStack(spacing: ui.s) {
                 IconButton(symbol: "chevron.left", help: "One hour earlier") { store.travel(-1) }
                 Button("Now") { store.backToNow() }
                     .buttonStyle(PillButtonStyle(prominent: store.offsetHours != 0))
                     .disabled(store.offsetHours == 0)
                 IconButton(symbol: "chevron.right", help: "One hour later") { store.travel(1) }
-                IconButton(symbol: copied ? "checkmark" : "doc.on.doc", help: "Copy this moment for every city") {
-                    store.copyMoment()
-                    withAnimation { copied = true }
-                    Task {
-                        try? await Task.sleep(for: .seconds(1.5))
-                        withAnimation { copied = false }
-                    }
-                }
             }
         }
         .animation(.snappy, value: store.offsetHours)
@@ -158,27 +199,28 @@ struct TravelBar: View {
 /// Search box with live results. Stays open so several cities can be added in a row.
 struct AddCityField: View {
     @EnvironmentObject private var store: ZoneStore
+    @Environment(\.metrics) private var ui
     @State private var query = ""
     @FocusState private var focused: Bool
 
     private var results: [CityEntry] { CityDirectory.search(query) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.s) {
-            HStack(spacing: Space.s) {
-                Image(systemName: "magnifyingglass").foregroundStyle(Palette.textFaint)
+        VStack(alignment: .leading, spacing: ui.s) {
+            HStack(spacing: ui.s) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Palette.textMuted)
                 TextField("Add a city, airport code, PST, UTC+5…", text: $query)
                     .textFieldStyle(.plain)
                     .focused($focused)
                     .onSubmit { if let first = results.first { add(first) } }
             }
-            .font(.system(size: 15))
+            .font(.system(size: ui.pt(15)))
             .foregroundStyle(Palette.textPrimary)
-            .padding(.horizontal, Space.m)
-            .frame(height: 44)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.bg))
+            .padding(.horizontal, ui.m)
+            .frame(height: ui.pt(44))
+            .background(RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous).fill(Palette.bg))
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous)
                     .strokeBorder(focused ? Palette.textFaint : .clear, lineWidth: 1)
             )
 
@@ -187,39 +229,39 @@ struct AddCityField: View {
                     VStack(spacing: 0) {
                         ForEach(results) { entry in
                             Button { add(entry) } label: {
-                                HStack(spacing: Space.m) {
+                                HStack(spacing: ui.m) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(entry.name)
-                                            .font(TypeScale.body)
+                                            .font(ui.body)
                                             .foregroundStyle(Palette.textPrimary)
                                         Text(entry.region.replacingOccurrences(of: "_", with: " "))
-                                            .font(TypeScale.meta)
-                                            .foregroundStyle(Palette.textFaint)
+                                            .font(ui.meta)
+                                            .foregroundStyle(Palette.textMuted)
                                     }
                                     Spacer()
                                     if let zone = TimeZone(identifier: entry.timeZoneID) {
                                         Text(TimeMath.time(store.now, in: zone, use24h: store.use24h))
-                                            .font(TypeScale.body)
+                                            .font(ui.body)
                                             .foregroundStyle(Palette.textSecondary)
                                             .monospacedDigit()
                                         Text(TimeMath.offsetLabel(seconds: zone.secondsFromGMT(for: store.now)))
-                                            .font(TypeScale.meta)
-                                            .foregroundStyle(Palette.textFaint)
-                                            .frame(width: 72, alignment: .trailing)
+                                            .font(ui.meta)
+                                            .foregroundStyle(Palette.textMuted)
+                                            .frame(width: ui.pt(72), alignment: .trailing)
                                     }
                                     Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 17))
+                                        .font(.system(size: ui.pt(17)))
                                         .foregroundStyle(Palette.textMuted)
                                 }
-                                .padding(.horizontal, Space.m)
-                                .frame(height: 48)
+                                .padding(.horizontal, ui.m)
+                                .frame(height: ui.pt(52))
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(RowButtonStyle())
                         }
                     }
                 }
-                .frame(maxHeight: 240)
+                .frame(maxHeight: ui.pt(240))
             }
         }
         .onAppear { focused = true }
@@ -234,17 +276,13 @@ struct AddCityField: View {
 
 // MARK: - Bits
 
-/// Small in-app mark: warm-black tile, cream ribbon and the white lens.
+/// Small in-app mark: warm-black tile, three ribbons and the white lens.
 struct AppMark: View {
     var size: CGFloat = 28
 
     var body: some View {
         RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
             .fill(Palette.subtle)
-            .overlay(
-                RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
-                    .strokeBorder(Palette.border, lineWidth: 1)
-            )
             .overlay(
                 VStack(spacing: size * 0.1) {
                     Capsule().fill(Palette.cream).frame(width: size * 0.62, height: size * 0.12)
@@ -262,6 +300,7 @@ struct AppMark: View {
 }
 
 struct IconButton: View {
+    @Environment(\.metrics) private var ui
     let symbol: String
     let help: String
     let action: () -> Void
@@ -270,9 +309,9 @@ struct IconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(hovering ? Palette.textPrimary : Palette.textMuted)
-                .frame(width: 34, height: 34)
+                .font(.system(size: ui.pt(14), weight: .semibold))
+                .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
+                .frame(width: ui.pt(34), height: ui.pt(34))
                 .background(Circle().fill(hovering ? Palette.borderStrong : Palette.border))
                 .contentShape(Circle())
         }
@@ -294,14 +333,15 @@ struct PillButtonStyle: ButtonStyle {
         let configuration: ButtonStyleConfiguration
         let prominent: Bool
         @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.metrics) private var ui
         @State private var hovering = false
 
         var body: some View {
             configuration.label
-                .font(.system(size: 14, weight: .semibold))
-                .padding(.horizontal, Space.l + Space.xs)
-                .frame(height: 34)
-                .foregroundStyle(prominent ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textFaint))
+                .font(.system(size: ui.pt(14), weight: .semibold))
+                .padding(.horizontal, ui.pt(20))
+                .frame(height: ui.pt(34))
+                .foregroundStyle(prominent ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textMuted))
                 .background(
                     Capsule().fill(prominent ? (hovering ? Palette.cream : Color.white) : (hovering && isEnabled ? Palette.borderStrong : Palette.border))
                 )
@@ -316,12 +356,17 @@ struct PillButtonStyle: ButtonStyle {
 
 /// Large rounded raised surface, like the product tiles on apple.com.
 struct Tile<Content: View>: View {
+    @Environment(\.metrics) private var ui
+    /// Content that brings its own top spacing (the strip's overlap row) sets this to keep the
+    /// tile's inner margins optically equal.
+    var tightTop = false
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         content()
-            .padding(Space.l + Space.xs)
-            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.raisedTile))
+            .padding(ui.pt(20))
+            .padding(.top, tightTop ? -ui.pt(12) : 0)
+            .background(RoundedRectangle(cornerRadius: ui.pt(22), style: .continuous).fill(Palette.raisedTile))
     }
 }
 
@@ -332,12 +377,13 @@ struct RowButtonStyle: ButtonStyle {
 
     private struct RowHover: View {
         let configuration: ButtonStyleConfiguration
+        @Environment(\.metrics) private var ui
         @State private var hovering = false
 
         var body: some View {
             configuration.label
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous)
                         .fill(configuration.isPressed ? Palette.borderStrong : (hovering ? Palette.border : .clear))
                 )
                 .onHover { hovering = $0 }

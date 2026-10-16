@@ -68,6 +68,9 @@ private struct GeneralSettings: View {
                     ForEach(store.places) { Text($0.name).tag(Optional($0.id)) }
                 }
             }
+            Picker("Size", selection: $store.uiSize) {
+                ForEach(UISize.allCases) { Text($0.label).tag($0) }
+            }
             Toggle("24-hour clock", isOn: $store.use24h)
             Toggle("Highlight working hours", isOn: $store.showWorkHours)
             if store.showWorkHours {

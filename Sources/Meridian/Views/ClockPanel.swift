@@ -117,21 +117,26 @@ private struct ClockPanelContent: View {
             .frame(height: contentHeight > 0 ? min(contentHeight, maxBodyHeight) : nil)
             .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
         }
+        // Watch the panel's own size and fit the hosting window to it.
+        .onGeometryChange(for: CGSize.self) { proxy in proxy.size } action: { size in
+            fitWindow(to: size)
+        }
         .padding(.bottom, -titleBarInset)
         .background(Palette.bg)
         // Use the full window: the crimson rule sits at the very top, under the hidden title bar.
         .ignoresSafeArea()
         .background(Palette.bg.ignoresSafeArea())
-        .background(HostWindowReader(box: { host.isDesktop = !compact; return host }()))
+        .background(HostWindowReader(box: { host.isDesktop = !compact; return host }()) { window in
+            guard !compact else { return }
+            window.backgroundColor = NSColor(Palette.bg)
+            let inset = max(0, window.frame.height - window.contentLayoutRect.height)
+            if abs(inset - titleBarInset) > 0.5 { titleBarInset = inset }
+            SelfTest.log("window attached, title bar inset \(inset)")
+        })
         // Measure the whole panel and size the hosting window to it. SwiftUI's menu bar panel
         // (and sometimes a title-less window) doesn't grow on its own when content gets bigger,
         // which clipped the larger sizes.
-        .background(
-            GeometryReader { proxy in
-                Color.clear.preference(key: PanelSizeKey.self, value: proxy.size)
-            }
-        )
-        .onPreferenceChange(PanelSizeKey.self) { fitWindow(to: $0) }
+
         .environment(\.colorScheme, .dark)
         .onAppear {
             store.tick()
@@ -178,11 +183,6 @@ private struct ClockPanelContent: View {
                 frame.origin.x = min(max(frame.origin.x, visible.minX), visible.maxX - frame.width)
                 if frame.minY < visible.minY { frame.origin.y = visible.minY }
                 if frame.maxY > visible.maxY { frame.origin.y = visible.maxY - frame.height }
-            }
-            if !compact {
-                let inset = max(0, window.frame.height - window.contentLayoutRect.height)
-                if abs(inset - titleBarInset) > 0.5 { titleBarInset = inset }
-                window.backgroundColor = NSColor(Palette.bg)
             }
             SelfTest.log("fitWindow content \(size) window \(window.frame) -> \(frame) titleBarInset \(titleBarInset)")
             if abs(frame.width - window.frame.width) > 0.5 || abs(frame.height - window.frame.height) > 0.5
@@ -397,31 +397,33 @@ final class HostWindow {
 
 private struct HostWindowReader: NSViewRepresentable {
     let box: HostWindow
+    var onWindow: ((NSWindow) -> Void)? = nil
 
     /// Reports its window as soon as it's attached (before the window is first drawn).
     final class ReaderView: NSView {
         var box: HostWindow?
+        var onWindow: ((NSWindow) -> Void)?
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            guard let window else { return }
             if let box, box.window !== window { box.window = window }
+            let callback = onWindow
+            DispatchQueue.main.async { callback?(window) }
         }
     }
 
     func makeNSView(context: Context) -> ReaderView {
         let view = ReaderView()
         view.box = box
+        view.onWindow = onWindow
         return view
     }
 
     func updateNSView(_ view: ReaderView, context: Context) {
         view.box = box
+        view.onWindow = onWindow
         if box.window !== view.window, view.window != nil { box.window = view.window }
     }
-}
-
-private struct PanelSizeKey: PreferenceKey {
-    static let defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
 }
 
 private struct ContentHeightKey: PreferenceKey {

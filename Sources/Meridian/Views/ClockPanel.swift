@@ -75,7 +75,7 @@ private struct ClockPanelContent: View {
                     }
 
                     Link(destination: Brand.website) {
-                        Text("\(Brand.author) · \(Brand.websiteHost)")
+                        Text("Made by \(Brand.author). Free. Forever. · \(Brand.websiteHost) ↗")
                     }
                     .font(ui.font(12))
                     .foregroundStyle(Palette.textMuted)

@@ -1,8 +1,7 @@
 name: Build
 
+# main is built by release.yml; this checks pull requests.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 jobs:

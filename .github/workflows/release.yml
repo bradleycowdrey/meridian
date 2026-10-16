@@ -1,12 +1,13 @@
 name: Release
 
-# Every push to the meridian branch builds the app and publishes the DMG on GitHub Releases
-# under the tag meridian-v<VERSION file>. Bump VERSION for a new release; pushing again
-# with the same VERSION replaces that release's DMG.
+# Every push to main builds the app and publishes the DMG on GitHub Releases as v<VERSION>,
+# plus a stable Meridian.dmg so https://github.com/bc101101/meridian/releases/latest/download/Meridian.dmg
+# always serves the newest build. Bump VERSION for a new release; pushing again with the same
+# VERSION replaces that release's files.
 on:
   push:
-    branches: [meridian]
-    tags: ["v*", "meridian-v*"]
+    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -44,7 +45,7 @@ jobs:
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             echo "TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
           else
-            echo "TAG=meridian-v$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_ENV"
+            echo "TAG=v$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_ENV"
           fi
 
       - name: Build and package
@@ -56,6 +57,7 @@ jobs:
         run: |
           scripts/build-app.sh "$TAG"
           scripts/make-dmg.sh "$TAG"
+          cp dist/Meridian-*.dmg dist/Meridian.dmg
 
       - name: Publish release
         env:
@@ -63,9 +65,10 @@ jobs:
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.dmg dist/*.sha256 --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --latest
           else
             gh release create "$TAG" dist/*.dmg dist/*.sha256 \
-              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
               --title "Meridian ${TAG##*v}" \
               --notes "Download the DMG, open it and drag Meridian into Applications. First launch: right-click Meridian, then Open. Made by Bradley Cowdrey · bradcowdrey.com"
           fi

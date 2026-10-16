@@ -6,9 +6,9 @@ A tiny, free, open-source world clock for your Mac's menu bar.<br>
 Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a></p>
 
 <p align="center">
-  <a href="https://github.com/bc101101/bc101101/releases/tag/meridian-v0.2.0"><b>Download for Mac</b></a> ·
+  <a href="https://github.com/bc101101/meridian/releases/latest/download/Meridian.dmg"><b>Download for Mac</b></a> ·
   <a href="https://bradcowdrey.com/meridian">Website & live demo</a> ·
-  <a href="https://github.com/bc101101/bc101101/issues">Report an issue</a>
+  <a href="https://github.com/bc101101/meridian/issues">Report an issue</a>
 </p>
 
 ---
@@ -34,7 +34,7 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 Meridian is distributed directly, not through the Mac App Store.
 
-1. Download `Meridian-x.y.z.dmg` from [Releases](https://github.com/bc101101/bc101101/releases/tag/meridian-v0.2.0)
+1. Download [Meridian.dmg](https://github.com/bc101101/meridian/releases/latest/download/Meridian.dmg) (all versions are on [Releases](https://github.com/bc101101/meridian/releases))
    or [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian).
 2. Open the DMG and drag **Meridian** to **Applications**.
 3. First launch: if macOS says it can't verify the app, **right-click Meridian → Open → Open**, or run
@@ -46,8 +46,8 @@ Meridian is distributed directly, not through the Mac App Store.
 Requires Xcode 15.3+ (Swift 5.10) on macOS 14+.
 
 ```sh
-git clone https://github.com/bc101101/bc101101.git -b meridian
-cd bc101101
+git clone https://github.com/bc101101/meridian.git
+cd meridian
 swift run                         # run in development
 scripts/build-app.sh 0.1.0        # dist/Meridian.app (universal)
 scripts/make-dmg.sh 0.1.0         # dist/Meridian-0.1.0.dmg
@@ -55,11 +55,7 @@ scripts/make-dmg.sh 0.1.0         # dist/Meridian-0.1.0.dmg
 
 ## Releasing
 
-Push a tag and GitHub Actions builds a universal app, packages a DMG and publishes it on Releases:
-
-```sh
-git tag v0.1.0 && git push origin v0.1.0
-```
+Bump the number in `VERSION` and push to `main`. GitHub Actions builds a universal app, packages a DMG and publishes it as release `v<VERSION>`, plus a stable `Meridian.dmg` that the download links always point to.
 
 Optional secrets for Developer ID signing and notarization (removes the Gatekeeper prompt):
 `DEVELOPER_ID_P12` (base64 .p12), `DEVELOPER_ID_P12_PASSWORD`, `CODESIGN_IDENTITY`,

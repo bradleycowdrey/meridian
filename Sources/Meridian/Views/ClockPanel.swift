@@ -18,6 +18,7 @@ struct ClockPanel: View {
 
 private struct ClockPanelContent: View {
     @EnvironmentObject private var store: ZoneStore
+    @EnvironmentObject private var updater: Updater
     @Environment(\.metrics) private var ui
     let compact: Bool
     @State private var adding = false
@@ -26,10 +27,14 @@ private struct ClockPanelContent: View {
     @State private var host = HostWindow()
     @Environment(\.openWindow) private var openWindow
 
+    init(compact: Bool) {
+        self.compact = compact
+    }
+
     /// Tallest the scrolling body may be so the whole panel stays on screen at any size.
     private var maxBodyHeight: CGFloat {
         let screen = NSScreen.main?.visibleFrame.height ?? 800
-        let chrome = 3 + ui.xl + ui.pt(34) + ui.l   // crimson rule + header
+        let chrome = 3 + ui.l + ui.xs + ui.pt(34) + ui.m   // crimson rule + header
         return max(ui.pt(240), screen - chrome - ui.pt(compact ? 32 : 64))
     }
 
@@ -43,8 +48,8 @@ private struct ClockPanelContent: View {
 
                 header
                     .padding(.horizontal, ui.xl)
-                    .padding(.top, ui.xl)
-                    .padding(.bottom, ui.l)
+                    .padding(.top, ui.l + ui.xs)
+                    .padding(.bottom, ui.m)
             }
             // Window: drag to move. Menu bar panel (which macOS pins under its icon): drag to
             // tear it off into a movable window at the same spot.
@@ -54,8 +59,11 @@ private struct ClockPanelContent: View {
             // Everything below the header scrolls if it would outgrow the screen
             // (e.g. Extra Large with the city search open).
             ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: ui.xl) {
-                    UpdateBanner()
+                VStack(alignment: .leading, spacing: ui.m) {
+                    // Only takes space when there's something to say.
+                    if updater.latest != nil || updater.notice != nil || updater.userChecking {
+                        UpdateBanner()
+                    }
                     TravelBar()
 
                     if adding || store.places.isEmpty {
@@ -74,15 +82,27 @@ private struct ClockPanelContent: View {
                         }
                     }
 
-                    Link(destination: Brand.website) {
-                        Text("Made by \(Brand.author). Free. Forever. · \(Brand.websiteHost) ↗")
+                    HStack(spacing: ui.m) {
+                        Link(destination: Brand.website) {
+                            Text("Made by \(Brand.author). Free. Forever. · \(Brand.websiteHost) ↗")
+                        }
+                        .font(ui.font(12))
+                        .foregroundStyle(Palette.textMuted)
+                        Spacer(minLength: ui.s)
+                        ShareLink(
+                            item: Brand.repository,
+                            subject: Text("Meridian for Mac"),
+                            message: Text(Brand.shareMessage)
+                        ) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(PillButtonStyle(small: true))
+                        .help("Share Meridian")
                     }
-                    .font(ui.font(12))
-                    .foregroundStyle(Palette.textMuted)
                 }
                 .padding(.horizontal, ui.xl)
-                .padding(.top, ui.s)
-                .padding(.bottom, ui.xl)
+                .padding(.top, ui.xs)
+                .padding(.bottom, ui.l + ui.xs)
                 .background(
                     GeometryReader { proxy in
                         Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
@@ -96,7 +116,7 @@ private struct ClockPanelContent: View {
         .background(Palette.bg)
         // Use the full window: the crimson rule sits at the very top, under the hidden title bar.
         .ignoresSafeArea()
-        .background(HostWindowReader(box: host))
+        .background(HostWindowReader(box: { host.isDesktop = !compact; return host }()))
         // Measure the whole panel and size the hosting window to it. SwiftUI's menu bar panel
         // (and sometimes a title-less window) doesn't grow on its own when content gets bigger,
         // which clipped the larger sizes.
@@ -164,17 +184,12 @@ private struct ClockPanelContent: View {
 
     /// Detaches the menu bar panel into the desktop window, placed where the panel was.
     private func tearOff() {
-        let topLeft = host.window.map { NSPoint(x: $0.frame.minX, y: $0.frame.maxY) }
-        host.window?.close()
-        openWindow(id: "strip")
-        NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            guard let topLeft,
-                  let window = NSApp.windows.first(where: { $0.identifier?.rawValue.contains("strip") == true })
-            else { return }
-            window.setFrameTopLeftPoint(topLeft)
-            window.makeKeyAndOrderFront(nil)
+        if let frame = host.window?.frame {
+            WindowPlacement.request(.topLeft(NSPoint(x: frame.minX, y: frame.maxY)))
         }
+        openWindow(id: "strip")          // placed before it's shown, then fades in
+        NSApp.activate(ignoringOtherApps: true)
+        host.window?.close()             // the panel goes away in the same beat
     }
 
     private var header: some View {
@@ -260,29 +275,41 @@ private struct HeaderCircleButton: View {
     }
 }
 
-/// Snaps the desktop window to the top-left, top-centre or top-right of its screen.
+/// Where to put the desktop window. Requests are applied by the window itself (see HostWindow),
+/// the moment it exists, so a newly opened window is positioned before it's ever seen.
 enum WindowPlacement: String, CaseIterable, Identifiable {
     case left, center, right
 
     var id: String { rawValue }
     var label: String { rawValue.capitalized }
 
-    static var stripWindow: NSWindow? {
-        NSApp.windows.first { $0.identifier?.rawValue.contains("strip") == true && $0.isVisible }
+    enum Request {
+        case edge(WindowPlacement)
+        case topLeft(NSPoint)
     }
 
-    func apply() {
-        guard let window = Self.stripWindow,
-              let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
+    /// The latest unapplied request (one at a time).
+    static var pending: Request?
+    static let didRequest = Notification.Name("MeridianPlaceWindow")
+
+    static func request(_ request: Request) {
+        pending = request
+        NotificationCenter.default.post(name: didRequest, object: nil)
+    }
+
+    /// Top-left point for a window of `size` on `visible`, 16pt from the screen edges.
+    static func topLeft(for request: Request, size: CGSize, visible: CGRect) -> NSPoint {
         let margin: CGFloat = 16
-        let x: CGFloat
-        switch self {
-        case .left: x = visible.minX + margin
-        case .center: x = visible.midX - window.frame.width / 2
-        case .right: x = visible.maxX - window.frame.width - margin
+        switch request {
+        case .topLeft(let point):
+            return point
+        case .edge(.left):
+            return NSPoint(x: visible.minX + margin, y: visible.maxY - margin)
+        case .edge(.center):
+            return NSPoint(x: (visible.midX - size.width / 2).rounded(), y: visible.maxY - margin)
+        case .edge(.right):
+            return NSPoint(x: visible.maxX - size.width - margin, y: visible.maxY - margin)
         }
-        window.setFrameTopLeftPoint(NSPoint(x: x.rounded(), y: visible.maxY - margin))
-        window.makeKeyAndOrderFront(nil)
     }
 }
 
@@ -290,6 +317,8 @@ enum WindowPlacement: String, CaseIterable, Identifiable {
 /// that window fully on screen: after any resize, from SwiftUI or from us, it is pulled back
 /// inside the screen's visible area (top edge first, so the header is never lost).
 final class HostWindow {
+    /// True for the desktop window, which applies WindowPlacement requests.
+    var isDesktop = false
     weak var window: NSWindow? {
         didSet { if window !== oldValue { observe() } }
     }
@@ -304,7 +333,39 @@ final class HostWindow {
                 self?.keepOnScreen()
             })
         }
+        if isDesktop {
+            observers.append(NotificationCenter.default.addObserver(forName: WindowPlacement.didRequest, object: nil, queue: .main) { [weak self] _ in
+                self?.applyPlacement(animated: true)
+            })
+            applyPlacement(animated: false)
+        }
         keepOnScreen()
+    }
+
+    /// Applies a pending placement. A brand-new window is placed while still invisible and then
+    /// faded in; an open window glides to its new spot.
+    func applyPlacement(animated: Bool) {
+        guard isDesktop, let window, let request = WindowPlacement.pending,
+              let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
+        WindowPlacement.pending = nil
+        let topLeft = WindowPlacement.topLeft(for: request, size: window.frame.size, visible: visible)
+        var frame = window.frame
+        frame.origin = NSPoint(x: topLeft.x, y: topLeft.y - frame.height)
+        SelfTest.log("placement \(request) -> \(frame) visible \(visible)")
+        if animated && window.isVisible {
+            window.setFrame(frame, display: true, animate: true)
+            keepOnScreen()
+        } else {
+            window.alphaValue = 0
+            window.setFrame(frame, display: false)
+            keepOnScreen()
+            DispatchQueue.main.async {
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.18
+                    window.animator().alphaValue = 1
+                }
+            }
+        }
     }
 
     func keepOnScreen() {
@@ -326,14 +387,24 @@ final class HostWindow {
 private struct HostWindowReader: NSViewRepresentable {
     let box: HostWindow
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { if box.window !== view.window { box.window = view.window } }
+    /// Reports its window as soon as it's attached (before the window is first drawn).
+    final class ReaderView: NSView {
+        var box: HostWindow?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let box, box.window !== window { box.window = window }
+        }
+    }
+
+    func makeNSView(context: Context) -> ReaderView {
+        let view = ReaderView()
+        view.box = box
         return view
     }
 
-    func updateNSView(_ view: NSView, context: Context) {
-        DispatchQueue.main.async { if box.window !== view.window { box.window = view.window } }
+    func updateNSView(_ view: ReaderView, context: Context) {
+        view.box = box
+        if box.window !== view.window, view.window != nil { box.window = view.window }
     }
 }
 
@@ -462,10 +533,10 @@ private struct MoreMenu: View {
             Menu("Window Position") {
                 ForEach(WindowPlacement.allCases) { placement in
                     Button(placement.label) {
-                        if compact { closeHost() }
+                        WindowPlacement.request(.edge(placement))
                         openWindow(id: "strip")   // opens it, or brings the open one forward
                         NSApp.activate(ignoringOtherApps: true)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { placement.apply() }
+                        if compact { closeHost() }
                     }
                 }
             }
@@ -583,40 +654,33 @@ struct TravelBar: View {
 
     var body: some View {
         let moment = store.selectedMoment()
-        HStack(alignment: .bottom, spacing: ui.m) {
-            VStack(alignment: .leading, spacing: ui.xs) {
-                HStack(spacing: ui.pt(6)) {
-                    if store.offsetHours == 0 {
-                        Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
-                    }
-                    Text(relativeLabel)
-                        .font(ui.eyebrow)
-                        .foregroundStyle(store.offsetHours == 0 ? Palette.textMuted : Palette.cream)
-                }
-                Text(TimeMath.fullMoment(moment, in: .current, use24h: store.use24h))
-                    .font(ui.display)
-                    .tracking(-0.9 * ui.scale)
-                    .foregroundStyle(Palette.textPrimary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+        // One quiet line: the strip below is the focus, not the clock.
+        HStack(spacing: ui.s) {
+            if store.offsetHours == 0 {
+                Circle().fill(Palette.crimson).frame(width: ui.pt(6), height: ui.pt(6))
             }
+            Text(relativeLabel)
+                .font(ui.font(13, .medium))
+                .foregroundStyle(store.offsetHours == 0 ? Palette.textMuted : Palette.cream)
+            Text(TimeMath.fullMoment(moment, in: .current, use24h: store.use24h))
+                .font(ui.font(15, .semibold))
+                .foregroundStyle(Palette.textPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .lineLimit(1)
             Spacer(minLength: ui.m)
-            HStack(spacing: ui.s) {
-                IconButton(symbol: "chevron.left", help: "One hour earlier") { store.travel(-1) }
-                Button("Now") { store.backToNow() }
-                    .buttonStyle(PillButtonStyle(prominent: store.offsetHours != 0))
-                    .disabled(store.offsetHours == 0)
-                IconButton(symbol: "chevron.right", help: "One hour later") { store.travel(1) }
-            }
+            IconButton(symbol: "chevron.left", help: "One hour earlier", small: true) { store.travel(-1) }
+            Button("Now") { store.backToNow() }
+                .buttonStyle(PillButtonStyle(prominent: store.offsetHours != 0, small: true))
+                .disabled(store.offsetHours == 0)
+            IconButton(symbol: "chevron.right", help: "One hour later", small: true) { store.travel(1) }
         }
         .animation(.snappy, value: store.offsetHours)
     }
 
     private var relativeLabel: String {
         let h = store.offsetHours
-        if h == 0 { return "Now, your time" }
+        if h == 0 { return "Now" }
         let days = abs(h) / 24
         let hours = abs(h) % 24
         var parts: [String] = []
@@ -733,15 +797,16 @@ struct IconButton: View {
     @Environment(\.metrics) private var ui
     let symbol: String
     let help: String
+    var small = false
     let action: () -> Void
     @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(ui.font(14, .semibold))
+                .font(ui.font(small ? 12 : 14, .semibold))
                 .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
-                .frame(width: ui.pt(34), height: ui.pt(34))
+                .frame(width: ui.pt(small ? 28 : 34), height: ui.pt(small ? 28 : 34))
                 .background(Circle().fill(hovering ? Palette.borderStrong : Palette.border))
                 .contentShape(Circle())
         }
@@ -754,23 +819,25 @@ struct IconButton: View {
 /// apple.com-style pill: white for the primary action, warm grey for secondary.
 struct PillButtonStyle: ButtonStyle {
     var prominent = false
+    var small = false
 
     func makeBody(configuration: Configuration) -> some View {
-        PillBody(configuration: configuration, prominent: prominent)
+        PillBody(configuration: configuration, prominent: prominent, small: small)
     }
 
     private struct PillBody: View {
         let configuration: ButtonStyleConfiguration
         let prominent: Bool
+        let small: Bool
         @Environment(\.isEnabled) private var isEnabled
         @Environment(\.metrics) private var ui
         @State private var hovering = false
 
         var body: some View {
             configuration.label
-                .font(ui.font(14, .semibold))
-                .padding(.horizontal, ui.pt(20))
-                .frame(height: ui.pt(34))
+                .font(ui.font(small ? 13 : 14, .semibold))
+                .padding(.horizontal, ui.pt(small ? 14 : 20))
+                .frame(height: ui.pt(small ? 28 : 34))
                 .foregroundStyle(prominent ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textMuted))
                 .background(
                     Capsule().fill(prominent ? (hovering ? Palette.cream : Color.white) : (hovering && isEnabled ? Palette.borderStrong : Palette.border))

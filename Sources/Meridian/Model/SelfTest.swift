@@ -56,7 +56,25 @@ enum SelfTest {
                 }
             }
         }
-        try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
+        // Window Position: each request should land flush with that edge (16pt margin), top-aligned.
+        adding.wrappedValue = false
+        store.uiSize = .medium
+        try? await Task.sleep(for: .seconds(1.5))
+        for placement in WindowPlacement.allCases {
+            WindowPlacement.request(.edge(placement))
+            try? await Task.sleep(for: .seconds(1.2))
+            guard let window = host.window else { continue }
+            let f = window.frame
+            let expectedX: CGFloat
+            switch placement {
+            case .left: expectedX = screen.minX + 16
+            case .center: expectedX = (screen.midX - f.width / 2).rounded()
+            case .right: expectedX = screen.maxX - f.width - 16
+            }
+            let ok = abs(f.minX - expectedX) <= 1 && abs(f.maxY - (screen.maxY - 16)) <= 1
+            lines.append("position \(placement.rawValue): window x \(Int(f.minX))..\(Int(f.maxX)) top \(Int(f.maxY)) expected x \(Int(expectedX)) top \(Int(screen.maxY - 16)) \(ok ? "OK" : "WRONG")")
+        }
+                try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
         NSApp.terminate(nil)
     }
 }

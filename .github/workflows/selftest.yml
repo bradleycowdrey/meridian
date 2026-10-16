@@ -1,0 +1,38 @@
+name: Layout self-test
+
+# Builds the app on a real Mac, runs `Meridian --selftest`, and publishes the report and
+# screenshots to the ci-shots branch.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  selftest:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build
+        run: scripts/build-app.sh 0.0.0-selftest
+      - name: Run layout self-test
+        run: |
+          OUT="$RUNNER_TEMP/shots"; mkdir -p "$OUT"
+          dist/Meridian.app/Contents/MacOS/Meridian --selftest "$OUT" > "$OUT/app.log" 2>&1 &
+          PID=$!
+          for i in $(seq 1 120); do [ -f "$OUT/report.txt" ] && break; sleep 1; done
+          sleep 1; kill $PID 2>/dev/null || true
+          system_profiler SPDisplaysDataType | grep -iE "resolution|ui looks like" > "$OUT/display.txt" || true
+          cat "$OUT/report.txt" 2>/dev/null || echo "no report"
+      - name: Publish to ci-shots branch
+        run: |
+          cd "$RUNNER_TEMP/shots"
+          echo "$GITHUB_SHA" > commit.txt
+          git init -q -b ci-shots
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "Layout self-test for $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-shots

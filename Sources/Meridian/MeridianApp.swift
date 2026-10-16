@@ -42,8 +42,15 @@ struct MeridianApp: App {
 struct MenuBarLabel: View {
     @EnvironmentObject private var store: ZoneStore
     @ObservedObject private var updater = Updater.shared
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        label.task {
+            if SelfTest.isActive { openWindow(id: "strip") }
+        }
+    }
+
+    @ViewBuilder private var label: some View {
         // A trailing dot in the menu bar whenever an update is waiting.
         let dot = updater.latest == nil ? "" : " •"
         if store.menuBarStyle == .cityTime, let place = store.menuBarPlace {

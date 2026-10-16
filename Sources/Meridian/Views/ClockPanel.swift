@@ -109,6 +109,11 @@ private struct ClockPanelContent: View {
             store.tick()
             Task { await Updater.shared.checkIfDue() }
         }
+        .task {
+            if !compact && SelfTest.isActive {
+                await SelfTest.run(store: store, adding: $adding, host: host)
+            }
+        }
         .focusable()
         .focusEffectDisabled()
         .onKeyPress(.leftArrow) { store.travel(-1); return .handled }
@@ -588,7 +593,7 @@ struct TravelBar: View {
 struct AddCityField: View {
     @EnvironmentObject private var store: ZoneStore
     @Environment(\.metrics) private var ui
-    @State private var query = ""
+    @State private var query = SelfTest.isActive ? "lon" : ""
     @FocusState private var focused: Bool
 
     private var results: [CityEntry] { CityDirectory.search(query) }

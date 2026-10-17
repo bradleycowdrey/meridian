@@ -107,7 +107,7 @@ enum WidgetTone {
     }
 }
 
-/// The widget face for each size: small and medium list cities and times; large adds the
+/// The widget face for each size: small lists cities, medium is a two-by-two grid, large adds the
 /// day/night tiles for three hours either side of now.
 struct WidgetClockView: View {
     let snapshot: WidgetSnapshot
@@ -121,6 +121,7 @@ struct WidgetClockView: View {
             Group {
                 switch family {
                 case .systemLarge: strip
+                case .systemMedium: grid
                 default: list
                 }
             }
@@ -141,7 +142,7 @@ struct WidgetClockView: View {
 
     private var cities: [WidgetSnapshot.City] { Array(snapshot.cities.prefix(cityLimit)) }
 
-    // MARK: Small and medium
+    // MARK: Small: a list
 
     private var list: some View {
         VStack(spacing: 0) {
@@ -154,29 +155,61 @@ struct WidgetClockView: View {
 
     private func listRow(_ city: WidgetSnapshot.City) -> some View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
-        let small = family == .systemSmall
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(city.name)
-                    .font(.system(size: small ? 13 : 14, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(WidgetTone.secondary)
                     .lineLimit(1)
-                if !small {
-                    Text(relative(zone))
-                        .font(.system(size: 11))
-                        .foregroundStyle(WidgetTone.faint)
-                        .lineLimit(1)
-                }
             }
             Spacer(minLength: 4)
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(Self.time(date, zone: zone, use24h: snapshot.use24h))
-                    .font(.system(size: small ? 17 : 22, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 dayBadge(zone)
             }
+        }
+    }
+
+    // MARK: Medium: two by two
+
+    private var grid: some View {
+        let rows = stride(from: 0, to: cities.count, by: 2).map { Array(cities[$0..<min($0 + 2, cities.count)]) }
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                if index > 0 { Spacer(minLength: 0) }
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { _, city in
+                        gridCell(city).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if row.count == 1 { Color.clear.frame(maxWidth: .infinity, maxHeight: 1) }
+                }
+            }
+        }
+    }
+
+    private func gridCell(_ city: WidgetSnapshot.City) -> some View {
+        let zone = TimeZone(identifier: city.timeZoneID) ?? .current
+        return VStack(alignment: .leading, spacing: 1) {
+            Text(city.name)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(WidgetTone.secondary)
+                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(Self.time(date, zone: zone, use24h: snapshot.use24h))
+                    .font(.system(size: 24, weight: .medium))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.7)
+                dayBadge(zone)
+            }
+            .lineLimit(1)
+            Text(relative(zone))
+                .font(.system(size: 11))
+                .foregroundStyle(WidgetTone.faint)
+                .lineLimit(1)
         }
     }
 
@@ -216,7 +249,7 @@ struct WidgetClockView: View {
             let pitch = (geo.size.width - labelWidth) / CGFloat(columns)
             let headerHeight: CGFloat = 16
             let rows = max(cities.count, 1)
-            let rowHeight = min(44, (geo.size.height - headerHeight - gap * CGFloat(rows)) / CGFloat(rows))
+            let rowHeight = min(58, (geo.size.height - headerHeight - gap * CGFloat(rows)) / CGFloat(rows))
             let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
             let half = columns / 2
 

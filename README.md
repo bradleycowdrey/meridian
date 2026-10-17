@@ -7,7 +7,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 <p align="center">
   <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg"><b>Download for Mac</b></a> ·
-  <a href="https://bradcowdrey.com/app">Try it in your browser</a> ·
+  <a href="https://bradcowdrey.com/meridian">Try it in your browser</a> ·
   <a href="https://github.com/bradleycowdrey/meridian/issues">Report an issue</a>
 </p>
 
@@ -38,7 +38,7 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 Meridian is distributed directly, not through the Mac App Store.
 
 1. Download [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg) (all versions are on [Releases](https://github.com/bradleycowdrey/meridian/releases))
-   or [bradcowdrey.com/app](https://bradcowdrey.com/app), where you can also try it in your browser.
+   or [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), where you can also try it in your browser.
 2. Open the DMG and drag **Meridian** to **Applications**.
 3. First launch: if macOS says it can't verify the app, **right-click Meridian → Open → Open**, or run
    `xattr -dr com.apple.quarantine /Applications/Meridian.app`

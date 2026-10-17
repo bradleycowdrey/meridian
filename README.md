@@ -25,6 +25,7 @@ instant everywhere, so the line through the middle is *now*.
 - **Easy to manage**: **Add** opens search right in the panel; **Edit** shows a delete button and a drag handle on every city.
 - **Fast search**: city names, airport codes (`SFO`, `LHR`), abbreviations (`PST`, `CET`) or offsets (`UTC+5:30`).
 - **The details**: day-change markers, half-hour and 45-minute zones, a `+1 day` badge, 12/24-hour time, custom city names, drag to reorder.
+- **Desktop widget**: small, medium and large widgets for the desktop or Notification Center, with your cities in the same order (large adds the day/night tiles). Right-click the desktop → **Edit Widgets** → search **Meridian**.
 - **Menu bar first**: show an icon, or a city and its time (`LON 14:32`). Open it as a desktop window that can float above everything.
 - **Five sizes** (Extra Small to Extra Large, ⌘+ / ⌘−) and a choice of **SF Pro** or **Inter**, the typeface of bradcowdrey.com.
 - **Automatic updates**: Meridian checks GitHub Releases once a day, verifies the download's SHA-256, then installs and restarts in one click. Turn it off or check manually in **Settings → General → Updates** or the ⋯ menu.

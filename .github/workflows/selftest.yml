@@ -28,6 +28,19 @@ jobs:
           sleep 1; kill $PID 2>/dev/null || true
           system_profiler SPDisplaysDataType | grep -iE "resolution|ui looks like" > "$OUT/display.txt" || true
           cat "$OUT/report.txt" 2>/dev/null || echo "no report"
+      - name: Check widget registration
+        run: |
+          OUT="$RUNNER_TEMP/shots"
+          ditto dist/Meridian.app /Applications/Meridian.app
+          /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -R /Applications/Meridian.app
+          pluginkit -a /Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex || true
+          sleep 5
+          {
+            echo "== entitlements"; codesign -d --entitlements - /Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex 2>&1
+            echo "== verify"; codesign --verify --deep --strict --verbose=2 /Applications/Meridian.app 2>&1
+            echo "== pluginkit"; pluginkit -mAvvv -p com.apple.widgetkit-extension 2>&1 | grep -i -B2 -A8 comridian || echo "not registered"
+          } > "$OUT/widget.txt"
+          cat "$OUT/widget.txt"
       - name: Publish to ci-shots branch
         run: |
           cd "$RUNNER_TEMP/shots"

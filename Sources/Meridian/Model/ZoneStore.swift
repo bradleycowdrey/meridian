@@ -1,6 +1,7 @@
 import SwiftUI
 import ServiceManagement
 import AppKit
+import WidgetKit
 
 enum MenuBarStyle: String, CaseIterable, Identifiable {
     case icon, cityTime
@@ -13,7 +14,7 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
 final class ZoneStore: ObservableObject {
     static let maxPlaces = 12
 
-    @Published var places: [Place] { didSet { savePlaces() } }
+    @Published var places: [Place] { didSet { savePlaces(); syncWidget() } }
 
     /// The clock everything renders from; ticks every few seconds.
     @Published private(set) var now = Date()
@@ -22,7 +23,7 @@ final class ZoneStore: ObservableObject {
     /// Time travel, in whole hours from now. Shared by the menu bar and the window.
     @Published var offsetHours = 0
 
-    @Published var use24h: Bool { didSet { defaults.set(use24h, forKey: "use24h") } }
+    @Published var use24h: Bool { didSet { defaults.set(use24h, forKey: "use24h"); syncWidget() } }
     @Published var showWorkHours: Bool { didSet { defaults.set(showWorkHours, forKey: "showWorkHours") } }
     @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart") } }
     @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
@@ -51,6 +52,8 @@ final class ZoneStore: ObservableObject {
         uiSize = UISize(rawValue: d.string(forKey: "uiSize") ?? "") ?? .medium
         appFont = AppFont(rawValue: d.string(forKey: "appFont") ?? "") ?? .system
 
+        syncWidget()
+
         ticker = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -77,6 +80,15 @@ final class ZoneStore: ObservableObject {
 
     private func savePlaces() {
         if let data = try? JSONEncoder().encode(places) { defaults.set(data, forKey: "places") }
+    }
+
+    /// Hands the cities to the desktop widget and asks it to redraw when they changed.
+    private func syncWidget() {
+        let snapshot = WidgetSnapshot(
+            cities: places.map { .init(name: $0.name, timeZoneID: $0.timeZoneID) },
+            use24h: use24h
+        )
+        if snapshot.save() { WidgetCenter.shared.reloadAllTimelines() }
     }
 
     // MARK: Places

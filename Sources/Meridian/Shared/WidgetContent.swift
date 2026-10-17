@@ -1,0 +1,320 @@
+import SwiftUI
+import WidgetKit
+
+// Shared by the app and the desktop widget extension (Widget/MeridianWidget.swift), so this file
+// stands alone: no Palette, Metrics or ZoneStore. The app writes a WidgetSnapshot whenever cities
+// or clock settings change; the widget reads it and draws the same day/night tiles.
+
+/// What the widget needs from the app: cities in order and the clock settings.
+struct WidgetSnapshot: Codable, Equatable {
+    struct City: Codable, Equatable {
+        var name: String
+        var timeZoneID: String
+    }
+
+    var cities: [City]
+    var use24h: Bool
+
+    /// The widget is sandboxed, so this uses the real home folder rather than its container
+    /// (its entitlements allow reading this one folder).
+    static var fileURL: URL {
+        let home = getpwuid(getuid()).map { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
+        return URL(fileURLWithPath: home)
+            .appendingPathComponent("Library/Application Support/Meridian/widget.json")
+    }
+
+    static func load() -> WidgetSnapshot {
+        guard let data = try? Data(contentsOf: fileURL),
+              let snapshot = try? JSONDecoder().decode(WidgetSnapshot.self, from: data),
+              !snapshot.cities.isEmpty
+        else { return .placeholder }
+        return snapshot
+    }
+
+    /// Writes the file only when something changed. Returns true if it did.
+    @discardableResult
+    func save() -> Bool {
+        guard let data = try? JSONEncoder().encode(self) else { return false }
+        if (try? Data(contentsOf: Self.fileURL)) == data { return false }
+        try? FileManager.default.createDirectory(at: Self.fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        return (try? data.write(to: Self.fileURL, options: .atomic)) != nil
+    }
+
+    static var placeholder: WidgetSnapshot {
+        let local = TimeZone.current.identifier
+        let localName = local.split(separator: "/").last.map { $0.replacingOccurrences(of: "_", with: " ") } ?? "Here"
+        var cities = [City(name: localName, timeZoneID: local)]
+        for (name, id) in [("New York", "America/New_York"), ("London", "Europe/London"), ("Tokyo", "Asia/Tokyo")]
+        where id != local {
+            cities.append(City(name: name, timeZoneID: id))
+        }
+        return WidgetSnapshot(cities: cities, use24h: true)
+    }
+}
+
+/// Sky through the day in bradcowdrey.com tones: warm black at night, warm greys at twilight,
+/// cream in daylight.
+enum DayColor {
+    private static let stops: [(Double, UInt32)] = [
+        (0, 0x161412),
+        (5, 0x1A1816),
+        (6.5, 0x4A4540),
+        (8, 0xB0A898),
+        (9.5, 0xE0D8D0),
+        (12, 0xFFF1E5),
+        (15, 0xFFF1E5),
+        (17.5, 0xE0D8D0),
+        (19, 0x807870),
+        (20.5, 0x34302B),
+        (22, 0x1C1A17),
+        (24, 0x161412),
+    ]
+
+    static func style(at hour: Double) -> (fill: Color, text: Color) {
+        let h = hour.truncatingRemainder(dividingBy: 24)
+        var rgb = components(stops[0].1)
+        for i in 0..<(stops.count - 1) where h >= stops[i].0 && h <= stops[i + 1].0 {
+            let a = components(stops[i].1)
+            let b = components(stops[i + 1].1)
+            let span = stops[i + 1].0 - stops[i].0
+            let t = span == 0 ? 0 : (h - stops[i].0) / span
+            rgb = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t)
+            break
+        }
+        let luminance = 0.299 * rgb.0 + 0.587 * rgb.1 + 0.114 * rgb.2
+        let text = luminance > 0.55 ? WidgetTone.bg : WidgetTone.secondary
+        return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), text)
+    }
+
+    fileprivate static func components(_ hex: UInt32) -> (Double, Double, Double) {
+        (Double((hex >> 16) & 0xFF) / 255, Double((hex >> 8) & 0xFF) / 255, Double(hex & 0xFF) / 255)
+    }
+}
+
+/// The brand palette, restated here so the widget extension doesn't need the app's Palette.
+enum WidgetTone {
+    static let bg = tone(0x1A1816)
+    static let primary = Color.white
+    static let secondary = tone(0xE0D8D0)
+    static let muted = tone(0xB0A898)
+    static let faint = tone(0x807870)
+    static let cream = tone(0xFFF1E5)
+    static let crimson = tone(0x990F3D)
+
+    private static func tone(_ hex: UInt32) -> Color {
+        let c = DayColor.components(hex)
+        return Color(red: c.0, green: c.1, blue: c.2)
+    }
+}
+
+/// The widget face for each size: small and medium list cities and times; large adds the
+/// day/night tiles for three hours either side of now.
+struct WidgetClockView: View {
+    let snapshot: WidgetSnapshot
+    let date: Date
+    let family: WidgetFamily
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // The bradcowdrey.com crimson rule, full bleed across the top.
+            WidgetTone.crimson.frame(height: 3)
+            Group {
+                switch family {
+                case .systemLarge: strip
+                default: list
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, family == .systemSmall ? 12 : 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .foregroundStyle(WidgetTone.primary)
+    }
+
+    private var cityLimit: Int {
+        switch family {
+        case .systemSmall: return 4
+        case .systemMedium: return 4
+        default: return 7
+        }
+    }
+
+    private var cities: [WidgetSnapshot.City] { Array(snapshot.cities.prefix(cityLimit)) }
+
+    // MARK: Small and medium
+
+    private var list: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(cities.enumerated()), id: \.offset) { index, city in
+                if index > 0 { Spacer(minLength: 0) }
+                listRow(city)
+            }
+        }
+    }
+
+    private func listRow(_ city: WidgetSnapshot.City) -> some View {
+        let zone = TimeZone(identifier: city.timeZoneID) ?? .current
+        let small = family == .systemSmall
+        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(city.name)
+                    .font(.system(size: small ? 13 : 14, weight: .medium))
+                    .foregroundStyle(WidgetTone.secondary)
+                    .lineLimit(1)
+                if !small {
+                    Text(relative(zone))
+                        .font(.system(size: 11))
+                        .foregroundStyle(WidgetTone.faint)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 4)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(Self.time(date, zone: zone, use24h: snapshot.use24h))
+                    .font(.system(size: small ? 17 : 22, weight: .medium))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                dayBadge(zone)
+            }
+        }
+    }
+
+    /// "Today, −5 h" style context under the city name.
+    private func relative(_ zone: TimeZone) -> String {
+        let diff = zone.secondsFromGMT(for: date) - TimeZone.current.secondsFromGMT(for: date)
+        let day: String
+        switch Self.dayShift(date, zone: zone) {
+        case 1: day = "Tomorrow"
+        case -1: day = "Yesterday"
+        default: day = "Today"
+        }
+        if diff == 0 { return day }
+        let sign = diff > 0 ? "+" : "−"
+        let hours = abs(diff) / 3600
+        let minutes = (abs(diff) % 3600) / 60
+        return "\(day), \(sign)\(hours)\(minutes == 0 ? "" : ":\(String(format: "%02d", minutes))") h"
+    }
+
+    @ViewBuilder private func dayBadge(_ zone: TimeZone) -> some View {
+        let shift = Self.dayShift(date, zone: zone)
+        if shift != 0 {
+            Text(shift > 0 ? "+\(shift)" : "−\(-shift)")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(WidgetTone.muted)
+        }
+    }
+
+    // MARK: Large: day/night tiles
+
+    private let columns = 7
+
+    private var strip: some View {
+        GeometryReader { geo in
+            let labelWidth = min(116, geo.size.width * 0.34)
+            let gap: CGFloat = 4
+            let pitch = (geo.size.width - labelWidth) / CGFloat(columns)
+            let headerHeight: CGFloat = 16
+            let rows = max(cities.count, 1)
+            let rowHeight = min(44, (geo.size.height - headerHeight - gap * CGFloat(rows)) / CGFloat(rows))
+            let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
+            let half = columns / 2
+
+            VStack(alignment: .leading, spacing: gap) {
+                HStack(spacing: 0) {
+                    Text("Meridian")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(WidgetTone.faint)
+                        .frame(width: labelWidth, alignment: .leading)
+                    ForEach(-half...half, id: \.self) { k in
+                        Text(k == 0 ? "Now" : (k > 0 ? "+\(k)" : "−\(-k)"))
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(k == 0 ? WidgetTone.cream : WidgetTone.faint)
+                            .monospacedDigit()
+                            .frame(width: pitch)
+                    }
+                }
+                .frame(height: headerHeight)
+
+                ForEach(Array(cities.enumerated()), id: \.offset) { _, city in
+                    let zone = TimeZone(identifier: city.timeZoneID) ?? .current
+                    HStack(spacing: 0) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(city.name)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(WidgetTone.secondary)
+                                .lineLimit(1)
+                            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                                Text(Self.time(date, zone: zone, use24h: snapshot.use24h))
+                                    .font(.system(size: 15, weight: .medium))
+                                    .monospacedDigit()
+                                dayBadge(zone)
+                            }
+                            .lineLimit(1)
+                        }
+                        .frame(width: labelWidth - 6, alignment: .leading)
+                        .padding(.trailing, 6)
+
+                        ForEach(-half...half, id: \.self) { k in
+                            tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
+                                .frame(width: pitch - gap, height: rowHeight)
+                                .frame(width: pitch)
+                        }
+                    }
+                    .frame(height: rowHeight)
+                }
+            }
+            // The "now" column outline, through every row.
+            .overlay(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(WidgetTone.cream, lineWidth: 1.5)
+                    .frame(width: pitch, height: CGFloat(cities.count) * (rowHeight + gap))
+                    .offset(x: labelWidth + CGFloat(half) * pitch, y: headerHeight + gap / 2)
+            }
+        }
+    }
+
+    private func tile(_ moment: Date, zone: TimeZone) -> some View {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let hour = calendar.component(.hour, from: moment)
+        let minute = calendar.component(.minute, from: moment)
+        let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
+        let label: Text = {
+            if snapshot.use24h { return Text(String(format: "%02d", hour)) }
+            return Text("\(hour % 12 == 0 ? 12 : hour % 12)")
+                + Text(hour < 12 ? "a" : "p").font(.system(size: 9, weight: .medium))
+        }()
+        return label
+            .font(.system(size: 13, weight: .medium))
+            .monospacedDigit()
+            .foregroundStyle(style.text)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(style.fill))
+            .overlay(alignment: .leading) {
+                // A new day starts at midnight.
+                if hour == 0 {
+                    Capsule().fill(WidgetTone.crimson).frame(width: 2).padding(.vertical, 6).offset(x: -3)
+                }
+            }
+    }
+
+    // MARK: Helpers (the widget can't see the app's TimeMath)
+
+    static func time(_ date: Date, zone: TimeZone, use24h: Bool) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = zone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24h ? "HH:mm" : "h:mm a"
+        return formatter.string(from: date)
+    }
+
+    static func dayShift(_ date: Date, zone: TimeZone) -> Int {
+        var there = Calendar(identifier: .gregorian)
+        there.timeZone = zone
+        let a = there.dateComponents([.year, .month, .day], from: date)
+        let b = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        guard let da = there.date(from: a), let db = there.date(from: b) else { return 0 }
+        return Int((da.timeIntervalSince(db) / 86_400).rounded())
+    }
+}

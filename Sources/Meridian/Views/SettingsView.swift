@@ -82,6 +82,10 @@ private struct GeneralSettings: View {
             }
             Toggle("Keep desktop window on top", isOn: $store.floatOnTop)
             Toggle("Open at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.launchAtLogin = $0 }))
+            Section("Widget") {
+                Text("Add Meridian to your desktop or Notification Center: right-click the desktop, choose Edit Widgets, then search for Meridian. It shows your cities in the same order as here.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             UpdateSettings()
         }
         .formStyle(.grouped)

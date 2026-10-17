@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import WidgetKit
 
 /// Layout self-test, used by CI on a real Mac: `Meridian --selftest <dir>` opens the window,
 /// steps through every size (with and without the city search open), records the window size
@@ -74,7 +75,27 @@ enum SelfTest {
             let ok = abs(f.minX - expectedX) <= 1 && abs(f.maxY - (screen.maxY - 16)) <= 1
             lines.append("position \(placement.rawValue): window x \(Int(f.minX))..\(Int(f.maxX)) top \(Int(f.maxY)) expected x \(Int(expectedX)) top \(Int(screen.maxY - 16)) \(ok ? "OK" : "WRONG")")
         }
-                try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
+        // Desktop widget faces, at the macOS widget sizes, from the file the app just wrote.
+        let faces: [(String, WidgetFamily, CGSize)] = [
+            ("small", .systemSmall, CGSize(width: 170, height: 170)),
+            ("medium", .systemMedium, CGSize(width: 364, height: 170)),
+            ("large", .systemLarge, CGSize(width: 364, height: 376)),
+        ]
+        let snapshot = WidgetSnapshot.load()
+        lines.append("widget file \(FileManager.default.fileExists(atPath: WidgetSnapshot.fileURL.path) ? "written" : "MISSING"), \(snapshot.cities.count) cities")
+        for (name, family, size) in faces {
+            let face = WidgetClockView(snapshot: snapshot, date: store.now, family: family)
+                .frame(width: size.width, height: size.height)
+                .background(WidgetTone.bg)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            let renderer = ImageRenderer(content: face)
+            renderer.scale = 2
+            if let tiff = renderer.nsImage?.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+               let png = rep.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent("widget-\(name).png"))
+            }
+        }
+        try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
         NSApp.terminate(nil)
     }
 }

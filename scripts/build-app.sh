@@ -28,10 +28,28 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 
+# Desktop widget: a WidgetKit app extension. SwiftPM can't build .appex bundles, so compile it
+# directly (one slice per architecture) from Widget/ plus the shared views and data format.
+APPEX="$APP/Contents/PlugIns/MeridianWidget.appex"
+WIDGET_TMP="$(mktemp -d)"
+mkdir -p "$APPEX/Contents/MacOS"
+for arch in arm64 x86_64; do
+  xcrun --sdk macosx swiftc -O -parse-as-library -application-extension \
+    -target "$arch-apple-macos14.0" -module-name MeridianWidget \
+    Widget/MeridianWidget.swift Sources/Meridian/Shared/WidgetContent.swift \
+    -o "$WIDGET_TMP/MeridianWidget-$arch"
+done
+lipo -create "$WIDGET_TMP"/MeridianWidget-* -output "$APPEX/Contents/MacOS/MeridianWidget"
+sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Widget-Info.plist > "$APPEX/Contents/Info.plist"
+
 # Sign with a Developer ID if one is configured, otherwise ad-hoc (fine for sideloading).
 IDENTITY="${CODESIGN_IDENTITY:--}"
 if [[ "$IDENTITY" == "-" ]]; then TIMESTAMP="--timestamp=none"; else TIMESTAMP="--timestamp"; fi
-codesign --force --deep --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$APP"
-codesign --verify --verbose "$APP"
+# Inside out: the widget with its sandbox entitlements first, then the app (no --deep, which
+# would re-sign the widget without them).
+codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" \
+  --entitlements Resources/Widget.entitlements "$APPEX"
+codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$APP"
+codesign --verify --deep --strict --verbose "$APP"
 
 echo "Built $APP ($VERSION build $BUILD)"

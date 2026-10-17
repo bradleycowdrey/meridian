@@ -326,45 +326,6 @@ private struct OverlapMark: View {
     }
 }
 
-/// Sky through the day in bradcowdrey.com tones: warm black at night, warm greys at twilight,
-/// cream in daylight.
-enum DayColor {
-    private static let stops: [(Double, UInt32)] = [
-        (0, 0x161412),
-        (5, 0x1A1816),
-        (6.5, 0x4A4540),
-        (8, 0xB0A898),
-        (9.5, 0xE0D8D0),
-        (12, 0xFFF1E5),
-        (15, 0xFFF1E5),
-        (17.5, 0xE0D8D0),
-        (19, 0x807870),
-        (20.5, 0x34302B),
-        (22, 0x1C1A17),
-        (24, 0x161412),
-    ]
-
-    static func style(at hour: Double) -> (fill: Color, text: Color) {
-        let h = hour.truncatingRemainder(dividingBy: 24)
-        var rgb = components(stops[0].1)
-        for i in 0..<(stops.count - 1) where h >= stops[i].0 && h <= stops[i + 1].0 {
-            let a = components(stops[i].1)
-            let b = components(stops[i + 1].1)
-            let span = stops[i + 1].0 - stops[i].0
-            let t = span == 0 ? 0 : (h - stops[i].0) / span
-            rgb = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t)
-            break
-        }
-        let luminance = 0.299 * rgb.0 + 0.587 * rgb.1 + 0.114 * rgb.2
-        let text = luminance > 0.55 ? Palette.bg : Palette.textSecondary
-        return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), text)
-    }
-
-    private static func components(_ hex: UInt32) -> (Double, Double, Double) {
-        (Double((hex >> 16) & 0xFF) / 255, Double((hex >> 8) & 0xFF) / 255, Double(hex & 0xFF) / 255)
-    }
-}
-
 // MARK: - Scroll wheel / trackpad time travel
 
 extension View {

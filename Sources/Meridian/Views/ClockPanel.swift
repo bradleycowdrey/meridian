@@ -452,7 +452,7 @@ private struct ListControls: View {
             ) {
                 withAnimation(.snappy) { adding.toggle(); if adding { editing = false } }
             }
-            .accessibilityIdentifier("control-add")
+            .testID("control-add")
             Palette.borderStrong.frame(width: 0.5, height: ui.pt(14))
                 .opacity(adding || editing ? 0 : 1)
             Segment(
@@ -465,7 +465,7 @@ private struct ListControls: View {
             ) {
                 withAnimation(.snappy) { editing.toggle(); if editing { adding = false } }
             }
-            .accessibilityIdentifier("control-edit")
+            .testID("control-edit")
         }
         .padding(ui.pt(3))
         .background(Capsule().fill(Palette.raisedTile))
@@ -707,13 +707,13 @@ struct TravelBar: View {
             }
             Spacer(minLength: ui.m)
             IconButton(symbol: "chevron.left", help: "One hour earlier", small: true) { store.travel(-1) }
-                .accessibilityIdentifier("travel-earlier")
+                .testID("travel-earlier")
             Button("Now") { store.backToNow() }
                 .buttonStyle(PillButtonStyle(prominent: store.offsetHours != 0, small: true))
                 .disabled(store.offsetHours == 0)
-                .accessibilityIdentifier("travel-now")
+                .testID("travel-now")
             IconButton(symbol: "chevron.right", help: "One hour later", small: true) { store.travel(1) }
-                .accessibilityIdentifier("travel-later")
+                .testID("travel-later")
         }
         .animation(.snappy, value: store.offsetHours)
     }
@@ -755,7 +755,7 @@ struct AddCityField: View {
                     .textFieldStyle(.plain)
                     .focused($focused)
                     .onSubmit { if let first = results.first { add(first) } }
-                    .accessibilityIdentifier("search-field")
+                    .testID("search-field")
             }
             .font(ui.font(15))
             .foregroundStyle(Palette.textPrimary)
@@ -807,7 +807,7 @@ struct AddCityField: View {
                             .buttonStyle(RowButtonStyle())
                             .disabled(store.contains(entry))
                             .help(store.contains(entry) ? "Already added" : "Add \(entry.name)")
-                            .accessibilityIdentifier("result-\(index)")
+                            .testID("result-\(index)")
                         }
                     }
                 }

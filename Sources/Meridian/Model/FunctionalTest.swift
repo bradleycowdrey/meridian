@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 /// Functional checks run by the CI self-test on a real Mac (`Meridian --selftest <dir>`).
-/// The logic checks call the model directly; the interface checks find real controls through
-/// the accessibility tree and click them with synthesized mouse events, at every size and in
+/// The logic checks call the model directly; the interface checks find real controls by the
+/// frames they report (see `testID`) and click them with synthesized mouse events, at every size and in
 /// both fonts, so hit-testing problems (like the delete button that stopped responding) show up.
 @MainActor
 final class FunctionalTest {
@@ -84,7 +84,7 @@ final class FunctionalTest {
         let earlyUTC = Date(timeIntervalSince1970: 1_792_116_000)  // 2026-10-16 02:00 UTC
         check("day shift +1 (Kiritimati, late UTC)", TimeMath.dayShift(lateUTC, zone: TimeZone(identifier: "Pacific/Kiritimati")!) == 1)
         check("day shift −1 (Honolulu, early UTC)", TimeMath.dayShift(earlyUTC, zone: TimeZone(identifier: "Pacific/Honolulu")!) == -1)
-        check("day shift 0 (London)", TimeMath.dayShift(lateUTC, zone: TimeZone(identifier: "Europe/London")!) == 0)
+        check("day shift 0 (London)", TimeMath.dayShift(earlyUTC, zone: TimeZone(identifier: "Europe/London")!) == 0)
         check("12h time", TimeMath.time(earlyUTC, in: TimeZone(identifier: "UTC")!, use24h: false) == "2:00 AM")
         check("24h time", TimeMath.time(earlyUTC, in: TimeZone(identifier: "Asia/Kolkata")!, use24h: true) == "07:30")
         NSTimeZone.default = saved
@@ -218,34 +218,14 @@ final class FunctionalTest {
 
     // MARK: Accessibility-driven input
 
-    private func element(_ id: String, in window: NSWindow) -> NSAccessibilityElementProtocol? {
-        func search(_ node: Any, depth: Int) -> NSAccessibilityElementProtocol? {
-            guard depth < 80 else { return nil }
-            if let element = node as? NSAccessibilityElementProtocol, Self.call("accessibilityIdentifier", on: node) as? String == id {
-                return element
-            }
-            for child in Self.call("accessibilityChildren", on: node) as? [Any] ?? [] {
-                if let found = search(child, depth: depth + 1) { return found }
-            }
-            return nil
-        }
-        return window.contentView.flatMap { search($0, depth: 0) }
-    }
-
-    /// Calls an object-returning accessibility getter if the element implements it.
-    private static func call(_ name: String, on node: Any) -> Any? {
-        guard let object = node as? NSObject else { return nil }
-        let selector = NSSelectorFromString(name)
-        guard object.responds(to: selector) else { return nil }
-        return object.perform(selector)?.takeUnretainedValue()
-    }
-
+    /// Centre of a control in window coordinates, from the frame it reported while on screen.
     private func point(of id: String, in window: NSWindow) -> NSPoint? {
-        guard let frame = element(id, in: window)?.accessibilityFrame(), frame.width > 0 else {
+        guard let frame = TestAnchors.frames[id], let content = window.contentView, frame.width > 0 else {
             SelfTest.log("functional: no element \(id)")
             return nil
         }
-        return window.convertPoint(fromScreen: NSPoint(x: frame.midX, y: frame.midY))
+        // SwiftUI's global space is the window's content, top-left origin.
+        return NSPoint(x: frame.midX, y: content.bounds.height - frame.midY)
     }
 
     private func send(_ type: NSEvent.EventType, at point: NSPoint, in window: NSWindow) {
@@ -275,5 +255,26 @@ final class FunctionalTest {
         }
         send(.leftMouseUp, at: NSPoint(x: start.x, y: start.y - distance), in: window)
         await settle()
+    }
+}
+
+/// Where each tagged control is on screen, recorded only while the self-test runs.
+@MainActor
+enum TestAnchors {
+    static var frames: [String: CGRect] = [:]
+}
+
+extension View {
+    /// An accessibility identifier, plus (in the self-test only) the control's frame so the
+    /// functional test can click it.
+    func testID(_ id: String) -> some View {
+        accessibilityIdentifier(id)
+            .background {
+                if SelfTest.isActive {
+                    Color.clear
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { TestAnchors.frames[id] = $0 }
+                        .onDisappear { TestAnchors.frames[id] = nil }
+                }
+            }
     }
 }

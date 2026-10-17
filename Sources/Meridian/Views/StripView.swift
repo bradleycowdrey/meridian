@@ -75,7 +75,7 @@ struct StripView: View {
                                     .onTapGesture { store.travel(index - store.offsetHours) }
                                     .accessibilityElement(children: .combine)
                                     .accessibilityAddTraits(.isButton)
-                                    .accessibilityIdentifier("hour-\(place.name)-\(index)")
+                                    .testID("hour-\(place.name)-\(index)")
                                 }
                             }
                         }
@@ -165,7 +165,7 @@ private struct PlaceLabel: View {
                     .gesture(reorderGesture)
                     .accessibilityElement()
                     .accessibilityLabel("Reorder \(place.name)")
-                    .accessibilityIdentifier("handle-\(place.name)")
+                    .testID("handle-\(place.name)")
                     .onHover { inside in
                         guard inside != handleHovered else { return }
                         handleHovered = inside
@@ -216,7 +216,7 @@ private struct PlaceLabel: View {
                 .buttonStyle(.plain)
                 .help("Remove \(place.name)")
                 .accessibilityLabel("Remove \(place.name)")
-                .accessibilityIdentifier("delete-\(place.name)")
+                .testID("delete-\(place.name)")
             }
         }
         .contextMenu {

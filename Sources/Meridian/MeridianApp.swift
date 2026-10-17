@@ -78,7 +78,9 @@ private struct WindowConfigurator: NSViewRepresentable {
             guard let window = view.window else { return }
             window.level = floatOnTop ? .floating : .normal
             window.collectionBehavior = floatOnTop ? [.canJoinAllSpaces, .fullScreenAuxiliary] : [.managed]
-            window.isMovableByWindowBackground = true
+            // Dragging is done by the header's own handle; "movable by background" let AppKit
+            // claim clicks meant for the header's buttons at some sizes.
+            window.isMovableByWindowBackground = false
             window.titlebarAppearsTransparent = true
             // Reopen where the user last dragged it.
             if window.frameAutosaveName.isEmpty { window.setFrameAutosaveName("MeridianStripWindow") }

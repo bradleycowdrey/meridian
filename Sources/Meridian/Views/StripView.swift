@@ -72,6 +72,9 @@ struct StripView: View {
                                         if inside { hoverIndex = index } else if hoverIndex == index { hoverIndex = nil }
                                     }
                                     .onTapGesture { store.travel(index - store.offsetHours) }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityAddTraits(.isButton)
+                                    .accessibilityIdentifier("hour-\(place.name)-\(index)")
                                 }
                             }
                         }
@@ -159,6 +162,9 @@ private struct PlaceLabel: View {
                     .contentShape(Rectangle())
                     .help("Drag to reorder")
                     .gesture(reorderGesture)
+                    .accessibilityElement()
+                    .accessibilityLabel("Reorder \(place.name)")
+                    .accessibilityIdentifier("handle-\(place.name)")
                     .onHover { inside in
                         if inside { NSCursor.openHand.push() } else { NSCursor.pop() }
                     }
@@ -201,6 +207,8 @@ private struct PlaceLabel: View {
                 }
                 .buttonStyle(.plain)
                 .help("Remove \(place.name)")
+                .accessibilityLabel("Remove \(place.name)")
+                .accessibilityIdentifier("delete-\(place.name)")
             }
         }
         .contextMenu {

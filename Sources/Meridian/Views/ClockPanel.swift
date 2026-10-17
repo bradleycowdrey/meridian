@@ -144,7 +144,7 @@ private struct ClockPanelContent: View {
         }
         .task {
             if !compact && SelfTest.isActive {
-                await SelfTest.run(store: store, adding: $adding, host: host)
+                await SelfTest.run(store: store, adding: $adding, editing: $editing, host: host)
             }
         }
         .focusable()
@@ -450,6 +450,7 @@ private struct ListControls: View {
             ) {
                 withAnimation(.snappy) { adding.toggle(); if adding { editing = false } }
             }
+            .accessibilityIdentifier("control-add")
             Palette.borderStrong.frame(width: 1, height: ui.pt(14))
                 .opacity(adding || editing ? 0 : 1)
             Segment(
@@ -462,6 +463,7 @@ private struct ListControls: View {
             ) {
                 withAnimation(.snappy) { editing.toggle(); if editing { adding = false } }
             }
+            .accessibilityIdentifier("control-edit")
         }
         .padding(ui.pt(3))
         .background(Capsule().fill(Palette.raisedTile))
@@ -692,10 +694,13 @@ struct TravelBar: View {
             }
             Spacer(minLength: ui.m)
             IconButton(symbol: "chevron.left", help: "One hour earlier", small: true) { store.travel(-1) }
+                .accessibilityIdentifier("travel-earlier")
             Button("Now") { store.backToNow() }
                 .buttonStyle(PillButtonStyle(prominent: store.offsetHours != 0, small: true))
                 .disabled(store.offsetHours == 0)
+                .accessibilityIdentifier("travel-now")
             IconButton(symbol: "chevron.right", help: "One hour later", small: true) { store.travel(1) }
+                .accessibilityIdentifier("travel-later")
         }
         .animation(.snappy, value: store.offsetHours)
     }
@@ -737,6 +742,7 @@ struct AddCityField: View {
                     .textFieldStyle(.plain)
                     .focused($focused)
                     .onSubmit { if let first = results.first { add(first) } }
+                    .accessibilityIdentifier("search-field")
             }
             .font(ui.font(15))
             .foregroundStyle(Palette.textPrimary)
@@ -751,7 +757,7 @@ struct AddCityField: View {
             if !results.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
-                        ForEach(results) { entry in
+                        ForEach(Array(results.enumerated()), id: \.element.id) { index, entry in
                             Button { add(entry) } label: {
                                 HStack(spacing: ui.m) {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -782,6 +788,7 @@ struct AddCityField: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(RowButtonStyle())
+                            .accessibilityIdentifier("result-\(index)")
                         }
                     }
                 }

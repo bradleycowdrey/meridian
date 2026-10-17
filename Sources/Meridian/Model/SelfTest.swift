@@ -23,7 +23,7 @@ enum SelfTest {
     }
     private static var started = false
 
-    static func run(store: ZoneStore, adding: Binding<Bool>, host: HostWindow) async {
+    static func run(store: ZoneStore, adding: Binding<Bool>, editing: Binding<Bool>, host: HostWindow) async {
         guard let dir = outputDir, !started else { return }
         started = true
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -75,6 +75,12 @@ enum SelfTest {
             let ok = abs(f.minX - expectedX) <= 1 && abs(f.maxY - (screen.maxY - 16)) <= 1
             lines.append("position \(placement.rawValue): window x \(Int(f.minX))..\(Int(f.maxX)) top \(Int(f.maxY)) expected x \(Int(expectedX)) top \(Int(screen.maxY - 16)) \(ok ? "OK" : "WRONG")")
         }
+        // Every function, at every size and in both fonts.
+        var functional = FunctionalTest(store: store, adding: adding, editing: editing, host: host)
+        let results = await functional.run()
+        try? results.joined(separator: "\n").write(to: dir.appendingPathComponent("functional.txt"), atomically: true, encoding: .utf8)
+        lines.append(results[0])
+
         // Desktop widget faces, at the macOS widget sizes, from the file the app just wrote.
         let faces: [(String, WidgetFamily, CGSize)] = [
             ("small", .systemSmall, CGSize(width: 170, height: 170)),

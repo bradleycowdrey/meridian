@@ -24,7 +24,7 @@ jobs:
           OUT="$RUNNER_TEMP/shots"; mkdir -p "$OUT"
           dist/Meridian.app/Contents/MacOS/Meridian --selftest "$OUT" > "$OUT/app.log" 2>&1 &
           PID=$!
-          for i in $(seq 1 120); do [ -f "$OUT/report.txt" ] && break; sleep 1; done
+          for i in $(seq 1 600); do [ -f "$OUT/report.txt" ] && break; sleep 1; done
           sleep 1; kill $PID 2>/dev/null || true
           system_profiler SPDisplaysDataType | grep -iE "resolution|ui looks like" > "$OUT/display.txt" || true
           cat "$OUT/report.txt" 2>/dev/null || echo "no report"

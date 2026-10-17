@@ -42,7 +42,8 @@ final class Updater: ObservableObject {
 
     let currentVersion: String
     private var timer: Timer?
-    private static let interval: TimeInterval = 3600
+    /// Automatic checks run once a day (manual checks any time).
+    private static let interval: TimeInterval = 24 * 3600
 
     private init() {
         currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -57,14 +58,15 @@ final class Updater: ObservableObject {
 
     func start() {
         guard canSelfUpdate, timer == nil else { return }
-        // Check on every launch, then every few hours while running.
-        Task { if automatic { await check(userInitiated: false) } }
+        // Once a day: at launch if the last check was over 24 hours ago, then whenever a day
+        // has passed while running (checked every 30 minutes).
+        Task { await checkIfDue() }
         timer = Timer.scheduledTimer(withTimeInterval: 30 * 60, repeats: true) { [weak self] _ in
             Task { @MainActor in await self?.checkIfDue() }
         }
     }
 
-    /// Checks if the last check is over an hour old (also called whenever the panel opens).
+    /// Checks if the last check is over a day old (also called whenever the panel opens).
     func checkIfDue() async {
         guard automatic else { return }
         if let lastChecked, Date().timeIntervalSince(lastChecked) < Self.interval { return }

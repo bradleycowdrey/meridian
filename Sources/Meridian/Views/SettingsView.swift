@@ -11,18 +11,45 @@ struct SettingsView: View {
     }
 }
 
+/// Rename in place. Saved when you press Return or leave the field; a blank name is ignored.
+private struct CityNameField: View {
+    @EnvironmentObject private var store: ZoneStore
+    let place: Place
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField("Name", text: $draft)
+            .textFieldStyle(.plain)
+            .font(.body.weight(.medium))
+            .focused($focused)
+            .onAppear { draft = place.name }
+            .onChange(of: place.name) { _, name in if !focused { draft = name } }
+            .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
+            .onSubmit(commit)
+    }
+
+    private func commit() {
+        let name = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, let index = store.places.firstIndex(where: { $0.id == place.id }) else {
+            draft = place.name
+            return
+        }
+        if store.places[index].name != name { store.places[index].name = name }
+        draft = name
+    }
+}
+
 private struct CitiesSettings: View {
     @EnvironmentObject private var store: ZoneStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             List {
-                ForEach($store.places) { $place in
+                ForEach(store.places) { place in
                     HStack(spacing: 10) {
                         Image(systemName: "line.3.horizontal").foregroundStyle(.tertiary)
-                        TextField("Name", text: $place.name)
-                            .textFieldStyle(.plain)
-                            .font(.body.weight(.medium))
+                        CityNameField(place: place)
                         Spacer()
                         Text(TimeMath.time(store.now, in: place.timeZone, use24h: store.use24h))
                             .monospacedDigit()
@@ -32,7 +59,9 @@ private struct CitiesSettings: View {
                             .foregroundStyle(.secondary)
                             .frame(width: 64, alignment: .trailing)
                         Button {
-                            store.remove(place)
+                            // After the row's own update, so a focused name field can't
+                            // outlive its city.
+                            DispatchQueue.main.async { store.remove(place) }
                         } label: {
                             Image(systemName: "minus.circle.fill").foregroundStyle(.red)
                         }

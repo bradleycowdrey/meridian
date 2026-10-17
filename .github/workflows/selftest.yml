@@ -18,7 +18,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Build
-        run: scripts/build-app.sh 0.0.0-selftest
+        run: |
+          OUT="$RUNNER_TEMP/shots"; mkdir -p "$OUT"
+          set -o pipefail
+          scripts/build-app.sh 0.0.0-selftest 2>&1 | tee "$OUT/build.log"
       - name: Run layout self-test
         run: |
           OUT="$RUNNER_TEMP/shots"; mkdir -p "$OUT"
@@ -42,6 +45,7 @@ jobs:
           } > "$OUT/widget.txt"
           cat "$OUT/widget.txt"
       - name: Publish to ci-shots branch
+        if: always()
         run: |
           cd "$RUNNER_TEMP/shots"
           echo "$GITHUB_SHA" > commit.txt
@@ -49,3 +53,8 @@ jobs:
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
           git add -A && git commit -qm "Layout self-test for $GITHUB_SHA"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-shots
+      - name: Require widget registration and passing functional checks
+        run: |
+          OUT="$RUNNER_TEMP/shots"
+          grep -q "comridian.widget" "$OUT/widget.txt" || { echo "::error::widget extension not registered"; exit 1; }
+          if grep -q "^FAIL" "$OUT/functional.txt"; then grep "^FAIL" "$OUT/functional.txt"; exit 1; fi

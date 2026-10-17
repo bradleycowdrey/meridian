@@ -89,8 +89,18 @@ enum SelfTest {
         ]
         let snapshot = WidgetSnapshot.load()
         lines.append("widget file \(FileManager.default.fileExists(atPath: WidgetSnapshot.fileURL.path) ? "written" : "MISSING"), \(snapshot.cities.count) cities")
-        for (name, family, size) in faces {
-            let face = WidgetClockView(snapshot: snapshot, date: store.now, family: family)
+        // Worst case too: seven cities, long names, half-hour zones, 12-hour time.
+        let stress = WidgetSnapshot(cities: [
+            .init(name: "San Francisco", timeZoneID: "America/Los_Angeles"),
+            .init(name: "St. John's", timeZoneID: "America/St_Johns"),
+            .init(name: "Rio de Janeiro", timeZoneID: "America/Sao_Paulo"),
+            .init(name: "London", timeZoneID: "Europe/London"),
+            .init(name: "Kolkata", timeZoneID: "Asia/Kolkata"),
+            .init(name: "Kathmandu", timeZoneID: "Asia/Kathmandu"),
+            .init(name: "Adelaide", timeZoneID: "Australia/Adelaide"),
+        ], use24h: false)
+        for (name, family, size) in faces + faces.map({ ("\($0.0)-stress", $0.1, $0.2) }) {
+            let face = WidgetClockView(snapshot: name.hasSuffix("stress") ? stress : snapshot, date: store.now, family: family)
                 .frame(width: size.width, height: size.height)
                 .background(WidgetTone.bg)
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))

@@ -38,7 +38,7 @@ private struct ClockPanelContent: View {
     /// Tallest the scrolling body may be so the whole panel stays on screen at any size.
     private var maxBodyHeight: CGFloat {
         let screen = NSScreen.main?.visibleFrame.height ?? 800
-        let chrome = 3 + ui.l + ui.xs + ui.pt(34) + ui.m   // crimson rule + header
+        let chrome = 3 + ui.l + ui.xs + ui.pt(32) + ui.m   // crimson rule + header
         return max(ui.pt(240), screen - chrome - ui.pt(compact ? 32 : 64))
     }
 
@@ -149,6 +149,8 @@ private struct ClockPanelContent: View {
         }
         .focusable()
         .focusEffectDisabled()
+        .onChange(of: store.places.isEmpty) { _, empty in if empty { editing = false } }
+        .onChange(of: store.canAdd) { _, canAdd in if !canAdd { withAnimation(.snappy) { adding = false } } }
         .onKeyPress(.leftArrow) { store.travel(-1); return .handled }
         .onKeyPress(.rightArrow) { store.travel(1); return .handled }
         .onKeyPress(.escape) {
@@ -451,7 +453,7 @@ private struct ListControls: View {
                 withAnimation(.snappy) { adding.toggle(); if adding { editing = false } }
             }
             .accessibilityIdentifier("control-add")
-            Palette.borderStrong.frame(width: 1, height: ui.pt(14))
+            Palette.borderStrong.frame(width: 0.5, height: ui.pt(14))
                 .opacity(adding || editing ? 0 : 1)
             Segment(
                 symbol: editing ? "checkmark" : "pencil",
@@ -490,7 +492,7 @@ private struct ListControls: View {
                     Text(title)
                         .font(ui.font(13, .medium))
                 }
-                .frame(width: width, height: ui.pt(26))
+                .frame(width: width, height: max(24, ui.pt(26)))
                 .foregroundStyle(active ? Palette.bg : (enabled ? (hovering ? Palette.textPrimary : Palette.textSecondary) : Palette.textFaint))
                 .background(
                     Capsule().fill(active ? Palette.cream : (hovering && enabled ? Palette.border : .clear))
@@ -526,6 +528,7 @@ private struct MoreMenu: View {
                 Divider()
             }
             Button("Copy This Moment") { store.copyMoment() }
+                .disabled(store.places.isEmpty)
             Divider()
             Picker("Size", selection: $store.uiSize) {
                 ForEach(UISize.allCases) { Text($0.label).tag($0) }
@@ -533,9 +536,13 @@ private struct MoreMenu: View {
             Picker("Font", selection: $store.appFont) {
                 ForEach(AppFont.allCases) { Text($0.label).tag($0) }
             }
-            Button("Larger  ⌘+") { store.stepSize(1) }
+            Button("Larger") { store.stepSize(1) }
+                .keyboardShortcut("+")
                 .disabled(store.uiSize.larger == nil)
-            Button("Smaller  ⌘−") { store.stepSize(-1) }
+                .disabled(store.uiSize.larger == nil)
+            Button("Smaller") { store.stepSize(-1) }
+                .keyboardShortcut("-")
+                .disabled(store.uiSize.smaller == nil)
                 .disabled(store.uiSize.smaller == nil)
             Divider()
             if compact {
@@ -594,9 +601,15 @@ private struct UpdateBanner: View {
                     Text("Meridian \(release.version) is available")
                         .font(ui.font(14, .semibold))
                         .foregroundStyle(Palette.textPrimary)
-                    Text("You have \(updater.currentVersion)")
-                        .font(ui.meta)
-                        .foregroundStyle(Palette.textMuted)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                    // Room for the progress message while it downloads and installs.
+                    if !updater.isBusy {
+                        Text("You have \(updater.currentVersion)")
+                            .font(ui.meta)
+                            .foregroundStyle(Palette.textMuted)
+                            .lineLimit(1)
+                    }
                     Spacer(minLength: ui.s)
                     switch updater.phase {
                     case .downloading:
@@ -751,10 +764,14 @@ struct AddCityField: View {
             .background(RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous).fill(Palette.bg))
             .overlay(
                 RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous)
-                    .strokeBorder(focused ? Palette.textFaint : .clear, lineWidth: 1)
+                    .strokeBorder(focused ? Palette.textFaint : .clear, lineWidth: 0.5)
             )
 
-            if !results.isEmpty {
+            if !store.canAdd {
+                Text("You can track up to \(ZoneStore.maxPlaces) cities. Remove one in Edit to add another.")
+                    .font(ui.meta)
+                    .foregroundStyle(Palette.textMuted)
+            } else if !results.isEmpty {
                 ScrollView {
                     VStack(spacing: 0) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, entry in
@@ -779,7 +796,7 @@ struct AddCityField: View {
                                             .foregroundStyle(Palette.textMuted)
                                             .frame(width: ui.pt(72), alignment: .trailing)
                                     }
-                                    Image(systemName: "plus.circle.fill")
+                                    Image(systemName: store.contains(entry) ? "checkmark.circle.fill" : "plus.circle.fill")
                                         .font(ui.font(17))
                                         .foregroundStyle(Palette.textMuted)
                                 }
@@ -788,6 +805,8 @@ struct AddCityField: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(RowButtonStyle())
+                            .disabled(store.contains(entry))
+                            .help(store.contains(entry) ? "Already added" : "Add \(entry.name)")
                             .accessibilityIdentifier("result-\(index)")
                         }
                     }

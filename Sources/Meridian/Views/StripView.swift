@@ -11,7 +11,8 @@ struct StripView: View {
     var labelWidth: CGFloat = 176
     var editing = false
 
-    @State private var drag: CGFloat = 0
+    /// Live drag distance; resets by itself if the gesture is cancelled (panel closed mid-drag).
+    @GestureState private var drag: CGFloat = 0
     @State private var hoverIndex: Int?
     private var rowSpacing: CGFloat { ui.gutter }
     private var cellGap: CGFloat { ui.gutter }
@@ -114,11 +115,10 @@ struct StripView: View {
                 )
                 .gesture(
                     DragGesture(minimumDistance: 3)
-                        .onChanged { drag = $0.translation.width }
+                        .updating($drag) { value, state, _ in state = value.translation.width }
                         .onEnded { value in
                             let hours = Int((-value.translation.width / cellWidth).rounded())
                             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                drag = 0
                                 store.offsetHours += hours
                             }
                         }
@@ -150,6 +150,7 @@ private struct PlaceLabel: View {
     let pitch: CGFloat
 
     @State private var dragStartIndex: Int?
+    @State private var handleHovered = false
 
     var body: some View {
         let shift = TimeMath.dayShift(moment, zone: place.timeZone)
@@ -158,7 +159,7 @@ private struct PlaceLabel: View {
                 Image(systemName: "line.3.horizontal")
                     .font(ui.font(13, .medium))
                     .foregroundStyle(Palette.textMuted)
-                    .frame(width: ui.pt(20), height: ui.pt(32))
+                    .frame(width: max(24, ui.pt(20)), height: ui.pt(32))
                     .contentShape(Rectangle())
                     .help("Drag to reorder")
                     .gesture(reorderGesture)
@@ -166,26 +167,33 @@ private struct PlaceLabel: View {
                     .accessibilityLabel("Reorder \(place.name)")
                     .accessibilityIdentifier("handle-\(place.name)")
                     .onHover { inside in
+                        guard inside != handleHovered else { return }
+                        handleHovered = inside
                         if inside { NSCursor.openHand.push() } else { NSCursor.pop() }
                     }
+                    // Removed or Edit turned off while hovered: put the cursor back.
+                    .onDisappear { if handleHovered { handleHovered = false; NSCursor.pop() } }
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(place.name)
                     .font(ui.body)
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(place.name)
                 HStack(spacing: ui.pt(6)) {
                     Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
                         .foregroundStyle(Palette.textSecondary)
                         .monospacedDigit()
                     if shift != 0 {
-                        Text(shift > 0 ? "+1 day" : "−1 day")
+                        Text(shift > 0 ? "+\(shift) day" : "−\(-shift) day")
                             .font(ui.font(11, .medium))
                             .foregroundStyle(Palette.cream)
                             .padding(.horizontal, ui.pt(7))
                             .padding(.vertical, 1)
                             .background(Capsule().fill(Palette.borderStrong))
-                    } else {
+                    } else if !editing {
+                        // Hidden in Edit, where the handle and delete button need the room.
                         Text(place.offsetLabel(at: moment))
                             .foregroundStyle(Palette.textMuted)
                     }
@@ -202,7 +210,7 @@ private struct PlaceLabel: View {
                         .font(ui.font(17))
                         .symbolRenderingMode(.palette)
                         .foregroundStyle(.white, Palette.crimson)
-                        .frame(width: ui.pt(28), height: ui.pt(28))
+                        .frame(width: max(28, ui.pt(28)), height: max(28, ui.pt(28)))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -254,12 +262,16 @@ private struct HourCell: View {
         let hour = parts.hour ?? 0
         let minute = parts.minute ?? 0
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
+        // A new day starts in this cell (usually 00:00, but some DST changes skip midnight).
+        let newDay = !calendar.isDate(date, inSameDayAs: date.addingTimeInterval(-3600))
 
         return VStack(spacing: 1) {
             hourText(hour: hour, minute: minute)
                 .font(isCenter ? ui.cellNow : ui.cell)
                 .monospacedDigit()
-            if hour == 0 {
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            if newDay {
                 Text(TimeMath.weekday(date, in: zone))
                     .font(ui.font(10, .medium))
                     .textCase(.uppercase)
@@ -274,7 +286,7 @@ private struct HourCell: View {
         )
         .overlay(alignment: .leading) {
             // Midnight divider: a new day starts here.
-            if hour == 0 {
+            if newDay {
                 // Midnight marker: 2pt crimson line centred in the gutter before the cell.
                 Capsule().fill(Palette.crimson).frame(width: 2).padding(.vertical, ui.s).offset(x: -(ui.gutter / 2 + 1))
             }
@@ -291,7 +303,11 @@ private struct HourCell: View {
             suffix = hour < 12 ? "am" : "pm"
         }
         var text = Text(main)
-        if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium)) }
+        if minute != 0 {
+            text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium))
+            // "12:30a": the short suffix keeps half-hour zones on one line.
+            if !suffix.isEmpty { suffix = String(suffix.prefix(1)) }
+        }
         if !suffix.isEmpty { text = text + Text(suffix).font(ui.font(10, .medium)) }
         return text
     }

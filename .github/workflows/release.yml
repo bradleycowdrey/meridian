@@ -13,6 +13,11 @@ on:
 permissions:
   contents: write
 
+# One release run per commit, even if a branch push and a tag push arrive together.
+concurrency:
+  group: release-${{ github.sha }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: macos-15
@@ -67,8 +72,10 @@ jobs:
             # Never replace a published version's files; bump VERSION to release new code.
             echo "Release $TAG already exists; not overwriting it."
           else
+            # Pre-release tags (v1.0.0-beta) never become "latest" for everyone.
+            if [[ "$TAG" == *-* ]]; then KIND=--prerelease; else KIND=--latest; fi
             gh release create "$TAG" dist/*.dmg dist/*.sha256 \
-              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" $KIND \
               --title "Meridian ${TAG##*v}" \
               --notes "Download the DMG, open it and drag Meridian into Applications. First launch: right-click Meridian, then Open. Made by Bradley Cowdrey · bradcowdrey.com"
           fi

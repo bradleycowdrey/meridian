@@ -40,6 +40,8 @@ final class ZoneStore: ObservableObject {
         if let data = d.data(forKey: "places"), let saved = try? JSONDecoder().decode([Place].self, from: data) {
             places = saved
         } else {
+            // Unreadable saved cities: keep a copy rather than overwrite them on the next edit.
+            if let data = d.data(forKey: "places") { d.set(data, forKey: "places.backup") }
             places = ZoneStore.starterPlaces()
         }
         use24h = d.object(forKey: "use24h") as? Bool ?? true
@@ -54,8 +56,24 @@ final class ZoneStore: ObservableObject {
 
         syncWidget()
 
-        ticker = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        // Common run-loop mode, so the clock keeps ticking while a menu is open or during a drag.
+        let ticker = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
+        }
+        RunLoop.main.add(ticker, forMode: .common)
+        self.ticker = ticker
+
+        // The Mac changed time zone (travel) or the date rolled over: refresh at once,
+        // including the widget's "Today, +5 h" lines.
+        for name in [Notification.Name.NSSystemTimeZoneDidChange, .NSCalendarDayChanged, NSWorkspace.didWakeNotification] {
+            let center = name == NSWorkspace.didWakeNotification ? NSWorkspace.shared.notificationCenter : NotificationCenter.default
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in
+                    NSTimeZone.resetSystemTimeZone()
+                    self?.now = Date()
+                    WidgetCenter.shared.reloadAllTimelines()
+                }
+            }
         }
     }
 
@@ -63,6 +81,10 @@ final class ZoneStore: ObservableObject {
         let date = Date()
         if Calendar.current.component(.minute, from: date) != Calendar.current.component(.minute, from: now)
             || date.timeIntervalSince(now) > 60 {
+            // Time travel is counted from the current hour; when the hour turns, shift the
+            // offset so the hour being looked at stays put.
+            let passed = Int((TimeMath.hourAnchor(date).timeIntervalSince(TimeMath.hourAnchor(now)) / 3600).rounded())
+            if offsetHours != 0 && passed != 0 { offsetHours -= passed }
             now = date
         }
     }
@@ -96,8 +118,13 @@ final class ZoneStore: ObservableObject {
     var canAdd: Bool { places.count < Self.maxPlaces }
 
     func add(_ entry: CityEntry) {
-        guard canAdd else { return }
+        guard canAdd, !contains(entry) else { return }
         places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID))
+    }
+
+    /// Already tracking this city (same name and zone)?
+    func contains(_ entry: CityEntry) -> Bool {
+        places.contains { $0.name == entry.name && $0.timeZoneID == entry.timeZoneID }
     }
 
     func remove(_ place: Place) {
@@ -136,11 +163,14 @@ final class ZoneStore: ObservableObject {
     }
 
     func isWorkHour(_ hour: Int) -> Bool {
-        workStart <= workEnd ? (hour >= workStart && hour < workEnd) : (hour >= workStart || hour < workEnd)
+        // Same start and end means around the clock.
+        if workStart == workEnd || (workStart == 0 && workEnd == 24) { return true }
+        return workStart <= workEnd ? (hour >= workStart && hour < workEnd) : (hour >= workStart || hour < workEnd)
     }
 
     /// Plain-text summary of the selected moment, for pasting into a chat or invite.
     func copyMoment() {
+        guard !places.isEmpty else { return }
         let moment = selectedMoment()
         let lines = places.map { place in
             "\(place.name): \(TimeMath.fullMoment(moment, in: place.timeZone, use24h: use24h)) (\(place.offsetLabel(at: moment)))"

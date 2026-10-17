@@ -21,6 +21,7 @@ struct ClockProvider: TimelineProvider {
 
     /// One entry per minute for the next hour; the app also asks for a reload when cities change.
     func getTimeline(in context: Context, completion: @escaping (Timeline<ClockEntry>) -> Void) {
+        NSTimeZone.resetSystemTimeZone()   // pick up a time zone change on the Mac
         let snapshot = WidgetSnapshot.load()
         let start = Calendar.current.dateInterval(of: .minute, for: Date())?.start ?? Date()
         let entries = (0..<60).map { ClockEntry(date: start.addingTimeInterval(Double($0) * 60), snapshot: snapshot) }

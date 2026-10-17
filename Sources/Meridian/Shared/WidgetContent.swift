@@ -25,8 +25,7 @@ struct WidgetSnapshot: Codable, Equatable {
 
     static func load() -> WidgetSnapshot {
         guard let data = try? Data(contentsOf: fileURL),
-              let snapshot = try? JSONDecoder().decode(WidgetSnapshot.self, from: data),
-              !snapshot.cities.isEmpty
+              let snapshot = try? JSONDecoder().decode(WidgetSnapshot.self, from: data)
         else { return .placeholder }
         return snapshot
     }
@@ -34,7 +33,9 @@ struct WidgetSnapshot: Codable, Equatable {
     /// Writes the file only when something changed. Returns true if it did.
     @discardableResult
     func save() -> Bool {
-        guard let data = try? JSONEncoder().encode(self) else { return false }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys   // stable bytes, so unchanged data isn't rewritten
+        guard let data = try? encoder.encode(self) else { return false }
         if (try? Data(contentsOf: Self.fileURL)) == data { return false }
         try? FileManager.default.createDirectory(at: Self.fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         return (try? data.write(to: Self.fileURL, options: .atomic)) != nil
@@ -119,10 +120,21 @@ struct WidgetClockView: View {
             // The bradcowdrey.com crimson rule, full bleed across the top.
             WidgetTone.crimson.frame(height: 3)
             Group {
+                if cities.isEmpty {
+                    VStack(spacing: 6) {
+                        Text("No cities yet")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Add cities in Meridian")
+                            .font(.system(size: 12))
+                            .foregroundStyle(WidgetTone.muted)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
                 switch family {
                 case .systemLarge: strip
                 case .systemMedium: grid
                 default: list
+                }
                 }
             }
             .padding(.horizontal, 16)
@@ -155,22 +167,22 @@ struct WidgetClockView: View {
 
     private func listRow(_ city: WidgetSnapshot.City) -> some View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
-        return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(city.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(WidgetTone.secondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 4)
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(Self.time(date, zone: zone, use24h: snapshot.use24h))
+        // Time first and never squeezed; the name takes what's left.
+        return HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(city.name)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(WidgetTone.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 2)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(Self.time(date, zone: zone, use24h: snapshot.use24h, compact: true))
                     .font(.system(size: 17, weight: .medium))
                     .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
                 dayBadge(zone)
             }
+            .lineLimit(1)
+            .fixedSize()
         }
     }
 
@@ -244,9 +256,10 @@ struct WidgetClockView: View {
 
     private var strip: some View {
         GeometryReader { geo in
-            let labelWidth = min(116, geo.size.width * 0.34)
             let gap: CGFloat = 4
-            let pitch = (geo.size.width - labelWidth) / CGFloat(columns)
+            // Whole points, so tile and outline edges stay crisp.
+            let pitch = ((geo.size.width - min(116, geo.size.width * 0.34)) / CGFloat(columns)).rounded(.down)
+            let labelWidth = geo.size.width - pitch * CGFloat(columns)
             let headerHeight: CGFloat = 16
             let rows = max(cities.count, 1)
             let rowHeight = min(58, (geo.size.height - headerHeight - gap * CGFloat(rows)) / CGFloat(rows))
@@ -278,7 +291,7 @@ struct WidgetClockView: View {
                                 .foregroundStyle(WidgetTone.secondary)
                                 .lineLimit(1)
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                                Text(Self.time(date, zone: zone, use24h: snapshot.use24h))
+                                Text(Self.time(date, zone: zone, use24h: snapshot.use24h, compact: true))
                                     .font(.system(size: 15, weight: .medium))
                                     .monospacedDigit()
                                 dayBadge(zone)
@@ -313,20 +326,25 @@ struct WidgetClockView: View {
         let hour = calendar.component(.hour, from: moment)
         let minute = calendar.component(.minute, from: moment)
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
+        let newDay = !calendar.isDate(moment, inSameDayAs: moment.addingTimeInterval(-3600))
         let label: Text = {
-            if snapshot.use24h { return Text(String(format: "%02d", hour)) }
-            return Text("\(hour % 12 == 0 ? 12 : hour % 12)")
-                + Text(hour < 12 ? "a" : "p").font(.system(size: 9, weight: .medium))
+            var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
+            // Half-hour and 45-minute zones: "05:30" reads "05" + small ":30".
+            if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(.system(size: 9, weight: .medium)) }
+            if !snapshot.use24h { text = text + Text(hour < 12 ? "a" : "p").font(.system(size: 9, weight: .medium)) }
+            return text
         }()
         return label
             .font(.system(size: 13, weight: .medium))
             .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
             .foregroundStyle(style.text)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(style.fill))
             .overlay(alignment: .leading) {
                 // A new day starts at midnight.
-                if hour == 0 {
+                if newDay {
                     Capsule().fill(WidgetTone.crimson).frame(width: 2).padding(.vertical, 6).offset(x: -3)
                 }
             }
@@ -334,12 +352,17 @@ struct WidgetClockView: View {
 
     // MARK: Helpers (the widget can't see the app's TimeMath)
 
-    static func time(_ date: Date, zone: TimeZone, use24h: Bool) -> String {
+    /// "14:05", "2:05 PM", or "2:05p" where space is tight.
+    static func time(_ date: Date, zone: TimeZone, use24h: Bool, compact: Bool = false) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = zone
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = use24h ? "HH:mm" : "h:mm a"
-        return formatter.string(from: date)
+        formatter.dateFormat = use24h ? "HH:mm" : (compact ? "h:mm" : "h:mm a")
+        let text = formatter.string(from: date)
+        guard !use24h, compact else { return text }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        return text + (calendar.component(.hour, from: date) < 12 ? "a" : "p")
     }
 
     static func dayShift(_ date: Date, zone: TimeZone) -> Int {

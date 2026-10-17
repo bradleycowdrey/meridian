@@ -33,7 +33,7 @@ struct FunctionalTest {
     }
 
     private static let baseline: [(String, String)] = [
-        ("London", "Europe/London"), ("New York", "America/New_York"),
+        ("Paris", "Europe/Paris"), ("New York", "America/New_York"),
         ("Kolkata", "Asia/Kolkata"), ("Tokyo", "Asia/Tokyo"),
     ]
 
@@ -67,6 +67,9 @@ struct FunctionalTest {
             check("search '\(q)' is a fixed \(seconds)s zone that round-trips", zone?.secondsFromGMT() == seconds,
                   "\(entry?.timeZoneID ?? "nil") -> \(zone?.secondsFromGMT().description ?? "nil")")
         }
+        check("search 'GMT+5' has one offset row", CityDirectory.search("GMT+5").filter { $0.region.hasPrefix("Fixed") || $0.name == "GMT+5" }.count == 1,
+              CityDirectory.search("GMT+5").prefix(3).map(\.name).joined(separator: ","))
+        check("search 'UTC+5:75' is not an offset", CityDirectory.search("UTC+5:75").allSatisfy { !$0.region.hasPrefix("Fixed") })
         check("search '' is empty", CityDirectory.search("  ").isEmpty)
         check("search gibberish is empty", CityDirectory.search("zzqxj").isEmpty)
         check("search 'kathmandu' is +5:45", top("kathmandu").flatMap { TimeZone(identifier: $0.timeZoneID)?.secondsFromGMT() } == 20_700)
@@ -89,13 +92,16 @@ struct FunctionalTest {
         // Store
         reset()
         let count = store.places.count
-        store.add(CityEntry(name: "Paris", region: "Europe", timeZoneID: "Europe/Paris"))
-        check("add appends", store.places.count == count + 1 && store.places.last?.name == "Paris")
+        let berlin = CityEntry(name: "Berlin", region: "Europe", timeZoneID: "Europe/Berlin")
+        store.add(berlin)
+        check("add appends", store.places.count == count + 1 && store.places.last?.name == "Berlin")
+        store.add(berlin)
+        check("adding the same city twice is ignored", store.places.count == count + 1)
         store.move(from: IndexSet(integer: store.places.count - 1), to: 0)
-        check("move to top", store.places.first?.name == "Paris")
+        check("move to top", store.places.first?.name == "Berlin")
         store.menuBarPlaceID = store.places.first?.id
         store.remove(store.places[0])
-        check("remove clears the menu bar city", store.menuBarPlaceID == nil && store.menuBarPlace?.name == "London")
+        check("remove clears the menu bar city", store.menuBarPlaceID == nil && store.menuBarPlace?.name == "Paris")
         for i in 0..<20 { store.add(CityEntry(name: "City \(i)", region: "", timeZoneID: "UTC")) }
         check("max \(ZoneStore.maxPlaces) cities", store.places.count == ZoneStore.maxPlaces && !store.canAdd, "\(store.places.count)")
         reset()
@@ -112,8 +118,17 @@ struct FunctionalTest {
         check("overnight work hours", store.isWorkHour(23) && store.isWorkHour(3) && !store.isWorkHour(12))
         store.workStart = 9; store.workEnd = 24
         check("work hours ending at 24", store.isWorkHour(23) && !store.isWorkHour(8))
+        store.workStart = 9; store.workEnd = 9
+        check("equal work start and end means all day", store.isWorkHour(3) && store.isWorkHour(15))
         store.workStart = ws; store.workEnd = we
 
+        let keep = store.places
+        store.places = []
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("keep", forType: .string)
+        store.copyMoment()
+        check("copy with no cities leaves the clipboard alone", NSPasteboard.general.string(forType: .string) == "keep")
+        store.places = keep
         store.copyMoment()
         let copied = NSPasteboard.general.string(forType: .string) ?? ""
         check("copy moment lists every city", copied.split(separator: "\n").count == store.places.count && copied.contains("Kolkata"),

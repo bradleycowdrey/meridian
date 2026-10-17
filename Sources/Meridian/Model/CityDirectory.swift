@@ -103,12 +103,15 @@ enum CityDirectory {
         }
         var ranked = results.sorted { ($0.0, $0.1.name) < ($1.0, $1.1.name) }.map(\.1)
 
-        // "PST", "CET", "IST"...
-        if q.count <= 5, let zone = TimeZone(abbreviation: q.uppercased()) {
+        // "PST", "CET", "IST"... (not offsets like "GMT+5", handled below, and not UTC/GMT,
+        // which already have a city entry)
+        let offset = offsetZone(q)
+        if offset == nil, q.count <= 5, !["UTC", "GMT"].contains(q.uppercased()),
+           let zone = TimeZone(abbreviation: q.uppercased()) {
             ranked.insert(CityEntry(name: q.uppercased(), region: zone.identifier, timeZoneID: zone.identifier), at: 0)
         }
         // "UTC+5", "GMT-3", "+9"
-        if let zone = offsetZone(q) {
+        if let zone = offset {
             ranked.insert(CityEntry(name: TimeMath.offsetLabel(seconds: zone.secondsFromGMT()), region: "Fixed offset, no daylight saving", timeZoneID: zone.identifier), at: 0)
         }
         return Array(ranked.prefix(40))
@@ -120,7 +123,8 @@ enum CityDirectory {
         guard let sign = text.first, sign == "+" || sign == "-" else { return nil }
         let parts = text.dropFirst().split(separator: ":")
         guard let hours = Int(parts.first ?? ""), hours <= 14 else { return nil }
-        let minutes = parts.count > 1 ? Int(parts[1]) ?? 0 : 0
+        let minutes = parts.count > 1 ? Int(parts[1]) ?? -1 : 0
+        guard (0...59).contains(minutes), parts.count <= 2 else { return nil }
         let seconds = (hours * 3600 + minutes * 60) * (sign == "-" ? -1 : 1)
         return TimeZone(secondsFromGMT: seconds)
     }

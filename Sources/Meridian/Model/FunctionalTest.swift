@@ -6,7 +6,7 @@ import AppKit
 /// the accessibility tree and click them with synthesized mouse events, at every size and in
 /// both fonts, so hit-testing problems (like the delete button that stopped responding) show up.
 @MainActor
-struct FunctionalTest {
+final class FunctionalTest {
     let store: ZoneStore
     let adding: Binding<Bool>
     let editing: Binding<Bool>
@@ -22,7 +22,7 @@ struct FunctionalTest {
         self.host = host
     }
 
-    private mutating func check(_ name: String, _ ok: Bool, _ detail: @autoclosure () -> String = "") {
+    private func check(_ name: String, _ ok: Bool, _ detail: @autoclosure () -> String = "") {
         if ok { passed += 1 } else { failed += 1 }
         let extra = detail()
         lines.append("\(ok ? "PASS" : "FAIL") \(name)\(extra.isEmpty ? "" : " (\(extra))")")
@@ -32,7 +32,7 @@ struct FunctionalTest {
         try? await Task.sleep(for: .seconds(seconds))
     }
 
-    private static let baseline: [(String, String)] = [
+    nonisolated private static let baseline: [(String, String)] = [
         ("Paris", "Europe/Paris"), ("New York", "America/New_York"),
         ("Kolkata", "Asia/Kolkata"), ("Tokyo", "Asia/Tokyo"),
     ]
@@ -44,7 +44,7 @@ struct FunctionalTest {
         editing.wrappedValue = false
     }
 
-    mutating func run() async -> [String] {
+    func run() async -> [String] {
         logic()
         await interface()
         lines.insert("functional: \(passed) passed, \(failed) failed", at: 0)
@@ -53,7 +53,7 @@ struct FunctionalTest {
 
     // MARK: Logic
 
-    private mutating func logic() {
+    private func logic() {
         // Search
         func top(_ q: String) -> CityEntry? { CityDirectory.search(q).first }
         check("search 'LHR' finds London", top("LHR")?.name == "London", top("LHR")?.name ?? "nil")
@@ -152,7 +152,7 @@ struct FunctionalTest {
 
     // MARK: Interface, at every size and both fonts
 
-    private mutating func interface() async {
+    private func interface() async {
         guard let window = host.window else {
             check("interface: window", false, "no window")
             return

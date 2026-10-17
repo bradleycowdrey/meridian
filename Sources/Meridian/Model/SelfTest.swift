@@ -76,7 +76,7 @@ enum SelfTest {
             lines.append("position \(placement.rawValue): window x \(Int(f.minX))..\(Int(f.maxX)) top \(Int(f.maxY)) expected x \(Int(expectedX)) top \(Int(screen.maxY - 16)) \(ok ? "OK" : "WRONG")")
         }
         // Every function, at every size and in both fonts.
-        var functional = FunctionalTest(store: store, adding: adding, editing: editing, host: host)
+        let functional = FunctionalTest(store: store, adding: adding, editing: editing, host: host)
         let results = await functional.run()
         try? results.joined(separator: "\n").write(to: dir.appendingPathComponent("functional.txt"), atomically: true, encoding: .utf8)
         lines.append(results[0])

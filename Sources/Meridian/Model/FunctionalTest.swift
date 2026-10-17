@@ -239,6 +239,11 @@ final class FunctionalTest {
 
     private func click(_ id: String, in window: NSWindow) async {
         guard let p = point(of: id, in: window) else { return }
+        // Which view the window will deliver this click to (the frame view covers the title bar too).
+        if let frameView = window.contentView?.superview {
+            let hit = frameView.hitTest(frameView.convert(p, from: nil))
+            SelfTest.log("functional: click \(id) at \(Int(p.x)),\(Int(p.y)) in \(Int(window.frame.width))x\(Int(window.frame.height)) -> \(hit.map { String(describing: type(of: $0)) } ?? "nil")")
+        }
         send(.leftMouseDown, at: p, in: window)
         try? await Task.sleep(for: .milliseconds(60))
         send(.leftMouseUp, at: p, in: window)

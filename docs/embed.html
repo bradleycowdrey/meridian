@@ -22,7 +22,7 @@
   a { color: inherit; text-decoration: none; }
   .globalnav { position: sticky; top: 0; z-index: 10; background: rgba(26,24,22,.72); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 0.5px solid var(--border); }
   .globalnav .in { max-width: 1024px; margin: 0 auto; padding: 0 16px; height: 48px; display: flex; align-items: center; gap: 24px; font-size: 12px; color: var(--secondary); }
-  .globalnav .brand { font-weight: 600; font-size: 14px; color: var(--text); margin-right: auto; }
+  .globalnav .brand { font-weight: 600; font-size: 14px; color: var(--text); margin-right: auto; white-space: nowrap; }
   .globalnav a:hover { color: var(--text); }
   .globalnav .cta { background: #fff; color: var(--bg); border-radius: 980px; padding: 4px 12px; font-weight: 500; }
   .wrap { max-width: 1024px; margin: 0 auto; padding: 0 16px 96px; }
@@ -144,6 +144,11 @@
   .foot { display: flex; gap: 16px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
   .foot .sp { flex: 1; }
   .foot a:hover { color: var(--muted); }
+  .share { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 980px; border: 0; cursor: pointer;
+    background: var(--tile); box-shadow: inset 0 0 0 0.5px var(--border-strong); color: var(--secondary); font: 500 12px/1 -apple-system, Inter, sans-serif; }
+  .share:hover { background: var(--border); color: #fff; }
+  .share svg { width: 13px; height: 13px; }
+  .globalnav button.share { height: 24px; font-size: 12px; }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
   .ftile { background: var(--tile); border-radius: 28px; padding: 32px; min-height: 220px; display: flex; flex-direction: column; }
@@ -179,6 +184,7 @@
   <a class="hide-s" href="#demo">Overview</a>
   <a class="hide-s" href="#install">Install</a>
   <a href="https://github.com/bradleycowdrey/meridian">Source</a>
+  <button class="share" data-share type="button" aria-label="Share Meridian"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10V2M5 4.5 8 1.5l3 3"/><path d="M5.5 7H4a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1.5"/></svg><span>Share</span></button>
   <a class="cta" href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg">Download</a>
 </div></nav>
 <div class="wrap">
@@ -224,7 +230,7 @@
         <div class="ribbons" id="ribbons"><div class="track" id="track"></div><div class="lens" id="lens"></div></div>
       </div>
     </div>
-    <div class="foot"><a href="https://bradcowdrey.com">Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com ↗</a></div>
+    <div class="foot" style="align-items:center"><a href="https://bradcowdrey.com">Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com ↗</a><span class="sp"></span><button class="share" data-share type="button" aria-label="Share Meridian"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10V2M5 4.5 8 1.5l3 3"/><path d="M5.5 7H4a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1.5"/></svg><span>Share</span></button></div>
   </div>
 
   <h2 class="section-h">Simple on purpose.</h2>
@@ -474,6 +480,19 @@
     [...$("fonts").children].forEach(x => x.classList.toggle("on", x === b));
     render();
   };
+  // Share: the system share sheet where there is one, otherwise copy the link.
+  const SHARE = { title: "Meridian for Mac", text: "Meridian: every time zone at a glance. Free for Mac, by Bradley Cowdrey.", url: "https://bradcowdrey.com/meridian" };
+  document.querySelectorAll("[data-share]").forEach(b => b.addEventListener("click", async e => {
+    e.stopPropagation();
+    const label = b.querySelector("span");
+    if (navigator.share) {
+      try { await navigator.share(SHARE); return; }
+      catch (err) { if (err && err.name === "AbortError") return; }   // closed the share sheet
+    }
+    try { await navigator.clipboard.writeText(SHARE.url); label.textContent = "Link copied"; }
+    catch { prompt("Copy this link to share Meridian:", SHARE.url); }
+    setTimeout(() => { label.textContent = "Share"; }, 1800);
+  }));
   addEventListener("resize", render);
   setInterval(render, 15000);
   setSize(2);

@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.3 · 18 October 2026
+
+- **Widgets refresh after an update**: the first time a new version opens, it tells macOS to redraw Meridian's widgets straight away, instead of waiting for their next scheduled refresh.
+
 ## 0.7.2 · 17 October 2026
 
 A reliability release, from a full test pass of every feature at all five sizes.

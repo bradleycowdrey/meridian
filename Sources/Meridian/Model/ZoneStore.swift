@@ -55,6 +55,7 @@ final class ZoneStore: ObservableObject {
         appFont = AppFont(rawValue: d.string(forKey: "appFont") ?? "") ?? .system
 
         syncWidget()
+        reloadWidgetsAfterUpdate()
 
         // Common run-loop mode, so the clock keeps ticking while a menu is open or during a drag.
         let ticker = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
@@ -111,6 +112,15 @@ final class ZoneStore: ObservableObject {
             use24h: use24h
         )
         if snapshot.save() { WidgetCenter.shared.reloadAllTimelines() }
+    }
+
+    /// The first launch of a new version (after an update or reinstall) redraws the widgets at
+    /// once, so they pick up the new widget code instead of waiting for their next timeline.
+    private func reloadWidgetsAfterUpdate() {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        guard defaults.string(forKey: "widgetsReloadedForBuild") != version else { return }
+        WidgetCenter.shared.reloadAllTimelines()
+        defaults.set(version, forKey: "widgetsReloadedForBuild")
     }
 
     // MARK: Places

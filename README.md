@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.2
+### What's new in 0.7.3
 
+- **Widgets refresh right after an update.**
 - **Desktop widget** in small, medium and large ([see below](#desktop-widget)).
 - **Safer updates**: verified downloads, and a clear message if an update can't install.
 - **Time travel stays put** when the clock passes the hour, and the app refreshes when your Mac changes time zone.

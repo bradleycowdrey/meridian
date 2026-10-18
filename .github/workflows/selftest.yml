@@ -44,6 +44,31 @@ jobs:
             echo "== pluginkit"; pluginkit -mAvvv -p com.apple.widgetkit-extension 2>&1 | grep -i -B2 -A8 comridian || echo "not registered"
           } > "$OUT/widget.txt"
           cat "$OUT/widget.txt"
+      - name: Widget diagnostics
+        if: always()
+        run: |
+          OUT="$RUNNER_TEMP/shots"; D="$OUT/widget-diag.txt"
+          APPEX=/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex
+          START=$(date '+%Y-%m-%d %H:%M:%S')
+          open /Applications/Meridian.app; sleep 10
+          # Make the widget host rescan extensions, as it does after login.
+          killall chronod 2>/dev/null || true; sleep 15
+          {
+            echo "== codesign"; codesign -dvvv "$APPEX" 2>&1
+            echo "== entitlements"; codesign -d --entitlements - "$APPEX" 2>&1
+            echo "== spctl"; spctl -a -vvv -t execute /Applications/Meridian.app 2>&1
+            echo "== pluginkit"; pluginkit -mAvvv -i me.bradcowdrey.comridian.widget 2>&1
+            echo "== Info.plist"; plutil -p "$APPEX/Contents/Info.plist" 2>&1
+            echo "== binary"; file "$APPEX/Contents/MacOS/MeridianWidget"; otool -L "$APPEX/Contents/MacOS/MeridianWidget" | head -20
+            echo "== run directly (expect it to complain it wasn't started by the system)"
+            ( "$APPEX/Contents/MacOS/MeridianWidget" & P=$!; sleep 4; kill $P 2>/dev/null ) 2>&1 | head -20
+            echo "== log mentioning the widget"
+            log show --start "$START" --style compact --predicate 'eventMessage CONTAINS[c] "comridian" OR eventMessage CONTAINS[c] "MeridianWidget" OR process == "MeridianWidget"' 2>&1 | tail -200
+            echo "== chronod errors"
+            log show --start "$START" --style compact --predicate 'process == "chronod" AND (messageType == error OR messageType == fault)' 2>&1 | tail -80
+            echo "== crash reports"; ls -la ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i meridian
+          } > "$D" 2>&1
+          tail -60 "$D"
       - name: Publish to ci-shots branch
         if: always()
         run: |

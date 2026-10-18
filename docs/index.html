@@ -203,7 +203,10 @@
     .wgrid { grid-template-columns: 364px; grid-template-rows: none; justify-items: center; }
     .wgrid .large { grid-row: auto; }
   }
-  @media (max-width: 420px) { .desk { padding: 24px 0; } .wgrid { zoom: .86; } }
+  @media (max-width: 420px) {
+    .desk { padding: 24px 0; } .wgrid { zoom: .86; }
+    .globalnav .in { gap: 12px; } .globalnav .hide-xs { display: none; }   /* Source is still in the footer */
+  }
   @media (max-width: 720px) {
     .hero { padding: 56px 0 40px; }
     .hero img { width: 88px; height: 88px; }
@@ -226,7 +229,7 @@
   <a class="hide-s" href="#demo">Overview</a>
   <a class="hide-s" href="#widget">Widget</a>
   <a class="hide-s" href="#install">Install</a>
-  <a href="https://github.com/bradleycowdrey/meridian">Source</a>
+  <a class="hide-xs" href="https://github.com/bradleycowdrey/meridian">Source</a>
   <button class="share" data-share type="button" aria-label="Share Meridian"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10V2M5 4.5 8 1.5l3 3"/><path d="M5.5 7H4a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1.5"/></svg><span>Share</span></button>
   <a class="cta" href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg">Download</a>
 </div></nav>

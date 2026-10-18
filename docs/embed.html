@@ -162,6 +162,49 @@
   code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: var(--bg); padding: 2px 6px; border-radius: 6px; word-break: break-all; }
   footer { border-top: 0.5px solid var(--border); margin-top: 96px; padding-top: 20px; font-size: 12px; color: var(--faint); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
   footer .bar { height: 3px; background: var(--crimson); width: 48px; border-radius: 2px; margin-bottom: 12px; }
+  /* Desktop widgets: same sizes and layout as the macOS widget (WidgetContent.swift). */
+  .widgets-intro { color: var(--muted); font-size: 19px; max-width: 640px; margin: -8px 0 32px; text-wrap: pretty; }
+  .desk { background: var(--tile); border-radius: 28px; padding: 40px 24px; display: flex; justify-content: center; }
+  .wgrid { display: grid; grid-template-columns: 364px 364px; grid-template-rows: 170px 170px; gap: 24px 28px; align-items: start; }
+  .wgrid .large { grid-row: 1 / span 2; }
+  .w { position: relative; overflow: hidden; background: var(--bg); border-radius: 22px; color: #fff; font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 0.5px var(--border-strong), 0 18px 40px rgba(0,0,0,.45); display: flex; flex-direction: column; }
+  .w::before { content: ""; height: 3px; background: var(--crimson); flex: none; }
+  .w .in { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; min-height: 0; }
+  .w.small { width: 170px; height: 170px; } .w.small .in { padding: 12px 16px; justify-content: space-between; }
+  .w.medium { width: 364px; height: 170px; } .w.large { width: 364px; height: 376px; }
+  .w .nm { font-size: 13px; font-weight: 500; color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .w .bd { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+  .w .rel { font-size: 11px; color: var(--faint); white-space: nowrap; }
+  .w .srow { display: flex; align-items: baseline; gap: 6px; }
+  .w .srow .nm { flex: 1; min-width: 0; }
+  .w .srow .tm { font-size: 17px; font-weight: 500; white-space: nowrap; }
+  .w .mgrid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; column-gap: 16px; align-content: space-between; }
+  .w .mgrid .tm { font-size: 24px; font-weight: 500; line-height: 1.15; white-space: nowrap; }
+  .w .lhead, .w .lrow2 { display: grid; grid-template-columns: 113px repeat(7, minmax(0, 1fr)); align-items: center; }
+  .w .lhead { height: 16px; margin-bottom: 4px; font-size: 10px; font-weight: 500; color: var(--faint); text-align: center; }
+  .w .lhead span:first-child { text-align: left; font-size: 11px; }
+  .w .lhead .now { color: var(--cream); }
+  .w .lrows { flex: 1; display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .w .lrow2 { flex: 1; max-height: 58px; min-height: 0; }
+  .w .lrow2 .lab { min-width: 0; padding-right: 6px; }
+  .w .lrow2 .tm { font-size: 15px; font-weight: 500; white-space: nowrap; }
+  .w .t { height: 100%; margin: 0 2px; border-radius: 7px; display: grid; place-items: center; font-size: 13px; font-weight: 500; position: relative; }
+  .w .t span { white-space: nowrap; }
+  .w .t.hm { font-size: 11px; letter-spacing: -.03em; }   /* half-hour zones: "05:30" still fits */
+  .w .t.hm sup { font-size: 8px; }
+  .w .t sup { font-size: 9px; vertical-align: top; }
+  .w .t.nd::before { content: ""; position: absolute; left: -4px; top: 6px; bottom: 6px; width: 2px; border-radius: 2px; background: var(--crimson); }
+  .w .lens2 { position: absolute; top: -2px; bottom: -2px; border: 1.5px solid var(--cream); border-radius: 9px; pointer-events: none; }
+  .w .empty { margin: auto; text-align: center; font-size: 14px; font-weight: 500; }
+  .w .empty small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 6px; }
+  .howto { margin-top: 20px; font-size: 15px; color: var(--secondary); text-align: center; }
+  .howto b { color: #fff; font-weight: 600; }
+  @media (max-width: 820px) {
+    .wgrid { grid-template-columns: 364px; grid-template-rows: none; justify-items: center; }
+    .wgrid .large { grid-row: auto; }
+  }
+  @media (max-width: 420px) { .desk { padding: 24px 0; } .wgrid { zoom: .86; } }
   @media (max-width: 720px) {
     .hero { padding: 56px 0 40px; }
     .hero img { width: 88px; height: 88px; }
@@ -182,6 +225,7 @@
 <nav class="globalnav"><div class="in">
   <a class="brand" href="https://bradcowdrey.com">Bradley Cowdrey</a>
   <a class="hide-s" href="#demo">Overview</a>
+  <a class="hide-s" href="#widget">Widget</a>
   <a class="hide-s" href="#install">Install</a>
   <a href="https://github.com/bradleycowdrey/meridian">Source</a>
   <button class="share" data-share type="button" aria-label="Share Meridian"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10V2M5 4.5 8 1.5l3 3"/><path d="M5.5 7H4a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1.5"/></svg><span>Share</span></button>
@@ -240,14 +284,26 @@
     <div class="ftile"><div class="k">Meetings</div><h3>See when everyone’s working.</h3><p>A cream mark lights up the hours that work for every city.</p></div>
     <div class="ftile"><div class="k">Your list</div><h3>Add, remove, reorder.</h3><p>Search by city, airport code, PST or UTC+5. Edit to delete or drag into place.</p></div>
     <div class="ftile"><div class="k">Share</div><h3>Copy the moment.</h3><p>One click puts the time for every city on your clipboard.</p></div>
-    <div class="ftile"><div class="k">Anywhere</div><h3>Menu bar or desktop.</h3><p>A globe or “LON 14:32” up top, plus a floating window.</p></div>
+    <div class="ftile"><div class="k">Anywhere</div><h3>Menu bar, window or widget.</h3><p>A globe or “LON 14:32” up top, a floating window, and a desktop widget.</p></div>
   </div>
+
+  <h2 class="section-h" id="widget">On your desktop, too.</h2>
+  <p class="widgets-intro">Add Meridian as a widget in three sizes. It shows your cities in the same order as the app, with the day and night hours on the large one.</p>
+  <div class="desk" aria-label="Meridian widgets: small, medium and large">
+    <div class="wgrid">
+      <div class="w large" id="wLarge" role="img"></div>
+      <div class="w medium" id="wMedium" role="img"></div>
+      <div class="w small" id="wSmall" role="img"></div>
+    </div>
+  </div>
+  <p class="howto">To add it: right-click your desktop, choose <b>Edit Widgets</b>, then search for <b>Meridian</b>.</p>
 
   <h2 class="section-h" id="install">Get started.</h2>
   <div class="steps">
     <div class="step"><div class="num">1</div><p>Download <b>Meridian.dmg</b> and drag Meridian into Applications.</p></div>
     <div class="step"><div class="num">2</div><p>First launch: right-click Meridian and choose <b>Open</b>. Or run <code>xattr -dr com.apple.quarantine /Applications/Meridian.app</code></p></div>
     <div class="step"><div class="num">3</div><p>Click the globe in your menu bar, then <b>Add</b> your cities.</p></div>
+    <div class="step"><div class="num">4</div><p>Optional: right-click your desktop, choose <b>Edit Widgets</b> and add <b>Meridian</b>.</p></div>
   </div>
 
   <footer><div><div class="bar"></div>© 2026 Bradley Cowdrey</div><span>Free and open source · <a href="https://github.com/bradleycowdrey/meridian">GitHub</a></span></footer>
@@ -343,6 +399,60 @@
     $("addBtn").innerHTML = adding ? "<i>✓</i><span>Done</span>" : "<i>＋</i><span>Add City</span>";
     $("addBtn").classList.toggle("on", adding);
     document.querySelector(".seg").classList.toggle("active", adding || editing);
+    renderWidgets();
+  }
+
+  // The desktop widgets, drawn the same way as the macOS widget, from the cities above.
+  function renderWidgets() {
+    const now = new Date(), anchor = new Date(now); anchor.setMinutes(0, 0, 0);
+    const here = dayKey(now, local);
+    const shift = tz => { const t = dayKey(now, tz); return t === here ? 0 : (t > here ? 1 : -1); };
+    const badge = tz => { const d = shift(tz); return d ? `<span class="bd">${d > 0 ? "+1" : "−1"}</span>` : ""; };
+    const time = tz => { const p = parts(now, tz); return `${pad(p.hour)}:${p.minute}`; };
+    // "GMT+5:30" -> 330, "GMT-4" -> -240, "GMT" -> 0
+    const offsetMin = tz => { const m = /([+-])(\d+)(?::(\d+))?/.exec(parts(now, tz).timeZoneName);
+      return m ? (m[1] === "-" ? -1 : 1) * (+m[2] * 60 + +(m[3] || 0)) : 0; };
+    const rel = tz => {
+      const day = ["Yesterday", "Today", "Tomorrow"][shift(tz) + 1];
+      const diff = offsetMin(tz) - offsetMin(local); if (!diff) return day;
+      const a = Math.abs(diff), h = Math.floor(a / 60), m = a % 60;
+      return `${day}, ${diff > 0 ? "+" : "−"}${h}${m ? ":" + pad(m) : ""} h`;
+    };
+    const empty = '<div class="in"><div class="empty">No cities yet<small>Add cities in Meridian</small></div></div>';
+    const take = n => cities.slice(0, n);
+    const label = n => take(n).map(([name, tz]) => `${name} ${time(tz)}`).join(", ");
+
+    $("wSmall").innerHTML = cities.length ? '<div class="in">' + take(4).map(([n, tz]) =>
+      `<div class="srow"><span class="nm">${esc(n)}</span><span class="tm">${time(tz)}${badge(tz)}</span></div>`).join("") + "</div>" : empty;
+
+    $("wMedium").innerHTML = cities.length ? '<div class="in"><div class="mgrid">' + take(4).map(([n, tz]) =>
+      `<div><div class="nm">${esc(n)}</div><div class="tm">${time(tz)}${badge(tz)}</div><div class="rel">${rel(tz)}</div></div>`).join("") + "</div></div>" : empty;
+
+    if (!cities.length) { $("wLarge").innerHTML = empty; }
+    else {
+      let h = '<div class="in"><div class="lhead"><span>Meridian</span>';
+      for (let k = -3; k <= 3; k++) h += `<span class="${k ? "" : "now"}">${k === 0 ? "Now" : k > 0 ? "+" + k : "−" + -k}</span>`;
+      h += '</div><div class="lrows">';
+      for (const [n, tz] of take(7)) {
+        h += `<div class="lrow2"><div class="lab"><div class="nm">${esc(n)}</div><div class="tm">${time(tz)}${badge(tz)}</div></div>`;
+        for (let k = -3; k <= 3; k++) {
+          const at = new Date(anchor.getTime() + k * 3600e3), p = parts(at, tz), hr = +p.hour, mn = +p.minute, c = sky(hr + mn / 60, false);
+          const nd = dayKey(at, tz) !== dayKey(new Date(at.getTime() - 3600e3), tz);
+          h += `<div class="t${nd ? " nd" : ""}${mn ? " hm" : ""}" style="background:${c.fill};color:${c.text}"><span>${pad(hr)}${mn ? `<sup>:${pad(mn)}</sup>` : ""}</span></div>`;
+        }
+        h += "</div>";
+      }
+      h += '<div class="lens2"></div></div></div>';
+      $("wLarge").innerHTML = h;
+      // Outline the "now" column: label column is 113px, then 7 equal columns.
+      const rows = $("wLarge").querySelector(".lrows"), lens2 = $("wLarge").querySelector(".lens2");
+      const col = (rows.clientWidth - 113) / 7;
+      lens2.style.left = 113 + 3 * col + "px"; lens2.style.width = col + "px";
+      const last = rows.querySelectorAll(".lrow2"); lens2.style.bottom = rows.clientHeight - last[last.length - 1].offsetTop - last[last.length - 1].offsetHeight - 2 + "px";
+    }
+    $("wSmall").setAttribute("aria-label", "Small widget: " + label(4));
+    $("wMedium").setAttribute("aria-label", "Medium widget: " + label(4));
+    $("wLarge").setAttribute("aria-label", "Large widget: " + label(7));
   }
 
   const travel = n => { offset += n; render(); };

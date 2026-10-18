@@ -47,6 +47,7 @@ jobs:
       - name: Widget diagnostics
         if: always()
         run: |
+          set +e   # several checks below exit non-zero by design; capture everything
           OUT="$RUNNER_TEMP/shots"; D="$OUT/widget-diag.txt"
           APPEX=/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex
           START=$(date '+%Y-%m-%d %H:%M:%S')

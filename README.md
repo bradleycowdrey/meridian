@@ -2,7 +2,7 @@
 
 <h1 align="center">Meridian</h1>
 <p align="center"><b>Every time zone at a glance.</b><br>
-A tiny, free, open-source world clock for your Mac's menu bar.<br>
+A tiny, free, open-source world clock for your Mac's menu bar, with a desktop widget.<br>
 Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a></p>
 
 <p align="center">
@@ -38,6 +38,12 @@ instant everywhere, so the line through the middle is *now*.
 
 Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or later.
 
+## Desktop widget
+
+<p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small desktop widgets showing cities, times and day-and-night hour tiles"></p>
+
+Add Meridian to your desktop or Notification Center in three sizes: small (four cities), medium (four cities with "Today, +5 h" context) and large (seven cities with the day-and-night tiles for three hours either side of now). It follows the cities and order you set in the app. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian once from Applications, then try again.
+
 ## Install (sideload)
 
 Meridian is distributed directly, not through the Mac App Store.
@@ -48,6 +54,7 @@ Meridian is distributed directly, not through the Mac App Store.
 3. First launch: if macOS says it can't verify the app, **right-click Meridian → Open → Open**, or run
    `xattr -dr com.apple.quarantine /Applications/Meridian.app`
 4. Click the globe in your menu bar, then **Add** your cities.
+5. Optional: right-click your desktop, choose **Edit Widgets**, and add **Meridian**.
 
 ## Build from source
 

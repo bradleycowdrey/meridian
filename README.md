@@ -18,6 +18,17 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
+### What's new in 0.7.2
+
+- **Desktop widget** in small, medium and large ([see below](#desktop-widget)).
+- **Safer updates**: verified downloads, and a clear message if an update can't install.
+- **Time travel stays put** when the clock passes the hour, and the app refreshes when your Mac changes time zone.
+- Dozens of fixes from a full test pass at all five sizes.
+
+Meridian updates itself once a day. Full history: [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 Meridian lines up your cities as day-and-night ribbons on one grid. Every column is the same
 instant everywhere, so the line through the middle is *now*.
 

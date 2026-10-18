@@ -74,8 +74,12 @@ jobs:
           else
             # Pre-release tags (v1.0.0-beta) never become "latest" for everyone.
             if [[ "$TAG" == *-* ]]; then KIND=--prerelease; else KIND=--latest; fi
+            # Notes: this version's section of CHANGELOG.md, then the install line.
+            V="${TAG##*v}"
+            awk -v v="$V" '/^## /{p = (index($0, "## " v " ") == 1)} p' CHANGELOG.md | sed '1d' > notes.md
+            printf '\n**Install:** download the DMG, open it and drag Meridian into Applications. Already installed? Meridian updates itself.\n\nMade by Bradley Cowdrey · bradcowdrey.com\n' >> notes.md
             gh release create "$TAG" dist/*.dmg dist/*.sha256 \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" $KIND \
-              --title "Meridian ${TAG##*v}" \
-              --notes "Download the DMG, open it and drag Meridian into Applications. First launch: right-click Meridian, then Open. Made by Bradley Cowdrey · bradcowdrey.com"
+              --title "Meridian $V" \
+              --notes-file notes.md
           fi

@@ -52,8 +52,8 @@ jobs:
           NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
           NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
         run: |
-          scripts/build-app.sh "$TAG"
-          scripts/make-dmg.sh "$TAG"
+          set -o pipefail
+          { scripts/build-app.sh "$TAG" && scripts/make-dmg.sh "$TAG"; } 2>&1 | tee "$RUNNER_TEMP/release.log"
           cp dist/Meridian-*.dmg dist/Meridian.dmg
 
       - name: Publish release
@@ -75,3 +75,16 @@ jobs:
               --title "Meridian $V" \
               --notes-file notes.md
           fi
+
+      # The release log (including Apple's notarization report) on the ci-release branch,
+      # readable without access to the Actions page.
+      - name: Publish release log
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/rel" && cd "$RUNNER_TEMP/rel"
+          cp "$RUNNER_TEMP/release.log" . 2>/dev/null || echo "no log" > release.log
+          echo "$GITHUB_SHA ${{ job.status }}" > commit.txt
+          git init -q -b ci-release
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "Release log for $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-release

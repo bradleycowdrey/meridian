@@ -14,8 +14,19 @@ rm -f "$DMG"
 NOTARIZE=false
 if [[ -n "${NOTARY_APPLE_ID:-}" && -n "${NOTARY_PASSWORD:-}" && -n "${NOTARY_TEAM_ID:-}" ]]; then NOTARIZE=true; fi
 notarize() {
-  xcrun notarytool submit "$1" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" \
-    --team-id "$NOTARY_TEAM_ID" --wait --timeout 30m
+  local out id status
+  out="$(xcrun notarytool submit "$1" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" \
+    --team-id "$NOTARY_TEAM_ID" --wait --timeout 2h 2>&1)" || true
+  echo "$out"
+  id="$(echo "$out" | sed -n 's/^ *id: //p' | head -1)"
+  status="$(echo "$out" | sed -n 's/^ *status: //p' | tail -1)"
+  if [[ "$status" != "Accepted" ]]; then
+    echo "::error::Notarization of $(basename "$1") ended with status '${status:-unknown}'."
+    # Apple's report says exactly what it objected to.
+    [[ -n "$id" ]] && xcrun notarytool log "$id" --apple-id "$NOTARY_APPLE_ID" \
+      --password "$NOTARY_PASSWORD" --team-id "$NOTARY_TEAM_ID" || true
+    return 1
+  fi
 }
 
 # Notarize and staple the app itself, so it opens cleanly however it's installed

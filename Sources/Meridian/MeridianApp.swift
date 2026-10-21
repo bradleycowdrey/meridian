@@ -11,6 +11,11 @@ struct MeridianApp: App {
         Task { @MainActor in Updater.shared.start() }
         // Keep macOS pointed at this copy's widget (stale copies can hide it from Edit Widgets).
         WidgetRegistration.refresh()
+        // Once the app has finished launching, ask for agreement to the terms (first run only).
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            Terms.askIfNeeded()
+        }
     }
 
     var body: some Scene {

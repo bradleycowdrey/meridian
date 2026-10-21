@@ -566,6 +566,7 @@ private struct MoreMenu: View {
                 openSettings()
                 NSApp.activate(ignoringOtherApps: true)
             }
+            Button("Terms & Privacy") { NSWorkspace.shared.open(Brand.legal) }
             Button("Check for Updates…") { Task { await updater.check(userInitiated: true) } }
                 .disabled(updater.isBusy || !updater.canSelfUpdate)
             Divider()

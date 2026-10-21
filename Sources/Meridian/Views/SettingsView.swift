@@ -171,6 +171,7 @@ private struct AboutView: View {
             HStack(spacing: 16) {
                 Link(Brand.websiteHost, destination: Brand.website)
                 Link("Source on GitHub", destination: Brand.repository)
+                Link("Terms & Privacy", destination: Brand.legal)
             }
             Text("Free and open source (MIT).").font(.caption).foregroundStyle(.secondary)
         }

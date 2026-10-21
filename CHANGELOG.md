@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.5 · 21 October 2026
+
+- **Terms of Use and Privacy**: Meridian asks you to agree once, the first time it opens. The terms are always one click away under ⋯ → **Terms & Privacy**, in **Settings**, and at [bradcowdrey.com/legal](https://bradcowdrey.com/legal).
+
 ## 0.7.4 · 21 October 2026
 
 - **Signed and notarized by Apple**: Meridian is now signed with a Developer ID and checked by Apple, so it opens without the "can't verify the developer" warning.

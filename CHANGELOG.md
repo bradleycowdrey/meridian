@@ -4,6 +4,12 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.4 · 21 October 2026
+
+- **Signed and notarized by Apple**: Meridian is now signed with a Developer ID and checked by Apple, so it opens without the "can't verify the developer" warning.
+- **Widget fix**: each time Meridian opens from Applications, it makes sure macOS is using this copy of its widget (older or duplicate copies of the app could hide it from Edit Widgets).
+- **Refresh Widgets** button in Settings → General → Widget, if Meridian ever goes missing from Edit Widgets.
+
 ## 0.7.3 · 18 October 2026
 
 - **Widgets refresh after an update**: the first time a new version opens, it tells macOS to redraw Meridian's widgets straight away, instead of waiting for their next scheduled refresh.

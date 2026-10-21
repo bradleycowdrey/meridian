@@ -18,9 +18,10 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.3
+### What's new in 0.7.4
 
-- **Widgets refresh right after an update.**
+- **Signed and notarized by Apple**: no more "can't verify the developer" warning.
+- **Widget fix**: Meridian keeps macOS pointed at the right copy of its widget, with a **Refresh Widgets** button in Settings.
 - **Desktop widget** in small, medium and large ([see below](#desktop-widget)).
 - **Safer updates**: verified downloads, and a clear message if an update can't install.
 - **Time travel stays put** when the clock passes the hour, and the app refreshes when your Mac changes time zone.
@@ -63,10 +64,8 @@ Meridian is distributed directly, not through the Mac App Store.
 1. Download [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg) (all versions are on [Releases](https://github.com/bradleycowdrey/meridian/releases))
    or [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), where you can also try it in your browser.
 2. Open the DMG and drag **Meridian** to **Applications**.
-3. First launch: if macOS says it can't verify the app, **right-click Meridian → Open → Open**, or run
-   `xattr -dr com.apple.quarantine /Applications/Meridian.app`
-4. Click the globe in your menu bar, then **Add** your cities.
-5. Optional: right-click your desktop, choose **Edit Widgets**, and add **Meridian**.
+3. Click the globe in your menu bar, then **Add** your cities.
+4. Optional: right-click your desktop, choose **Edit Widgets**, and add **Meridian**.
 
 ## Build from source
 

@@ -11,6 +11,21 @@ DMG="dist/Meridian-$VERSION.dmg"
 WORK="$(mktemp -d)"
 rm -f "$DMG"
 
+NOTARIZE=false
+if [[ -n "${NOTARY_APPLE_ID:-}" && -n "${NOTARY_PASSWORD:-}" && -n "${NOTARY_TEAM_ID:-}" ]]; then NOTARIZE=true; fi
+notarize() {
+  xcrun notarytool submit "$1" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" \
+    --team-id "$NOTARY_TEAM_ID" --wait --timeout 30m
+}
+
+# Notarize and staple the app itself, so it opens cleanly however it's installed
+# (from the DMG, or by the in-app updater).
+if $NOTARIZE; then
+  ditto -c -k --keepParent dist/Meridian.app "$WORK/Meridian.zip"
+  notarize "$WORK/Meridian.zip"
+  xcrun stapler staple dist/Meridian.app
+fi
+
 # Styled installer window (branded background, fixed layout, no toolbar) via dmgbuild,
 # which writes Finder's .DS_Store directly instead of scripting Finder.
 styled() {
@@ -43,10 +58,11 @@ if [[ -n "${CODESIGN_IDENTITY:-}" && "${CODESIGN_IDENTITY}" != "-" ]]; then
   codesign --sign "$CODESIGN_IDENTITY" --timestamp "$DMG"
 fi
 
-if [[ -n "${NOTARY_APPLE_ID:-}" && -n "${NOTARY_PASSWORD:-}" && -n "${NOTARY_TEAM_ID:-}" ]]; then
-  xcrun notarytool submit "$DMG" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" \
-    --team-id "$NOTARY_TEAM_ID" --wait
+if $NOTARIZE; then
+  notarize "$DMG"
   xcrun stapler staple "$DMG"
+  spctl -a -vvv -t open --context context:primary-signature "$DMG"
+  spctl -a -vvv -t execute dist/Meridian.app
 fi
 
 shasum -a 256 "$DMG" | tee "$DMG.sha256"

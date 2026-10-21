@@ -13,10 +13,19 @@ permissions:
 jobs:
   selftest:
     runs-on: macos-15
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.DEVELOPER_ID_P12 != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Import signing certificate
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
+        run: scripts/import-signing-cert.sh
       - name: Build
         run: |
           OUT="$RUNNER_TEMP/shots"; mkdir -p "$OUT"

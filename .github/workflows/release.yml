@@ -35,15 +35,8 @@ jobs:
         env:
           P12: ${{ secrets.DEVELOPER_ID_P12 }}
           P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
-        run: |
-          KEYCHAIN="$RUNNER_TEMP/build.keychain"
-          echo "$P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-          security create-keychain -p ci "$KEYCHAIN"
-          security set-keychain-settings "$KEYCHAIN"
-          security unlock-keychain -p ci "$KEYCHAIN"
-          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KEYCHAIN"
-          security list-keychains -d user -s "$KEYCHAIN"
+          CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
+        run: scripts/import-signing-cert.sh
 
       - name: Work out version
         run: |
@@ -55,7 +48,6 @@ jobs:
 
       - name: Build and package
         env:
-          CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
           NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
           NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
           NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}

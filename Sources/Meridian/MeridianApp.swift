@@ -9,6 +9,8 @@ struct MeridianApp: App {
     init() {
         FontRegistry.registerBundledFonts()
         Task { @MainActor in Updater.shared.start() }
+        // Keep macOS pointed at this copy's widget (stale copies can hide it from Edit Widgets).
+        WidgetRegistration.refresh()
     }
 
     var body: some Scene {

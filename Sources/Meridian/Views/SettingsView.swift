@@ -83,6 +83,7 @@ private struct CitiesSettings: View {
 
 private struct GeneralSettings: View {
     @EnvironmentObject private var store: ZoneStore
+    @State private var widgetRefreshed = false
 
     var body: some View {
         Form {
@@ -114,6 +115,13 @@ private struct GeneralSettings: View {
             Section("Widget") {
                 Text("Add Meridian to your desktop or Notification Center: right-click the desktop, choose Edit Widgets, then search for Meridian. It shows your cities in the same order as here.")
                     .font(.caption).foregroundStyle(.secondary)
+                LabeledContent("Not in Edit Widgets?") {
+                    Button(widgetRefreshed ? "Done" : "Refresh Widgets") {
+                        WidgetRegistration.refresh { widgetRefreshed = true }
+                    }
+                    .disabled(!WidgetRegistration.isInstalled)
+                }
+                .help(WidgetRegistration.isInstalled ? "Re-register Meridian's widget with macOS" : "Move Meridian to Applications first")
             }
             UpdateSettings()
         }

@@ -100,6 +100,10 @@ Sources/Meridian/
 docs/                     Download page with a live web demo
 ```
 
+## Terms and privacy
+
+Using Meridian means agreeing to the [Terms of Use and Privacy](TERMS.md) (also at [bradcowdrey.com/legal](https://bradcowdrey.com/legal)), which cover every app, AI skill, book and page Bradley Cowdrey publishes. In short: it's free and provided as is, you use it at your own risk, and your cities stay on your Mac. The app asks you to agree the first time it opens, and ⋯ → **Terms & Privacy** opens them any time.
+
 ## License
 
 MIT © 2026 Bradley Cowdrey · [bradcowdrey.com](https://bradcowdrey.com)

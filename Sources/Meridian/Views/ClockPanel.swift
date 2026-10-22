@@ -92,16 +92,7 @@ private struct ClockPanelContent: View {
                         }
                         .font(ui.font(12))
                         .foregroundStyle(Palette.textMuted)
-                        Spacer(minLength: ui.s)
-                        ShareLink(
-                            item: Brand.repository,
-                            subject: Text("Meridian for Mac"),
-                            message: Text(Brand.shareMessage)
-                        ) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        .buttonStyle(PillButtonStyle(small: true))
-                        .help("Share Meridian")
+                        Spacer(minLength: 0)
                     }
                 }
                 .padding(.horizontal, ui.xl)
@@ -212,7 +203,21 @@ private struct ClockPanelContent: View {
                 .font(ui.title)
                 .tracking(-0.2)
                 .foregroundStyle(Palette.textPrimary)
-            Spacer()
+                .lineLimit(1)
+                .fixedSize()
+            ShareLink(
+                item: Brand.repository,
+                subject: Text("Meridian for Mac"),
+                message: Text(Brand.shareMessage)
+            ) {
+                Label("Share", systemImage: "square.and.arrow.up")
+                    .lineLimit(1)
+            }
+            .buttonStyle(PillButtonStyle(small: true))
+            .fixedSize()
+            .help("Share Meridian")
+            .testID("share")
+            Spacer(minLength: ui.s)
             ListControls(adding: $adding, editing: $editing)
             if compact {
                 HeaderCircleButton(symbol: "macwindow", help: "Open as Window") { tearOff() }

@@ -168,6 +168,14 @@ final class FunctionalTest {
                 reset()
                 await settle(1.0)
 
+                // Share sits in the header, left of the Add City / Edit control.
+                if let share = TestAnchors.frames["share"], let add = TestAnchors.frames["control-add"] {
+                    check("\(tag) Share in the header, left", abs(share.midY - add.midY) < 4 && share.maxX < add.minX,
+                          "share \(Int(share.minX))..\(Int(share.maxX)) y \(Int(share.midY)), add \(Int(add.minX)) y \(Int(add.midY))")
+                } else {
+                    check("\(tag) Share in the header, left", false, "not found")
+                }
+
                 // Time travel by clicking an hour tile, the arrows and Now.
                 await click("hour-Tokyo-2", in: window)
                 check("\(tag) click hour +2", store.offsetHours == 2, "offset \(store.offsetHours)")

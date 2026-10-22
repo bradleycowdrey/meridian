@@ -14,12 +14,24 @@ rm -f "$DMG"
 NOTARIZE=false
 if [[ -n "${NOTARY_APPLE_ID:-}" && -n "${NOTARY_PASSWORD:-}" && -n "${NOTARY_TEAM_ID:-}" ]]; then NOTARIZE=true; fi
 notarize() {
-  local out id status
-  out="$(xcrun notarytool submit "$1" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" \
-    --team-id "$NOTARY_TEAM_ID" --wait --timeout 2h 2>&1)" || true
-  echo "$out"
-  id="$(echo "$out" | sed -n 's/^ *id: //p' | head -1)"
-  status="$(echo "$out" | sed -n 's/^ *status: //p' | tail -1)"
+  local out id status attempt
+  # Up to three tries: a dropped connection to Apple shouldn't sink a release. If a submission
+  # got an id before the connection dropped, keep waiting on that one instead of resubmitting.
+  for attempt in 1 2 3; do
+    if [[ -n "${id:-}" ]]; then
+      out="$(xcrun notarytool wait "$id" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" \
+        --team-id "$NOTARY_TEAM_ID" --timeout 2h 2>&1)" || true
+    else
+      out="$(xcrun notarytool submit "$1" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_PASSWORD" \
+        --team-id "$NOTARY_TEAM_ID" --wait --timeout 2h 2>&1)" || true
+    fi
+    echo "$out"
+    [[ -z "${id:-}" ]] && id="$(echo "$out" | sed -n 's/^ *id: //p' | head -1)"
+    status="$(echo "$out" | sed -n 's/^ *status: //p' | tail -1)"
+    [[ "$status" == "Accepted" || "$status" == "Invalid" || "$status" == "Rejected" ]] && break
+    echo "Notarization attempt $attempt didn't finish (status '${status:-none}'); retrying in 30 s."
+    sleep 30
+  done
   if [[ "$status" != "Accepted" ]]; then
     echo "::error::Notarization of $(basename "$1") ended with status '${status:-unknown}'."
     # Apple's report says exactly what it objected to.

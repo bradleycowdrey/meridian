@@ -343,8 +343,16 @@ final class HostWindow {
         guard let window else { return }
         for name in [NSWindow.didResizeNotification, NSWindow.didChangeScreenNotification] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
+                self?.centerUnderMenuBarItem()
                 self?.keepOnScreen()
             })
+        }
+        if !isDesktop {
+            // The menu bar panel is placed by the system as it opens; centre it right after.
+            observers.append(NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: window, queue: .main) { [weak self] _ in
+                self?.centerUnderMenuBarItem()
+            })
+            centerUnderMenuBarItem()
         }
         if isDesktop {
             observers.append(NotificationCenter.default.addObserver(forName: WindowPlacement.didRequest, object: nil, queue: .main) { [weak self] _ in
@@ -379,6 +387,24 @@ final class HostWindow {
                 }
             }
         }
+    }
+
+    /// Menu bar panel: horizontally centred under Meridian's menu bar item, moved sideways only
+    /// as far as needed to stay on screen. The vertical position stays where the system put it.
+    func centerUnderMenuBarItem() {
+        guard !isDesktop, let window, let item = HostWindow.menuBarItemFrame(),
+              let visible = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
+        let width = window.frame.width
+        let x = min(max((item.midX - width / 2).rounded(), visible.minX), max(visible.minX, visible.maxX - width))
+        if abs(window.frame.minX - x) > 0.5 {
+            SelfTest.log("centre panel under menu bar item \(item): x \(window.frame.minX) -> \(x)")
+            window.setFrameOrigin(NSPoint(x: x, y: window.frame.minY))
+        }
+    }
+
+    /// Screen frame of this app's menu bar item (the status bar window holding its button).
+    static func menuBarItemFrame() -> NSRect? {
+        NSApp.windows.first { String(describing: type(of: $0)).contains("StatusBarWindow") && $0.frame.width > 0 }?.frame
     }
 
     func keepOnScreen() {

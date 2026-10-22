@@ -17,6 +17,32 @@ enum SelfTest {
     nonisolated static var isActive: Bool { outputDir != nil }
 
     /// Diagnostic line on stderr (captured by CI as app.log); silent outside the self-test.
+    private static func menuBarPanelCheck(dir: URL, desktop: NSWindow?) async -> String {
+        func buttons(in view: NSView) -> [NSButton] {
+            (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons(in: $0) }
+        }
+        guard let itemWindow = NSApp.windows.first(where: { String(describing: type(of: $0)).contains("StatusBarWindow") }),
+              let content = itemWindow.contentView, let button = buttons(in: content).first ?? (content.superview.flatMap { buttons(in: $0).first })
+        else { return "menu bar panel: no menu bar item found" }
+        let item = itemWindow.frame
+        button.performClick(nil)
+        try? await Task.sleep(for: .seconds(2))
+        guard let panel = NSApp.windows.first(where: {
+            $0.isVisible && $0 !== desktop && $0 !== itemWindow && $0.frame.width > 300
+        }) else { return "menu bar panel: did not open (item \(item))" }
+        let visible = (panel.screen ?? NSScreen.main)?.visibleFrame ?? .zero
+        let w = panel.frame.width
+        let expected = min(max((item.midX - w / 2).rounded(), visible.minX), max(visible.minX, visible.maxX - w))
+        let ok = abs(panel.frame.minX - expected) <= 1
+        if let view = panel.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+            view.cacheDisplay(in: view.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("menubar-panel.png"))
+        }
+        panel.orderOut(nil)
+        return "menu bar panel: item centre x \(Int(item.midX)), panel x \(Int(panel.frame.minX))..\(Int(panel.frame.maxX)) centre \(Int(panel.frame.midX)),"
+            + " expected x \(Int(expected)) (screen \(Int(visible.minX))..\(Int(visible.maxX))) \(ok ? "OK" : "WRONG")"
+    }
+
     nonisolated static func log(_ message: @autoclosure () -> String) {
         guard isActive else { return }
         FileHandle.standardError.write(Data(("[selftest] " + message() + "\n").utf8))
@@ -80,6 +106,10 @@ enum SelfTest {
         let results = await functional.run()
         try? results.joined(separator: "\n").write(to: dir.appendingPathComponent("functional.txt"), atomically: true, encoding: .utf8)
         lines.append(results[0])
+
+        // Menu bar panel: click Meridian's menu bar item; the panel should open centred under it
+        // (moved sideways only as far as needed to stay on screen).
+        lines.append(await menuBarPanelCheck(dir: dir, desktop: host.window))
 
         // Desktop widget faces, at the macOS widget sizes, from the file the app just wrote.
         let faces: [(String, WidgetFamily, CGSize)] = [

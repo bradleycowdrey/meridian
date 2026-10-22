@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.4
+### What's new in 0.7.6
 
+- **Panel opens centred under Meridian's menu bar item.**
 - **Signed and notarized by Apple**: no more "can't verify the developer" warning.
 - **Widget fix**: Meridian keeps macOS pointed at the right copy of its widget, with a **Refresh Widgets** button in Settings.
 - **Desktop widget** in small, medium and large ([see below](#desktop-widget)).

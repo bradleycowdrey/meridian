@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.7 · 22 October 2026
+
+- **Share in the top bar**: the Share button now sits at the top left of the panel, next to the Meridian name.
+
 ## 0.7.6 · 22 October 2026
 
 - **Panel opens under its menu bar item**: clicking Meridian in the menu bar opens the panel horizontally centred under Meridian's item, moved sideways only as far as needed to stay on screen.

@@ -40,6 +40,17 @@ jobs:
           sleep 1; kill $PID 2>/dev/null || true
           system_profiler SPDisplaysDataType | grep -iE "resolution|ui looks like" > "$OUT/display.txt" || true
           cat "$OUT/report.txt" 2>/dev/null || echo "no report"
+      - name: First-launch Terms prompt
+        if: always()
+        run: |
+          set +e
+          OUT="$RUNNER_TEMP/shots"
+          # A first-time user: nothing accepted yet. Open normally (not the self-test) and look.
+          defaults delete me.bradcowdrey.comridian terms.accepted 2>/dev/null
+          open dist/Meridian.app; sleep 8
+          screencapture -x "$OUT/terms-prompt.png"
+          echo "accepted after launch: $(defaults read me.bradcowdrey.comridian terms.accepted 2>&1)" > "$OUT/terms.txt"
+          pkill -x Meridian; sleep 2
       - name: Check widget registration
         run: |
           OUT="$RUNNER_TEMP/shots"

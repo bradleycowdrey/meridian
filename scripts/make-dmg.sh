@@ -13,6 +13,17 @@ rm -f "$DMG"
 
 NOTARIZE=false
 if [[ -n "${NOTARY_APPLE_ID:-}" && -n "${NOTARY_PASSWORD:-}" && -n "${NOTARY_TEAM_ID:-}" ]]; then NOTARIZE=true; fi
+# Attach Apple's ticket; retried, since fetching it from Apple occasionally drops the connection.
+staple() {
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    xcrun stapler staple "$1" && return 0
+    echo "Stapling $(basename "$1") failed (attempt $attempt); retrying in 30 s."
+    sleep 30
+  done
+  return 1
+}
+
 notarize() {
   local out id status attempt
   # Up to three tries: a dropped connection to Apple shouldn't sink a release. If a submission
@@ -46,7 +57,7 @@ notarize() {
 if $NOTARIZE; then
   ditto -c -k --keepParent dist/Meridian.app "$WORK/Meridian.zip"
   notarize "$WORK/Meridian.zip"
-  xcrun stapler staple dist/Meridian.app
+  staple dist/Meridian.app
 fi
 
 # Styled installer window (branded background, fixed layout, no toolbar) via dmgbuild,
@@ -83,7 +94,7 @@ fi
 
 if $NOTARIZE; then
   notarize "$DMG"
-  xcrun stapler staple "$DMG"
+  staple "$DMG"
   spctl -a -vvv -t open --context context:primary-signature "$DMG"
   spctl -a -vvv -t execute dist/Meridian.app
 fi

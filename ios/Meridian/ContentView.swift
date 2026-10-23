@@ -17,12 +17,6 @@ struct ContentView: View {
         NavigationStack {
             List {
                 Section {
-                    MomentHeader(copied: $copied)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 12, trailing: 16))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
-                Section {
                     if store.places.isEmpty {
                         emptyState
                     }
@@ -35,7 +29,16 @@ struct ContentView: View {
                     .onDelete { store.remove(at: $0) }
                     .onMove { store.move(from: $0, to: $1) }
                 } header: {
-                    if !store.places.isEmpty { HourHeader(span: span) }
+                    // Pinned while the cities scroll underneath: the moment and the hour labels.
+                    VStack(alignment: .leading, spacing: 14) {
+                        MomentHeader(copied: $copied)
+                        if !store.places.isEmpty { HourHeader(span: span) }
+                    }
+                    .padding(.leading, 16).padding(.trailing, 12).padding(.top, 10).padding(.bottom, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.bg)
+                    .listRowInsets(EdgeInsets())
+                    .textCase(nil)
                 } footer: {
                     footer
                 }
@@ -74,7 +77,7 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingAdd) { AddCityView(query: Screenshots.screen == "add" ? "san" : "") }
             .sheet(isPresented: $showingSettings) { SettingsView() }
-            .onAppear(perform: openScreenshotScreen)
+            .task { await openScreenshotScreen() }
             .onChange(of: store.places.isEmpty) { _, empty in if empty { editMode = .inactive } }
         }
         .environment(\.editMode, $editMode)
@@ -103,8 +106,10 @@ struct ContentView: View {
     }
 
     /// Screenshot mode: open the requested screen.
-    private func openScreenshotScreen() {
+    private func openScreenshotScreen() async {
         guard Screenshots.isActive else { return }
+        // After the first layout, so the list and toolbar pick the change up.
+        try? await Task.sleep(for: .milliseconds(400))
         switch Screenshots.screen {
         case "add": showingAdd = true
         case "settings": showingSettings = true
@@ -204,10 +209,6 @@ private struct HourHeader: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .padding(.leading, 0)
-        .padding(.vertical, 6)
-        .background(Theme.bg)
-        .textCase(nil)
         .accessibilityHidden(true)
     }
 

@@ -394,7 +394,12 @@ struct AccessoryClockView: View {
     let family: WidgetFamily
 
     private func zone(_ city: WidgetSnapshot.City) -> TimeZone { TimeZone(identifier: city.timeZoneID) ?? .current }
-    private func tag(_ city: WidgetSnapshot.City) -> String { String(city.name.filter(\.isLetter).prefix(3)).uppercased() }
+    /// "SF" for San Francisco, "NY" for New York, "LON" for London.
+    private func tag(_ city: WidgetSnapshot.City) -> String {
+        let words = city.name.split(whereSeparator: { !$0.isLetter }).filter { !$0.isEmpty }
+        if words.count > 1 { return String(words.prefix(3).compactMap(\.first)).uppercased() }
+        return String(city.name.filter(\.isLetter).prefix(3)).uppercased()
+    }
     private func time(_ city: WidgetSnapshot.City) -> String {
         WidgetClockView.time(date, zone: zone(city), use24h: snapshot.use24h, compact: true)
     }

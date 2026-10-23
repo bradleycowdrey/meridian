@@ -1,0 +1,27 @@
+== entitlements
+Executable=/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget
+[Dict]
+	[Key] com.apple.security.app-sandbox
+	[Value]
+		[Bool] true
+	[Key] com.apple.security.temporary-exception.files.home-relative-path.read-only
+	[Value]
+		[Array]
+			[String] /Library/Application Support/Meridian/
+== verify
+--prepared:/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex
+--validated:/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex
+/Applications/Meridian.app: valid on disk
+/Applications/Meridian.app: satisfies its Designated Requirement
+== pluginkit
+	        Platform = macOS
+
+     me.bradcowdrey.comridian.widget(0.0.0-selftest)
+	            Path = /Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex
+	            UUID = 4F5FF261-2C3A-4E82-93CD-E4D12A80B4BA
+	       Timestamp = 2026-10-23 20:21:14 +0000
+	             SDK = com.apple.widgetkit-extension
+	   Parent Bundle = /Applications/Meridian.app
+	    Display Name = Meridian
+	      Short Name = Meridian
+	     Parent Name = Meridian

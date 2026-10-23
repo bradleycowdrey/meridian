@@ -1,0 +1,75 @@
+# The iPhone app and its widgets. Generate the Xcode project with XcodeGen:
+#   brew install xcodegen && cd ios && xcodegen
+# Shares its city search, time maths and widget views with the Mac app (../Sources, ../Widget).
+name: Meridian
+options:
+  bundleIdPrefix: com.bradcowdrey
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: 2XV97FZ86G
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+targets:
+  Meridian:
+    type: application
+    platform: iOS
+    scheme: {}
+    sources:
+      - path: Meridian
+      - path: ../Sources/Meridian/Model/Place.swift
+      - path: ../Sources/Meridian/Model/CityDirectory.swift
+      - path: ../Sources/Meridian/Shared/WidgetContent.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bradcowdrey.meridian
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_CFBundleDisplayName: Meridian
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+    info:
+      path: Meridian/Info.plist
+      properties:
+        CFBundleDisplayName: Meridian
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIUserInterfaceStyle: Dark
+        ITSAppUsesNonExemptEncryption: false
+        LSApplicationCategoryType: public.app-category.productivity
+    entitlements:
+      path: Meridian/Meridian.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.bradcowdrey.meridian]
+    dependencies:
+      - target: MeridianWidget
+  MeridianWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ../Widget/MeridianWidget.swift
+      - path: ../Sources/Meridian/Shared/WidgetContent.swift
+      - path: Widget
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bradcowdrey.meridian.widget
+        INFOPLIST_KEY_CFBundleDisplayName: Meridian
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: Meridian
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widget/MeridianWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.bradcowdrey.meridian]

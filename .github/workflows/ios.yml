@@ -1,0 +1,62 @@
+name: iPhone app
+
+# Builds the iPhone app and its widgets for the Simulator, takes a screenshot of every screen
+# and renders every widget, and publishes them to the ci-ios branch.
+on:
+  push:
+    branches: [main]
+    paths: ["ios/**", "Widget/**", "Sources/Meridian/Shared/**", "Sources/Meridian/Model/Place.swift",
+            "Sources/Meridian/Model/CityDirectory.swift", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  simulator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate the Xcode project
+        run: brew install xcodegen && cd ios && xcodegen
+      - name: Build for the Simulator
+        run: |
+          OUT="$RUNNER_TEMP/ios"; mkdir -p "$OUT"
+          set -o pipefail
+          xcodebuild -project ios/Meridian.xcodeproj -scheme Meridian -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$OUT/build.log" | grep -E "error:|warning: .*Meridian|BUILD" || true
+          test -d build/Build/Products/Debug-iphonesimulator/Meridian.app
+      - name: Screenshots
+        if: always()
+        run: |
+          set +e
+          OUT="$RUNNER_TEMP/ios"; mkdir -p "$OUT"
+          APP=build/Build/Products/Debug-iphonesimulator/Meridian.app
+          ID=com.bradcowdrey.meridian
+          DEVICE=$(xcrun simctl list devices available | grep -m1 "iPhone 16 Pro (" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          [ -z "$DEVICE" ] && DEVICE=$(xcrun simctl list devices available | grep -m1 "iPhone" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          echo "device: $(xcrun simctl list devices | grep $DEVICE)" > "$OUT/device.txt"
+          xcrun simctl boot "$DEVICE"; xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl ui "$DEVICE" appearance dark
+          xcrun simctl status_bar "$DEVICE" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$DEVICE" "$APP" || echo "install failed" >> "$OUT/device.txt"
+          for screen in terms main travel edit add settings; do
+            xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
+            xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen -render-widgets >> "$OUT/launch.txt" 2>&1
+            sleep 6
+            xcrun simctl io "$DEVICE" screenshot "$OUT/screen-$screen.png"
+          done
+          DATA=$(xcrun simctl get_app_container "$DEVICE" $ID data)
+          cp -R "$DATA/Documents/widgets" "$OUT/" 2>/dev/null || echo "no widget renders" >> "$OUT/device.txt"
+          # Crash reports, if any.
+          ls ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i meridian >> "$OUT/device.txt"
+      - name: Publish to ci-ios branch
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/ios"
+          echo "$GITHUB_SHA" > commit.txt
+          git init -q -b ci-ios
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "iPhone build for $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-ios

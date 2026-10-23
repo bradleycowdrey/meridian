@@ -1,8 +1,8 @@
 import SwiftUI
 import WidgetKit
 
-// Shared by the app and the desktop widget extension (Widget/MeridianWidget.swift), so this file
-// stands alone: no Palette, Metrics or ZoneStore. The app writes a WidgetSnapshot whenever cities
+// Shared by the Mac app, the iPhone app (ios/) and both widget extensions (Widget/MeridianWidget.swift),
+// so this file stands alone: no Palette, Metrics or ZoneStore. The app writes a WidgetSnapshot whenever cities
 // or clock settings change; the widget reads it and draws the same day/night tiles.
 
 /// What the widget needs from the app: cities in order and the clock settings.
@@ -15,13 +15,23 @@ struct WidgetSnapshot: Codable, Equatable {
     var cities: [City]
     var use24h: Bool
 
-    /// The widget is sandboxed, so this uses the real home folder rather than its container
+    #if os(iOS)
+    /// iPhone: the App Group container the app and its widget share.
+    static let appGroup = "group.com.bradcowdrey.meridian"
+    static var fileURL: URL {
+        (FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
+            ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent("widget.json")
+    }
+    #else
+    /// Mac: the widget is sandboxed, so this uses the real home folder rather than its container
     /// (its entitlements allow reading this one folder).
     static var fileURL: URL {
         let home = getpwuid(getuid()).map { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
         return URL(fileURLWithPath: home)
             .appendingPathComponent("Library/Application Support/Meridian/widget.json")
     }
+    #endif
 
     static func load() -> WidgetSnapshot {
         guard let data = try? Data(contentsOf: fileURL),
@@ -374,3 +384,62 @@ struct WidgetClockView: View {
         return Int((da.timeIntervalSince(db) / 86_400).rounded())
     }
 }
+
+#if os(iOS)
+/// Lock Screen widgets: inline (above the clock), circular and rectangular. They follow the
+/// Lock Screen's own tint, so they use plain text and shapes rather than the brand colours.
+struct AccessoryClockView: View {
+    let snapshot: WidgetSnapshot
+    let date: Date
+    let family: WidgetFamily
+
+    private func zone(_ city: WidgetSnapshot.City) -> TimeZone { TimeZone(identifier: city.timeZoneID) ?? .current }
+    private func tag(_ city: WidgetSnapshot.City) -> String { String(city.name.filter(\.isLetter).prefix(3)).uppercased() }
+    private func time(_ city: WidgetSnapshot.City) -> String {
+        WidgetClockView.time(date, zone: zone(city), use24h: snapshot.use24h, compact: true)
+    }
+    private func shift(_ city: WidgetSnapshot.City) -> String {
+        let d = WidgetClockView.dayShift(date, zone: zone(city))
+        return d == 0 ? "" : (d > 0 ? " +\(d)" : " −\(-d)")
+    }
+    /// The first city that isn't the phone's own time zone, if any; otherwise the first city.
+    private var featured: WidgetSnapshot.City? {
+        snapshot.cities.first { zone($0).secondsFromGMT(for: date) != TimeZone.current.secondsFromGMT(for: date) }
+            ?? snapshot.cities.first
+    }
+
+    var body: some View {
+        switch family {
+        case .accessoryInline:
+            // One line above the Lock Screen clock: "LON 14:05 · TYO 22:05".
+            Text(snapshot.cities.filter { $0 != snapshot.cities.first || snapshot.cities.count == 1 }
+                .prefix(2).map { "\(tag($0)) \(time($0))" }.joined(separator: " · "))
+        case .accessoryCircular:
+            if let city = featured {
+                VStack(spacing: 0) {
+                    Text(tag(city)).font(.system(size: 11, weight: .semibold))
+                    Text(time(city)).font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                        .minimumScaleFactor(0.6).lineLimit(1)
+                }
+                .padding(4)
+            } else {
+                Image(systemName: "globe")
+            }
+        default:
+            // Rectangular: three cities, one per line.
+            VStack(alignment: .leading, spacing: 1) {
+                ForEach(Array(snapshot.cities.prefix(3).enumerated()), id: \.offset) { _, city in
+                    HStack(spacing: 4) {
+                        Text(city.name).lineLimit(1)
+                        Spacer(minLength: 2)
+                        Text(time(city) + shift(city)).monospacedDigit().fontWeight(.semibold)
+                    }
+                    .font(.system(size: 13))
+                }
+                if snapshot.cities.isEmpty { Text("Add cities in Meridian").font(.system(size: 13)) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+#endif

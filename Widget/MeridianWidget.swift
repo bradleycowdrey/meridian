@@ -1,9 +1,10 @@
 import SwiftUI
 import WidgetKit
 
-// The desktop / Notification Center widget. Built by scripts/build-app.sh into
-// Meridian.app/Contents/PlugIns/MeridianWidget.appex together with
-// Sources/Meridian/Shared/WidgetContent.swift, which holds the views and the data file format.
+// The Meridian widget, for the Mac (desktop and Notification Center; built by scripts/build-app.sh
+// into Meridian.app/Contents/PlugIns/MeridianWidget.appex) and the iPhone (Home and Lock Screen;
+// built from ios/project.yml). Sources/Meridian/Shared/WidgetContent.swift holds the views and
+// the data file format.
 
 struct ClockEntry: TimelineEntry {
     let date: Date
@@ -30,13 +31,20 @@ struct ClockProvider: TimelineProvider {
 }
 
 struct MeridianClocksWidget: Widget {
+    #if os(iOS)
+    static let families: [WidgetFamily] = [.systemSmall, .systemMedium, .systemLarge,
+                                           .accessoryInline, .accessoryCircular, .accessoryRectangular]
+    #else
+    static let families: [WidgetFamily] = [.systemSmall, .systemMedium, .systemLarge]
+    #endif
+
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "MeridianClocks", provider: ClockProvider()) { entry in
             ClockEntryView(entry: entry)
         }
         .configurationDisplayName("Meridian")
         .description("Your cities and their times, in the order you set in Meridian.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies(Self.families)
         .contentMarginsDisabled()
     }
 }
@@ -46,6 +54,22 @@ struct ClockEntryView: View {
     let entry: ClockEntry
 
     var body: some View {
+        #if os(iOS)
+        switch family {
+        case .accessoryInline, .accessoryCircular, .accessoryRectangular:
+            AccessoryClockView(snapshot: entry.snapshot, date: entry.date, family: family)
+                .containerBackground(for: .widget) {
+                    if family == .accessoryCircular { AccessoryWidgetBackground() }
+                }
+        default:
+            clock
+        }
+        #else
+        clock
+        #endif
+    }
+
+    private var clock: some View {
         WidgetClockView(snapshot: entry.snapshot, date: entry.date, family: family)
             .containerBackground(WidgetTone.bg, for: .widget)
     }

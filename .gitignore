@@ -4,3 +4,9 @@ dist/
 *.xcodeproj/
 xcuserdata/
 .DS_Store
+ios/Meridian.xcodeproj/
+ios/Meridian/Info.plist
+ios/Widget/Info.plist
+ios/Meridian/Meridian.entitlements
+ios/Widget/MeridianWidget.entitlements
+build/

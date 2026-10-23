@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.7
+### What's new in 0.7.8
 
+- **The desktop widget now appears in Edit Widgets.**
 - **Share** now sits in the panel's top bar, next to the Meridian name.
 - **Panel opens centred under Meridian's menu bar item.**
 - **Signed and notarized by Apple**: no more "can't verify the developer" warning.

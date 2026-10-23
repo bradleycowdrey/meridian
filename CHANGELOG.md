@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.8 · 23 October 2026
+
+- **The Mac widget works**: Meridian's widget now appears in **Edit Widgets**. It's now built with Xcode, which gives it the start-up code macOS needs to recognise it as a widget; before, macOS started it but it quit straight away.
+
 ## 0.7.7 · 22 October 2026
 
 - **Share in the top bar**: the Share button now sits at the top left of the panel, next to the Meridian name.

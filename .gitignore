@@ -10,3 +10,5 @@ ios/Widget/Info.plist
 ios/Meridian/Meridian.entitlements
 ios/Widget/MeridianWidget.entitlements
 build/
+mac/MeridianMacWidget.xcodeproj/
+mac/Widget-Info.plist

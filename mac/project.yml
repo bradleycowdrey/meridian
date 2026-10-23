@@ -1,0 +1,37 @@
+# The Mac widget extension, built with Xcode (xcodebuild) rather than a bare swiftc call, so it
+# gets the same extension setup Xcode gives any widget. scripts/build-app.sh builds it and
+# embeds it in Meridian.app. Generate with: brew install xcodegen && cd mac && xcodegen
+name: MeridianMacWidget
+options:
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGNING_ALLOWED: NO          # signed by scripts/build-app.sh, with the app
+    ARCHS: "arm64 x86_64"
+    ONLY_ACTIVE_ARCH: NO
+    MARKETING_VERSION: "0.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  MeridianWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: ../Widget/MeridianWidget.swift
+      - path: ../Sources/Meridian/Shared/WidgetContent.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.bradcowdrey.comridian.widget
+        PRODUCT_NAME: MeridianWidget
+        CODE_SIGN_ENTITLEMENTS: ../Resources/Widget.entitlements
+    info:
+      path: Widget-Info.plist
+      properties:
+        CFBundleDisplayName: Meridian
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "© 2026 Bradley Cowdrey · bradcowdrey.com"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension

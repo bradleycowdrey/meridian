@@ -88,6 +88,21 @@ jobs:
             echo "== chronod errors"
             log show --start "$START" --style compact --predicate 'process == "chronod" AND (messageType == error OR messageType == fault)' 2>&1 | tail -80
             echo "== crash reports"; ls -la ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i meridian
+            echo "== compare: Xcode-built widget vs the old swiftc build"
+            OLD="$RUNNER_TEMP/old-widget"; rm -rf "$OLD"; mkdir -p "$OLD/MacOS"
+            for arch in arm64 x86_64; do
+              xcrun --sdk macosx swiftc -O -parse-as-library -application-extension -target "$arch-apple-macos14.0" \
+                -module-name MeridianWidget "$GITHUB_WORKSPACE/Widget/MeridianWidget.swift" \
+                "$GITHUB_WORKSPACE/Sources/Meridian/Shared/WidgetContent.swift" -o "$OLD/w-$arch" 2>/dev/null
+            done
+            lipo -create "$OLD"/w-* -output "$OLD/MacOS/MeridianWidget"
+            for f in "$APPEX/Contents/MacOS/MeridianWidget" "$OLD/MacOS/MeridianWidget"; do
+              echo "-- $f"
+              otool -arch arm64 -l "$f" | grep -E "cmd LC_|sectname|segname|entryoff" | sort | uniq -c | sort -rn | head -40
+              otool -arch arm64 -L "$f" | tail -n +2
+              nm -arch arm64 -u "$f" | grep -iE "main|Extension" | head
+            done
+            echo "-- Info.plist keys (Xcode build)"; plutil -p "$APPEX/Contents/Info.plist"
             echo "== registration log"; cat ~/Library/Logs/Meridian-widget.log 2>&1
             echo "== registered Meridian copies"; /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -dump Bundle | grep -E "^path:.*Meridian" | sort | uniq -c
           } > "$D" 2>&1

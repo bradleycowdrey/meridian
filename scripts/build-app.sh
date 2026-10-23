@@ -28,19 +28,32 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 
-# Desktop widget: a WidgetKit app extension. SwiftPM can't build .appex bundles, so compile it
-# directly (one slice per architecture) from Widget/ plus the shared views and data format.
+# Desktop widget: a WidgetKit app extension. SwiftPM can't build .appex bundles, so it's built
+# with Xcode from mac/project.yml (Widget/ plus the shared views and data format).
+# WIDGET_BUILD=swiftc uses the old bare-compiler build instead (kept only for comparison: macOS
+# starts that one but it can't identify itself as a widget, so it never appears in Edit Widgets).
 APPEX="$APP/Contents/PlugIns/MeridianWidget.appex"
-WIDGET_TMP="$(mktemp -d)"
-mkdir -p "$APPEX/Contents/MacOS"
-for arch in arm64 x86_64; do
-  xcrun --sdk macosx swiftc -O -parse-as-library -application-extension \
-    -target "$arch-apple-macos14.0" -module-name MeridianWidget \
-    Widget/MeridianWidget.swift Sources/Meridian/Shared/WidgetContent.swift \
-    -o "$WIDGET_TMP/MeridianWidget-$arch"
-done
-lipo -create "$WIDGET_TMP"/MeridianWidget-* -output "$APPEX/Contents/MacOS/MeridianWidget"
-sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Widget-Info.plist > "$APPEX/Contents/Info.plist"
+mkdir -p "$APP/Contents/PlugIns"
+if [[ "${WIDGET_BUILD:-xcode}" == "xcode" ]]; then
+  command -v xcodegen >/dev/null || brew install xcodegen
+  (cd mac && xcodegen --quiet)
+  xcodebuild -project mac/MeridianMacWidget.xcodeproj -target MeridianWidget -configuration Release \
+    SYMROOT="$PWD/build/mac" OBJROOT="$PWD/build/mac/obj" \
+    MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" -quiet build
+  rm -rf "$APPEX"
+  ditto build/mac/Release/MeridianWidget.appex "$APPEX"
+else
+  WIDGET_TMP="$(mktemp -d)"
+  mkdir -p "$APPEX/Contents/MacOS"
+  for arch in arm64 x86_64; do
+    xcrun --sdk macosx swiftc -O -parse-as-library -application-extension \
+      -target "$arch-apple-macos14.0" -module-name MeridianWidget \
+      Widget/MeridianWidget.swift Sources/Meridian/Shared/WidgetContent.swift \
+      -o "$WIDGET_TMP/MeridianWidget-$arch"
+  done
+  lipo -create "$WIDGET_TMP"/MeridianWidget-* -output "$APPEX/Contents/MacOS/MeridianWidget"
+  sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Widget-Info.plist > "$APPEX/Contents/Info.plist"
+fi
 
 # Sign with a Developer ID if one is configured, otherwise ad-hoc (fine for sideloading).
 IDENTITY="${CODESIGN_IDENTITY:--}"

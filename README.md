@@ -18,9 +18,10 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.8
+### What's new in 0.7.9
 
-- **The desktop widget now appears in Edit Widgets.**
+- **The widget shows up after updating**, with no Terminal needed: Meridian refreshes macOS's widget list the first time a new version opens.
+- **The desktop widget appears in Edit Widgets** (0.7.8).
 - **Share** now sits in the panel's top bar, next to the Meridian name.
 - **Panel opens centred under Meridian's menu bar item.**
 - **Signed and notarized by Apple**: no more "can't verify the developer" warning.
@@ -58,7 +59,7 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 <p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small desktop widgets showing cities, times and day-and-night hour tiles"></p>
 
-Add Meridian to your desktop or Notification Center in three sizes: small (four cities), medium (four cities with "Today, +5 h" context) and large (seven cities with the day-and-night tiles for three hours either side of now). It follows the cities and order you set in the app. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian once from Applications, then try again.
+Add Meridian to your desktop or Notification Center in three sizes: small (four cities), medium (four cities with "Today, +5 h" context) and large (seven cities with the day-and-night tiles for three hours either side of now). It follows the cities and order you set in the app. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
 
 ## Install (sideload)
 

@@ -6,11 +6,15 @@ import WidgetKit
 /// macOS can drop a widget from the Edit Widgets gallery when it knows about several copies of
 /// the app (a mounted DMG, one in Downloads, the bundle an update replaced). So each time
 /// Meridian opens from Applications, it unregisters other copies, re-registers itself and its
-/// widget extension, and asks the widgets to redraw. It runs in the background and is silent;
-/// details go to ~/Library/Logs/Meridian-widget.log.
+/// widget extension, and asks the widgets to redraw. The widget service (chronod) also keeps its
+/// own record of each widget and can hold on to an older version's after an update, so the first
+/// time a new version opens, and on Settings → Refresh Widgets, Meridian restarts it (macOS
+/// relaunches it straight away). It runs in the background and is silent; details go to
+/// ~/Library/Logs/Meridian-widget.log.
 enum WidgetRegistration {
     static let bundleID = "me.bradcowdrey.comridian"
     static let widgetID = "me.bradcowdrey.comridian.widget"
+    private static let restartedKey = "widgetServiceRestartedForBuild"
     private static let lsregister =
         "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
@@ -21,8 +25,12 @@ enum WidgetRegistration {
             && (path.hasPrefix("/Applications/") || path.hasPrefix(NSHomeDirectory() + "/Applications/"))
     }
 
-    static func refresh(completion: (@MainActor () -> Void)? = nil) {
+    /// - Parameter restartService: restart the widget service even if this version already did.
+    static func refresh(restartService: Bool = false, completion: (@MainActor () -> Void)? = nil) {
         guard isInstalled, !SelfTest.isActive else { return }
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        let defaults = UserDefaults.standard
+        let restart = restartService || defaults.string(forKey: restartedKey) != build
         let app = Bundle.main.bundleURL.path
         let appex = Bundle.main.bundleURL.appendingPathComponent("Contents/PlugIns/MeridianWidget.appex").path
         DispatchQueue.global(qos: .utility).async {
@@ -33,6 +41,11 @@ enum WidgetRegistration {
             log.append("register app: \(run(lsregister, ["-f", app]))")
             log.append("register widget: \(run("/usr/bin/pluginkit", ["-a", appex]))")
             log.append("enable widget: \(run("/usr/bin/pluginkit", ["-e", "use", "-i", widgetID]))")
+            if restart {
+                log.append("restart widget service: \(run("/usr/bin/killall", ["chronod"]))")
+                Thread.sleep(forTimeInterval: 2)  // give launchd a moment to bring it back
+                defaults.set(build, forKey: restartedKey)
+            }
             write(log)
             Task { @MainActor in
                 WidgetCenter.shared.reloadAllTimelines()

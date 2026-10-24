@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.9 · 24 October 2026
+
+- **The widget shows up after updating**: macOS's widget service can keep a record of an older version's widget, which kept Meridian out of **Edit Widgets** until it was restarted from Terminal. Meridian now restarts it the first time a new version opens, and when you press Settings → **Refresh Widgets**. If Edit Widgets is open at the time, close and reopen it.
+
 ## 0.7.8 · 23 October 2026
 
 - **The Mac widget works**: Meridian's widget now appears in **Edit Widgets**. It's now built with Xcode, which gives it the start-up code macOS needs to recognise it as a widget; before, macOS started it but it quit straight away.

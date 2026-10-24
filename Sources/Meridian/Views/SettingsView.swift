@@ -117,7 +117,7 @@ private struct GeneralSettings: View {
                     .font(.caption).foregroundStyle(.secondary)
                 LabeledContent("Not in Edit Widgets?") {
                     Button(widgetRefreshed ? "Done" : "Refresh Widgets") {
-                        WidgetRegistration.refresh { widgetRefreshed = true }
+                        WidgetRegistration.refresh(restartService: true) { widgetRefreshed = true }
                     }
                     .disabled(!WidgetRegistration.isInstalled)
                 }

@@ -17,6 +17,10 @@ final class CityStore: ObservableObject {
     @Published var offsetHours = 0
     /// The clock everything renders from; updated when the minute changes.
     @Published private(set) var now = Date()
+    /// Demo mode's fixed moment: Tuesday 9 June 2026, 9:41 AM in San Francisco (matches the
+    /// screenshots' status bar, and no city is mid daylight-saving change).
+    private static let demoDate = Date(timeIntervalSince1970: 1_781_023_260)
+    private var clock: Date { demo ? Self.demoDate : Date() }
 
     private let defaults = UserDefaults.standard
     private var ticker: Timer?
@@ -25,6 +29,7 @@ final class CityStore: ObservableObject {
 
     init(demo: Bool = false) {
         self.demo = demo
+        if demo { now = Self.demoDate }
         let d = UserDefaults.standard
         if demo {
             places = [("San Francisco", "America/Los_Angeles"), ("New York", "America/New_York"), ("London", "Europe/London"),
@@ -63,7 +68,7 @@ final class CityStore: ObservableObject {
     }
 
     func tick() {
-        let date = Date()
+        let date = clock
         guard Calendar.current.component(.minute, from: date) != Calendar.current.component(.minute, from: now)
             || abs(date.timeIntervalSince(now)) > 60 else { return }
         // Keep a travelled-to hour where it is when the clock passes the hour.
@@ -75,7 +80,7 @@ final class CityStore: ObservableObject {
     /// The app came back to the front: catch up the clock and the widgets.
     func refresh() {
         NSTimeZone.resetSystemTimeZone()
-        now = Date()
+        now = clock
         WidgetCenter.shared.reloadAllTimelines()
     }
 

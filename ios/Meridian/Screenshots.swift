@@ -81,12 +81,12 @@ struct WidgetShowcase: View {
             HStack(alignment: .top, spacing: 24) {
                 face(.systemSmall, CGSize(width: 170, height: 170))
                 VStack(alignment: .leading, spacing: 14) {
-                    accessory(.accessoryInline, CGSize(width: 170, height: 26))
                     accessory(.accessoryRectangular, CGSize(width: 170, height: 72))
                     accessory(.accessoryCircular, CGSize(width: 72, height: 72))
                         .background(Color.white.opacity(0.18), in: Circle())
                 }
             }
+            accessory(.accessoryInline, CGSize(width: 364, height: 26))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.bg)

@@ -54,7 +54,7 @@ jobs:
           n=1
           for screen in main travel widgets add settings; do
             xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
-            xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen >> "$OUT/launch.txt" 2>&1
+            SIMCTL_CHILD_TZ=America/Los_Angeles xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen >> "$OUT/launch.txt" 2>&1
             sleep 7
             xcrun simctl io "$DEVICE" screenshot "$SHOTS/0${n}-$screen.png"
             n=$((n + 1))

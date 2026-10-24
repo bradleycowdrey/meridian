@@ -1,0 +1,148 @@
+name: iPhone App Store
+
+# App Store screenshots and listing for the iPhone app, and (on an ios-v* tag) the App Store build.
+#   Push to main (iPhone files): takes the App Store screenshots (6.9-inch iPhone) and publishes them,
+#     with the listing text, to the ci-appstore branch for review. Nothing goes to Apple.
+#   Tag ios-v1.0.0: also builds, signs (Xcode cloud signing via the App Store Connect API key),
+#     uploads the build, screenshots and listing, and submits for review.
+#   Tag ios-v1.0.0-test (any "-" suffix): the same, without submitting for review.
+# Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's contents, Admin role),
+#          APP_REVIEW_EMAIL, APP_REVIEW_PHONE (App Review's contact; not shown on the store).
+on:
+  push:
+    branches: [main]
+    tags: ["ios-v*"]
+    paths: ["ios/**", "Widget/**", "Sources/Meridian/Shared/**", "Sources/Meridian/Model/Place.swift",
+            "Sources/Meridian/Model/CityDirectory.swift", ".github/workflows/ios-appstore.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-appstore-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  appstore:
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      OUT: ${{ github.workspace }}/out
+      IS_TAG: ${{ startsWith(github.ref, 'refs/tags/ios-v') }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Generate the Xcode project
+        run: brew install xcodegen && cd ios && xcodegen && mkdir -p "$OUT"
+
+      - name: Screenshots (6.9-inch iPhone)
+        run: |
+          set +e
+          SHOTS=ios/fastlane/screenshots/en-US; mkdir -p "$SHOTS" "$OUT/screenshots"
+          set -o pipefail
+          xcodebuild -project ios/Meridian.xcodeproj -scheme Meridian -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$OUT/simulator-build.log" | grep -E "error:|BUILD"
+          APP=build/Build/Products/Debug-iphonesimulator/Meridian.app; ID=com.bradcowdrey.meridian
+          DEVICE=$(xcrun simctl list devices available | grep -m1 "iPhone 16 Pro Max (" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          echo "device: $(xcrun simctl list devices | grep "$DEVICE")" > "$OUT/device.txt"
+          xcrun simctl boot "$DEVICE"; xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl ui "$DEVICE" appearance dark
+          xcrun simctl status_bar "$DEVICE" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
+          xcrun simctl install "$DEVICE" "$APP"
+          n=1
+          for screen in main travel widgets add settings; do
+            xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
+            xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen >> "$OUT/launch.txt" 2>&1
+            sleep 7
+            xcrun simctl io "$DEVICE" screenshot "$SHOTS/0${n}-$screen.png"
+            n=$((n + 1))
+          done
+          cp "$SHOTS"/*.png "$OUT/screenshots/"
+          sips -g pixelWidth -g pixelHeight "$SHOTS"/*.png > "$OUT/screenshot-sizes.txt"
+          ls "$SHOTS"/*.png | wc -l | grep -q 5
+
+      - name: Check App Store secrets
+        if: env.IS_TAG == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          missing=""
+          for s in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do [ -z "${!s}" ] && missing="$missing $s"; done
+          if [ -n "$missing" ]; then echo "Missing secrets:$missing" | tee "$OUT/release.txt"; exit 1; fi
+
+      - name: Build, sign and export
+        if: env.IS_TAG == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#ios-v}"; VERSION="${VERSION%%-*}"
+          BUILD="$(git rev-list --count HEAD)"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"; echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          KEY="$RUNNER_TEMP/AuthKey.p8"; printf '%s\n' "$ASC_KEY_P8" > "$KEY"
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY"
+                -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          set -o pipefail
+          # The archive is signed locally without a certificate (keeping its entitlements); the
+          # export then signs it for the App Store with Apple's cloud-managed distribution
+          # certificate, registering the app IDs, App Group and profiles as needed.
+          xcodebuild -project ios/Meridian.xcodeproj -scheme Meridian -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Meridian.xcarchive" \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- PROVISIONING_PROFILE_SPECIFIER= \
+            archive 2>&1 | tee "$OUT/archive.log" | grep -E "error:|ARCHIVE"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Meridian.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist ios/fastlane/ExportOptions.plist \
+            "${AUTH[@]}" 2>&1 | tee "$OUT/export.log" | grep -E "error|EXPORT"
+          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa); echo "IPA=$IPA" >> "$GITHUB_ENV"
+          # What the App Store will see: signer and entitlements of the app and the widget.
+          cd "$RUNNER_TEMP" && rm -rf check && mkdir check && cd check && unzip -q "$IPA"
+          for b in Payload/Meridian.app Payload/Meridian.app/PlugIns/MeridianWidget.appex; do
+            echo "== $b"; codesign -dvv "$b" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier="
+            codesign -d --entitlements - --xml "$b" 2>/dev/null | plutil -p - 2>/dev/null
+          done | tee "$OUT/signature.txt"
+          grep -q "group.com.bradcowdrey.meridian" "$OUT/signature.txt"
+
+      - name: Upload to App Store Connect
+        if: env.IS_TAG == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APP_REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
+          APP_REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
+        run: |
+          brew install fastlane >/dev/null; export PATH="$(brew --prefix)/bin:$PATH"; fastlane --version | tail -1
+          cd ios
+          python3 - <<'PY'
+          import json, os
+          json.dump({"key_id": os.environ["ASC_KEY_ID"], "issuer_id": os.environ["ASC_ISSUER_ID"],
+                     "key": os.environ["ASC_KEY_P8"], "in_house": False}, open("fastlane/api_key.json", "w"))
+          for name in ("email_address", "phone_number"):
+              value = os.environ.get("APP_REVIEW_" + name.split("_")[0].upper(), "")
+              if value:
+                  open(f"fastlane/metadata/review_information/{name}.txt", "w").write(value)
+          PY
+          SUBMIT=true; [[ "$GITHUB_REF_NAME" == *-* ]] && SUBMIT=false
+          set -o pipefail
+          fastlane release version:"$VERSION" ipa:"$IPA" submit:"$SUBMIT" 2>&1 \
+            | grep -v -i -E "key\"|issuer|BEGIN PRIVATE|phone|email" | tee "$OUT/fastlane.log"
+          rm -f fastlane/api_key.json
+
+      - name: Publish to ci-appstore branch
+        if: always()
+        run: |
+          rm -f ios/fastlane/api_key.json
+          cp -R ios/fastlane/metadata "$OUT/metadata"
+          rm -f "$OUT"/metadata/review_information/{email_address,phone_number}.txt
+          cd "$OUT"
+          echo "$GITHUB_SHA $GITHUB_REF_NAME" > commit.txt
+          git init -q -b ci-appstore
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "App Store run for $GITHUB_REF_NAME $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-appstore

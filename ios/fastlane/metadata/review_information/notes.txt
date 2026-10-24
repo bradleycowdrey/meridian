@@ -1,0 +1,1 @@
+Meridian is a free world clock. No account or sign-in. On first launch, tap I Agree on the Terms screen. Tap + to add a city, the arrows to step through hours, and Edit to reorder or remove cities. The widgets read the cities from the app through an App Group.

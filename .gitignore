@@ -12,3 +12,7 @@ ios/Widget/MeridianWidget.entitlements
 build/
 mac/MeridianMacWidget.xcodeproj/
 mac/Widget-Info.plist
+ios/fastlane/api_key.json
+ios/fastlane/screenshots/
+ios/fastlane/report.xml
+ios/fastlane/README.md

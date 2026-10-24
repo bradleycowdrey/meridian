@@ -9,7 +9,9 @@ struct MeridianApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group {
+                if Screenshots.isActive && Screenshots.screen == "widgets" { WidgetShowcase() } else { ContentView() }
+            }
                 .environmentObject(store)
                 .preferredColorScheme(.dark)
                 .fullScreenCover(isPresented: .constant(!termsAccepted)) {

@@ -3,7 +3,7 @@ import WidgetKit
 
 /// Screenshot mode, used by CI in the iOS Simulator (and for App Store screenshots):
 ///   -screenshots            demo cities, nothing saved
-///   -screen <name>          main (default), travel, edit, add, settings, terms
+///   -screen <name>          main (default), travel, edit, add, settings, terms, widgets
 ///   -render-widgets         also save every widget face to Documents/widgets/*.png
 /// Inert unless launched with -screenshots.
 enum Screenshots {
@@ -53,5 +53,56 @@ enum Screenshots {
             }
         }
         try? "done".write(to: dir.appendingPathComponent("done.txt"), atomically: true, encoding: .utf8)
+    }
+}
+
+/// Screenshot mode's "widgets" screen: the Home Screen and Lock Screen widgets, live, on one page
+/// (for the App Store listing).
+struct WidgetShowcase: View {
+    @EnvironmentObject private var store: CityStore
+
+    private var snapshot: WidgetSnapshot {
+        WidgetSnapshot(cities: store.places.map { .init(name: $0.name, timeZoneID: $0.timeZoneID) }, use24h: store.use24h)
+    }
+
+    var body: some View {
+        VStack(spacing: 22) {
+            VStack(spacing: 8) {
+                Text("Widgets for your Home Screen and Lock Screen")
+                    .font(.title2.weight(.medium))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Theme.cream)
+                Text("Your cities, in the order you set.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.muted)
+            }
+            .padding(.horizontal, 24)
+            face(.systemLarge, CGSize(width: 364, height: 382))
+            HStack(alignment: .top, spacing: 24) {
+                face(.systemSmall, CGSize(width: 170, height: 170))
+                VStack(alignment: .leading, spacing: 14) {
+                    accessory(.accessoryInline, CGSize(width: 170, height: 26))
+                    accessory(.accessoryRectangular, CGSize(width: 170, height: 72))
+                    accessory(.accessoryCircular, CGSize(width: 72, height: 72))
+                        .background(Color.white.opacity(0.18), in: Circle())
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.bg)
+    }
+
+    private func face(_ family: WidgetFamily, _ size: CGSize) -> some View {
+        WidgetClockView(snapshot: snapshot, date: store.now, family: family)
+            .frame(width: size.width, height: size.height)
+            .background(WidgetTone.bg)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Theme.border, lineWidth: 0.5))
+    }
+
+    private func accessory(_ family: WidgetFamily, _ size: CGSize) -> some View {
+        AccessoryClockView(snapshot: snapshot, date: store.now, family: family)
+            .foregroundStyle(.white)
+            .frame(width: size.width, height: size.height, alignment: .leading)
     }
 }

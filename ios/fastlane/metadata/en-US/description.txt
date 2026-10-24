@@ -1,0 +1,17 @@
+Every time zone at a glance.
+
+Each city is a row of hours. Day is light. Night is dark. The hour you're looking at is outlined, so you can see who's awake before you call.
+
+Time travel: step forward or back an hour and every city moves with you. Tap Now to come back.
+
+Find a meeting time: working hours are highlighted, so the overlap is easy to spot.
+
+Add any city or time zone. Search by city, airport code (SFO, LHR), abbreviation (PST, CET) or offset ("UTC+5:30"). Reorder them. Up to 12.
+
+Widgets for the Home Screen in small, medium and large. Lock Screen widgets too. They follow the cities and order you set in the app.
+
+12-hour or 24-hour time. Dark, quiet, no clutter.
+
+No account. No ads. No tracking. Your cities stay on your iPhone.
+
+Free. Forever. Also on the Mac, as a menu bar app.

@@ -1,0 +1,26 @@
+# App Store upload and submission for the iPhone app, run by .github/workflows/ios-appstore.yml.
+# Uses an App Store Connect API key (api_key.json, written by the workflow from GitHub secrets).
+default_platform(:ios)
+
+platform :ios do
+  lane :release do |options|
+    upload_to_app_store(
+      api_key_path: "fastlane/api_key.json",
+      app_identifier: "com.bradcowdrey.meridian",
+      app_version: options[:version],
+      ipa: options[:ipa],
+      metadata_path: "fastlane/metadata",
+      screenshots_path: "fastlane/screenshots",
+      overwrite_screenshots: true,
+      skip_app_version_update: false,
+      force: true,                          # no HTML preview to confirm on CI
+      run_precheck_before_submit: false,    # precheck can't run with an API key
+      submit_for_review: options[:submit] == "true",
+      automatic_release: true,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false
+      }
+    )
+  end
+end

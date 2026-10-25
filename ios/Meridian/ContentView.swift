@@ -5,16 +5,13 @@ import SwiftUI
 /// strip sideways to move through time in quarter-hours; tap the date to jump to any day.
 struct ContentView: View {
     @EnvironmentObject private var store: CityStore
-    /// Owned here and passed down, so the Edit button, the list and the rows all share it.
-    @State private var editMode: EditMode = .inactive
+    @State private var showingEdit = false
     @State private var showingAdd = false
     @State private var showingSettings = false
     @State private var showingDate = false
     @State private var copied = false
     @State private var renaming: Place?
     @State private var newName = ""
-
-    private var editing: Bool { editMode.isEditing }
 
     var body: some View {
         NavigationStack {
@@ -24,7 +21,7 @@ struct ContentView: View {
                         emptyState
                     }
                     ForEach(store.places) { place in
-                        CityRow(place: place, editing: editing)
+                        CityRow(place: place)
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                             .listRowBackground(Theme.bg)
                             .listRowSeparatorTint(Theme.border)
@@ -38,11 +35,7 @@ struct ContentView: View {
                             .accessibilityAction(named: "Copy Time") { copy(place) }
                             .accessibilityAction(named: "Rename") { newName = place.name; renaming = place }
                             .accessibilityAction(named: "Remove") { store.places.removeAll { $0.id == place.id } }
-                            // Sideways drags scrub time, so swipe-to-delete is only in Edit.
-                            .deleteDisabled(!editing)
                     }
-                    .onDelete { store.remove(at: $0) }
-                    .onMove { store.move(from: $0, to: $1) }
                 } header: {
                     // Pinned while the cities scroll underneath.
                     MomentHeader(copied: copied) { showingDate = true }
@@ -56,14 +49,11 @@ struct ContentView: View {
                 }
             }
             .listStyle(.plain)
-            // Set on the list itself (not only outside the NavigationStack, which keeps its own),
-            // so the Edit button, the rows and swipe-to-delete all share this one value.
-            .environment(\.editMode, $editMode)
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
             .safeAreaInset(edge: .top, spacing: 0) { Theme.crimson.frame(height: 3) }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !store.places.isEmpty && !editing { TimeDial() }
+                if !store.places.isEmpty { TimeDial() }
             }
             .navigationTitle("Meridian")
             .navigationBarTitleDisplayMode(.inline)
@@ -77,12 +67,7 @@ struct ContentView: View {
                     .accessibilityLabel("Share Meridian")
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    if !store.places.isEmpty {
-                        Button(editing ? "Done" : "Edit") {
-                            withAnimation { editMode = editing ? .inactive : .active }
-                        }
-                        .fontWeight(editing ? .semibold : .regular)
-                    }
+                    if !store.places.isEmpty { Button("Edit") { showingEdit = true } }
                     Button { showingAdd = true } label: { Image(systemName: "plus") }
                         .disabled(!store.canAdd)
                         .accessibilityLabel("Add City")
@@ -104,6 +89,7 @@ struct ContentView: View {
             .sheet(isPresented: $showingAdd) { AddCityView(query: Screenshots.screen == "add" ? "san" : "") }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingDate) { DateJumpView() }
+            .sheet(isPresented: $showingEdit) { EditCitiesView() }
             // A tick per quarter-hour, a firmer one on each whole hour; only for the user's own moves.
             .sensoryFeedback(trigger: store.userMoves) { _, _ in
                 store.onTheHour ? .impact(weight: .medium) : .selection
@@ -114,9 +100,7 @@ struct ContentView: View {
                 Button("Rename") { if let place = renaming { store.rename(place, to: newName) }; renaming = nil }
             }
             .task { await openScreenshotScreen() }
-            .onChange(of: store.places.isEmpty) { _, empty in if empty { editMode = .inactive } }
         }
-        .environment(\.editMode, $editMode)
         .tint(Theme.cream)
     }
 
@@ -150,7 +134,7 @@ struct ContentView: View {
         case "add": showingAdd = true
         case "settings": showingSettings = true
         case "date": showingDate = true
-        case "edit": editMode = .active
+        case "edit": showingEdit = true
         case "travel": store.jump(to: TimeMath.hourAnchor(store.now).addingTimeInterval(5 * 3600), animated: false)
         default: break
         }
@@ -261,8 +245,6 @@ struct CityRow: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 32
     let place: Place
-    /// Passed in rather than read from the environment, which List overrides for its rows.
-    let editing: Bool
 
     var body: some View {
         let moment = store.moment
@@ -284,20 +266,9 @@ struct CityRow: View {
                 }
                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
-                if editing {
-                    HStack(spacing: 8) {
-                        Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)).foregroundStyle(Theme.secondary)
-                        Text(place.offsetLabel(at: moment)).foregroundStyle(Theme.muted)
-                    }
-                    .font(.subheadline)
-                    .monospacedDigit()
-                } else {
-                    clock(hour: hour, minute: minute)
-                }
+                clock(hour: hour, minute: minute)
             }
-            if !editing {
-                HourStrip(place: place)
-            }
+            HourStrip(place: place)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(place.name), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))")

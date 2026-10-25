@@ -118,8 +118,8 @@ enum WidgetTone {
     }
 }
 
-/// The widget face for each size: small lists cities, medium is a two-by-two grid, large adds the
-/// day/night tiles for three hours either side of now.
+/// The widget face for each size: small shows one city, medium two side by side (each with its
+/// next few hours), large four with the day/night tiles for three hours either side of now.
 struct WidgetClockView: View {
     let snapshot: WidgetSnapshot
     let date: Date
@@ -142,13 +142,20 @@ struct WidgetClockView: View {
                 } else {
                 switch family {
                 case .systemLarge: strip
-                case .systemMedium: grid
-                default: list
+                case .systemMedium:
+                    HStack(alignment: .top, spacing: 18) {
+                        ForEach(Array(cities.enumerated()), id: \.offset) { _, city in
+                            cityCell(city, timeSize: 32).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        if cities.count == 1 { Color.clear.frame(maxWidth: .infinity, maxHeight: 1) }
+                    }
+                default:
+                    cityCell(cities[0], timeSize: 36)
                 }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, family == .systemSmall ? 12 : 14)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .foregroundStyle(WidgetTone.primary)
@@ -156,82 +163,55 @@ struct WidgetClockView: View {
 
     private var cityLimit: Int {
         switch family {
-        case .systemSmall: return 4
-        case .systemMedium: return 4
-        default: return 7
+        case .systemSmall: return 1
+        case .systemMedium: return 2
+        default: return 4
         }
     }
 
     private var cities: [WidgetSnapshot.City] { Array(snapshot.cities.prefix(cityLimit)) }
 
-    // MARK: Small: a list
+    // MARK: Small and medium: one city, big, with its next hours
 
-    private var list: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(cities.enumerated()), id: \.offset) { index, city in
-                if index > 0 { Spacer(minLength: 0) }
-                listRow(city)
-            }
-        }
-    }
-
-    private func listRow(_ city: WidgetSnapshot.City) -> some View {
+    private func cityCell(_ city: WidgetSnapshot.City, timeSize: CGFloat) -> some View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
-        // Time first and never squeezed; the name takes what's left.
-        return HStack(alignment: .firstTextBaseline, spacing: 6) {
+        let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
+        let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
+        return VStack(alignment: .leading, spacing: 2) {
             Text(city.name)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(WidgetTone.secondary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            Spacer(minLength: 2)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(Self.time(date, zone: zone, use24h: snapshot.use24h, compact: true))
-                    .font(.system(size: 17, weight: .medium))
+                .minimumScaleFactor(0.75)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(clock)
+                    .font(.system(size: timeSize, weight: .medium))
                     .monospacedDigit()
-                dayBadge(zone)
-            }
-            .lineLimit(1)
-            .fixedSize()
-        }
-    }
-
-    // MARK: Medium: two by two
-
-    private var grid: some View {
-        let rows = stride(from: 0, to: cities.count, by: 2).map { Array(cities[$0..<min($0 + 2, cities.count)]) }
-        return VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                if index > 0 { Spacer(minLength: 0) }
-                HStack(alignment: .top, spacing: 16) {
-                    ForEach(Array(row.enumerated()), id: \.offset) { _, city in
-                        gridCell(city).frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    if row.count == 1 { Color.clear.frame(maxWidth: .infinity, maxHeight: 1) }
+                if let suffix {
+                    Text(suffix)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(WidgetTone.muted)
                 }
             }
-        }
-    }
-
-    private func gridCell(_ city: WidgetSnapshot.City) -> some View {
-        let zone = TimeZone(identifier: city.timeZoneID) ?? .current
-        return VStack(alignment: .leading, spacing: 1) {
-            Text(city.name)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(WidgetTone.secondary)
-                .lineLimit(1)
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(Self.time(date, zone: zone, use24h: snapshot.use24h))
-                    .font(.system(size: 24, weight: .medium))
-                    .monospacedDigit()
-                    .minimumScaleFactor(0.7)
-                dayBadge(zone)
-            }
             .lineLimit(1)
+            .minimumScaleFactor(0.6)
             Text(relative(zone))
                 .font(.system(size: 11))
                 .foregroundStyle(WidgetTone.faint)
                 .lineLimit(1)
+            Spacer(minLength: 6)
+            // Now and the next hours either side, the current one outlined.
+            HStack(spacing: 3) {
+                ForEach(-2...2, id: \.self) { k in
+                    tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
+                        .overlay {
+                            if k == 0 {
+                                RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(WidgetTone.cream, lineWidth: 1.5)
+                            }
+                        }
+                }
+            }
+            .frame(height: 24)
         }
     }
 
@@ -272,7 +252,7 @@ struct WidgetClockView: View {
             let labelWidth = geo.size.width - pitch * CGFloat(columns)
             let headerHeight: CGFloat = 16
             let rows = max(cities.count, 1)
-            let rowHeight = min(58, (geo.size.height - headerHeight - gap * CGFloat(rows)) / CGFloat(rows))
+            let rowHeight = min(72, (geo.size.height - headerHeight - gap * CGFloat(rows)) / CGFloat(rows))
             let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
             let half = columns / 2
 
@@ -300,9 +280,10 @@ struct WidgetClockView: View {
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(WidgetTone.secondary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
                                 Text(Self.time(date, zone: zone, use24h: snapshot.use24h, compact: true))
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.system(size: 19, weight: .medium))
                                     .monospacedDigit()
                                 dayBadge(zone)
                             }
@@ -361,6 +342,15 @@ struct WidgetClockView: View {
     }
 
     // MARK: Helpers (the widget can't see the app's TimeMath)
+
+    /// "14:05" and no suffix, or "2:05" and "PM".
+    static func clock(_ date: Date, zone: TimeZone, use24h: Bool) -> (String, String?) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let hour = calendar.component(.hour, from: date), minute = calendar.component(.minute, from: date)
+        if use24h { return (String(format: "%02d:%02d", hour, minute), nil) }
+        return ("\(hour % 12 == 0 ? 12 : hour % 12):\(String(format: "%02d", minute))", hour < 12 ? "AM" : "PM")
+    }
 
     /// "14:05", "2:05 PM", or "2:05p" where space is tight.
     static func time(_ date: Date, zone: TimeZone, use24h: Bool, compact: Bool = false) -> String {

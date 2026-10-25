@@ -47,7 +47,7 @@ instant everywhere, so the line through the middle is *now*.
 - **Easy to manage**: **Add** opens search right in the panel; **Edit** shows a delete button and a drag handle on every city.
 - **Fast search**: city names, airport codes (`SFO`, `LHR`), abbreviations (`PST`, `CET`) or offsets (`UTC+5:30`).
 - **The details**: day-change markers, half-hour and 45-minute zones, a `+1 day` badge, 12/24-hour time, custom city names, drag to reorder.
-- **Desktop widget**: small, medium and large widgets for the desktop or Notification Center, with your cities in the same order (large adds the day/night tiles). Right-click the desktop → **Edit Widgets** → search **Meridian**.
+- **Desktop widget**: small, medium and large widgets for the desktop or Notification Center, small shows one city, medium two, large four with the day/night tiles; right-click a widget → **Edit Widget** to choose its cities. Right-click the desktop → **Edit Widgets** → search **Meridian**.
 - **Menu bar first**: show an icon, or a city and its time (`LON 14:32`). Open it as a desktop window that can float above everything.
 - **Five sizes** (Extra Small to Extra Large, ⌘+ / ⌘−) and a choice of **SF Pro** or **Inter**, the typeface of bradcowdrey.com.
 - **Automatic updates**: Meridian checks GitHub Releases once a day, verifies the download's SHA-256, then installs and restarts in one click. Turn it off or check manually in **Settings → General → Updates** or the ⋯ menu.
@@ -59,7 +59,7 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 <p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small desktop widgets showing cities, times and day-and-night hour tiles"></p>
 
-Add Meridian to your desktop or Notification Center in three sizes: small (four cities), medium (four cities with "Today, +5 h" context) and large (seven cities with the day-and-night tiles for three hours either side of now). It follows the cities and order you set in the app. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
+Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities), each with its next few hours, and large (four cities with the day-and-night tiles for three hours either side of now). It follows the cities and order you set in the app, or right-click it and choose **Edit Widget** to pick its own cities. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
 
 ## Install (sideload)
 

@@ -18,9 +18,11 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.9
+### What's new in 0.7.10
 
-- **The widget shows up after updating**, with no Terminal needed: Meridian refreshes macOS's widget list the first time a new version opens.
+- **Choose each widget's cities**: right-click a widget → **Edit Widget**.
+- **Bigger, clearer widgets**: small shows one city, medium two, large four.
+- **The widget shows up after updating**, with no Terminal needed (0.7.9).
 - **The desktop widget appears in Edit Widgets** (0.7.8).
 - **Share** now sits in the panel's top bar, next to the Meridian name.
 - **Panel opens centred under Meridian's menu bar item.**

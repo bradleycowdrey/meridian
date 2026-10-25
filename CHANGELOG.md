@@ -4,6 +4,11 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.10 · 25 October 2026
+
+- **Choose each widget's cities**: right-click a Meridian widget and choose **Edit Widget** to pick its cities, in order: your own, or any city, airport code (SFO) or time zone (PST, UTC+5:30). Leave it empty to follow your list in Meridian.
+- **Bigger, clearer widgets**: small shows one city, medium two, large four. Small and medium show the time large, with the hours either side of now.
+
 ## 0.7.9 · 24 October 2026
 
 - **The widget shows up after updating**: macOS's widget service can keep a record of an older version's widget, which kept Meridian out of **Edit Widgets** until it was restarted from Terminal. Meridian now restarts it the first time a new version opens, and when you press Settings → **Refresh Widgets**. If Edit Widgets is open at the time, close and reopen it.

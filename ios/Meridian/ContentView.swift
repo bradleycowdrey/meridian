@@ -24,7 +24,7 @@ struct ContentView: View {
                         emptyState
                     }
                     ForEach(store.places) { place in
-                        CityRow(place: place)
+                        CityRow(place: place, editing: editing)
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                             .listRowBackground(Theme.bg)
                             .listRowSeparatorTint(Theme.border)
@@ -77,7 +77,12 @@ struct ContentView: View {
                     .accessibilityLabel("Share Meridian")
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    if !store.places.isEmpty { EditButton() }
+                    if !store.places.isEmpty {
+                        Button(editing ? "Done" : "Edit") {
+                            withAnimation { editMode = editing ? .inactive : .active }
+                        }
+                        .fontWeight(editing ? .semibold : .regular)
+                    }
                     Button { showingAdd = true } label: { Image(systemName: "plus") }
                         .disabled(!store.canAdd)
                         .accessibilityLabel("Add City")
@@ -253,10 +258,11 @@ private struct MomentHeader: View {
 /// One city: its name and how it relates to you, its time at the selected moment, and its hours.
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
-    @Environment(\.editMode) private var editMode
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 32
     let place: Place
+    /// Passed in rather than read from the environment, which List overrides for its rows.
+    let editing: Bool
 
     var body: some View {
         let moment = store.moment
@@ -278,7 +284,7 @@ struct CityRow: View {
                 }
                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
-                if editMode?.wrappedValue.isEditing == true {
+                if editing {
                     HStack(spacing: 8) {
                         Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)).foregroundStyle(Theme.secondary)
                         Text(place.offsetLabel(at: moment)).foregroundStyle(Theme.muted)
@@ -289,7 +295,7 @@ struct CityRow: View {
                     clock(hour: hour, minute: minute)
                 }
             }
-            if editMode?.wrappedValue.isEditing != true {
+            if !editing {
                 HourStrip(place: place)
             }
         }

@@ -11,6 +11,8 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var showingDate = false
     @State private var copied = false
+    @State private var renaming: Place?
+    @State private var newName = ""
 
     private var editing: Bool { editMode.isEditing }
 
@@ -23,11 +25,12 @@ struct ContentView: View {
                     }
                     ForEach(store.places) { place in
                         CityRow(place: place)
-                            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                             .listRowBackground(Theme.bg)
                             .listRowSeparatorTint(Theme.border)
                             .contextMenu {
                                 Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
+                                Button { newName = place.name; renaming = place } label: { Label("Rename", systemImage: "pencil") }
                                 Button(role: .destructive) {
                                     store.places.removeAll { $0.id == place.id }
                                 } label: { Label("Remove", systemImage: "trash") }
@@ -90,7 +93,15 @@ struct ContentView: View {
             .sheet(isPresented: $showingAdd) { AddCityView(query: Screenshots.screen == "add" ? "san" : "") }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingDate) { DateJumpView() }
-            .sensoryFeedback(.selection, trigger: store.offsetMinutes)
+            // A tick per quarter-hour, a firmer one on each whole hour; only for the user's own moves.
+            .sensoryFeedback(trigger: store.userMoves) { _, _ in
+                store.onTheHour ? .impact(weight: .medium) : .selection
+            }
+            .alert("Rename City", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+                TextField("Name", text: $newName)
+                Button("Cancel", role: .cancel) { renaming = nil }
+                Button("Rename") { if let place = renaming { store.rename(place, to: newName) }; renaming = nil }
+            }
             .task { await openScreenshotScreen() }
             .onChange(of: store.places.isEmpty) { _, empty in if empty { editMode = .inactive } }
         }
@@ -185,14 +196,14 @@ private struct MomentHeader: View {
             Button(action: pickDate) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(TimeMath.fullMoment(store.moment, in: .current, use24h: store.use24h))
-                        .font(.system(size: 26, weight: .semibold))
+                        .font(.system(.title, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Theme.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                         .contentTransition(.numericText())
                     Image(systemName: "calendar")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(.body.weight(.medium))
                         .foregroundStyle(Theme.muted)
                 }
             }
@@ -236,27 +247,32 @@ private struct MomentHeader: View {
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.editMode) private var editMode
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 32
     let place: Place
 
     var body: some View {
         let moment = store.moment
         let cal = place.calendar
         let hour = cal.component(.hour, from: moment), minute = cal.component(.minute, from: moment)
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 8) {
+        // Side by side normally; stacked at accessibility text sizes so nothing is cut off.
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                                                  : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
+        VStack(alignment: .leading, spacing: 8) {
+            layout {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(place.name)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.headline)
                         .foregroundStyle(Theme.primary)
                     Text(detail(moment))
-                        .font(.system(size: 13))
+                        .font(.footnote)
                         .foregroundStyle(Theme.muted)
                         .monospacedDigit()
                 }
-                .lineLimit(1)
-                Spacer(minLength: 8)
+                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+                if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
                 if editMode?.wrappedValue.isEditing == true {
-                    Text(place.offsetLabel(at: moment)).font(.system(size: 15)).foregroundStyle(Theme.muted)
+                    Text(place.offsetLabel(at: moment)).font(.subheadline).foregroundStyle(Theme.muted)
                 } else {
                     clock(hour: hour, minute: minute)
                 }
@@ -273,12 +289,12 @@ struct CityRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(store.use24h ? String(format: "%02d:%02d", hour, minute)
                               : "\(hour % 12 == 0 ? 12 : hour % 12):\(String(format: "%02d", minute))")
-                .font(.system(size: 32, weight: .medium))
+                .font(.system(size: clockSize, weight: .medium))
                 .foregroundStyle(Theme.primary)
                 .contentTransition(.numericText())
             if !store.use24h {
                 Text(hour < 12 ? "AM" : "PM")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(Theme.muted)
             }
         }
@@ -305,7 +321,7 @@ struct CityRow: View {
 /// truthfully against the others. Drag sideways to move through time.
 struct HourStrip: View {
     static let hourWidth: CGFloat = 38
-    private static let height: CGFloat = 42
+    private static let height: CGFloat = 36
     @EnvironmentObject private var store: CityStore
     let place: Place
 
@@ -321,16 +337,15 @@ struct HourStrip: View {
                 ForEach(hours, id: \.self) { at in
                     tile(at, cal: cal)
                         .frame(width: Self.hourWidth - 3, height: Self.height)
-                        .offset(x: center + CGFloat(at.timeIntervalSince(moment) / 3600) * Self.hourWidth + 1.5, y: 4)
+                        .offset(x: center + CGFloat(at.timeIntervalSince(moment) / 3600) * Self.hourWidth + 1.5, y: 6)
                 }
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Theme.cream)
-                    .frame(width: 3, height: Self.height + 8)
-                    .shadow(color: .black.opacity(0.5), radius: 2)
-                    .offset(x: center - 1.5)
+                // The exact minute: notches above and below, so they never cover an hour label.
+                Capsule().fill(Theme.cream).frame(width: 3, height: 5).offset(x: center - 1.5)
+                Capsule().fill(Theme.cream).frame(width: 3, height: 5).offset(x: center - 1.5, y: Self.height + 7)
             }
         }
-        .frame(height: Self.height + 8)
+        .frame(height: Self.height + 12)
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.07),
                                      .init(color: .black, location: 0.93), .init(color: .clear, location: 1)],
                              startPoint: .leading, endPoint: .trailing))
@@ -351,7 +366,7 @@ struct HourStrip: View {
                     Text("\(hour % 12 == 0 ? 12 : hour % 12)") + Text(hour < 12 ? "a" : "p").font(.system(size: 9, weight: .semibold))
                 }
             }
-            .font(.system(size: 14, weight: .medium))
+            .font(.system(.footnote, weight: .medium))
             .monospacedDigit()
             if hour == 0 {
                 Text(TimeMath.weekday(at, in: place.timeZone)).font(.system(size: 8, weight: .semibold)).textCase(.uppercase)
@@ -364,6 +379,12 @@ struct HourStrip: View {
         .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.fill.opacity(dim ? 0.6 : 1)))
         .overlay(alignment: .leading) {
             if hour == 0 { Capsule().fill(Theme.crimson).frame(width: 2).padding(.vertical, 8).offset(x: -2.5) }
+        }
+        .overlay {
+            // The hour that holds the selected moment.
+            if at <= store.moment && store.moment < at.addingTimeInterval(3600) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.cream, lineWidth: 2)
+            }
         }
     }
 }
@@ -392,10 +413,12 @@ struct TimeDial: View {
                 }
             }
             .frame(height: 40)
+            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12),
                                          .init(color: .black, location: 0.88), .init(color: .clear, location: 1)],
                                  startPoint: .leading, endPoint: .trailing))
             Text(store.isNow ? "Drag to change the time" : " ")
+                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                 .font(.caption2)
                 .foregroundStyle(Theme.faint)
         }
@@ -425,7 +448,7 @@ struct TimeDial: View {
             if minute == 0 {
                 Text(hour == 0 ? TimeMath.weekday(q, in: .current).uppercased()
                                : store.use24h ? String(format: "%02d:00", hour) : "\(hour % 12 == 0 ? 12 : hour % 12) \(hour < 12 ? "AM" : "PM")")
-                    .font(.system(size: 11, weight: hour == 0 ? .semibold : .medium))
+                    .font(.system(.caption2, weight: hour == 0 ? .semibold : .medium))
                     .foregroundStyle(hour == 0 ? Theme.cream : Theme.muted)
                     .monospacedDigit()
                     .fixedSize()
@@ -452,7 +475,7 @@ private struct Scrub: ViewModifier {
                     base = start
                     let minutes = -Double(drag.translation.width) / Double(pointsPerHour) * 60
                     let next = start + Int((minutes / 15).rounded()) * 15
-                    if next != store.offsetMinutes { store.offsetMinutes = next }
+                    store.scrub(to: next)
                 }
                 .onEnded { _ in
                     base = nil

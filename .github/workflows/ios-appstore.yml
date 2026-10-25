@@ -72,6 +72,12 @@ jobs:
             n=$((n + 1))
           done
           cp "$SHOTS"/*.png "$OUT/screenshots/"
+          # QA only (not for the store): the main screen at a large accessibility text size.
+          xcrun simctl ui "$DEVICE" content_size accessibility-large
+          xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
+          SIMCTL_CHILD_TZ=America/Los_Angeles xcrun simctl launch "$DEVICE" $ID -screenshots -screen main >> "$OUT/launch.txt" 2>&1
+          sleep 7; xcrun simctl io "$DEVICE" screenshot "$OUT/qa-large-text.png"
+          xcrun simctl ui "$DEVICE" content_size large
           sips -g pixelWidth -g pixelHeight "$SHOTS"/*.png > "$OUT/screenshot-sizes.txt"
           ls "$SHOTS"/*.png | wc -l | grep -q 5
 

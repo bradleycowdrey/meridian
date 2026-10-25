@@ -14,7 +14,10 @@ final class CityStore: ObservableObject {
     @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
 
     /// Time travel, in minutes (whole quarter-hours) from the current quarter-hour; 0 is now.
-    @Published var offsetMinutes = 0
+    @Published private(set) var offsetMinutes = 0
+    /// Counts the user's own moves through time (drags, buttons, the date picker), for haptics:
+    /// the clock catching up never ticks.
+    @Published private(set) var userMoves = 0
     /// The clock everything renders from; updated when the minute changes.
     @Published private(set) var now = Date()
     /// Demo mode's fixed moment: Tuesday 9 June 2026, 9:41 AM in San Francisco (matches the
@@ -130,7 +133,18 @@ final class CityStore: ObservableObject {
     func jump(to date: Date, animated: Bool = true) {
         let minutes = Int((Self.quarter(date).timeIntervalSince(Self.quarter(now)) / 60).rounded())
         if animated { withAnimation(.snappy) { offsetMinutes = minutes } } else { offsetMinutes = minutes }
+        userMoves += 1
     }
+
+    /// Set the offset directly while dragging (no animation; the drag is the animation).
+    func scrub(to minutes: Int) {
+        guard minutes != offsetMinutes else { return }
+        offsetMinutes = minutes
+        userMoves += 1
+    }
+
+    /// True when the selected moment is on a whole hour on the user's clock.
+    var onTheHour: Bool { Calendar.current.component(.minute, from: moment) == 0 }
 
     /// Step to the next or previous whole hour on the user's clock.
     func travel(_ hours: Int) {
@@ -141,6 +155,13 @@ final class CityStore: ObservableObject {
 
     func backToNow() {
         withAnimation(.snappy) { offsetMinutes = 0 }
+        userMoves += 1
+    }
+
+    func rename(_ place: Place, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let i = places.firstIndex(where: { $0.id == place.id }) else { return }
+        places[i].name = String(trimmed.prefix(40))
     }
 
     /// Cities outside working hours at the selected moment (empty when the setting is off).

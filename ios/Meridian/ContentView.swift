@@ -35,6 +35,9 @@ struct ContentView: View {
                                     store.places.removeAll { $0.id == place.id }
                                 } label: { Label("Remove", systemImage: "trash") }
                             }
+                            .accessibilityAction(named: "Copy Time") { copy(place) }
+                            .accessibilityAction(named: "Rename") { newName = place.name; renaming = place }
+                            .accessibilityAction(named: "Remove") { store.places.removeAll { $0.id == place.id } }
                             // Sideways drags scrub time, so swipe-to-delete is only in Edit.
                             .deleteDisabled(!editing)
                     }
@@ -273,7 +276,12 @@ struct CityRow: View {
                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
                 if editMode?.wrappedValue.isEditing == true {
-                    Text(place.offsetLabel(at: moment)).font(.subheadline).foregroundStyle(Theme.muted)
+                    HStack(spacing: 8) {
+                        Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)).foregroundStyle(Theme.secondary)
+                        Text(place.offsetLabel(at: moment)).foregroundStyle(Theme.muted)
+                    }
+                    .font(.subheadline)
+                    .monospacedDigit()
                 } else {
                     clock(hour: hour, minute: minute)
                 }
@@ -425,12 +433,14 @@ struct TimeDial: View {
             .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12),
                                          .init(color: .black, location: 0.88), .init(color: .clear, location: 1)],
                                  startPoint: .leading, endPoint: .trailing))
-            Text(store.isNow ? "Drag to change the time" : " ")
-                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                .font(.caption2)
-                .foregroundStyle(Theme.faint)
+            if !store.hasScrubbed {
+                Text("Drag to change the time")
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.faint)
+            }
         }
-        .padding(.top, 10).padding(.bottom, 4)
+        .padding(.top, 10).padding(.bottom, store.hasScrubbed ? 0 : 4)
         .background(Theme.bg.ignoresSafeArea(edges: .bottom).overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 0.5) })
         .contentShape(Rectangle())
         .modifier(Scrub(pointsPerHour: Self.hourWidth))

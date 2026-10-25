@@ -141,6 +141,12 @@ final class CityStore: ObservableObject {
         guard minutes != offsetMinutes else { return }
         offsetMinutes = minutes
         userMoves += 1
+        if !hasScrubbed { hasScrubbed = true }
+    }
+
+    /// Set after the first drag through time, so the "Drag to change the time" hint retires.
+    @Published private(set) var hasScrubbed = UserDefaults.standard.bool(forKey: "hasScrubbed") {
+        didSet { defaults.set(hasScrubbed, forKey: "hasScrubbed") }
     }
 
     /// True when the selected moment is on a whole hour on the user's clock.

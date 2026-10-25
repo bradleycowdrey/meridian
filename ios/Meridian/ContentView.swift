@@ -211,8 +211,10 @@ private struct MomentHeader: View {
     }
 
     private var relative: String {
-        let total = store.offsetMinutes
-        if total == 0 { return "Now, your time" }
+        if store.isNow { return "Now, your time" }
+        // From the real time now, to the nearest 5 minutes ("In 4 h 20 min").
+        let total = Int((store.moment.timeIntervalSince(store.now) / 300).rounded()) * 5
+        if total == 0 { return "Now" }
         let days = abs(total) / 1440, hours = abs(total) % 1440 / 60, minutes = abs(total) % 60
         let span = [days > 0 ? "\(days) d" : nil, hours > 0 ? "\(hours) h" : nil, minutes > 0 ? "\(minutes) min" : nil]
             .compactMap { $0 }.joined(separator: " ")
@@ -398,7 +400,7 @@ struct TimeDial: View {
                 .foregroundStyle(Theme.faint)
         }
         .padding(.top, 10).padding(.bottom, 4)
-        .background(Theme.bg.overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 0.5) })
+        .background(Theme.bg.ignoresSafeArea(edges: .bottom).overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 0.5) })
         .contentShape(Rectangle())
         .modifier(Scrub(pointsPerHour: Self.hourWidth))
         .accessibilityElement()

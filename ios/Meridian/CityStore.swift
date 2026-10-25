@@ -13,8 +13,8 @@ final class CityStore: ObservableObject {
     @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart") } }
     @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
 
-    /// Time travel, in whole hours from the current hour.
-    @Published var offsetHours = 0
+    /// Time travel, in minutes (whole quarter-hours) from the current quarter-hour; 0 is now.
+    @Published var offsetMinutes = 0
     /// The clock everything renders from; updated when the minute changes.
     @Published private(set) var now = Date()
     /// Demo mode's fixed moment: Tuesday 9 June 2026, 9:41 AM in San Francisco (matches the
@@ -71,9 +71,9 @@ final class CityStore: ObservableObject {
         let date = clock
         guard Calendar.current.component(.minute, from: date) != Calendar.current.component(.minute, from: now)
             || abs(date.timeIntervalSince(now)) > 60 else { return }
-        // Keep a travelled-to hour where it is when the clock passes the hour.
-        let passed = Int((TimeMath.hourAnchor(date).timeIntervalSince(TimeMath.hourAnchor(now)) / 3600).rounded())
-        if offsetHours != 0 && passed != 0 { offsetHours -= passed }
+        // Keep a travelled-to time where it is when the clock passes a quarter-hour.
+        let passed = Int((Self.quarter(date).timeIntervalSince(Self.quarter(now)) / 60).rounded())
+        if offsetMinutes != 0 && passed != 0 { offsetMinutes -= passed }
         now = date
     }
 
@@ -113,17 +113,40 @@ final class CityStore: ObservableObject {
 
     // MARK: Time travel
 
-    /// The moment being looked at: now, or a whole hour in the past or future.
+    /// The moment being looked at: now, or a quarter-hour in the past or future.
     var moment: Date {
-        offsetHours == 0 ? now : TimeMath.hourAnchor(now).addingTimeInterval(Double(offsetHours) * 3600)
+        offsetMinutes == 0 ? now : Self.quarter(now).addingTimeInterval(Double(offsetMinutes) * 60)
     }
 
+    var isNow: Bool { offsetMinutes == 0 }
+
+    /// Start of the quarter-hour. Every time zone's offset is a whole number of quarter-hours, so
+    /// this is a quarter-hour boundary everywhere.
+    static func quarter(_ date: Date) -> Date {
+        Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / 900).rounded(.down) * 900)
+    }
+
+    /// Go to a moment (rounded to its quarter-hour).
+    func jump(to date: Date, animated: Bool = true) {
+        let minutes = Int((Self.quarter(date).timeIntervalSince(Self.quarter(now)) / 60).rounded())
+        if animated { withAnimation(.snappy) { offsetMinutes = minutes } } else { offsetMinutes = minutes }
+    }
+
+    /// Step to the next or previous whole hour on the user's clock.
     func travel(_ hours: Int) {
-        withAnimation(.snappy) { offsetHours += hours }
+        let anchor = TimeMath.hourAnchor(moment)
+        let aligned = anchor == moment
+        jump(to: anchor.addingTimeInterval(Double(hours < 0 && !aligned ? hours + 1 : hours) * 3600))
     }
 
     func backToNow() {
-        withAnimation(.snappy) { offsetHours = 0 }
+        withAnimation(.snappy) { offsetMinutes = 0 }
+    }
+
+    /// Cities outside working hours at the selected moment (empty when the setting is off).
+    var outsideWorkHours: [Place] {
+        guard showWorkHours else { return [] }
+        return places.filter { !isWorkHour($0.calendar.component(.hour, from: moment)) }
     }
 
     func isWorkHour(_ hour: Int) -> Bool {

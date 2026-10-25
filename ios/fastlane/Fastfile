@@ -1,18 +1,47 @@
-# App Store upload and submission for the iPhone app, run by .github/workflows/ios-appstore.yml.
-# Uses an App Store Connect API key (api_key.json, written by the workflow from GitHub secrets).
+# App Store build, upload and submission for the iPhone app, run by
+# .github/workflows/ios-appstore.yml. Uses an App Store Connect API key (api_key.json, written by
+# the workflow from GitHub secrets) and the Apple Distribution certificate the workflow imports.
 default_platform(:ios)
 
+API_KEY = "fastlane/api_key.json"
+TARGETS = { "com.bradcowdrey.meridian" => "Meridian", "com.bradcowdrey.meridian.widget" => "MeridianWidget" }
+
 platform :ios do
-  lane :release do |options|
+  # Signs with App Store provisioning profiles (fetched, or created, for the imported certificate)
+  # and builds the .ipa.
+  lane :build do |options|
+    TARGETS.each do |identifier, target|
+      get_provisioning_profile(api_key_path: API_KEY, app_identifier: identifier, team_id: "2XV97FZ86G")
+      update_code_signing_settings(
+        path: "Meridian.xcodeproj",
+        use_automatic_signing: false,
+        targets: [target],
+        team_id: "2XV97FZ86G",
+        code_sign_identity: "Apple Distribution",
+        profile_name: lane_context[SharedValues::SIGH_NAME]
+      )
+    end
+    build_app(
+      project: "Meridian.xcodeproj",
+      scheme: "Meridian",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: options[:out],
+      output_name: "Meridian",
+      xcargs: "MARKETING_VERSION=#{options[:version]} CURRENT_PROJECT_VERSION=#{options[:build]}"
+    )
+  end
+
+  # Uploads the build, screenshots and listing; submits for review when submit is "true".
+  lane :upload do |options|
     upload_to_app_store(
-      api_key_path: "fastlane/api_key.json",
+      api_key_path: API_KEY,
       app_identifier: "com.bradcowdrey.meridian",
       app_version: options[:version],
       ipa: options[:ipa],
       metadata_path: "fastlane/metadata",
       screenshots_path: "fastlane/screenshots",
       overwrite_screenshots: true,
-      skip_app_version_update: false,
       force: true,                          # no HTML preview to confirm on CI
       run_precheck_before_submit: false,    # precheck can't run with an API key
       submit_for_review: options[:submit] == "true",

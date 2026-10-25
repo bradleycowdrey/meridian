@@ -3,10 +3,12 @@ name: iPhone App Store
 # App Store screenshots and listing for the iPhone app, and (when ios/APPSTORE changes) the App Store build.
 #   Push to main (iPhone files): takes the App Store screenshots (6.9-inch iPhone) and publishes them,
 #     with the listing text, to the ci-appstore branch for review. Nothing goes to Apple.
-#   ios/APPSTORE changed to "1.0.0 submit": also builds, signs (Xcode cloud signing via the App Store Connect API key),
+#   ios/APPSTORE changed to "1.0.0 submit": also builds, signs (Apple Distribution certificate, with
+#     App Store profiles fetched through the App Store Connect API key),
 #     uploads the build, screenshots and listing, and submits for review.
 #   ios/APPSTORE changed to "1.0.0 test": the same, without submitting for review.
 # Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's contents, Admin role),
+#          IOS_DIST_P12, IOS_DIST_P12_PASSWORD (Apple Distribution certificate, base64 .p12),
 #          APP_REVIEW_EMAIL, APP_REVIEW_PHONE (App Review's contact; not shown on the store).
 on:
   push:
@@ -62,7 +64,7 @@ jobs:
           xcrun simctl status_bar "$DEVICE" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
           xcrun simctl install "$DEVICE" "$APP"
           n=1
-          for screen in main travel widgets add settings; do
+          for screen in main travel widgets date add; do
             xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
             SIMCTL_CHILD_TZ=America/Los_Angeles xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen >> "$OUT/launch.txt" 2>&1
             sleep 7
@@ -79,36 +81,36 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          IOS_DIST_P12: ${{ secrets.IOS_DIST_P12 }}
+          IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
         run: |
           missing=""
-          for s in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do [ -z "${!s}" ] && missing="$missing $s"; done
+          for s in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 IOS_DIST_P12 IOS_DIST_P12_PASSWORD; do [ -z "${!s}" ] && missing="$missing $s"; done
           if [ -n "$missing" ]; then echo "Missing secrets:$missing" | tee "$OUT/release.txt"; exit 1; fi
 
-      - name: Build, sign and export
+      - name: Import the Apple Distribution certificate
+        if: env.IS_TAG == 'true'
+        env:
+          P12: ${{ secrets.IOS_DIST_P12 }}
+          P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          CERT_KIND: Apple Distribution
+        run: scripts/import-signing-cert.sh 2>&1 | tee "$OUT/certificate.txt"
+
+      - name: Build and sign (App Store profiles)
         if: env.IS_TAG == 'true'
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          BUILD="$(git rev-list --count HEAD)"
-          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
-          KEY="$RUNNER_TEMP/AuthKey.p8"; printf '%s\n' "$ASC_KEY_P8" > "$KEY"
-          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY"
-                -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          brew install fastlane >/dev/null; export PATH="$(brew --prefix)/bin:$PATH"; fastlane --version | tail -1
+          BUILD="$(git rev-list --count HEAD)"; echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          cd ios
+          python3 -c 'import json, os; json.dump({"key_id": os.environ["ASC_KEY_ID"], "issuer_id": os.environ["ASC_ISSUER_ID"], "key": os.environ["ASC_KEY_P8"], "in_house": False}, open("fastlane/api_key.json", "w"))'
           set -o pipefail
-          # The archive is signed locally without a certificate (keeping its entitlements); the
-          # export then signs it for the App Store with Apple's cloud-managed distribution
-          # certificate, registering the app IDs, App Group and profiles as needed.
-          xcodebuild -project ios/Meridian.xcodeproj -scheme Meridian -configuration Release \
-            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Meridian.xcarchive" \
-            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
-            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- PROVISIONING_PROFILE_SPECIFIER= \
-            archive 2>&1 | tee "$OUT/archive.log" | grep -E "error:|ARCHIVE"
-          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Meridian.xcarchive" \
-            -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist ios/fastlane/ExportOptions.plist \
-            "${AUTH[@]}" 2>&1 | tee "$OUT/export.log" | grep -E "error|EXPORT"
-          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa); echo "IPA=$IPA" >> "$GITHUB_ENV"
+          fastlane build version:"$VERSION" build:"$BUILD" out:"$RUNNER_TEMP/export" 2>&1 \
+            | grep -v -i -E "BEGIN PRIVATE|issuer_id|key_id" | tee "$OUT/build.log"
+          IPA="$RUNNER_TEMP/export/Meridian.ipa"; echo "IPA=$IPA" >> "$GITHUB_ENV"
           # What the App Store will see: signer and entitlements of the app and the widget.
           cd "$RUNNER_TEMP" && rm -rf check && mkdir check && cd check && unzip -q "$IPA"
           for b in Payload/Meridian.app Payload/Meridian.app/PlugIns/MeridianWidget.appex; do
@@ -120,26 +122,21 @@ jobs:
       - name: Upload to App Store Connect
         if: env.IS_TAG == 'true'
         env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           APP_REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
           APP_REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
         run: |
-          brew install fastlane >/dev/null; export PATH="$(brew --prefix)/bin:$PATH"; fastlane --version | tail -1
+          export PATH="$(brew --prefix)/bin:$PATH"
           cd ios
           python3 - <<'PY'
-          import json, os
-          json.dump({"key_id": os.environ["ASC_KEY_ID"], "issuer_id": os.environ["ASC_ISSUER_ID"],
-                     "key": os.environ["ASC_KEY_P8"], "in_house": False}, open("fastlane/api_key.json", "w"))
+          import os
           for name in ("email_address", "phone_number"):
               value = os.environ.get("APP_REVIEW_" + name.split("_")[0].upper(), "")
               if value:
                   open(f"fastlane/metadata/review_information/{name}.txt", "w").write(value)
           PY
           set -o pipefail
-          fastlane release version:"$VERSION" ipa:"$IPA" submit:"$SUBMIT" 2>&1 \
-            | grep -v -i -E "key\"|issuer|BEGIN PRIVATE|phone|email" | tee "$OUT/fastlane.log"
+          fastlane upload version:"$VERSION" ipa:"$IPA" submit:"$SUBMIT" 2>&1 \
+            | grep -v -i -E "BEGIN PRIVATE|issuer_id|key_id|phone|email" | tee "$OUT/fastlane.log"
           rm -f fastlane/api_key.json
 
       - name: Publish to ci-appstore branch

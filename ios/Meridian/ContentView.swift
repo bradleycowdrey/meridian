@@ -165,6 +165,7 @@ struct ContentView: View {
 /// picker; then whether every city is in working hours.
 private struct MomentHeader: View {
     @EnvironmentObject private var store: CityStore
+    @Environment(\.dynamicTypeSize) private var typeSize
     let copied: Bool
     let pickDate: () -> Void
 
@@ -214,7 +215,7 @@ private struct MomentHeader: View {
                 HStack(spacing: 6) {
                     Image(systemName: store.outsideWorkHours.isEmpty ? "checkmark.circle.fill" : "moon.zzz")
                         .foregroundStyle(store.outsideWorkHours.isEmpty ? Theme.cream : Theme.faint)
-                    Text(overlap).foregroundStyle(Theme.muted).lineLimit(1)
+                    Text(overlap).foregroundStyle(Theme.muted).lineLimit(typeSize.isAccessibilitySize ? 3 : 1)
                 }
                 .font(.footnote)
             }
@@ -342,6 +343,13 @@ struct HourStrip: View {
                 // The exact minute: notches above and below, so they never cover an hour label.
                 Capsule().fill(Theme.cream).frame(width: 3, height: 5).offset(x: center - 1.5)
                 Capsule().fill(Theme.cream).frame(width: 3, height: 5).offset(x: center - 1.5, y: Self.height + 7)
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+            .contentShape(Rectangle())
+            // Tap an hour to go to it.
+            .onTapGesture { location in
+                let tapped = moment.addingTimeInterval(Double((location.x - center) / Self.hourWidth) * 3600)
+                store.jump(to: cal.dateInterval(of: .hour, for: tapped)?.start ?? tapped)
             }
         }
         .frame(height: Self.height + 12)

@@ -26,6 +26,23 @@ struct Place: Codable, Identifiable, Hashable {
 }
 
 enum TimeMath {
+    /// DateFormatters are slow to make, and these run on every frame of a drag, so each
+    /// format-and-zone pair is made once.
+    private static var formatters: [String: DateFormatter] = [:]
+    private static let formattersLock = NSLock()
+
+    private static func formatter(_ format: String, _ zone: TimeZone) -> DateFormatter {
+        formattersLock.lock(); defer { formattersLock.unlock() }
+        let key = "\(format)|\(zone.identifier)"
+        if let cached = formatters[key] { return cached }
+        let formatter = DateFormatter()
+        formatter.timeZone = zone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = format
+        formatters[key] = formatter
+        return formatter
+    }
+
     static func offsetLabel(seconds: Int) -> String {
         if seconds == 0 { return "UTC" }
         let sign = seconds > 0 ? "+" : "−"
@@ -40,27 +57,15 @@ enum TimeMath {
     }
 
     static func time(_ date: Date, in zone: TimeZone, use24h: Bool) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = zone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = use24h ? "HH:mm" : "h:mm a"
-        return formatter.string(from: date)
+        formatter(use24h ? "HH:mm" : "h:mm a", zone).string(from: date)
     }
 
     static func weekday(_ date: Date, in zone: TimeZone) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = zone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "EEE"
-        return formatter.string(from: date)
+        formatter("EEE", zone).string(from: date)
     }
 
     static func fullMoment(_ date: Date, in zone: TimeZone, use24h: Bool) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = zone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = use24h ? "EEE d MMM, HH:mm" : "EEE d MMM, h:mm a"
-        return formatter.string(from: date)
+        formatter(use24h ? "EEE d MMM, HH:mm" : "EEE d MMM, h:mm a", zone).string(from: date)
     }
 
     /// Calendar-day difference between a zone and the user's zone at a moment: -1, 0 or +1.

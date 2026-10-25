@@ -56,6 +56,9 @@ struct ContentView: View {
                 }
             }
             .listStyle(.plain)
+            // Set on the list itself (not only outside the NavigationStack, which keeps its own),
+            // so the Edit button, the rows and swipe-to-delete all share this one value.
+            .environment(\.editMode, $editMode)
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
             .safeAreaInset(edge: .top, spacing: 0) { Theme.crimson.frame(height: 3) }

@@ -94,8 +94,14 @@ fi
 
 if $NOTARIZE; then
   notarize "$DMG"
-  staple "$DMG"
-  spctl -a -vvv -t open --context context:primary-signature "$DMG"
+  # The app inside is already stapled, which is what Gatekeeper checks when it opens. An unstapled
+  # DMG is still notarized (macOS looks the ticket up online), so a dropped connection to Apple's
+  # ticket server here is a warning, not a failed release.
+  if staple "$DMG"; then
+    spctl -a -vvv -t open --context context:primary-signature "$DMG"
+  else
+    echo "::warning::The DMG is notarized but its ticket couldn't be stapled (Apple's ticket server kept dropping the connection)."
+  fi
   spctl -a -vvv -t execute dist/Meridian.app
 fi
 

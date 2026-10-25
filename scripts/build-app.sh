@@ -48,7 +48,8 @@ else
   for arch in arm64 x86_64; do
     xcrun --sdk macosx swiftc -O -parse-as-library -application-extension \
       -target "$arch-apple-macos14.0" -module-name MeridianWidget \
-      Widget/MeridianWidget.swift Sources/Meridian/Shared/WidgetContent.swift \
+      Widget/MeridianWidget.swift Widget/WidgetCities.swift Sources/Meridian/Shared/WidgetContent.swift \
+      Sources/Meridian/Model/Place.swift Sources/Meridian/Model/CityDirectory.swift \
       -o "$WIDGET_TMP/MeridianWidget-$arch"
   done
   lipo -create "$WIDGET_TMP"/MeridianWidget-* -output "$APPEX/Contents/MacOS/MeridianWidget"

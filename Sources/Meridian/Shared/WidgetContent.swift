@@ -119,7 +119,7 @@ enum WidgetTone {
 }
 
 /// The widget face for each size: small shows one city, medium two side by side (each with its
-/// next few hours), large four with the day/night tiles for three hours either side of now.
+/// hour before and after), large four with the hour before, now and the hour after.
 struct WidgetClockView: View {
     let snapshot: WidgetSnapshot
     let date: Date
@@ -200,9 +200,9 @@ struct WidgetClockView: View {
                 .foregroundStyle(WidgetTone.faint)
                 .lineLimit(1)
             Spacer(minLength: 6)
-            // Now and the next hours either side, the current one outlined.
-            HStack(spacing: 3) {
-                ForEach(-2...2, id: \.self) { k in
+            // The hour before, now (outlined) and the hour after.
+            HStack(spacing: 4) {
+                ForEach(-1...1, id: \.self) { k in
                     tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
                         .overlay {
                             if k == 0 {
@@ -242,13 +242,13 @@ struct WidgetClockView: View {
 
     // MARK: Large: day/night tiles
 
-    private let columns = 7
+    private let columns = 3
 
     private var strip: some View {
         GeometryReader { geo in
             let gap: CGFloat = 4
             // Whole points, so tile and outline edges stay crisp.
-            let pitch = ((geo.size.width - min(116, geo.size.width * 0.34)) / CGFloat(columns)).rounded(.down)
+            let pitch = ((geo.size.width * 0.52) / CGFloat(columns)).rounded(.down)
             let labelWidth = geo.size.width - pitch * CGFloat(columns)
             let headerHeight: CGFloat = 16
             let rows = max(cities.count, 1)
@@ -277,13 +277,13 @@ struct WidgetClockView: View {
                     HStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(city.name)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(WidgetTone.secondary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
                                 Text(Self.time(date, zone: zone, use24h: snapshot.use24h, compact: true))
-                                    .font(.system(size: 19, weight: .medium))
+                                    .font(.system(size: 24, weight: .medium))
                                     .monospacedDigit()
                                 dayBadge(zone)
                             }

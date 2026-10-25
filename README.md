@@ -18,10 +18,11 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.10
+### What's new in 0.7.11
 
-- **Choose each widget's cities**: right-click a widget → **Edit Widget**.
-- **Bigger, clearer widgets**: small shows one city, medium two, large four.
+- **Cleaner widgets**: each city shows the hour before, now and the hour after, with bigger times.
+- **Choose each widget's cities**: right-click a widget → **Edit Widget** (0.7.10).
+- **Bigger, clearer widgets**: small shows one city, medium two, large four (0.7.10).
 - **The widget shows up after updating**, with no Terminal needed (0.7.9).
 - **The desktop widget appears in Edit Widgets** (0.7.8).
 - **Share** now sits in the panel's top bar, next to the Meridian name.
@@ -61,7 +62,7 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 <p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small desktop widgets showing cities, times and day-and-night hour tiles"></p>
 
-Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities), each with its next few hours, and large (four cities with the day-and-night tiles for three hours either side of now). It follows the cities and order you set in the app, or right-click it and choose **Edit Widget** to pick its own cities. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
+Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities) and large (four cities), each showing the hour before, now and the hour after as day-and-night tiles. It follows the cities and order you set in the app, or right-click it and choose **Edit Widget** to pick its own cities. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
 
 ## Install (sideload)
 

@@ -147,14 +147,9 @@ platform :ios do
                 sexualContentGraphicAndNudity sexualContentOrNudity violenceCartoonOrFantasy
                 violenceRealistic violenceRealisticProlongedGraphicOrSadistic gunsOrOtherWeapons]
       no = %w[gambling unrestrictedWebAccess lootBox messagingAndChat parentalControls ageAssurance
-              userGeneratedContent healthOrWellnessTopics advertising]
+              userGeneratedContent healthOrWellnessTopics advertising socialMedia]
       attributes = none.to_h { |k| [k, "NONE"] }.merge(no.to_h { |k| [k, false] })
       code, body = asc(:patch, "v1/ageRatingDeclarations/#{id}", { data: { type: "ageRatingDeclarations", id: id, attributes: attributes } })
-      if !code.between?(200, 299)
-        # Fall back to the long-standing questions if this API version doesn't know the newer ones.
-        known = attributes.reject { |k, _| %w[gunsOrOtherWeapons lootBox messagingAndChat parentalControls ageAssurance userGeneratedContent healthOrWellnessTopics advertising].include?(k) }
-        code, body = asc(:patch, "v1/ageRatingDeclarations/#{id}", { data: { type: "ageRatingDeclarations", id: id, attributes: known } })
-      end
       report("Age rating", code, body)
     end
 

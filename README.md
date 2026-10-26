@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.14
+### What's new in 0.7.15
 
+- **Large widget labels** read −1 h, Now, +1 h.
 - **Edit Widget shows the cities it follows** (the **Showing** row).
 - **Use Meridian's Cities** toggle in **Edit Widget**: follow the app's list, or turn it off to choose the widget's own cities.
 - **Labelled hours** on small and medium widgets: −1 h, Now, +1 h.

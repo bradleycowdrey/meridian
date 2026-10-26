@@ -18,16 +18,17 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.21
+### What's new in 0.7.22
 
+- **Apple's abbreviations**: hours read "hr" ("+1 hr", "In 4 hr 20 min"), as in Apple's Clock.
 - **AM and PM, always**, Apple's style ("10:21 PM").
 - **"+1 d"** for tomorrow, everywhere.
 - **Less crowded**: two hours either side of now, with wider tiles.
-- **Hour labels in the panel** read −1 h, Now, +1 h, like the widgets.
-- **Large widget labels** read −1 h, Now, +1 h.
+- **Hour labels in the panel** read −1 hr, Now, +1 hr, like the widgets.
+- **Large widget labels** read −1 hr, Now, +1 hr.
 - **Edit Widget shows the cities it follows** (the **Showing** row).
 - **Use Meridian's Cities** toggle in **Edit Widget**: follow the app's list, or turn it off to choose the widget's own cities.
-- **Labelled hours** on small and medium widgets: −1 h, Now, +1 h.
+- **Labelled hours** on small and medium widgets: −1 hr, Now, +1 hr.
 - **Cleaner widgets**: each city shows the hour before, now and the hour after, with bigger times.
 - **Choose each widget's cities**: right-click a widget → **Edit Widget** (0.7.10).
 - **Bigger, clearer widgets**: small shows one city, medium two, large four (0.7.10).

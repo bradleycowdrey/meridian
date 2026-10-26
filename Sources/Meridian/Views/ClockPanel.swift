@@ -766,7 +766,7 @@ struct TravelBar: View {
         let hours = abs(h) % 24
         var parts: [String] = []
         if days > 0 { parts.append("\(days) d") }
-        if hours > 0 { parts.append("\(hours) h") }
+        if hours > 0 { parts.append("\(hours) hr") }
         return h > 0 ? "In \(parts.joined(separator: " "))" : "\(parts.joined(separator: " ")) ago"
     }
 }

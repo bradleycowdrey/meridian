@@ -204,7 +204,7 @@ struct WidgetClockView: View {
             HStack(spacing: 4) {
                 ForEach(-1...1, id: \.self) { k in
                     VStack(spacing: 3) {
-                        Text(k == 0 ? "Now" : (k > 0 ? "+1 h" : "−1 h"))
+                        Text(k == 0 ? "Now" : (k > 0 ? "+1 hr" : "−1 hr"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(k == 0 ? WidgetTone.cream : WidgetTone.faint)
                             .lineLimit(1)
@@ -221,7 +221,7 @@ struct WidgetClockView: View {
         }
     }
 
-    /// "Today, −5 h" style context under the city name.
+    /// "Today, −5 hr" style context under the city name.
     private func relative(_ zone: TimeZone) -> String {
         let diff = zone.secondsFromGMT(for: date) - TimeZone.current.secondsFromGMT(for: date)
         let day: String
@@ -234,7 +234,7 @@ struct WidgetClockView: View {
         let sign = diff > 0 ? "+" : "−"
         let hours = abs(diff) / 3600
         let minutes = (abs(diff) % 3600) / 60
-        return "\(day), \(sign)\(hours)\(minutes == 0 ? "" : ":\(String(format: "%02d", minutes))") h"
+        return "\(day), \(sign)\(hours)\(minutes == 0 ? "" : ":\(String(format: "%02d", minutes))") hr"
     }
 
     @ViewBuilder private func dayBadge(_ zone: TimeZone) -> some View {
@@ -269,7 +269,7 @@ struct WidgetClockView: View {
                         .foregroundStyle(WidgetTone.faint)
                         .frame(width: labelWidth, alignment: .leading)
                     ForEach(-half...half, id: \.self) { k in
-                        Text(k == 0 ? "Now" : (k > 0 ? "+\(k) h" : "−\(-k) h"))
+                        Text(k == 0 ? "Now" : (k > 0 ? "+\(k) hr" : "−\(-k) hr"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(k == 0 ? WidgetTone.cream : WidgetTone.faint)
                             .monospacedDigit()

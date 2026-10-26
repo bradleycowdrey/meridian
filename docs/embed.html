@@ -360,7 +360,7 @@
     const m = parts(moment, local);
     $("moment").textContent = `${m.weekday} ${m.day} ${m.month}, ${pad(m.hour)}:${m.minute}`;
     const d = Math.floor(Math.abs(base) / 24), h = Math.abs(base) % 24;
-    const span = [d ? d + " d" : "", h ? h + " h" : ""].filter(Boolean).join(" ");
+    const span = [d ? d + " d" : "", h ? h + " hr" : ""].filter(Boolean).join(" ");
     $("rel").textContent = base === 0 ? "Now, your time" : base > 0 ? `In ${span}` : `${span} ago`;
     $("rel").classList.toggle("away", base !== 0);
     const nowBtn = $("now"); nowBtn.disabled = offset === 0; nowBtn.classList.toggle("prime", offset !== 0);
@@ -377,7 +377,7 @@
     let html = '<div class="dots">';
     for (const i of idx) {
       const all = cities.length > 1 && cities.every(([, tz]) => isWork(+parts(at(i), tz).hour));
-      const lab = i === 0 ? "Now" : (i > 0 ? `+${i} h` : `−${-i} h`);
+      const lab = i === 0 ? "Now" : (i > 0 ? `+${i} hr` : `−${-i} hr`);
       html += `<div class="dot${i === 0 ? " now" : ""}${i === base ? " center" : ""}" style="width:${CELL - GAP}px" title="${i === 0 ? "The current hour" : Math.abs(i) + (Math.abs(i) === 1 ? " hour " : " hours ") + (i > 0 ? "from now" : "ago")}"><span>${lab}</span><i class="${all ? "on" : ""}"></i></div>`;
     }
     html += "</div>";
@@ -419,7 +419,7 @@
       const day = ["Yesterday", "Today", "Tomorrow"][shift(tz) + 1];
       const diff = offsetMin(tz) - offsetMin(local); if (!diff) return day;
       const a = Math.abs(diff), h = Math.floor(a / 60), m = a % 60;
-      return `${day}, ${diff > 0 ? "+" : "−"}${h}${m ? ":" + pad(m) : ""} h`;
+      return `${day}, ${diff > 0 ? "+" : "−"}${h}${m ? ":" + pad(m) : ""} hr`;
     };
     const empty = '<div class="in"><div class="empty">No cities yet<small>Add cities in Meridian</small></div></div>';
     const take = n => cities.slice(0, n);
@@ -434,7 +434,7 @@
     if (!cities.length) { $("wLarge").innerHTML = empty; }
     else {
       let h = '<div class="in"><div class="lhead"><span>Meridian</span>';
-      for (let k = -3; k <= 3; k++) h += `<span class="${k ? "" : "now"}">${k === 0 ? "Now" : k > 0 ? "+" + k + " h" : "−" + -k + " h"}</span>`;
+      for (let k = -3; k <= 3; k++) h += `<span class="${k ? "" : "now"}">${k === 0 ? "Now" : k > 0 ? "+" + k + " hr" : "−" + -k + " hr"}</span>`;
       h += '</div><div class="lrows">';
       for (const [n, tz] of take(7)) {
         h += `<div class="lrow2"><div class="lab"><div class="nm">${esc(n)}</div><div class="tm">${time(tz)}${badge(tz)}</div></div>`;

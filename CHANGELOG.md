@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.22 · 26 October 2026
+
+- **Apple's abbreviations**: hours read "hr" everywhere ("−1 hr", "+8 hr", "In 4 hr 20 min"), as in Apple's Clock and style guide; minutes stay "min", AM/PM stay capitals. The next or previous day stays "+1 d".
+
 ## 0.7.21 · 26 October 2026
 
 - **The same AM/PM spacing everywhere**: the thin space before AM/PM now also appears in every written-out time: the panel, the menu bar, copied and shared times, Lock Screen widgets, and the iPhone app's dial and settings.

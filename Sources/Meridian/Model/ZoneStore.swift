@@ -65,7 +65,7 @@ final class ZoneStore: ObservableObject {
         self.ticker = ticker
 
         // The Mac changed time zone (travel) or the date rolled over: refresh at once,
-        // including the widget's "Today, +5 h" lines.
+        // including the widget's "Today, +5 hr" lines.
         for name in [Notification.Name.NSSystemTimeZoneDidChange, .NSCalendarDayChanged, NSWorkspace.didWakeNotification] {
             let center = name == NSWorkspace.didWakeNotification ? NSWorkspace.shared.notificationCenter : NotificationCenter.default
             center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in

@@ -224,7 +224,7 @@ private struct MomentHeader: View {
         let total = Int((store.moment.timeIntervalSince(store.now) / 300).rounded()) * 5
         if total == 0 { return "Now" }
         let days = abs(total) / 1440, hours = abs(total) % 1440 / 60, minutes = abs(total) % 60
-        let span = [days > 0 ? "\(days) d" : nil, hours > 0 ? "\(hours) h" : nil, minutes > 0 ? "\(minutes) min" : nil]
+        let span = [days > 0 ? "\(days) d" : nil, hours > 0 ? "\(hours) hr" : nil, minutes > 0 ? "\(minutes) min" : nil]
             .compactMap { $0 }.joined(separator: " ")
         return total > 0 ? "In \(span)" : "\(span) ago"
     }
@@ -301,7 +301,7 @@ struct CityRow: View {
         .lineLimit(1)
     }
 
-    /// "+8 h · UTC+1", "+5:30 h · UTC+5:30", "Your time · UTC−7" (the day, if different, is the
+    /// "+8 hr · UTC+1", "+5:30 hr · UTC+5:30", "Your time · UTC−7" (the day, if different, is the
     /// "+1 d" badge by the time, as in the Mac app).
     private func detail(_ moment: Date) -> String {
         let utc = place.offsetLabel(at: moment)
@@ -310,7 +310,7 @@ struct CityRow: View {
             return "\(place.timeZone.identifier == TimeZone.current.identifier ? "Your time" : "Same time") · \(utc)"
         }
         let h = abs(diff) / 3600, m = abs(diff) % 3600 / 60
-        return "\(diff > 0 ? "+" : "−")\(h)\(m > 0 ? ":\(String(format: "%02d", m))" : "") h · \(utc)"
+        return "\(diff > 0 ? "+" : "−")\(h)\(m > 0 ? ":\(String(format: "%02d", m))" : "") hr · \(utc)"
     }
 }
 
@@ -400,7 +400,7 @@ struct HourStrip: View {
     }
 }
 
-/// Column labels above the strips, as in the Mac app: "−2 h −1 h Now +1 h +2 h", lined up
+/// Column labels above the strips, as in the Mac app: "−2 hr −1 hr Now +1 hr +2 hr", lined up
 /// with the five hours of each strip. Away from now, the centre shows the selected time.
 private struct HourLabels: View {
     @EnvironmentObject private var store: CityStore
@@ -427,7 +427,7 @@ private struct HourLabels: View {
 
     private func label(_ k: Int) -> String {
         if k == 0 { return store.isNow ? "Now" : TimeMath.time(store.moment, in: .current, use24h: store.use24h) }
-        return k > 0 ? "+\(k) h" : "−\(-k) h"
+        return k > 0 ? "+\(k) hr" : "−\(-k) hr"
     }
 }
 

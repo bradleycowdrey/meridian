@@ -32,8 +32,9 @@ platform :ios do
     )
   end
 
-  # Uploads the build, screenshots and listing; submits for review when submit is "true".
+  # Uploads the build, screenshots and listing; submits for review when submit is true.
   lane :upload do |options|
+    ensure_review_detail
     upload_to_app_store(
       api_key_path: API_KEY,
       app_identifier: "com.bradcowdrey.meridian",
@@ -44,12 +45,42 @@ platform :ios do
       overwrite_screenshots: true,
       force: true,                          # no HTML preview to confirm on CI
       run_precheck_before_submit: false,    # precheck can't run with an API key
-      submit_for_review: options[:submit] == "true",
+      submit_for_review: options[:submit].to_s == "true",   # fastlane turns "true" into true
       automatic_release: true,
       submission_information: {
         add_id_info_uses_idfa: false,
         export_compliance_uses_encryption: false
       }
     )
+  end
+
+  # A brand-new version has no App Review contact record yet, and upload_to_app_store fails
+  # fetching it ("Error fetching app store review detail - No data"), so create it first.
+  private_lane :ensure_review_detail do
+    key = JSON.parse(File.read(API_KEY))
+    app_store_connect_api_key(key_id: key["key_id"], issuer_id: key["issuer_id"], key_content: key["key"])
+    app = Spaceship::ConnectAPI::App.find("com.bradcowdrey.meridian")
+    version = app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+    next if version.nil?
+    detail = begin
+      version.fetch_app_store_review_detail
+    rescue StandardError
+      nil
+    end
+    if detail
+      UI.message("App Review details already exist")
+    else
+      read = ->(name) { path = "fastlane/metadata/review_information/#{name}.txt"; File.exist?(path) ? File.read(path).strip : nil }
+      attributes = {
+        contact_first_name: read.call("first_name"),
+        contact_last_name: read.call("last_name"),
+        contact_email: read.call("email_address"),
+        contact_phone: read.call("phone_number"),
+        notes: read.call("notes"),
+        demo_account_required: false
+      }.compact
+      version.create_app_store_review_detail(attributes: attributes)
+      UI.success("Created App Review details")
+    end
   end
 end

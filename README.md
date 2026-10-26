@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.16
+### What's new in 0.7.17
 
+- **Less crowded**: two hours either side of now, with wider tiles.
 - **Hour labels in the panel** read −1 h, Now, +1 h, like the widgets.
 - **Large widget labels** read −1 h, Now, +1 h.
 - **Edit Widget shows the cities it follows** (the **Showing** row).

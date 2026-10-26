@@ -129,16 +129,23 @@ struct Metrics {
     func labelWidth(compact: Bool) -> CGFloat { pt(compact ? 152 : 176) }
     var tilePadding: CGFloat { pt(20) }
 
-    /// Panel width built from its parts, so the strip always shows whole hour columns:
-    /// 7 in the menu bar popover, 11 in the window. If that wouldn't fit on screen at this
-    /// size, drop two columns at a time (keeping one centred "now" column).
+    /// Hours shown: two before, now, two after.
+    static let visibleColumns = 5
+
+    /// Panel width built from its parts: the room of seven standard hour columns (in the menu
+    /// bar popover and the window alike), or five if that wouldn't fit on screen at this size.
     func panelWidth(compact: Bool, screenWidth: CGFloat) -> CGFloat {
         func width(_ columns: Int) -> CGFloat {
             2 * xl + 2 * tilePadding + labelWidth(compact: compact) + CGFloat(columns) * cellWidth(compact: compact)
         }
-        var columns = compact ? 7 : 11
-        while columns > 5 && width(columns) > screenWidth { columns -= 2 }
-        return width(columns)
+        return width(7) > screenWidth ? width(5) : width(7)
+    }
+
+    /// The column pitch actually used: the strip's room shared by the five visible hours, so
+    /// fewer, wider tiles fill the same panel. Whole points keep the edges crisp.
+    func stripCellWidth(compact: Bool, screenWidth: CGFloat) -> CGFloat {
+        let strip = panelWidth(compact: compact, screenWidth: screenWidth) - 2 * xl - 2 * tilePadding - labelWidth(compact: compact)
+        return (strip / CGFloat(Self.visibleColumns)).rounded(.down)
     }
 }
 

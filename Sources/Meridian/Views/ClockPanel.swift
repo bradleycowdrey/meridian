@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// The whole app in one panel: header, the moment, ribbons. Used by both the
+/// The whole app in one panel: header, the moment, ribbons (two hours either side of now). Used by both the
 /// menu bar popover and the desktop window.
 struct ClockPanel: View {
     @EnvironmentObject private var store: ZoneStore
@@ -78,7 +78,8 @@ private struct ClockPanelContent: View {
                     if !store.places.isEmpty {
                         Tile {
                             StripView(
-                                cellWidth: ui.cellWidth(compact: compact),
+                                cellWidth: ui.stripCellWidth(compact: compact,
+                                                             screenWidth: (NSScreen.main?.visibleFrame.width ?? 1440) - 48),
                                 rowHeight: ui.rowHeight(compact: compact),
                                 labelWidth: ui.labelWidth(compact: compact),
                                 editing: editing

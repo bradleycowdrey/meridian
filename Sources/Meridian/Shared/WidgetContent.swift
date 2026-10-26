@@ -192,6 +192,7 @@ struct WidgetClockView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(WidgetTone.muted)
                 }
+                dayBadge(zone)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.6)
@@ -221,20 +222,15 @@ struct WidgetClockView: View {
         }
     }
 
-    /// "Today, −5 hr" style context under the city name.
+    /// "−5 hr", "+5:30 hr" or "Your time" under the city name (another day is the "+1 d" by the
+    /// time, as in the app).
     private func relative(_ zone: TimeZone) -> String {
         let diff = zone.secondsFromGMT(for: date) - TimeZone.current.secondsFromGMT(for: date)
-        let day: String
-        switch Self.dayShift(date, zone: zone) {
-        case 1: day = "Tomorrow"
-        case -1: day = "Yesterday"
-        default: day = "Today"
-        }
-        if diff == 0 { return day }
+        if diff == 0 { return zone.identifier == TimeZone.current.identifier ? "Your time" : "Same time" }
         let sign = diff > 0 ? "+" : "−"
         let hours = abs(diff) / 3600
         let minutes = (abs(diff) % 3600) / 60
-        return "\(day), \(sign)\(hours)\(minutes == 0 ? "" : ":\(String(format: "%02d", minutes))") hr"
+        return "\(sign)\(hours)\(minutes == 0 ? "" : ":\(String(format: "%02d", minutes))") hr"
     }
 
     @ViewBuilder private func dayBadge(_ zone: TimeZone) -> some View {

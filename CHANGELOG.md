@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.23 · 26 October 2026
+
+- **Widgets match the app**: under each city, "+8 hr" or "Your time"; another day shows "+1 d" by the time, as in the panel and the iPhone app (instead of "Today" / "Tomorrow").
+
 ## 0.7.22 · 26 October 2026
 
 - **Apple's abbreviations**: hours read "hr" everywhere ("−1 hr", "+8 hr", "In 4 hr 20 min"), as in Apple's Clock and style guide; minutes stay "min", AM/PM stay capitals. The next or previous day stays "+1 d".

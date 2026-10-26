@@ -56,8 +56,9 @@ enum TimeMath {
         Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
     }
 
+    /// "14:05" or "2:05 PM", with a thin space before AM/PM (as everywhere in Meridian).
     static func time(_ date: Date, in zone: TimeZone, use24h: Bool) -> String {
-        formatter(use24h ? "HH:mm" : "h:mm a", zone).string(from: date)
+        formatter(use24h ? "HH:mm" : "h:mm\u{2009}a", zone).string(from: date)
     }
 
     static func weekday(_ date: Date, in zone: TimeZone) -> String {
@@ -65,7 +66,7 @@ enum TimeMath {
     }
 
     static func fullMoment(_ date: Date, in zone: TimeZone, use24h: Bool) -> String {
-        formatter(use24h ? "EEE d MMM, HH:mm" : "EEE d MMM, h:mm a", zone).string(from: date)
+        formatter(use24h ? "EEE d MMM, HH:mm" : "EEE d MMM, h:mm\u{2009}a", zone).string(from: date)
     }
 
     /// Calendar-day difference between a zone and the user's zone at a moment: -1, 0 or +1.

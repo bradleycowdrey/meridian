@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.21 · 26 October 2026
+
+- **The same AM/PM spacing everywhere**: the thin space before AM/PM now also appears in every written-out time: the panel, the menu bar, copied and shared times, Lock Screen widgets, and the iPhone app's dial and settings.
+
 ## 0.7.20 · 26 October 2026
 
 - **AM and PM breathe a little**: a thin space between the hour and AM/PM in the tiles ("10 PM"), and a touch more room beside the big times.

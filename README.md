@@ -18,7 +18,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.20
+### What's new in 0.7.21
 
 - **AM and PM, always**, Apple's style ("10:21 PM").
 - **"+1 d"** for tomorrow, everywhere.

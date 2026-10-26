@@ -50,6 +50,6 @@ struct SettingsView: View {
     private func hourLabel(_ hour: Int) -> String {
         if store.use24h { return String(format: "%02d:00", hour % 24) }
         let h = hour % 12 == 0 ? 12 : hour % 12
-        return "\(h) \(hour % 24 < 12 ? "AM" : "PM")"
+        return "\(h)\u{2009}\(hour % 24 < 12 ? "AM" : "PM")"
     }
 }

@@ -85,7 +85,7 @@ final class FunctionalTest {
         check("day shift +1 (Kiritimati, late UTC)", TimeMath.dayShift(lateUTC, zone: TimeZone(identifier: "Pacific/Kiritimati")!) == 1)
         check("day shift −1 (Honolulu, early UTC)", TimeMath.dayShift(earlyUTC, zone: TimeZone(identifier: "Pacific/Honolulu")!) == -1)
         check("day shift 0 (London)", TimeMath.dayShift(earlyUTC, zone: TimeZone(identifier: "Europe/London")!) == 0)
-        check("12h time", TimeMath.time(earlyUTC, in: TimeZone(identifier: "UTC")!, use24h: false) == "2:00 AM")
+        check("12h time", TimeMath.time(earlyUTC, in: TimeZone(identifier: "UTC")!, use24h: false) == "2:00\u{2009}AM")
         check("24h time", TimeMath.time(earlyUTC, in: TimeZone(identifier: "Asia/Kolkata")!, use24h: true) == "07:30")
         NSTimeZone.default = saved
 

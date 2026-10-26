@@ -369,7 +369,7 @@ struct WidgetClockView: View {
         let formatter = DateFormatter()
         formatter.timeZone = zone
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = use24h ? "HH:mm" : "h:mm a"
+        formatter.dateFormat = use24h ? "HH:mm" : "h:mm\u{2009}a"   // thin space before AM/PM
         return formatter.string(from: date)
     }
 

@@ -445,7 +445,7 @@ struct TimeDial: View {
                 .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : 7)
             if minute == 0 {
                 Text(hour == 0 ? TimeMath.weekday(q, in: .current).uppercased()
-                               : store.use24h ? String(format: "%02d:00", hour) : "\(hour % 12 == 0 ? 12 : hour % 12) \(hour < 12 ? "AM" : "PM")")
+                               : store.use24h ? String(format: "%02d:00", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)\u{2009}\(hour < 12 ? "AM" : "PM")")
                     .font(.system(.caption2, weight: hour == 0 ? .semibold : .medium))
                     .foregroundStyle(hour == 0 ? Theme.cream : Theme.muted)
                     .monospacedDigit()

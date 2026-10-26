@@ -376,7 +376,7 @@
     let html = '<div class="dots">';
     for (const i of idx) {
       const all = cities.length > 1 && cities.every(([, tz]) => isWork(+parts(at(i), tz).hour));
-      const lab = i === 0 ? "Now" : (i > 0 ? `+${i}` : `−${-i}`);
+      const lab = i === 0 ? "Now" : (i > 0 ? `+${i} h` : `−${-i} h`);
       html += `<div class="dot${i === 0 ? " now" : ""}${i === base ? " center" : ""}" style="width:${CELL - GAP}px" title="${i === 0 ? "The current hour" : Math.abs(i) + (Math.abs(i) === 1 ? " hour " : " hours ") + (i > 0 ? "from now" : "ago")}"><span>${lab}</span><i class="${all ? "on" : ""}"></i></div>`;
     }
     html += "</div>";
@@ -433,7 +433,7 @@
     if (!cities.length) { $("wLarge").innerHTML = empty; }
     else {
       let h = '<div class="in"><div class="lhead"><span>Meridian</span>';
-      for (let k = -3; k <= 3; k++) h += `<span class="${k ? "" : "now"}">${k === 0 ? "Now" : k > 0 ? "+" + k : "−" + -k}</span>`;
+      for (let k = -3; k <= 3; k++) h += `<span class="${k ? "" : "now"}">${k === 0 ? "Now" : k > 0 ? "+" + k + " h" : "−" + -k + " h"}</span>`;
       h += '</div><div class="lrows">';
       for (const [n, tz] of take(7)) {
         h += `<div class="lrow2"><div class="lab"><div class="nm">${esc(n)}</div><div class="tm">${time(tz)}${badge(tz)}</div></div>`;

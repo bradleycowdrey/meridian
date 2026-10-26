@@ -320,7 +320,7 @@ private struct ColumnHeader: View {
     let isOverlap: Bool
 
     private var label: String {
-        hoursFromNow == 0 ? "Now" : (hoursFromNow > 0 ? "+\(hoursFromNow)" : "−\(-hoursFromNow)")
+        hoursFromNow == 0 ? "Now" : (hoursFromNow > 0 ? "+\(hoursFromNow) h" : "−\(-hoursFromNow) h")
     }
 
     var body: some View {

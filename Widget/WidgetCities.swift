@@ -1,8 +1,8 @@
 import AppIntents
 import WidgetKit
 
-// Edit Widget: each widget can show its own cities (touch and hold, or right-click on the Mac, then
-// Edit Widget). Left empty, it follows your list in Meridian.
+// Edit Widget (touch and hold, or right-click on the Mac): "Use Meridian's Cities" on follows your
+// list in the app; off, the widget shows the cities chosen for it.
 
 /// A city you can pick for a widget: one of yours, or any city, airport code or time zone from
 /// Meridian's search.
@@ -62,16 +62,33 @@ struct WidgetCityQuery: EntityStringQuery {
 
 struct ClockConfiguration: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Cities"
-    static var description = IntentDescription("Choose the cities for this widget, in order. Leave empty to show your list from Meridian.")
+    static var description = IntentDescription("Show the cities from Meridian, or choose this widget's own.")
+
+    @Parameter(title: "Use Meridian's Cities", default: true)
+    var followApp: Bool
 
     @Parameter(title: "Cities")
     var cities: [WidgetCity]?
 
+    /// The city picker only appears when the toggle is off.
+    static var parameterSummary: some ParameterSummary {
+        When(\.$followApp, .equalTo, true) {
+            Summary {
+                \.$followApp
+            }
+        } otherwise: {
+            Summary {
+                \.$followApp
+                \.$cities
+            }
+        }
+    }
+
     /// The snapshot this widget draws: the app's (for 12/24-hour time), with this widget's own
-    /// cities when it has some.
+    /// cities when the toggle is off and some are chosen.
     func snapshot() -> WidgetSnapshot {
         var snapshot = WidgetSnapshot.load()
-        if let cities, !cities.isEmpty {
+        if !followApp, let cities, !cities.isEmpty {
             snapshot.cities = cities.map { .init(name: $0.name, timeZoneID: $0.timeZoneID) }
         }
         return snapshot

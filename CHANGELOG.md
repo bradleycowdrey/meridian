@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.13 · 26 October 2026
+
+- **Widget toggle: Use Meridian's Cities**: on (the default), a widget follows your list in Meridian; turn it off in **Edit Widget** to choose that widget's own cities. Widgets that already had their own cities need the toggle turned off once.
+
 ## 0.7.12 · 26 October 2026
 
 - **Labelled hours on small and medium widgets**: "−1 h", "Now" and "+1 h" above the three tiles, as on the large widget.

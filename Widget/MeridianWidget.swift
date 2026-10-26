@@ -18,7 +18,7 @@ struct ClockProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: ClockConfiguration, in context: Context) async -> ClockEntry {
-        ClockEntry(date: Date(), snapshot: context.isPreview && configuration.cities == nil ? .placeholder : configuration.snapshot())
+        ClockEntry(date: Date(), snapshot: context.isPreview && configuration.followApp ? .placeholder : configuration.snapshot())
     }
 
     /// One entry per minute for the next hour; the app also asks for a reload when cities change.

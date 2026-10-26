@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.12
+### What's new in 0.7.13
 
+- **Use Meridian's Cities** toggle in **Edit Widget**: follow the app's list, or turn it off to choose the widget's own cities.
 - **Labelled hours** on small and medium widgets: −1 h, Now, +1 h.
 - **Cleaner widgets**: each city shows the hour before, now and the hour after, with bigger times.
 - **Choose each widget's cities**: right-click a widget → **Edit Widget** (0.7.10).
@@ -63,7 +64,7 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 <p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small desktop widgets showing cities, times and day-and-night hour tiles"></p>
 
-Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities) and large (four cities), each showing the hour before, now and the hour after as day-and-night tiles. It follows the cities and order you set in the app, or right-click it and choose **Edit Widget** to pick its own cities. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
+Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities) and large (four cities), each showing the hour before, now and the hour after as day-and-night tiles. It follows the cities and order you set in the app, or right-click it, choose **Edit Widget** and turn off **Use Meridian's Cities** to pick its own. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
 
 ## Install (sideload)
 

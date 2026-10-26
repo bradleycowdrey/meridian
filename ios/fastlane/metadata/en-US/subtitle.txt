@@ -1,1 +1,1 @@
-World clock & meeting planner
+World clock for your cities

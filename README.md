@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.18
+### What's new in 0.7.19
 
+- **AM and PM, always**, Apple's style ("10:21 PM").
 - **"+1 d"** for tomorrow, everywhere.
 - **Less crowded**: two hours either side of now, with wider tiles.
 - **Hour labels in the panel** read −1 h, Now, +1 h, like the widgets.

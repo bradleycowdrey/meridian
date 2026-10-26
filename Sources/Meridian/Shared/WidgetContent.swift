@@ -288,9 +288,15 @@ struct WidgetClockView: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                                Text(Self.time(date, zone: zone, use24h: snapshot.use24h, compact: true))
+                                let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
+                                Text(clock)
                                     .font(.system(size: 24, weight: .medium))
                                     .monospacedDigit()
+                                if let suffix {
+                                    Text(suffix)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(WidgetTone.muted)
+                                }
                                 dayBadge(zone)
                             }
                             .lineLimit(1)
@@ -328,7 +334,7 @@ struct WidgetClockView: View {
             var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
             // Half-hour and 45-minute zones: "05:30" reads "05" + small ":30".
             if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(.system(size: 9, weight: .medium)) }
-            if !snapshot.use24h { text = text + Text(hour < 12 ? "a" : "p").font(.system(size: 9, weight: .medium)) }
+            if !snapshot.use24h { text = text + Text(hour < 12 ? "AM" : "PM").font(.system(size: 8, weight: .medium)) }
             return text
         }()
         return label
@@ -358,17 +364,13 @@ struct WidgetClockView: View {
         return ("\(hour % 12 == 0 ? 12 : hour % 12):\(String(format: "%02d", minute))", hour < 12 ? "AM" : "PM")
     }
 
-    /// "14:05", "2:05 PM", or "2:05p" where space is tight.
+    /// "14:05" or "2:05 PM" (AM and PM always spelled out, Apple's style).
     static func time(_ date: Date, zone: TimeZone, use24h: Bool, compact: Bool = false) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = zone
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = use24h ? "HH:mm" : (compact ? "h:mm" : "h:mm a")
-        let text = formatter.string(from: date)
-        guard !use24h, compact else { return text }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = zone
-        return text + (calendar.component(.hour, from: date) < 12 ? "a" : "p")
+        formatter.dateFormat = use24h ? "HH:mm" : "h:mm a"
+        return formatter.string(from: date)
     }
 
     static func dayShift(_ date: Date, zone: TimeZone) -> Int {

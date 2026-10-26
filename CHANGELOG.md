@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.19 · 26 October 2026
+
+- **AM and PM, always**: times and hour tiles show AM/PM the way Apple does (small capitals: "10:21 PM", "10 PM"), in the panel and every widget, instead of "10:21p" or "10pm".
+
 ## 0.7.18 · 26 October 2026
 
 - **"+1 d" everywhere**: the next or previous day reads "+1 d" / "−1 d" in the panel, the menu bar and the widgets.

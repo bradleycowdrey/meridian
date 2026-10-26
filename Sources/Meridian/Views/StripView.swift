@@ -300,15 +300,14 @@ private struct HourCell: View {
             main = String(format: "%02d", hour)
         } else {
             main = "\(hour % 12 == 0 ? 12 : hour % 12)"
-            suffix = hour < 12 ? "am" : "pm"
+            suffix = hour < 12 ? "AM" : "PM"   // Apple's style: capitals, set small
         }
         var text = Text(main)
         if minute != 0 {
             text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium))
-            // "12:30a": the short suffix keeps half-hour zones on one line.
-            if !suffix.isEmpty { suffix = String(suffix.prefix(1)) }
         }
-        if !suffix.isEmpty { text = text + Text(suffix).font(ui.font(10, .medium)) }
+        // Smaller still after half-hour minutes ("12:30AM"), so it stays on one line.
+        if !suffix.isEmpty { text = text + Text(suffix).font(ui.font(minute != 0 ? 8 : 9, .medium)) }
         return text
     }
 }

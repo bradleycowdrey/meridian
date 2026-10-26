@@ -359,7 +359,7 @@ struct HourStrip: View {
                 if store.use24h {
                     Text(String(format: "%02d", hour))
                 } else {
-                    Text("\(hour % 12 == 0 ? 12 : hour % 12)") + Text(hour < 12 ? "a" : "p").font(.system(size: 9, weight: .semibold))
+                    Text("\(hour % 12 == 0 ? 12 : hour % 12)") + Text(hour < 12 ? "AM" : "PM").font(.system(size: 8, weight: .semibold))
                 }
             }
             .font(.system(.footnote, weight: .medium))

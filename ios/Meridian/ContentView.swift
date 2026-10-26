@@ -15,93 +15,126 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    if store.places.isEmpty {
-                        emptyState
-                    }
-                    ForEach(store.places) { place in
-                        CityRow(place: place)
-                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                            .listRowBackground(Theme.bg)
-                            .listRowSeparatorTint(Theme.border)
-                            .contextMenu {
-                                Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
-                                Button { newName = place.name; renaming = place } label: { Label("Rename", systemImage: "pencil") }
-                                Button(role: .destructive) {
-                                    store.places.removeAll { $0.id == place.id }
-                                } label: { Label("Remove", systemImage: "trash") }
-                            }
-                            .accessibilityAction(named: "Copy Time") { copy(place) }
-                            .accessibilityAction(named: "Rename") { newName = place.name; renaming = place }
-                            .accessibilityAction(named: "Remove") { store.places.removeAll { $0.id == place.id } }
-                    }
-                } header: {
-                    // Pinned while the cities scroll underneath.
-                    MomentHeader(copied: copied) { showingDate = true }
-                        .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.bg)
-                        .listRowInsets(EdgeInsets())
-                        .textCase(nil)
-                } footer: {
-                    footer
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
-            .safeAreaInset(edge: .top, spacing: 0) { Theme.crimson.frame(height: 3) }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !store.places.isEmpty { TimeDial() }
-            }
-            .navigationTitle("Meridian")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Theme.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    ShareLink(item: Theme.appPage, subject: Text("Meridian"), message: Text(Theme.shareMessage)) {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .accessibilityLabel("Share Meridian")
-                }
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if !store.places.isEmpty { Button("Edit") { showingEdit = true } }
-                    Button { showingAdd = true } label: { Image(systemName: "plus") }
-                        .disabled(!store.canAdd)
-                        .accessibilityLabel("Add City")
-                    Menu {
-                        Button { showingDate = true } label: { Label("Go to Date…", systemImage: "calendar") }
-                        Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
-                            .disabled(store.places.isEmpty)
-                        ShareLink(item: store.momentText) { Label("Share This Moment", systemImage: "square.and.arrow.up") }
-                            .disabled(store.places.isEmpty)
-                        Divider()
-                        Toggle(isOn: $store.use24h) { Label("24-Hour Time", systemImage: "clock") }
-                        Button { showingSettings = true } label: { Label("Settings", systemImage: "gearshape") }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .accessibilityLabel("More")
-                }
-            }
+            screen
+        }
+        .tint(Theme.cream)
+    }
+
+    // The body is split into parts so the Swift compiler can type-check each one quickly.
+
+    private var screen: some View {
+        styledList
+            .toolbar { toolbarContent }
             .sheet(isPresented: $showingAdd) { AddCityView(query: Screenshots.screen == "add" ? "san" : "") }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingDate) { DateJumpView() }
             .sheet(isPresented: $showingEdit) { EditCitiesView() }
             // A tick per quarter-hour, a firmer one on each whole hour; only for the user's own moves.
-            .sensoryFeedback(trigger: store.userMoves) { _, _ in
-                store.onTheHour ? .impact(weight: .medium) : .selection
-            }
-            .alert("Rename City", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            .sensoryFeedback(trigger: store.userMoves) { _, _ in haptic }
+            .alert("Rename City", isPresented: isRenaming) {
                 TextField("Name", text: $newName)
                 Button("Cancel", role: .cancel) { renaming = nil }
-                Button("Rename") { if let place = renaming { store.rename(place, to: newName) }; renaming = nil }
+                Button("Rename") { finishRename() }
             }
             .task { await openScreenshotScreen() }
+    }
+
+    private var styledList: some View {
+        cityList
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.bg)
+            .safeAreaInset(edge: .top, spacing: 0) { Theme.crimson.frame(height: 3) }
+            .safeAreaInset(edge: .bottom, spacing: 0) { dial }
+            .navigationTitle("Meridian")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.bg, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+    }
+
+    @ViewBuilder private var dial: some View {
+        if !store.places.isEmpty { TimeDial() }
+    }
+
+    private var cityList: some View {
+        List {
+            Section {
+                if store.places.isEmpty {
+                    emptyState
+                }
+                ForEach(store.places) { place in
+                    row(place)
+                }
+            } header: {
+                // Pinned while the cities scroll underneath.
+                MomentHeader(copied: copied) { showingDate = true }
+                    .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.bg)
+                    .listRowInsets(EdgeInsets())
+                    .textCase(nil)
+            } footer: {
+                footer
+            }
         }
-        .tint(Theme.cream)
+    }
+
+    private func row(_ place: Place) -> some View {
+        CityRow(place: place)
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .listRowBackground(Theme.bg)
+            .listRowSeparatorTint(Theme.border)
+            .contextMenu {
+                Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
+                Button { newName = place.name; renaming = place } label: { Label("Rename", systemImage: "pencil") }
+                Button(role: .destructive) {
+                    store.places.removeAll { $0.id == place.id }
+                } label: { Label("Remove", systemImage: "trash") }
+            }
+            .accessibilityAction(named: "Copy Time") { copy(place) }
+            .accessibilityAction(named: "Rename") { newName = place.name; renaming = place }
+            .accessibilityAction(named: "Remove") { store.places.removeAll { $0.id == place.id } }
+    }
+
+    @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            ShareLink(item: Theme.appPage, subject: Text("Meridian"), message: Text(Theme.shareMessage)) {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .accessibilityLabel("Share Meridian")
+        }
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if !store.places.isEmpty { Button("Edit") { showingEdit = true } }
+            Button { showingAdd = true } label: { Image(systemName: "plus") }
+                .disabled(!store.canAdd)
+                .accessibilityLabel("Add City")
+            Menu {
+                Button { showingDate = true } label: { Label("Go to Date…", systemImage: "calendar") }
+                Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
+                    .disabled(store.places.isEmpty)
+                ShareLink(item: store.momentText) { Label("Share This Moment", systemImage: "square.and.arrow.up") }
+                    .disabled(store.places.isEmpty)
+                Divider()
+                Toggle(isOn: $store.use24h) { Label("24-Hour Time", systemImage: "clock") }
+                Button { showingSettings = true } label: { Label("Settings", systemImage: "gearshape") }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .accessibilityLabel("More")
+        }
+    }
+
+    private var haptic: SensoryFeedback {
+        store.onTheHour ? .impact(weight: .medium) : .selection
+    }
+
+    private var isRenaming: Binding<Bool> {
+        Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
+    }
+
+    private func finishRename() {
+        if let place = renaming { store.rename(place, to: newName) }
+        renaming = nil
     }
 
     private var emptyState: some View {

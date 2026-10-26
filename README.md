@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.17
+### What's new in 0.7.18
 
+- **"+1 d"** for tomorrow, everywhere.
 - **Less crowded**: two hours either side of now, with wider tiles.
 - **Hour labels in the panel** read −1 h, Now, +1 h, like the widgets.
 - **Large widget labels** read −1 h, Now, +1 h.
@@ -55,7 +56,7 @@ instant everywhere, so the line through the middle is *now*.
 - **Copy the moment**: one click copies the selected time for every city, ready to paste into a chat or invite.
 - **Easy to manage**: **Add** opens search right in the panel; **Edit** shows a delete button and a drag handle on every city.
 - **Fast search**: city names, airport codes (`SFO`, `LHR`), abbreviations (`PST`, `CET`) or offsets (`UTC+5:30`).
-- **The details**: day-change markers, half-hour and 45-minute zones, a `+1 day` badge, 12/24-hour time, custom city names, drag to reorder.
+- **The details**: day-change markers, half-hour and 45-minute zones, a `+1 d` badge, 12/24-hour time, custom city names, drag to reorder.
 - **Desktop widget**: small, medium and large widgets for the desktop or Notification Center, small shows one city, medium two, large four with the day/night tiles; right-click a widget → **Edit Widget** to choose its cities. Right-click the desktop → **Edit Widgets** → search **Meridian**.
 - **Menu bar first**: show an icon, or a city and its time (`LON 14:32`). Open it as a desktop window that can float above everything.
 - **Five sizes** (Extra Small to Extra Large, ⌘+ / ⌘−) and a choice of **SF Pro** or **Inter**, the typeface of bradcowdrey.com.

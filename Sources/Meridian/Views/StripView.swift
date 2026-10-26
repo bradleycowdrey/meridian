@@ -186,7 +186,7 @@ private struct PlaceLabel: View {
                         .foregroundStyle(Palette.textSecondary)
                         .monospacedDigit()
                     if shift != 0 {
-                        Text(shift > 0 ? "+\(shift) day" : "−\(-shift) day")
+                        Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
                             .font(ui.font(11, .medium))
                             .foregroundStyle(Palette.cream)
                             .padding(.horizontal, ui.pt(7))

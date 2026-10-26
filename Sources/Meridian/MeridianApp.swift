@@ -61,9 +61,9 @@ struct MenuBarLabel: View {
         // A trailing dot in the menu bar whenever an update is waiting.
         let dot = updater.latest == nil ? "" : " •"
         if store.menuBarStyle == .cityTime, let place = store.menuBarPlace {
-            // "+1" / "−1" when that city is already on tomorrow / still on yesterday.
+            // "+1 d" / "−1 d" when that city is already on tomorrow / still on yesterday.
             let shift = TimeMath.dayShift(store.now, zone: place.timeZone)
-            let day = shift > 0 ? " +\(shift)" : (shift < 0 ? " −\(-shift)" : "")
+            let day = shift > 0 ? " +\(shift) d" : (shift < 0 ? " −\(-shift) d" : "")
             Text("\(place.tag) \(TimeMath.time(store.now, in: place.timeZone, use24h: store.use24h))\(day)\(dot)")
                 .monospacedDigit()
         } else if dot.isEmpty {

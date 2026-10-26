@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.18 · 26 October 2026
+
+- **"+1 d" everywhere**: the next or previous day reads "+1 d" / "−1 d" in the panel, the menu bar and the widgets.
+
 ## 0.7.17 · 26 October 2026
 
 - **Less crowded**: the panel and window show two hours either side of now (−2 h to +2 h), with wider tiles.

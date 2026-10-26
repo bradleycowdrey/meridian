@@ -240,7 +240,7 @@ struct WidgetClockView: View {
     @ViewBuilder private func dayBadge(_ zone: TimeZone) -> some View {
         let shift = Self.dayShift(date, zone: zone)
         if shift != 0 {
-            Text(shift > 0 ? "+\(shift)" : "−\(-shift)")
+            Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(WidgetTone.muted)
         }
@@ -401,7 +401,7 @@ struct AccessoryClockView: View {
     }
     private func shift(_ city: WidgetSnapshot.City) -> String {
         let d = WidgetClockView.dayShift(date, zone: zone(city))
-        return d == 0 ? "" : (d > 0 ? " +\(d)" : " −\(-d)")
+        return d == 0 ? "" : (d > 0 ? " +\(d) d" : " −\(-d) d")
     }
     /// The first city that isn't the phone's own time zone, if any; otherwise the first city.
     private var featured: WidgetSnapshot.City? {

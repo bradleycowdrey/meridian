@@ -366,7 +366,7 @@
 
     $("labels").innerHTML = '<div class="spacer"></div>' + cities.map(([name, tz], idx) => {
       const p = parts(moment, tz), there = dayKey(moment, tz), here = dayKey(moment, local);
-      const tail = there === here ? `<i>${p.timeZoneName.replace("GMT", "UTC").replace("-", "−")}</i>` : `<b>${there > here ? "+1 day" : "−1 day"}</b>`;
+      const tail = there === here ? `<i>${p.timeZoneName.replace("GMT", "UTC").replace("-", "−")}</i>` : `<b>${there > here ? "+1 d" : "−1 d"}</b>`;
       return `<div class="lrow" data-idx="${idx}">${editing ? '<span class="handle" title="Drag to reorder">≡</span>' : ""}` +
         `<div class="txt"><div class="name">${esc(name)}</div><div class="meta">${pad(p.hour)}:${p.minute}${tail}</div></div>` +
         `${editing ? `<button class="del" data-del="${idx}" aria-label="Remove ${esc(name)}">−</button>` : ""}</div>`;
@@ -409,7 +409,7 @@
     const now = new Date(), anchor = new Date(now); anchor.setMinutes(0, 0, 0);
     const here = dayKey(now, local);
     const shift = tz => { const t = dayKey(now, tz); return t === here ? 0 : (t > here ? 1 : -1); };
-    const badge = tz => { const d = shift(tz); return d ? `<span class="bd">${d > 0 ? "+1" : "−1"}</span>` : ""; };
+    const badge = tz => { const d = shift(tz); return d ? `<span class="bd">${d > 0 ? "+1 d" : "−1 d"}</span>` : ""; };
     const time = tz => { const p = parts(now, tz); return `${pad(p.hour)}:${p.minute}`; };
     // "GMT+5:30" -> 330, "GMT-4" -> -240, "GMT" -> 0
     const offsetMin = tz => { const m = /([+-])(\d+)(?::(\d+))?/.exec(parts(now, tz).timeZoneName);

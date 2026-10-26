@@ -45,6 +45,13 @@ jobs:
           else
             echo "IS_TAG=false" >> "$GITHUB_ENV"; echo "Screenshots only"
           fi
+      - name: Use Xcode 26 (the App Store requires the iOS 26 SDK)
+        run: |
+          mkdir -p "$OUT"
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$X" ]; then echo "No Xcode 26 on this runner"; ls -d /Applications/Xcode*.app; exit 1; fi
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version | tee "$OUT/xcode.txt"
       - name: Generate the Xcode project
         run: brew install xcodegen && cd ios && xcodegen && mkdir -p "$OUT"
 
@@ -57,7 +64,7 @@ jobs:
             -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$OUT/simulator-build.log" | grep -E "error:|BUILD"
           APP=build/Build/Products/Debug-iphonesimulator/Meridian.app; ID=com.bradcowdrey.meridian
-          DEVICE=$(xcrun simctl list devices available | grep -m1 "iPhone 16 Pro Max (" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          DEVICE=$(xcrun simctl list devices available | grep -m1 -E "iPhone 1[6-9] Pro Max \(" | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
           echo "device: $(xcrun simctl list devices | grep "$DEVICE")" > "$OUT/device.txt"
           xcrun simctl boot "$DEVICE"; xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl ui "$DEVICE" appearance dark

@@ -183,7 +183,7 @@ struct WidgetClockView: View {
                 .foregroundStyle(WidgetTone.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(clock)
                     .font(.system(size: timeSize, weight: .medium))
                     .monospacedDigit()
@@ -287,7 +287,7 @@ struct WidgetClockView: View {
                                 .foregroundStyle(WidgetTone.secondary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
-                            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
                                 Text(clock)
                                     .font(.system(size: 24, weight: .medium))
@@ -334,7 +334,7 @@ struct WidgetClockView: View {
             var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
             // Half-hour and 45-minute zones: "05:30" reads "05" + small ":30".
             if minute != 0 { text = text + Text(":\(String(format: "%02d", minute))").font(.system(size: 9, weight: .medium)) }
-            if !snapshot.use24h { text = text + Text(hour < 12 ? "AM" : "PM").font(.system(size: 8, weight: .medium)) }
+            if !snapshot.use24h { text = text + Text("\u{2009}" + (hour < 12 ? "AM" : "PM")).font(.system(size: 8, weight: .medium)) }
             return text
         }()
         return label

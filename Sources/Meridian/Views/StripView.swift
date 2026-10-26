@@ -307,7 +307,8 @@ private struct HourCell: View {
             text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium))
         }
         // Smaller still after half-hour minutes ("12:30AM"), so it stays on one line.
-        if !suffix.isEmpty { text = text + Text(suffix).font(ui.font(minute != 0 ? 8 : 9, .medium)) }
+        // A thin space (not a full one) between the number and AM/PM.
+        if !suffix.isEmpty { text = text + Text("\u{2009}" + suffix).font(ui.font(minute != 0 ? 8 : 9, .medium)) }
         return text
     }
 }

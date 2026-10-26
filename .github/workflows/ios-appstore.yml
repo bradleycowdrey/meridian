@@ -9,7 +9,7 @@ name: iPhone App Store
 #   ios/APPSTORE changed to "1.0.0 test": the same, without submitting for review.
 # Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's contents, Admin role),
 #          IOS_DIST_P12, IOS_DIST_P12_PASSWORD (Apple Distribution certificate, base64 .p12),
-#          APP_REVIEW_EMAIL, APP_REVIEW_PHONE (App Review's contact; not shown on the store).
+#          APP_REVIEW_EMAIL, APP_REVIEW_PHONE (optional; ios/fastlane/metadata/review_information has them).
 on:
   push:
     branches: [main]
@@ -137,8 +137,9 @@ jobs:
           import os
           for name in ("email_address", "phone_number"):
               value = os.environ.get("APP_REVIEW_" + name.split("_")[0].upper(), "")
-              if value:
-                  open(f"fastlane/metadata/review_information/{name}.txt", "w").write(value)
+              path = f"fastlane/metadata/review_information/{name}.txt"
+              if value and not os.path.exists(path):   # the committed contact details win
+                  open(path, "w").write(value)
           PY
           set -o pipefail
           fastlane upload version:"$VERSION" ipa:"$IPA" submit:"$SUBMIT" 2>&1 \
@@ -150,7 +151,6 @@ jobs:
         run: |
           rm -f ios/fastlane/api_key.json
           cp -R ios/fastlane/metadata "$OUT/metadata"
-          rm -f "$OUT"/metadata/review_information/{email_address,phone_number}.txt
           cd "$OUT"
           echo "$GITHUB_SHA $GITHUB_REF_NAME release=$IS_TAG ${VERSION:-} submit=${SUBMIT:-}" > commit.txt
           git init -q -b ci-appstore

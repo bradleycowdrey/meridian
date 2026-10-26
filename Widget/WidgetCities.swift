@@ -60,6 +60,27 @@ struct WidgetCityQuery: EntityStringQuery {
     }
 }
 
+/// Read-only, in Edit Widget while "Use Meridian's Cities" is on: its name is your current list
+/// in Meridian ("London, Tokyo, Dubai"), so the editor shows which cities the widget follows.
+struct AppCities: AppEntity {
+    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Meridian's Cities"
+    static var defaultQuery = AppCitiesQuery()
+
+    var id: String { "meridian" }
+
+    var displayRepresentation: DisplayRepresentation {
+        let names = WidgetSnapshot.load().cities.map(\.name)
+        return DisplayRepresentation(title: "\(names.isEmpty ? "No cities yet" : names.joined(separator: ", "))",
+                                     subtitle: "Change them in Meridian")
+    }
+}
+
+struct AppCitiesQuery: EntityQuery {
+    func entities(for identifiers: [String]) async throws -> [AppCities] { [AppCities()] }
+    func suggestedEntities() async throws -> [AppCities] { [AppCities()] }
+    func defaultResult() async -> AppCities? { AppCities() }
+}
+
 struct ClockConfiguration: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Cities"
     static var description = IntentDescription("Show the cities from Meridian, or choose this widget's own.")
@@ -67,14 +88,18 @@ struct ClockConfiguration: WidgetConfigurationIntent {
     @Parameter(title: "Use Meridian's Cities", default: true)
     var followApp: Bool
 
+    @Parameter(title: "Showing")
+    var appCities: AppCities?
+
     @Parameter(title: "Cities")
     var cities: [WidgetCity]?
 
-    /// The city picker only appears when the toggle is off.
+    /// On: the toggle and, read-only, the cities it follows. Off: the toggle and the city picker.
     static var parameterSummary: some ParameterSummary {
         When(\.$followApp, .equalTo, true) {
             Summary {
                 \.$followApp
+                \.$appCities
             }
         } otherwise: {
             Summary {

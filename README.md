@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.11
+### What's new in 0.7.12
 
+- **Labelled hours** on small and medium widgets: −1 h, Now, +1 h.
 - **Cleaner widgets**: each city shows the hour before, now and the hour after, with bigger times.
 - **Choose each widget's cities**: right-click a widget → **Edit Widget** (0.7.10).
 - **Bigger, clearer widgets**: small shows one city, medium two, large four (0.7.10).

@@ -200,18 +200,24 @@ struct WidgetClockView: View {
                 .foregroundStyle(WidgetTone.faint)
                 .lineLimit(1)
             Spacer(minLength: 6)
-            // The hour before, now (outlined) and the hour after.
+            // The hour before, now (outlined) and the hour after, each labelled.
             HStack(spacing: 4) {
                 ForEach(-1...1, id: \.self) { k in
-                    tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
-                        .overlay {
-                            if k == 0 {
-                                RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(WidgetTone.cream, lineWidth: 1.5)
+                    VStack(spacing: 3) {
+                        Text(k == 0 ? "Now" : (k > 0 ? "+1 h" : "−1 h"))
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(k == 0 ? WidgetTone.cream : WidgetTone.faint)
+                            .lineLimit(1)
+                        tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
+                            .frame(height: 24)
+                            .overlay {
+                                if k == 0 {
+                                    RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(WidgetTone.cream, lineWidth: 1.5)
+                                }
                             }
-                        }
+                    }
                 }
             }
-            .frame(height: 24)
         }
     }
 

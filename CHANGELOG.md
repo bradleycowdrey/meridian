@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.7.12 · 26 October 2026
+
+- **Labelled hours on small and medium widgets**: "−1 h", "Now" and "+1 h" above the three tiles, as on the large widget.
+
 ## 0.7.11 · 25 October 2026
 
 - **Cleaner widgets**: every size shows each city's hour before, now and the hour after (instead of three hours either side), so the large widget has room for bigger times and full city names.

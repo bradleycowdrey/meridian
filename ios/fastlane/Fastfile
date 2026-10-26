@@ -1,6 +1,9 @@
 # App Store build, upload and submission for the iPhone app, run by
 # .github/workflows/ios-appstore.yml. Uses an App Store Connect API key (api_key.json, written by
 # the workflow from GitHub secrets) and the Apple Distribution certificate the workflow imports.
+require "net/http"
+require "json"
+
 default_platform(:ios)
 
 API_KEY = "fastlane/api_key.json"
@@ -35,6 +38,16 @@ platform :ios do
   # Uploads the build, screenshots and listing; submits for review when submit is true.
   lane :upload do |options|
     ensure_review_detail
+    prepare_app_store
+    begin
+      upload_listing(options)
+    rescue StandardError => e
+      explain_submission
+      raise e
+    end
+  end
+
+  private_lane :upload_listing do |options|
     upload_to_app_store(
       api_key_path: API_KEY,
       app_identifier: "com.bradcowdrey.meridian",
@@ -84,5 +97,119 @@ platform :ios do
       version.create_app_store_review_detail(attributes: attributes)
       UI.success("Created App Review details")
     end
+  end
+  # --- App Store Connect API (plain requests, for settings fastlane doesn't cover) ---------------
+
+  BUNDLE_ID = "com.bradcowdrey.meridian"
+
+  def asc(method, path, body = nil)
+    uri = URI("https://api.appstoreconnect.apple.com/#{path}")
+    request = Net::HTTP.const_get(method.to_s.capitalize).new(uri)
+    request["Authorization"] = "Bearer #{Spaceship::ConnectAPI.token.text}"
+    request["Content-Type"] = "application/json"
+    request.body = body.to_json if body
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(request) }
+    [response.code.to_i, (JSON.parse(response.body) rescue {})]
+  end
+
+  def asc_app_id
+    _, apps = asc(:get, "v1/apps?filter[bundleId]=#{BUNDLE_ID}")
+    apps.dig("data", 0, "id")
+  end
+
+  def report(label, code, body)
+    if code.between?(200, 299)
+      UI.success("#{label}: done")
+    else
+      UI.important("#{label}: #{code} #{(body["errors"] || []).map { |e| e["detail"] || e["title"] }.join("; ")}")
+    end
+  end
+
+  # Content rights, age rating (4+), price (Free) and availability (everywhere): the settings a
+  # first submission needs that the listing upload doesn't set. Each one is skipped quietly if
+  # it's already set.
+  private_lane :prepare_app_store do
+    sign_in_api
+    app = asc_app_id
+    UI.user_error!("No app with bundle ID #{BUNDLE_ID} in App Store Connect") unless app
+
+    code, body = asc(:patch, "v1/apps/#{app}", { data: { type: "apps", id: app,
+      attributes: { contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT" } } })
+    report("Content rights", code, body)
+
+    _, infos = asc(:get, "v1/apps/#{app}/appInfos")
+    info = (infos["data"] || []).find { |i| i.dig("attributes", "appStoreState") != "READY_FOR_SALE" } || (infos["data"] || []).first
+    if info
+      _, declaration = asc(:get, "v1/appInfos/#{info["id"]}/ageRatingDeclaration")
+      id = declaration.dig("data", "id")
+      none = %w[alcoholTobaccoOrDrugUseOrReferences contests gamblingSimulated horrorOrFearThemes
+                matureOrSuggestiveThemes medicalOrTreatmentInformation profanityOrCrudeHumor
+                sexualContentGraphicAndNudity sexualContentOrNudity violenceCartoonOrFantasy
+                violenceRealistic violenceRealisticProlongedGraphicOrSadistic gunsOrOtherWeapons]
+      no = %w[gambling unrestrictedWebAccess lootBox messagingAndChat parentalControls ageAssurance
+              userGeneratedContent healthOrWellnessTopics advertising]
+      attributes = none.to_h { |k| [k, "NONE"] }.merge(no.to_h { |k| [k, false] })
+      code, body = asc(:patch, "v1/ageRatingDeclarations/#{id}", { data: { type: "ageRatingDeclarations", id: id, attributes: attributes } })
+      if !code.between?(200, 299)
+        # Fall back to the long-standing questions if this API version doesn't know the newer ones.
+        known = attributes.reject { |k, _| %w[gunsOrOtherWeapons lootBox messagingAndChat parentalControls ageAssurance userGeneratedContent healthOrWellnessTopics advertising].include?(k) }
+        code, body = asc(:patch, "v1/ageRatingDeclarations/#{id}", { data: { type: "ageRatingDeclarations", id: id, attributes: known } })
+      end
+      report("Age rating", code, body)
+    end
+
+    _, points = asc(:get, "v1/apps/#{app}/appPricePoints?filter[territory]=USA&limit=200")
+    free = (points["data"] || []).find { |p| p.dig("attributes", "customerPrice").to_f.zero? }
+    if free
+      code, body = asc(:post, "v1/appPriceSchedules", {
+        data: { type: "appPriceSchedules", relationships: {
+          app: { data: { type: "apps", id: app } },
+          baseTerritory: { data: { type: "territories", id: "USA" } },
+          manualPrices: { data: [{ type: "appPrices", id: "${free}" }] } } },
+        included: [{ type: "appPrices", id: "${free}", attributes: { startDate: nil },
+          relationships: { appPricePoint: { data: { type: "appPricePoints", id: free["id"] } } } }] })
+      report("Price (Free)", code, body)
+    end
+
+    _, territories = asc(:get, "v1/territories?limit=200")
+    ids = (territories["data"] || []).map { |t| t["id"] }
+    code, body = asc(:post, "v2/appAvailabilities", {
+      data: { type: "appAvailabilities", attributes: { availableInNewTerritories: true }, relationships: {
+        app: { data: { type: "apps", id: app } },
+        territoryAvailabilities: { data: ids.map { |t| { type: "territoryAvailabilities", id: "${#{t}}" } } } } },
+      included: ids.map { |t| { type: "territoryAvailabilities", id: "${#{t}}", attributes: { available: true },
+        relationships: { territory: { data: { type: "territories", id: t } } } } } })
+    report("Availability (all countries)", code, body)
+  end
+
+  # If App Store Connect refuses the submission, ask it why and print every reason.
+  private_lane :explain_submission do
+    sign_in_api
+    app = asc_app_id
+    _, versions = asc(:get, "v1/apps/#{app}/appStoreVersions?filter[platform]=IOS&filter[appStoreState]=PREPARE_FOR_SUBMISSION")
+    version = versions.dig("data", 0, "id")
+    _, submissions = asc(:get, "v1/apps/#{app}/reviewSubmissions?filter[platform]=IOS&filter[state]=READY_FOR_REVIEW,UNRESOLVED_ISSUES")
+    submission = submissions.dig("data", 0, "id")
+    unless submission
+      code, created = asc(:post, "v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "IOS" },
+        relationships: { app: { data: { type: "apps", id: app } } } } })
+      submission = created.dig("data", "id")
+    end
+    code, body = asc(:post, "v1/reviewSubmissionItems", { data: { type: "reviewSubmissionItems", relationships: {
+      reviewSubmission: { data: { type: "reviewSubmissions", id: submission } },
+      appStoreVersion: { data: { type: "appStoreVersions", id: version } } } } })
+    UI.important("Why App Store Connect won't take the submission (#{code}):")
+    (body["errors"] || []).each do |e|
+      UI.important("- #{e["detail"] || e["title"]}")
+      (e.dig("meta", "associatedErrors") || {}).each do |_, list|
+        list.each { |a| UI.important("    * #{a["detail"] || a["title"]} (#{a["code"]})") }
+      end
+    end
+  end
+
+  private_lane :sign_in_api do
+    root = File.basename(Dir.pwd) == "fastlane" ? File.dirname(Dir.pwd) : Dir.pwd
+    key = JSON.parse(File.read(File.join(root, API_KEY)))
+    app_store_connect_api_key(key_id: key["key_id"], issuer_id: key["issuer_id"], key_content: key["key"])
   end
 end

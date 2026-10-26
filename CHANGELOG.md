@@ -6,6 +6,7 @@ version is out. You can also choose ⋯ → **Check for Updates**, or download t
 
 ## 0.7.14 · 26 October 2026
 
+- **Large widget**: column labels read "−1 h", "Now", "+1 h", like the small and medium widgets.
 - **Edit Widget shows the cities it follows**: with **Use Meridian's Cities** on, a **Showing** row lists your cities from Meridian.
 
 ## 0.7.13 · 26 October 2026

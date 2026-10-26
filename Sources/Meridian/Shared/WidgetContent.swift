@@ -269,7 +269,7 @@ struct WidgetClockView: View {
                         .foregroundStyle(WidgetTone.faint)
                         .frame(width: labelWidth, alignment: .leading)
                     ForEach(-half...half, id: \.self) { k in
-                        Text(k == 0 ? "Now" : (k > 0 ? "+\(k)" : "−\(-k)"))
+                        Text(k == 0 ? "Now" : (k > 0 ? "+\(k) h" : "−\(-k) h"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(k == 0 ? WidgetTone.cream : WidgetTone.faint)
                             .monospacedDigit()

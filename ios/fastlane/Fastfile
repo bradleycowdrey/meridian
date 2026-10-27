@@ -98,6 +98,42 @@ platform :ios do
       UI.success("Created App Review details")
     end
   end
+  # TestFlight: an internal testing group with every build, and every App Store Connect user of
+  # the team in it, so the builds appear in the TestFlight app on their iPhones.
+  lane :beta_access do
+    sign_in_api
+    app = asc_app_id
+    _, groups = asc(:get, "v1/apps/#{app}/betaGroups")
+    group = (groups["data"] || []).find { |g| g.dig("attributes", "isInternalGroup") }
+    unless group
+      code, created = asc(:post, "v1/betaGroups", { data: { type: "betaGroups",
+        attributes: { name: "Meridian team", isInternalGroup: true, hasAccessToAllBuilds: true },
+        relationships: { app: { data: { type: "apps", id: app } } } } })
+      report("Internal testing group", code, created)
+      group = created["data"]
+    end
+    UI.user_error!("No internal testing group") unless group
+    _, users = asc(:get, "v1/users?limit=50")
+    (users["data"] || []).each do |user|
+      attrs = user["attributes"]
+      name = "#{attrs["firstName"]} #{attrs["lastName"]}"
+      code, body = asc(:post, "v1/betaTesters", { data: { type: "betaTesters",
+        attributes: { email: attrs["username"], firstName: attrs["firstName"], lastName: attrs["lastName"] },
+        relationships: { betaGroups: { data: [{ type: "betaGroups", id: group["id"] }] } } } })
+      if code == 409
+        _, found = asc(:get, "v1/betaTesters?filter[email]=#{URI.encode_www_form_component(attrs["username"])}")
+        tester = found.dig("data", 0, "id")
+        code, body = asc(:post, "v1/betaGroups/#{group["id"]}/relationships/betaTesters",
+                         { data: [{ type: "betaTesters", id: tester }] }) if tester
+      end
+      report("TestFlight tester #{name}", code, body)
+    end
+    _, builds = asc(:get, "v1/builds?filter[app]=#{app}&sort=-uploadedDate&limit=3")
+    (builds["data"] || []).each do |b|
+      UI.message("Build #{b.dig("attributes", "version")}: #{b.dig("attributes", "processingState")}")
+    end
+  end
+
   # --- App Store Connect API (plain requests, for settings fastlane doesn't cover) ---------------
 
   BUNDLE_ID = "com.bradcowdrey.meridian"

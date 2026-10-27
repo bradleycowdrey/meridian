@@ -1,1 +1,9 @@
-Meridian is a free world clock. No account or sign-in. On first launch, tap I Agree on the Terms screen. Tap + to add a city, the arrows to step through hours, and Edit to reorder or remove cities. The widgets read the cities from the app through an App Group.
+Purpose and audience: Meridian is a free world clock for anyone who works, travels or keeps in touch across time zones (remote teams, freelancers with overseas clients, travellers, families abroad). It shows the time in each of your cities as a row of hours, light by day and dark by night, so you can see who is awake and find a meeting time that works for everyone.
+
+How to use it: No account, login or setup. On first launch, tap I Agree on the Terms screen. The app opens with your own city plus New York, London and Tokyo. Drag sideways across any city's hours (or the dial at the bottom) to move through time; tap Now to return. Tap the date to jump to any day. Tap + to add a city (search by city, airport code like SFO, time zone like PST, or offset like UTC+5:30). Tap Edit to remove, reorder or rename cities. Touch and hold a city to copy its time. The More menu shares or copies the moment, and opens Settings (12/24-hour time, working hours). Widgets: Home Screen (small, medium, large) and Lock Screen; the widgets read the cities from the app through an App Group, and Edit Widget can choose different cities.
+
+External services: None. Meridian makes no network requests. Times come from the iPhone's own time zone database. Links (bradcowdrey.com, Terms, source code) open in Safari; Share uses the standard share sheet.
+
+Regions: Meridian works the same in every region. It follows the phone's region only for 12- or 24-hour time, which the user can change in Settings.
+
+Regulation and third-party material: Not a regulated industry, and no protected third-party material. City and time zone names come from the standard time zone database built into iOS. No data is collected; no ads; no in-app purchases; no user accounts or user-generated content.

@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The whole app on one screen: the moment you're looking at, one row per city (its time, big,
-/// over a strip of its day-and-night hours) and the time dial at the bottom. Drag the dial or any
-/// strip sideways to move through time in quarter-hours; tap the date to jump to any day.
+/// The whole app on one screen: the moment you're looking at, one row per city (its time, large,
+/// over a slim day-and-night bar of its hours) and the time dial at the bottom. Drag the dial or
+/// any bar sideways to move through time in quarter-hours; tap the date to jump to any day.
 struct ContentView: View {
     @EnvironmentObject private var store: CityStore
     @State private var showingEdit = false
@@ -68,7 +68,7 @@ struct ContentView: View {
             } header: {
                 // Pinned while the cities scroll underneath.
                 MomentHeader(copied: copied) { showingDate = true }
-                    .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 10)
+                    .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Theme.bg)
                     .listRowInsets(EdgeInsets())
@@ -81,7 +81,7 @@ struct ContentView: View {
 
     private func row(_ place: Place) -> some View {
         CityRow(place: place)
-            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            .listRowInsets(EdgeInsets(top: 14, leading: 20, bottom: 14, trailing: 20))
             .listRowBackground(Theme.bg)
             .listRowSeparatorTint(Theme.border)
             .contextMenu {
@@ -189,8 +189,9 @@ struct ContentView: View {
     }
 }
 
-/// "Now, your time" (or how far you've travelled) and the selected moment, which opens the date
-/// picker; then whether every city is in working hours.
+/// The moment you're looking at: a small "NOW" (or "IN 4 HR 20 MIN") over the date and time,
+/// which opens the date picker; a Now button when you've moved; and the meeting planner as one
+/// quiet line.
 private struct MomentHeader: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -198,20 +199,40 @@ private struct MomentHeader: View {
     let pickDate: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                if store.isNow { Circle().fill(Theme.crimson).frame(width: 7, height: 7) }
-                Text(copied ? "Copied" : relative)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(store.isNow ? Theme.muted : Theme.cream)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                Button(action: pickDate) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            if store.isNow { Circle().fill(Theme.crimson).frame(width: 6, height: 6) }
+                            Text(copied ? "COPIED" : relative.uppercased())
+                                .font(.caption.weight(.semibold))
+                                .tracking(0.8)
+                                .foregroundStyle(store.isNow ? Theme.muted : Theme.cream)
+                                .contentTransition(.numericText())
+                        }
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(TimeMath.fullMoment(store.moment, in: .current, use24h: store.use24h))
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(Theme.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .contentTransition(.numericText())
+                            Image(systemName: "chevron.down")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Theme.faint)
+                        }
+                    }
                     .monospacedDigit()
-                    .contentTransition(.numericText())
-                Spacer()
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Choose a date and time")
+                Spacer(minLength: 0)
                 if !store.isNow {
                     Button { store.backToNow() } label: {
                         Text("Now")
                             .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16).frame(height: 30)
+                            .padding(.horizontal, 16).frame(height: 32)
                             .background(Capsule().fill(Theme.cream))
                             .foregroundStyle(Theme.bg)
                     }
@@ -220,40 +241,22 @@ private struct MomentHeader: View {
                     .accessibilityLabel("Back to now")
                 }
             }
-            .frame(height: 30)
-
-            Button(action: pickDate) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(TimeMath.fullMoment(store.moment, in: .current, use24h: store.use24h))
-                        .font(.system(.title, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .contentTransition(.numericText())
-                    Image(systemName: "calendar")
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(Theme.muted)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("Choose a date and time")
-
             if let overlap {
                 HStack(spacing: 6) {
-                    Image(systemName: store.outsideWorkHours.isEmpty ? "checkmark.circle.fill" : "moon.zzz")
+                    Image(systemName: store.outsideWorkHours.isEmpty ? "checkmark.circle.fill" : "moon.zzz.fill")
                         .foregroundStyle(store.outsideWorkHours.isEmpty ? Theme.cream : Theme.faint)
-                    Text(overlap).foregroundStyle(Theme.muted).lineLimit(typeSize.isAccessibilitySize ? 3 : 1)
+                    Text(overlap).foregroundStyle(Theme.secondary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1)
                 }
                 .font(.footnote)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Capsule().fill(Theme.tile))
             }
-            if !store.places.isEmpty { HourLabels().padding(.top, 6) }
         }
     }
 
     private var relative: String {
-        if store.isNow { return "Now, your time" }
-        // From the real time now, to the nearest 5 minutes ("In 4 h 20 min").
+        if store.isNow { return "Now" }
+        // From the real time now, to the nearest 5 minutes ("In 4 hr 20 min").
         let total = Int((store.moment.timeIntervalSince(store.now) / 300).rounded()) * 5
         if total == 0 { return "Now" }
         let days = abs(total) / 1440, hours = abs(total) % 1440 / 60, minutes = abs(total) % 60
@@ -273,11 +276,12 @@ private struct MomentHeader: View {
     }
 }
 
-/// One city: its name and how it relates to you, its time at the selected moment, and its hours.
+/// One city, in the manner of Apple's Clock: how it relates to you and its name on the left, its
+/// time large and light on the right; then a slim day-and-night bar of its hours.
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 40
     let place: Place
 
     var body: some View {
@@ -286,24 +290,25 @@ struct CityRow: View {
         let hour = cal.component(.hour, from: moment), minute = cal.component(.minute, from: moment)
         // Side by side normally; stacked at accessibility text sizes so nothing is cut off.
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-                                                  : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
-        VStack(alignment: .leading, spacing: 8) {
+                                                  : AnyLayout(HStackLayout(alignment: .lastTextBaseline, spacing: 8))
+        VStack(alignment: .leading, spacing: 12) {
             layout {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(place.name)
-                        .font(.headline)
-                        .foregroundStyle(Theme.primary)
                     Text(detail(moment))
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)
                         .monospacedDigit()
+                    Text(place.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Theme.primary)
                 }
                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
                 clock(hour: hour, minute: minute)
             }
-            HourStrip(place: place)
+            DayBar(place: place)
         }
+        .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(place.name), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))")
     }
@@ -312,12 +317,12 @@ struct CityRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(store.use24h ? String(format: "%02d:%02d", hour, minute)
                               : "\(hour % 12 == 0 ? 12 : hour % 12):\(String(format: "%02d", minute))")
-                .font(.system(size: clockSize, weight: .medium))
+                .font(.system(size: clockSize, weight: .light))
                 .foregroundStyle(Theme.primary)
                 .contentTransition(.numericText())
             if !store.use24h {
                 Text(hour < 12 ? "AM" : "PM")
-                    .font(.footnote.weight(.semibold))
+                    .font(.title3)
                     .foregroundStyle(Theme.muted)
             }
             // "+1 d" / "−1 d" when the city is on another day, as in the Mac app and widgets.
@@ -334,8 +339,7 @@ struct CityRow: View {
         .lineLimit(1)
     }
 
-    /// "+8 hr · UTC+1", "+5:30 hr · UTC+5:30", "Your time · UTC−7" (the day, if different, is the
-    /// "+1 d" badge by the time, as in the Mac app).
+    /// "+8 hr · UTC+1", "+5:30 hr · UTC+5:30", "Your time · UTC−7".
     private func detail(_ moment: Date) -> String {
         let utc = place.offsetLabel(at: moment)
         let diff = place.timeZone.secondsFromGMT(for: moment) - TimeZone.current.secondsFromGMT(for: moment)
@@ -347,120 +351,95 @@ struct CityRow: View {
     }
 }
 
-/// A city's hours as day-and-night tiles sliding under a fixed centre line, which marks the
-/// selected moment. Tiles sit on the city's own hour boundaries, so half-hour zones line up
-/// truthfully against the others. Drag sideways to move through time.
-struct HourStrip: View {
-    /// Five hours across the row (two before, now, two after), as in the Mac app.
-    static let visibleHours: CGFloat = 5
-    private static let height: CGFloat = 36
+/// Twelve hours of a city's sky in one slim bar: six before the selected moment and six after,
+/// light by day and dark by night, dimmer outside working hours, with a crimson tick at midnight.
+/// A cream knob marks the selected moment; the city's hours are labelled underneath. Drag it to
+/// move through time; tap to go to that hour.
+struct DayBar: View {
+    static let hoursShown: Double = 12
+    private static let barHeight: CGFloat = 10
     @EnvironmentObject private var store: CityStore
-    @State private var width: CGFloat = 370
+    @State private var width: CGFloat = 340
     let place: Place
 
-    private var hourWidth: CGFloat { (width / Self.visibleHours).rounded(.down) }
+    private var pointsPerHour: CGFloat { max(1, width / CGFloat(Self.hoursShown)) }
 
     var body: some View {
-        GeometryReader { geo in
-            let hourWidth = (geo.size.width / Self.visibleHours).rounded(.down)
-            let center = geo.size.width / 2
-            let moment = store.moment
-            let cal = place.calendar
-            let start = cal.dateInterval(of: .hour, for: moment)?.start ?? moment
-            let reach = Int(center / hourWidth) + 2
-            let hours = (-reach...reach).map { start.addingTimeInterval(Double($0) * 3600) }
-            ZStack(alignment: .topLeading) {
-                ForEach(hours, id: \.self) { at in
-                    tile(at, cal: cal)
-                        .frame(width: hourWidth - 4, height: Self.height)
-                        .offset(x: center + CGFloat(at.timeIntervalSince(moment) / 3600) * hourWidth + 2, y: 6)
+        let moment = store.moment
+        let cal = place.calendar
+        let start = moment.addingTimeInterval(-Self.hoursShown / 2 * 3600)
+        VStack(spacing: 6) {
+            Canvas { context, size in
+                let perHour = size.width / CGFloat(Self.hoursShown)
+                let slices = Int(Self.hoursShown * 4)
+                for i in 0..<slices {
+                    let at = start.addingTimeInterval(Double(i) * 900 + 450)
+                    let parts = cal.dateComponents([.hour, .minute], from: at)
+                    let hour = parts.hour ?? 0
+                    let dim = store.showWorkHours && !store.isWorkHour(hour)
+                    let fill = DayColor.style(at: Double(hour) + Double(parts.minute ?? 0) / 60).fill
+                    let rect = CGRect(x: CGFloat(i) * perHour / 4, y: 0, width: perHour / 4 + 0.6, height: size.height)
+                    context.fill(Path(rect), with: .color(fill.opacity(dim ? 0.5 : 1)))
                 }
-                // The exact minute: notches above and below, so they never cover an hour label.
-                Capsule().fill(Theme.cream).frame(width: 3, height: 5).offset(x: center - 1.5)
-                Capsule().fill(Theme.cream).frame(width: 3, height: 5).offset(x: center - 1.5, y: Self.height + 7)
+                for midnight in marks(from: start, cal: cal).filter(\.isMidnight) {
+                    let x = CGFloat(midnight.date.timeIntervalSince(start) / 3600) * perHour
+                    context.fill(Path(CGRect(x: x - 1, y: 0, width: 2, height: size.height)), with: .color(Theme.crimson))
+                }
             }
-            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
-            .contentShape(Rectangle())
-            // Tap an hour to go to it.
-            .onTapGesture { location in
-                let tapped = moment.addingTimeInterval(Double((location.x - center) / hourWidth) * 3600)
-                store.jump(to: cal.dateInterval(of: .hour, for: tapped)?.start ?? tapped)
+            .frame(height: Self.barHeight)
+            .clipShape(Capsule())
+            .overlay {
+                Circle()
+                    .fill(Theme.cream)
+                    .frame(width: 16, height: 16)
+                    .overlay(Circle().strokeBorder(Theme.bg, lineWidth: 3))
+                    .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+
+            // The city's hours every three hours, and the weekday at midnight.
+            ZStack(alignment: .leading) {
+                ForEach(marks(from: start, cal: cal), id: \.date) { mark in
+                    Text(mark.label)
+                        .font(.system(.caption2, weight: mark.isMidnight ? .semibold : .regular))
+                        .foregroundStyle(mark.isMidnight ? Theme.cream : Theme.faint)
+                        .monospacedDigit()
+                        .fixedSize()
+                        .position(x: CGFloat(mark.date.timeIntervalSince(start) / 3600) * pointsPerHour, y: 6)
+                }
+            }
+            .frame(height: 12)
         }
-        .frame(height: Self.height + 12)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-        .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.04),
-                                     .init(color: .black, location: 0.96), .init(color: .clear, location: 1)],
-                             startPoint: .leading, endPoint: .trailing))
         .contentShape(Rectangle())
-        .modifier(Scrub(pointsPerHour: hourWidth))
-        .accessibilityHidden(true)
-    }
-
-    private func tile(_ at: Date, cal: Calendar) -> some View {
-        let hour = cal.component(.hour, from: at)
-        let style = DayColor.style(at: Double(hour) + 0.5)
-        let dim = store.showWorkHours && !store.isWorkHour(hour)
-        return VStack(spacing: 1) {
-            Group {
-                if store.use24h {
-                    Text(String(format: "%02d", hour))
-                } else {
-                    Text("\(hour % 12 == 0 ? 12 : hour % 12)") + Text("\u{2009}" + (hour < 12 ? "AM" : "PM")).font(.system(size: 8, weight: .semibold))
-                }
-            }
-            .font(.system(.footnote, weight: .medium))
-            .monospacedDigit()
-            if hour == 0 {
-                Text(TimeMath.weekday(at, in: place.timeZone)).font(.system(size: 8, weight: .semibold)).textCase(.uppercase)
-            }
+        .onTapGesture { location in
+            let tapped = start.addingTimeInterval(Double(location.x / pointsPerHour) * 3600)
+            store.jump(to: cal.dateInterval(of: .hour, for: tapped)?.start ?? tapped)
         }
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-        .foregroundStyle(style.text)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(style.fill.opacity(dim ? 0.6 : 1)))
-        .overlay(alignment: .leading) {
-            if hour == 0 { Capsule().fill(Theme.crimson).frame(width: 2).padding(.vertical, 8).offset(x: -2.5) }
-        }
-        .overlay {
-            // The hour that holds the selected moment.
-            if at <= store.moment && store.moment < at.addingTimeInterval(3600) {
-                RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Theme.cream, lineWidth: 2)
-            }
-        }
-    }
-}
-
-/// Column labels above the strips, as in the Mac app: "−2 hr −1 hr Now +1 hr +2 hr", lined up
-/// with the five hours of each strip. Away from now, the centre shows the selected time.
-private struct HourLabels: View {
-    @EnvironmentObject private var store: CityStore
-
-    var body: some View {
-        GeometryReader { geo in
-            let hourWidth = (geo.size.width / HourStrip.visibleHours).rounded(.down)
-            let center = geo.size.width / 2
-            ForEach(-2...2, id: \.self) { k in
-                Text(label(k))
-                    .font(.system(.caption2, weight: k == 0 ? .semibold : .medium))
-                    .foregroundStyle(k == 0 ? Theme.cream : Theme.faint)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .frame(width: hourWidth)
-                    .position(x: center + CGFloat(k) * hourWidth, y: 7)
-            }
-        }
-        .frame(height: 14)
+        .modifier(Scrub(pointsPerHour: pointsPerHour))
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
         .accessibilityHidden(true)
     }
 
-    private func label(_ k: Int) -> String {
-        if k == 0 { return store.isNow ? "Now" : TimeMath.time(store.moment, in: .current, use24h: store.use24h) }
-        return k > 0 ? "+\(k) hr" : "−\(-k) hr"
+    private struct Mark { let date: Date; let label: String; let isMidnight: Bool }
+
+    /// Local hours divisible by three inside the bar (not at its very ends), and midnights.
+    private func marks(from start: Date, cal: Calendar) -> [Mark] {
+        guard let first = cal.dateInterval(of: .hour, for: start)?.end else { return [] }
+        var marks: [Mark] = []
+        var at = first
+        let end = start.addingTimeInterval(Self.hoursShown * 3600)
+        while at < end {
+            let hour = cal.component(.hour, from: at)
+            let edge = at.timeIntervalSince(start) < 1800 || end.timeIntervalSince(at) < 1800
+            if !edge && (hour % 3 == 0) {
+                let label = hour == 0 ? TimeMath.weekday(at, in: place.timeZone).uppercased()
+                    : store.use24h ? String(format: "%02d", hour)
+                    : "\(hour % 12 == 0 ? 12 : hour % 12)\u{2009}\(hour < 12 ? "AM" : "PM")"
+                marks.append(Mark(date: at, label: label, isMidnight: hour == 0))
+            }
+            at = at.addingTimeInterval(3600)
+        }
+        return marks
     }
 }
 

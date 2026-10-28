@@ -128,10 +128,7 @@ platform :ios do
       end
       report("TestFlight tester #{name}", code, body)
     end
-    _, builds = asc(:get, "v1/builds?filter[app]=#{app}&sort=-uploadedDate&limit=3")
-    (builds["data"] || []).each do |b|
-      UI.message("Build #{b.dig("attributes", "version")}: #{b.dig("attributes", "processingState")}")
-    end
+    attach_builds
   end
 
   # TestFlight only: uploads the build for testers (no App Store version, no review), and adds it
@@ -145,12 +142,25 @@ platform :ios do
     upload_to_testflight(
       api_key_path: API_KEY,
       ipa: options[:ipa],
-      groups: names,
       distribute_external: false,
       notify_external_testers: false,
       skip_waiting_for_build_processing: false,
       changelog: "A calmer, clearer design: each city's time large, with a slim day-and-night bar you can drag to move through time."
     )
+    attach_builds
+  end
+
+  # Adds the newest builds to every testing group directly (upload_to_testflight's group step
+  # treats groups as external betas, which need Beta App Review).
+  private_lane :attach_builds do
+    app = asc_app_id
+    _, groups = asc(:get, "v1/apps/#{app}/betaGroups")
+    _, builds = asc(:get, "v1/builds?filter[app]=#{app}&sort=-uploadedDate&limit=2")
+    ids = (builds["data"] || []).map { |b| { type: "builds", id: b["id"] } }
+    (groups["data"] || []).each do |g|
+      code, body = asc(:post, "v1/betaGroups/#{g["id"]}/relationships/builds", { data: ids })
+      report("Builds #{(builds["data"] || []).map { |b| b.dig("attributes", "version") }.join(", ")} to group #{g.dig("attributes", "name")} (#{g.dig("attributes", "isInternalGroup") ? "internal" : "external"})", code, body)
+    end
   end
 
   # --- App Store Connect API (plain requests, for settings fastlane doesn't cover) ---------------

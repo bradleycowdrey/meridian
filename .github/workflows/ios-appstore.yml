@@ -7,6 +7,7 @@ name: iPhone App Store
 #     App Store profiles fetched through the App Store Connect API key),
 #     uploads the build, screenshots and listing, and submits for review.
 #   ios/APPSTORE changed to "1.0.0 test": the same, without submitting for review.
+#   ios/APPSTORE changed to "1.0.1 beta": builds and uploads to TestFlight only (no App Store version).
 # Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's contents, Admin role),
 #          IOS_DIST_P12, IOS_DIST_P12_PASSWORD (Apple Distribution certificate, base64 .p12),
 #          APP_REVIEW_EMAIL, APP_REVIEW_PHONE (optional; ios/fastlane/metadata/review_information has them).
@@ -38,7 +39,8 @@ jobs:
           BEFORE: ${{ github.event.before }}
         run: |
           read -r V MODE < ios/APPSTORE || true
-          if [ -n "$BEFORE" ] && ! git diff --quiet "$BEFORE" HEAD -- ios/APPSTORE 2>/dev/null && [[ "$MODE" == test || "$MODE" == submit ]]; then
+          if [ -n "$BEFORE" ] && ! git diff --quiet "$BEFORE" HEAD -- ios/APPSTORE 2>/dev/null && [[ "$MODE" == test || "$MODE" == submit || "$MODE" == beta ]]; then
+            [[ "$MODE" == beta ]] && echo "BETA=true" >> "$GITHUB_ENV"
             echo "IS_TAG=true" >> "$GITHUB_ENV"; echo "VERSION=$V" >> "$GITHUB_ENV"
             [[ "$MODE" == submit ]] && echo "SUBMIT=true" >> "$GITHUB_ENV" || echo "SUBMIT=false" >> "$GITHUB_ENV"
             echo "App Store build: $V ($MODE)"
@@ -164,7 +166,8 @@ jobs:
                   open(path, "w").write(value)
           PY
           set -o pipefail
-          fastlane upload version:"$VERSION" ipa:"$IPA" submit:"$SUBMIT" 2>&1 \
+          if [ "${BETA:-}" = true ]; then LANE=beta; else LANE=upload; fi
+          fastlane $LANE version:"$VERSION" ipa:"$IPA" submit:"$SUBMIT" 2>&1 \
             | grep -v -i -E "BEGIN PRIVATE|issuer_id|key_id|phone|email" | tee "$OUT/fastlane.log"
           rm -f fastlane/api_key.json
 

@@ -134,6 +134,25 @@ platform :ios do
     end
   end
 
+  # TestFlight only: uploads the build for testers (no App Store version, no review), and adds it
+  # to every testing group.
+  lane :beta do |options|
+    sign_in_api
+    app = asc_app_id
+    _, groups = asc(:get, "v1/apps/#{app}/betaGroups")
+    names = (groups["data"] || []).map { |g| g.dig("attributes", "name") }.compact
+    UI.message("Testing groups: #{names.join(", ")}")
+    upload_to_testflight(
+      api_key_path: API_KEY,
+      ipa: options[:ipa],
+      groups: names,
+      distribute_external: false,
+      notify_external_testers: false,
+      skip_waiting_for_build_processing: false,
+      changelog: "A calmer, clearer design: each city's time large, with a slim day-and-night bar you can drag to move through time."
+    )
+  end
+
   # --- App Store Connect API (plain requests, for settings fastlane doesn't cover) ---------------
 
   BUNDLE_ID = "com.bradcowdrey.meridian"

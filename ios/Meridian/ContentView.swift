@@ -243,7 +243,7 @@ private struct MomentHeader: View {
                     .accessibilityLabel("Back to now")
                 }
             }
-            if !store.hasScrubbed && !store.places.isEmpty {
+            if !store.hasScrubbed && !store.places.isEmpty && !Screenshots.isActive {
                 Label("Drag any bar to change the time", systemImage: "hand.draw")
                     .font(.footnote)
                     .foregroundStyle(Theme.muted)

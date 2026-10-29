@@ -140,11 +140,11 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
     Screen("Settings", onDone) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
             Section("TIME") {
-                SwitchRow("24-Hour Time", store.use24h) { store.setUse24h(it) }
-                SwitchRow("Highlight Working Hours", store.showWorkHours) { store.setShowWorkHours(it) }
+                SwitchRow("24-Hour Time", store.use24h) { store.updateUse24h(it) }
+                SwitchRow("Highlight Working Hours", store.showWorkHours) { store.updateShowWorkHours(it) }
                 if (store.showWorkHours) {
-                    StepperRow("Work starts at ${TimeMath.hourLabel(store.workStart, store.use24h)}", { store.setWorkStart(store.workStart - 1) }, { store.setWorkStart(store.workStart + 1) })
-                    StepperRow("Work ends at ${TimeMath.hourLabel(store.workEnd % 24, store.use24h)}", { store.setWorkEnd(store.workEnd - 1) }, { store.setWorkEnd(store.workEnd + 1) })
+                    StepperRow("Work starts at ${TimeMath.hourLabel(store.workStart, store.use24h)}", { store.updateWorkStart(store.workStart - 1) }, { store.updateWorkStart(store.workStart + 1) })
+                    StepperRow("Work ends at ${TimeMath.hourLabel(store.workEnd % 24, store.use24h)}", { store.updateWorkEnd(store.workEnd - 1) }, { store.updateWorkEnd(store.workEnd + 1) })
                 }
             }
             Section("WIDGETS") {

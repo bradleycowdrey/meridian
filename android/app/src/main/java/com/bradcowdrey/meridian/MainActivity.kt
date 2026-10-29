@@ -154,8 +154,8 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                                     menu = false; share(store.momentText)
                                 })
                                 HorizontalDivider()
-                                DropdownMenuItem(text = { Text("24-Hour Time") }, onClick = { store.setUse24h(!store.use24h) },
-                                    trailingIcon = { Checkbox(checked = store.use24h, onCheckedChange = { store.setUse24h(it) }) })
+                                DropdownMenuItem(text = { Text("24-Hour Time") }, onClick = { store.updateUse24h(!store.use24h) },
+                                    trailingIcon = { Checkbox(checked = store.use24h, onCheckedChange = { store.updateUse24h(it) }) })
                                 DropdownMenuItem(text = { Text("Settings") }, onClick = { menu = false; open("settings") })
                             }
                         }

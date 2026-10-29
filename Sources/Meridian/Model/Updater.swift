@@ -69,7 +69,8 @@ final class Updater: ObservableObject {
 
     /// Checks if the last check is over a day old (also called whenever the panel opens).
     func checkIfDue() async {
-        guard automatic else { return }
+        // Not in the CI self-test: the update banner would appear mid-test and move the controls.
+        guard automatic, !SelfTest.isActive else { return }
         if let lastChecked, Date().timeIntervalSince(lastChecked) < Self.interval { return }
         await check(userInitiated: false)
     }

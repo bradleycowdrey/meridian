@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Meridian</string>
+    <string name="widget_small">One city, with the hour before and after.</string>
+    <string name="widget_medium">Two cities, with the hours before and after.</string>
+    <string name="widget_large">Four cities, with the hours before and after.</string>
+</resources>

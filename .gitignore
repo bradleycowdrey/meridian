@@ -16,3 +16,7 @@ ios/fastlane/api_key.json
 ios/fastlane/screenshots/
 ios/fastlane/report.xml
 ios/fastlane/README.md
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties

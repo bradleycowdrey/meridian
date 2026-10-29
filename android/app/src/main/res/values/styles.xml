@@ -17,9 +17,9 @@
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:layout_weight">1</item>
-        <item name="android:layout_marginStart">2dp</item>
-        <item name="android:layout_marginEnd">2dp</item>
-        <item name="android:padding">2dp</item>
+        <item name="android:layout_marginStart">1dp</item>
+        <item name="android:layout_marginEnd">1dp</item>
+        <item name="android:padding">1.5dp</item>
     </style>
     <style name="WidgetTile">
         <item name="android:layout_width">match_parent</item>
@@ -28,5 +28,10 @@
         <item name="android:gravity">center</item>
         <item name="android:textSize">12sp</item>
         <item name="android:maxLines">1</item>
+        <!-- Narrow small widgets: shrink "10 AM" rather than cut it off. -->
+        <item name="android:autoSizeTextType">uniform</item>
+        <item name="android:autoSizeMinTextSize">8sp</item>
+        <item name="android:autoSizeMaxTextSize">12sp</item>
+        <item name="android:autoSizeStepGranularity">0.5sp</item>
     </style>
 </resources>

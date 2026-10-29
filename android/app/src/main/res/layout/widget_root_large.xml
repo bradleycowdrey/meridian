@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical">
-    <View android:layout_width="match_parent" android:layout_height="3dp" android:background="#990F3D" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="3dp" android:background="#990F3D" />
     <LinearLayout
         android:id="@+id/content"
         android:layout_width="match_parent"

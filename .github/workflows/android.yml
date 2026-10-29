@@ -2,6 +2,7 @@ name: Android app
 
 # Builds the Android app (android/), runs it on an emulator, takes a screenshot of every screen
 # and publishes them, with the debug APK, to the ci-android branch.
+# The APK link on bradcowdrey.com/meridian points at ci-android/Meridian-debug.apk.
 on:
   push:
     branches: [main]

@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -119,8 +120,6 @@ fun EditCitiesScreen(store: Store, onDone: () -> Unit) {
     }
     renaming?.let { place -> RenameDialog(place) { name -> if (name != null) store.rename(place, name); renaming = null } }
 }
-
-private typealias Color = androidx.compose.ui.graphics.Color
 
 @Composable
 fun RenameDialog(place: Place, onDone: (String?) -> Unit) {

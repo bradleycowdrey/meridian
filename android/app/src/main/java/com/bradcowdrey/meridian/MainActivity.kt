@@ -335,9 +335,9 @@ fun TimeShifter(store: Store) {
             Text("−12 hr", fontSize = 11.sp, color = Palette.faint)
             Slider(
                 value = hours,
-                onValueChange = { store.scrub((it * 4).roundToInt() * 15) },
+                // Continuous (no row of tick marks); the store snaps to the clock's quarter-hours.
+                onValueChange = { store.scrubToQuarterNear(it * 60.0) },
                 valueRange = -12f..12f,
-                steps = 95,
                 // No fill: Now is in the middle, so a half-filled track would read as "halfway".
                 colors = SliderDefaults.colors(thumbColor = Palette.cream, activeTrackColor = Palette.border,
                     inactiveTrackColor = Palette.border, activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent),
@@ -500,7 +500,7 @@ fun DayBar(store: Store, place: Place) {
             ) { _, amount ->
                 dx += amount
                 val minutes = -dx / (width / hoursShown.toFloat()) * 60
-                store.scrub(base + (minutes / 15).roundToInt() * 15)
+                store.scrubToQuarterNear(base + minutes.toDouble())
             }
         }) {
         Box(Modifier.fillMaxWidth().height(18.dp), contentAlignment = Alignment.Center) {

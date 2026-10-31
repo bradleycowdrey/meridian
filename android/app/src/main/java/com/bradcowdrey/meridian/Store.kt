@@ -144,6 +144,21 @@ class Store(private val context: Context, val demo: Boolean = false) {
         userMoves++
     }
 
+    /**
+     * While dragging the slider or a day bar: the quarter-hour on the clock nearest to this many
+     * minutes from now (11:00, 11:15, 11:30), which then stays put as the clock moves.
+     */
+    fun scrubToQuarterNear(minutes: Double) {
+        val target = now.epochSecond + (minutes * 60).toLong()
+        val snapped = Math.round(target / 900.0) * 900
+        val next = if (kotlin.math.abs(minutes) < 7.5) 0 else ((snapped - now.epochSecond) / 60.0).roundToInt()
+        if (next == offsetMinutes) return
+        anchored = next != 0
+        offsetMinutes = next
+        userMoves++
+        if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
+    }
+
     fun scrub(to: Int) {
         if (to == offsetMinutes) return
         anchored = false

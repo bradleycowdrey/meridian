@@ -406,13 +406,14 @@ private struct TimeShifter: View {
     private var hours: Binding<Double> {
         Binding(
             get: { min(max(Double(store.offsetMinutes) / 60, -Self.range), Self.range) },
-            set: { store.scrub(to: Int(($0 * 4).rounded()) * 15) }
+            set: { store.scrub(toQuarterNear: $0 * 60) }
         )
     }
 
     var body: some View {
         VStack(spacing: 8) {
-            Slider(value: hours, in: -Self.range...Self.range, step: 0.25) {
+            // Continuous (no row of tick marks); the store snaps to the clock's quarter-hours.
+            Slider(value: hours, in: -Self.range...Self.range) {
                 Text("Hours from now")
             } minimumValueLabel: {
                 Text("−12 hr").font(.caption2).foregroundStyle(Theme.faint)
@@ -551,7 +552,7 @@ struct CityRow: View {
         // Side by side normally; stacked at accessibility text sizes so nothing is cut off.
         let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
                                                   : AnyLayout(HStackLayout(alignment: .lastTextBaseline, spacing: 8))
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             layout {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(detail(moment))
@@ -561,26 +562,33 @@ struct CityRow: View {
                     Text(place.name)
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Theme.primary)
+                        .minimumScaleFactor(0.8)
+                }
+                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+                if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                // The time is never cut short: the name gives way first.
+                clock(hour: hour, minute: minute)
+                    .fixedSize()
+                    .layoutPriority(1)
+            }
+            // Notes on their own line, so they never squeeze the time.
+            if hereLabel != nil || outsideWorkHours {
+                HStack(spacing: 14) {
                     // Where you are, on this card rather than a second card for the same place.
                     if let here = hereLabel {
                         Label(here, systemImage: "location.fill")
-                            .font(.caption)
                             .foregroundStyle(Theme.cream)
-                            .labelStyle(.titleAndIcon)
-                            .padding(.top, 2)
                     }
                     // This city's own note, rather than a list of names in the header.
                     if outsideWorkHours {
                         Label("Outside work hours", systemImage: "moon.zzz.fill")
-                            .font(.caption)
                             .foregroundStyle(Theme.muted)
-                            .labelStyle(.titleAndIcon)
-                            .padding(.top, 2)
                     }
                 }
-                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
-                if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
-                clock(hour: hour, minute: minute)
+                .font(.caption)
+                .labelStyle(.titleAndIcon)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
             }
             DayBar(place: place)
         }
@@ -750,8 +758,7 @@ private struct Scrub: ViewModifier {
                     let start = base ?? store.offsetMinutes
                     base = start
                     let minutes = -Double(drag.translation.width) / Double(pointsPerHour) * 60
-                    let next = start + Int((minutes / 15).rounded()) * 15
-                    store.scrub(to: next)
+                    store.scrub(toQuarterNear: Double(start) + minutes)
                 }
                 .onEnded { _ in
                     base = nil

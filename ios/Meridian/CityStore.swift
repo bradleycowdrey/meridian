@@ -208,6 +208,20 @@ final class CityStore: ObservableObject {
         userMoves += 1
     }
 
+    /// While dragging the slider or a day bar: the quarter-hour on the clock nearest to this many
+    /// minutes from now (11:00, 11:15, 11:30), which then stays put as the clock moves.
+    func scrub(toQuarterNear minutes: Double) {
+        let target = now.addingTimeInterval(minutes * 60)
+        let snapped = Date(timeIntervalSinceReferenceDate: (target.timeIntervalSinceReferenceDate / 900).rounded() * 900)
+        var next = Int((snapped.timeIntervalSince(now) / 60).rounded())
+        if abs(minutes) < 7.5 { next = 0 }   // near the middle is Now
+        guard next != offsetMinutes else { return }
+        anchored = next != 0
+        offsetMinutes = next
+        userMoves += 1
+        if !hasScrubbed { hasScrubbed = true }
+    }
+
     /// Set the offset directly while dragging (no animation; the drag is the animation).
     func scrub(to minutes: Int) {
         guard minutes != offsetMinutes else { return }

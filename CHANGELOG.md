@@ -8,6 +8,7 @@ version is out. You can also choose ⋯ → **Check for Updates**, or download t
 
 - **Each country's working week**: cities follow the usual working days where they are, so noon on Friday is working hours in Denver but the weekend in Riyadh (Sunday to Thursday). Weekends come from the Unicode CLDR data that Apple and Android use (Friday and Saturday across most of the Gulf and Middle East, Israel, Egypt and Bangladesh; Friday in Iran; Thursday and Friday in Afghanistan; Friday and Sunday in Brunei).
 - **Each city's own days and hours**: Settings → Cities → the briefcase next to a city. Only what you change is kept; the rest follows the country and your hours in Settings.
+- **Better sharing**: Share now sends Meridian's page (Mac, iPhone and Android, and a live demo) with a preview, instead of the source code.
 
 ## 0.8.4 · 1 November 2026
 

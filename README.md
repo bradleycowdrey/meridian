@@ -14,7 +14,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 </p>
 
 <p align="center">
-  <a href="https://bradcowdrey.com/meridian"><img src="docs/demo.png" width="760" alt="Meridian: cities as day-and-night ribbons on one time grid, with the current hour outlined. Click to try it in your browser."></a><br>
+  <a href="https://bradcowdrey.com/meridian"><img src="docs/demo.png" width="715" alt="Meridian: cities as day-and-night ribbons on one time grid, with the current hour outlined. Click to try it in your browser."></a><br>
   <sub>Click the picture to try the live demo at <a href="https://bradcowdrey.com/meridian">bradcowdrey.com/meridian</a>.</sub>
 </p>
 

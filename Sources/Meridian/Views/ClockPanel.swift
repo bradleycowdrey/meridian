@@ -230,10 +230,16 @@ private struct ClockPanelContent: View {
 
 /// An area that moves its window when dragged (the window has no visible title bar), or, in the
 /// menu bar panel, tears the panel off into a window once the pointer moves a few points.
-private struct WindowDragHandle: NSViewRepresentable {
+struct WindowDragHandle: NSViewRepresentable {
     var onTearOff: (() -> Void)?
+    /// Self-test only: take the drag area out of hit testing, to see whether it eats clicks.
+    @MainActor static var disabledForTest = false
 
     final class DragView: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            WindowDragHandle.disabledForTest ? nil : super.hitTest(point)
+        }
+
         var onTearOff: (() -> Void)?
         private var start: NSPoint?
 

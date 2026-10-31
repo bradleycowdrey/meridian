@@ -215,11 +215,13 @@ final class FunctionalTest {
                 // Probe: which points of Add City take a click (logged, to find any dead band
                 // under the hidden title bar).
                 if let frame = TestAnchors.frames["control-add"], let content = window.contentView {
+                  for (label, dragOff, dx) in [("normal", false, 0.0), ("left", false, -20.0), ("right", false, 20.0), ("no-drag-area", true, 0.0)] {
+                    WindowDragHandle.disabledForTest = dragOff
                     var row: [String] = []
                     for y in stride(from: frame.minY - 2, through: frame.maxY + 2, by: 2) {
                         adding.wrappedValue = false
                         await settle(0.2)
-                        let p = NSPoint(x: frame.midX, y: content.bounds.height - y)
+                        let p = NSPoint(x: frame.midX + dx, y: content.bounds.height - y)
                         send(.leftMouseDown, at: p, in: window)
                         try? await Task.sleep(for: .milliseconds(60))
                         send(.leftMouseUp, at: p, in: window)
@@ -228,7 +230,9 @@ final class FunctionalTest {
                     }
                     adding.wrappedValue = false
                     await settle(0.3)
-                    SelfTest.log("functional: probe \(tag) add \(Int(frame.minY))..\(Int(frame.maxY)) window \(Int(window.frame.height)) inset \(Int(window.frame.height - window.contentLayoutRect.height)): \(row.joined(separator: " "))")
+                    WindowDragHandle.disabledForTest = false
+                    SelfTest.log("functional: probe \(tag) \(label) add \(Int(frame.minY))..\(Int(frame.maxY)) window \(Int(window.frame.height)) inset \(Int(window.frame.height - window.contentLayoutRect.height)): \(row.joined(separator: " "))")
+                  }
                 }
 
                 // Add City: open, pick a search result.

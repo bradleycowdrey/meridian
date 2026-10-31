@@ -391,7 +391,7 @@ private struct MomentHeader: View {
 }
 
 /// Moves every city through time from the header: a slider from 12 hours back to 12 ahead (in
-/// quarter-hours, "Now" in the middle), one-tap −3/−1/Now/+1/+3 hours, and 123 to type an offset
+/// quarter-hours, "Now" in the middle), one-tap −2/−1/Now/+1/+2 hours, and 123 to type an offset
 /// ("+3", "-1.5", "-2:30"). The date picker in the header goes further; the day bars still drag.
 private struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
@@ -400,7 +400,7 @@ private struct TimeShifter: View {
     @State private var invalid = false
 
     private static let range = 12.0
-    private static let presets = [-3, -1, 0, 1, 3]
+    private static let presets = [-2, -1, 0, 1, 2]
 
     /// Hours from now, as the slider shows them (clamped to its range).
     private var hours: Binding<Double> {

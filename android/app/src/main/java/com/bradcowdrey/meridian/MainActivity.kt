@@ -323,7 +323,7 @@ fun MomentHeader(store: Store, copied: Boolean, pickDate: () -> Unit) {
 
 /**
  * Moves every city through time from the header: a slider from 12 hours back to 12 ahead (in
- * quarter-hours, Now in the middle), one-tap −3/−1/Now/+1/+3 hours, and 123 to type an offset
+ * quarter-hours, Now in the middle), one-tap −2/−1/Now/+1/+2 hours, and 123 to type an offset
  * ("+3", "-1.5", "-2:30"). The date picker goes further; the day bars still drag.
  */
 @Composable
@@ -347,7 +347,7 @@ fun TimeShifter(store: Store) {
             Text("+12 hr", fontSize = 11.sp, color = Palette.faint)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf(-3, -1, 0, 1, 3).forEach { preset ->
+            listOf(-2, -1, 0, 1, 2).forEach { preset ->
                 val on = store.offsetMinutes == preset * 60
                 Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(50))
                     .background(if (on) Palette.cream else Palette.tile)

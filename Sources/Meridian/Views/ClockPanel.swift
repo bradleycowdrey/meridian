@@ -535,7 +535,9 @@ private struct ListControls: View {
                 .background(
                     Capsule().fill(active ? Palette.cream : (hovering && enabled ? Palette.border : .clear))
                 )
-                .contentShape(Capsule())
+                // A rectangle, not a capsule: at Extra Small, clicks on the capsule's exact
+                // centre line were missed.
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(!enabled)

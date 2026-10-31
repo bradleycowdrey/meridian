@@ -37,14 +37,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Screen(title: String, onBack: () -> Unit, backLabel: String = "Done", content: @Composable (PaddingValues) -> Unit) {
+/** A sub-screen: its title and, as Material does, one way back (the arrow). */
+private fun Screen(title: String, onBack: () -> Unit, content: @Composable (PaddingValues) -> Unit) {
     Scaffold(
         containerColor = Palette.bg,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(title, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, "Back") } },
-                actions = { TextButton(onClick = onBack) { Text(backLabel, color = Palette.cream, fontWeight = FontWeight.SemiBold) } },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Palette.bg,
                     titleContentColor = Palette.primary, navigationIconContentColor = Palette.cream),
             )
@@ -76,7 +76,7 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
                 SwitchRow("24-Hour Time", store.use24h) { store.updateUse24h(it) }
                 SwitchRow("Highlight Working Hours", store.showWorkHours) { store.updateShowWorkHours(it) }
                 if (store.showWorkHours) {
-                    Text("Each city follows the usual working days and hours where it is: Sunday to Thursday, 8 AM to 5 PM in Riyadh; Monday to Friday, 9 AM to 5 PM in Denver; shorter days in Ramadan and Spain's summer. To change a city's, tap its card, then Working Days & Hours.",
+                    Text("Each city follows its country's usual working days and hours. To change a city's, tap its card.",
                         fontSize = 13.sp, color = Palette.muted, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
                 }
             }
@@ -250,7 +250,7 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
     }
     val nine = if (store.use24h) "09:00" else "9${TimeMath.THIN}AM"
 
-    Screen("Go to a Time", onDone, backLabel = "Cancel") { padding ->
+    Screen("Go to a Time", onDone) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)) {

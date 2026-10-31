@@ -16,7 +16,7 @@ struct SettingsView: View {
                     Toggle("24-Hour Time", isOn: $store.use24h)
                     Toggle("Highlight Working Hours", isOn: $store.showWorkHours)
                 } header: { Text("Time") } footer: {
-                    Text("Each city follows the usual working days and hours where it is: Sunday to Thursday, 8 AM to 5 PM in Riyadh; Monday to Friday, 9 AM to 5 PM in Denver; shorter days in Ramadan and Spain's summer. To change a city's, tap its card, then Working Days & Hours.")
+                    Text("Each city follows its country's usual working days and hours. To change a city's, tap its card.")
                         .foregroundStyle(Theme.muted)
                 }
                 Section {

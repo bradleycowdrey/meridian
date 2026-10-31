@@ -22,6 +22,11 @@ enum WorkWeek {
         let summer: [Hours?]?
     }
 
+    /// The country a time zone is in, by name ("Puerto Rico" for America/Puerto_Rico), for search.
+    static func countryName(zoneID: String) -> String? {
+        countryByZone[zoneID].flatMap { Locale(identifier: "en_US").localizedString(forRegionCode: $0) }
+    }
+
     static func schedule(zoneID: String) -> Schedule? {
         countryByZone[zoneID].flatMap { schedules[$0] }
     }

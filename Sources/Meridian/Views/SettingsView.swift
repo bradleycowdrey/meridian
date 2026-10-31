@@ -146,7 +146,7 @@ private struct GeneralSettings: View {
             Toggle("24-hour clock", isOn: $store.use24h)
             Toggle("Highlight working hours", isOn: $store.showWorkHours)
             if store.showWorkHours {
-                Text("Each city follows the usual working days and hours where it is (Sunday to Thursday in Riyadh, shorter days in Ramadan). To change a city's, use the briefcase in Cities.")
+                Text("Each city follows its country's usual working days and hours. To change a city's, use the briefcase in Cities.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Toggle("Keep desktop window on top", isOn: $store.floatOnTop)

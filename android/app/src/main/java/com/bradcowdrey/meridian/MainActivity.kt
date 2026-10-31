@@ -255,7 +255,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
         }
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             stickyHeader {
-                MomentHeader(store, copied) { open("date") }
+                MomentHeader(store, copied, editing) { open("date") }
             }
             if (store.places.isEmpty()) item {
                 Column(Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -296,7 +296,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
 
 /** A small "NOW" (or "IN 4 HR 20 MIN") over the date and time, a Now button when away, the meeting planner line. */
 @Composable
-fun MomentHeader(store: Store, copied: Boolean, pickDate: () -> Unit) {
+fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false, pickDate: () -> Unit) {
     Column(Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).clickable(onClick = pickDate)) {
@@ -310,12 +310,9 @@ fun MomentHeader(store: Store, copied: Boolean, pickDate: () -> Unit) {
                     Icon(Icons.Filled.ArrowDropDown, contentDescription = "Choose a date and time", tint = Palette.faint)
                 }
             }
-            if (!store.isNow) {
-                Button(onClick = { store.backToNow() }, colors = ButtonDefaults.buttonColors(containerColor = Palette.cream, contentColor = Palette.bg),
-                    contentPadding = PaddingValues(horizontal = 18.dp), modifier = Modifier.height(34.dp)) { Text("Now", fontWeight = FontWeight.SemiBold) }
-            }
         }
-        if (store.places.isNotEmpty()) {
+        // The Now chip below brings you back (no second Now up here); in Edit List the controls step aside.
+        if (store.places.isNotEmpty() && !editing) {
             Spacer(Modifier.height(10.dp))
             TimeShifter(store)
         }
@@ -574,7 +571,7 @@ private fun Footer() {
     val context = LocalContext.current
     fun open(url: String) = context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-        Text("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com ↗", fontSize = 13.sp, color = Palette.muted,
+        Text("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com\u00A0↗", fontSize = 13.sp, color = Palette.muted,
             modifier = Modifier.clickable { open(Palette.WEBSITE) })
         Spacer(Modifier.height(6.dp))
         Text("Terms & Privacy", fontSize = 13.sp, color = Palette.muted, modifier = Modifier.clickable { open(Palette.LEGAL) })
@@ -620,7 +617,7 @@ fun SearchResults(store: Store, query: String, modifier: Modifier, added: () -> 
                 .padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(entry.name, fontWeight = FontWeight.SemiBold)
-                    Text(entry.region.replace("_", " "), fontSize = 13.sp, color = Palette.muted)
+                    Text(WorkWeek.countryName(entry.zoneId) ?: entry.region.replace("_", " "), fontSize = 13.sp, color = Palette.muted)
                 }
                 if (zone != null) Column(horizontalAlignment = Alignment.End) {
                     Text(TimeMath.time(store.now, zone, store.use24h), color = Palette.secondary)

@@ -16,6 +16,10 @@ object WorkWeek {
     data class Hours(val start: Double, val end: Double)
     class Schedule(val week: List<Hours?>, val ramadan: Hours?, val summerMonths: Set<Int>, val summer: List<Hours?>?)
 
+    /** The country a time zone is in, by name ("Puerto Rico" for America/Puerto_Rico), for search. */
+    fun countryName(zoneId: String): String? =
+        countryByZone[zoneId]?.let { java.util.Locale("", it).getDisplayCountry(java.util.Locale.ENGLISH).takeIf { n -> n.isNotBlank() && n != it } }
+
     fun schedule(zoneId: String): Schedule? = countryByZone[zoneId]?.let { schedules[it] }
 
     fun usualDays(zoneId: String): Set<Int> =

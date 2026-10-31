@@ -149,7 +149,7 @@ struct ContentView: View {
                 .listRowSeparator(.hidden)
         } header: {
             // Pinned while the cities scroll underneath.
-            MomentHeader(copied: copied) { showingDate = true }
+            MomentHeader(copied: copied, editing: editMode.isEditing) { showingDate = true }
                 .padding(.horizontal, Card.margin).padding(.top, 14).padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.bg)
@@ -275,7 +275,7 @@ struct ContentView: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Link("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com ↗", destination: Theme.website)
+            Link("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com\u{00A0}↗", destination: Theme.website)
             Link("Terms & Privacy", destination: Theme.legal)
         }
         .font(.footnote)
@@ -321,6 +321,8 @@ private struct MomentHeader: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
     let copied: Bool
+    /// In Edit List the header keeps only the moment; the time controls step aside.
+    var editing = false
     let pickDate: () -> Void
 
     var body: some View {
@@ -360,20 +362,9 @@ private struct MomentHeader: View {
                     }
                 }
                 Spacer(minLength: 0)
-                if !store.isNow {
-                    Button { store.backToNow() } label: {
-                        Text("Now")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16).frame(height: 32)
-                            .background(Capsule().fill(Theme.cream))
-                            .foregroundStyle(Theme.bg)
-                    }
-                    .buttonStyle(.plain)
-                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                    .accessibilityLabel("Back to now")
-                }
             }
-            if !store.places.isEmpty { TimeShifter() }
+            // The Now chip below brings you back; no second Now button up here.
+            if !store.places.isEmpty && !editing { TimeShifter() }
         }
     }
 
@@ -778,7 +769,7 @@ private struct SearchResultRow: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
-                Text(entry.region.replacingOccurrences(of: "_", with: " "))
+                Text(WorkWeek.countryName(zoneID: entry.timeZoneID) ?? entry.region.replacingOccurrences(of: "_", with: " "))
                     .font(.footnote).foregroundStyle(Theme.muted)
             }
             Spacer()

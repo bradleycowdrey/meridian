@@ -89,7 +89,7 @@ private struct ClockPanelContent: View {
 
                     HStack(spacing: ui.m) {
                         Link(destination: Brand.website) {
-                            Text("Made by \(Brand.author). Free. Forever. · \(Brand.websiteHost) ↗")
+                            Text("Made by \(Brand.author). Free. Forever. · \(Brand.websiteHost)\u{00A0}↗")
                         }
                         .font(ui.font(12))
                         .foregroundStyle(Palette.textMuted)
@@ -820,7 +820,7 @@ struct AddCityField: View {
                                         Text(entry.name)
                                             .font(ui.body)
                                             .foregroundStyle(Palette.textPrimary)
-                                        Text(entry.region.replacingOccurrences(of: "_", with: " "))
+                                        Text(WorkWeek.countryName(zoneID: entry.timeZoneID) ?? entry.region.replacingOccurrences(of: "_", with: " "))
                                             .font(ui.meta)
                                             .foregroundStyle(Palette.textMuted)
                                     }

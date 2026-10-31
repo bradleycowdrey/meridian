@@ -1,0 +1,179 @@
+functional: 168 passed, 10 failed
+PASS search 'LHR' finds London (London)
+PASS search 'sfo' finds San Francisco (San Francisco)
+PASS search 'lon' starts with London (London)
+PASS search 'PST' gives a Pacific zone (America/Los_Angeles)
+PASS search 'UTC+5:30' is a fixed 19800s zone that round-trips (GMT+0530 -> 19800)
+PASS search 'gmt-3' is a fixed -10800s zone that round-trips (GMT-0300 -> -10800)
+PASS search '+9' is a fixed 32400s zone that round-trips (GMT+0900 -> 32400)
+PASS search 'UTC−4' is a fixed -14400s zone that round-trips (GMT-0400 -> -14400)
+PASS search 'GMT+5' has one offset row (UTC+5)
+PASS search 'UTC+5:75' is not an offset
+PASS search '' is empty
+PASS search gibberish is empty
+PASS search 'kathmandu' is +5:45
+PASS offset +5:30
+PASS offset −3:30
+PASS offset 0
+PASS day shift +1 (Kiritimati, late UTC)
+PASS day shift −1 (Honolulu, early UTC)
+PASS day shift 0 (London)
+PASS 12h time
+PASS 24h time
+PASS add appends
+PASS adding the same city twice is ignored
+PASS move to top
+PASS remove clears the menu bar city
+PASS max 12 cities (12)
+PASS travel +3 selects the hour
+PASS Now returns
+PASS overnight work hours
+PASS work hours ending at 24
+PASS equal work start and end means all day
+PASS copy with no cities leaves the clipboard alone
+PASS copy moment lists every city (Paris: Sat 31 Oct, 19:42 (UTC+1) | New York: Sat 31 Oct, 14:42 (UTC−4) | Kolkata: Sun 1 Nov, 00:12 (UTC+5:30) | Tokyo: Sun 1 Nov, 03:42 (UTC+9))
+PASS widget file follows cities
+PASS widget file follows 12/24h
+PASS version 0.10.0 > 0.9.9
+PASS version 0.7.1 > 0.7
+PASS version equal is not newer
+PASS version older is not newer
+PASS selftest build is older than any release
+PASS terms version from TERMS.md
+PASS terms version: single-digit day
+PASS terms version: none without a date
+PASS my location: added at the top (GMT,Elsewhere)
+PASS my location: city name fills in
+PASS my location: off removes it
+PASS my location: takes over a city in the same zone, in place (Tokyo,Testville)
+PASS my location: off gives that city back
+PASS extraSmall/system Share in the header, left (share 128..202 y 33, add 314 y 33)
+PASS extraSmall/system click hour +2 (offset 2)
+PASS extraSmall/system click Now (offset 0)
+PASS extraSmall/system click later (offset 1)
+PASS extraSmall/system click earlier (offset 0)
+FAIL extraSmall/system Add City opens search
+FAIL extraSmall/system click a result adds it (4 -> 4)
+PASS extraSmall/system Done closes search
+FAIL extraSmall/system Edit on
+FAIL extraSmall/system drag handle moves a row down (Paris,New York,Kolkata,Tokyo)
+FAIL extraSmall/system delete removes the city (4 -> 4)
+PASS extraSmall/system Edit off
+PASS extraSmall/system 12 cities: window on screen (window 524x631 screen 1024x681)
+PASS small/system Share in the header, left (share 137..219 y 37, add 356 y 37)
+PASS small/system click hour +2 (offset 2)
+PASS small/system click Now (offset 0)
+PASS small/system click later (offset 1)
+PASS small/system click earlier (offset 0)
+PASS small/system Add City opens search
+PASS small/system click a result adds it (4 -> 5)
+PASS small/system Done closes search
+PASS small/system Edit on
+PASS small/system drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS small/system delete removes the city (5 -> 4)
+PASS small/system Edit off
+PASS small/system 12 cities: window on screen (window 590x624 screen 1024x681)
+PASS medium/system Share in the header, left (share 152..241 y 39, add 386 y 39)
+PASS medium/system click hour +2 (offset 2)
+PASS medium/system click Now (offset 0)
+PASS medium/system click later (offset 1)
+PASS medium/system click earlier (offset 0)
+PASS medium/system Add City opens search
+PASS medium/system click a result adds it (4 -> 5)
+PASS medium/system Done closes search
+PASS medium/system Edit on
+PASS medium/system drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS medium/system delete removes the city (5 -> 4)
+PASS medium/system Edit off
+PASS medium/system 12 cities: window on screen (window 642x617 screen 1024x681)
+PASS large/system Share in the header, left (share 166..266 y 43, add 429 y 43)
+PASS large/system click hour +2 (offset 2)
+PASS large/system click Now (offset 0)
+PASS large/system click later (offset 1)
+PASS large/system click earlier (offset 0)
+PASS large/system Add City opens search
+PASS large/system click a result adds it (4 -> 5)
+PASS large/system Done closes search
+PASS large/system Edit on
+PASS large/system drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS large/system delete removes the city (5 -> 4)
+PASS large/system Edit off
+PASS large/system 12 cities: window on screen (window 715x609 screen 1024x681)
+PASS extraLarge/system Share in the header, left (share 189..296 y 48, add 486 y 48)
+PASS extraLarge/system click hour +2 (offset 2)
+PASS extraLarge/system click Now (offset 0)
+PASS extraLarge/system click later (offset 1)
+PASS extraLarge/system click earlier (offset 0)
+PASS extraLarge/system Add City opens search
+PASS extraLarge/system click a result adds it (4 -> 5)
+PASS extraLarge/system Done closes search
+PASS extraLarge/system Edit on
+PASS extraLarge/system drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS extraLarge/system delete removes the city (5 -> 4)
+PASS extraLarge/system Edit off
+PASS extraLarge/system 12 cities: window on screen (window 808x601 screen 1024x681)
+PASS extraSmall/inter Share in the header, left (share 130..203 y 33, add 314 y 33)
+PASS extraSmall/inter click hour +2 (offset 2)
+PASS extraSmall/inter click Now (offset 0)
+PASS extraSmall/inter click later (offset 1)
+PASS extraSmall/inter click earlier (offset 0)
+FAIL extraSmall/inter Add City opens search
+FAIL extraSmall/inter click a result adds it (4 -> 4)
+PASS extraSmall/inter Done closes search
+FAIL extraSmall/inter Edit on
+FAIL extraSmall/inter drag handle moves a row down (Paris,New York,Kolkata,Tokyo)
+FAIL extraSmall/inter delete removes the city (4 -> 4)
+PASS extraSmall/inter Edit off
+PASS extraSmall/inter 12 cities: window on screen (window 524x631 screen 1024x681)
+PASS small/inter Share in the header, left (share 140..221 y 37, add 356 y 37)
+PASS small/inter click hour +2 (offset 2)
+PASS small/inter click Now (offset 0)
+PASS small/inter click later (offset 1)
+PASS small/inter click earlier (offset 0)
+PASS small/inter Add City opens search
+PASS small/inter click a result adds it (4 -> 5)
+PASS small/inter Done closes search
+PASS small/inter Edit on
+PASS small/inter drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS small/inter delete removes the city (5 -> 4)
+PASS small/inter Edit off
+PASS small/inter 12 cities: window on screen (window 590x624 screen 1024x681)
+PASS medium/inter Share in the header, left (share 156..245 y 39, add 386 y 39)
+PASS medium/inter click hour +2 (offset 2)
+PASS medium/inter click Now (offset 0)
+PASS medium/inter click later (offset 1)
+PASS medium/inter click earlier (offset 0)
+PASS medium/inter Add City opens search
+PASS medium/inter click a result adds it (4 -> 5)
+PASS medium/inter Done closes search
+PASS medium/inter Edit on
+PASS medium/inter drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS medium/inter delete removes the city (5 -> 4)
+PASS medium/inter Edit off
+PASS medium/inter 12 cities: window on screen (window 642x617 screen 1024x681)
+PASS large/inter Share in the header, left (share 172..273 y 43, add 429 y 43)
+PASS large/inter click hour +2 (offset 2)
+PASS large/inter click Now (offset 0)
+PASS large/inter click later (offset 1)
+PASS large/inter click earlier (offset 0)
+PASS large/inter Add City opens search
+PASS large/inter click a result adds it (4 -> 5)
+PASS large/inter Done closes search
+PASS large/inter Edit on
+PASS large/inter drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS large/inter delete removes the city (5 -> 4)
+PASS large/inter Edit off
+PASS large/inter 12 cities: window on screen (window 715x609 screen 1024x681)
+PASS extraLarge/inter Share in the header, left (share 196..304 y 48, add 486 y 48)
+PASS extraLarge/inter click hour +2 (offset 2)
+PASS extraLarge/inter click Now (offset 0)
+PASS extraLarge/inter click later (offset 1)
+PASS extraLarge/inter click earlier (offset 0)
+PASS extraLarge/inter Add City opens search
+PASS extraLarge/inter click a result adds it (4 -> 5)
+PASS extraLarge/inter Done closes search
+PASS extraLarge/inter Edit on
+PASS extraLarge/inter drag handle moves a row down (New York,Paris,Kolkata,Tokyo,London)
+PASS extraLarge/inter delete removes the city (5 -> 4)
+PASS extraLarge/inter Edit off
+PASS extraLarge/inter 12 cities: window on screen (window 808x601 screen 1024x681)

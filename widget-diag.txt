@@ -1,0 +1,378 @@
+== codesign
+Executable=/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget
+Identifier=me.bradcowdrey.comridian.widget
+Format=bundle with Mach-O universal (x86_64 arm64)
+CodeDirectory v=20500 size=4523 flags=0x10000(runtime) hashes=130+7 location=embedded
+Hash type=sha256 size=32
+CandidateCDHash sha256=23fe737eeff44b6a0f7261039205fb54356e4180
+CandidateCDHashFull sha256=23fe737eeff44b6a0f7261039205fb54356e4180ac4d74a880da00e36ec07f6b
+Hash choices=sha256
+CMSDigest=23fe737eeff44b6a0f7261039205fb54356e4180ac4d74a880da00e36ec07f6b
+CMSDigestType=2
+CDHash=23fe737eeff44b6a0f7261039205fb54356e4180
+Signature size=8981
+Authority=Developer ID Application: Bradley Cowdrey (2XV97FZ86G)
+Authority=Developer ID Certification Authority
+Authority=Apple Root CA
+Timestamp=Oct 31, 2026 at 6:42:31 PM
+Info.plist entries=22
+TeamIdentifier=2XV97FZ86G
+Runtime Version=15.5.0
+Sealed Resources version=2 rules=13 files=2
+Internal requirements count=1 size=192
+== entitlements
+Executable=/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget
+[Dict]
+	[Key] com.apple.security.app-sandbox
+	[Value]
+		[Bool] true
+	[Key] com.apple.security.temporary-exception.files.home-relative-path.read-only
+	[Value]
+		[Array]
+			[String] /Library/Application Support/Meridian/
+== spctl
+/Applications/Meridian.app: rejected
+source=Unnotarized Developer ID
+origin=Developer ID Application: Bradley Cowdrey (2XV97FZ86G)
+== pluginkit
++    me.bradcowdrey.comridian.widget(0.0.0-selftest)
+	            Path = /Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex
+	            UUID = 2AD034C7-F1E0-48C9-B675-B61BF16B5A07
+	       Timestamp = 2026-10-31 18:48:18 +0000
+	             SDK = com.apple.widgetkit-extension
+	   Parent Bundle = /Applications/Meridian.app
+	    Display Name = Meridian
+	      Short Name = Meridian
+	     Parent Name = Meridian
+	        Platform = macOS
+
+ (1 plug-in)
+== Info.plist
+{
+  "BuildMachineOSBuild" => "24H232"
+  "CFBundleDevelopmentRegion" => "en"
+  "CFBundleDisplayName" => "Meridian"
+  "CFBundleExecutable" => "MeridianWidget"
+  "CFBundleIdentifier" => "me.bradcowdrey.comridian.widget"
+  "CFBundleInfoDictionaryVersion" => "6.0"
+  "CFBundleName" => "MeridianWidget"
+  "CFBundlePackageType" => "XPC!"
+  "CFBundleShortVersionString" => "0.0.0-selftest"
+  "CFBundleSupportedPlatforms" => [
+    0 => "MacOSX"
+  ]
+  "CFBundleVersion" => "141"
+  "DTCompiler" => "com.apple.compilers.llvm.clang.1_0"
+  "DTPlatformBuild" => "24F74"
+  "DTPlatformName" => "macosx"
+  "DTPlatformVersion" => "15.5"
+  "DTSDKBuild" => "24F74"
+  "DTSDKName" => "macosx15.5"
+  "DTXcode" => "1640"
+  "DTXcodeBuild" => "16F6"
+  "LSMinimumSystemVersion" => "14.0"
+  "NSExtension" => {
+    "NSExtensionPointIdentifier" => "com.apple.widgetkit-extension"
+  }
+  "NSHumanReadableCopyright" => "© 2026 Bradley Cowdrey · bradcowdrey.com"
+}
+== binary
+/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget: Mach-O universal binary with 2 architectures: [x86_64:Mach-O 64-bit executable x86_64] [arm64:Mach-O 64-bit executable arm64]
+/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget (for architecture x86_64):	Mach-O 64-bit executable x86_64
+/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget (for architecture arm64):	Mach-O 64-bit executable arm64
+/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget (architecture x86_64):
+	/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 3502.1.255)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)
+	/System/Library/Frameworks/AppIntents.framework/Versions/A/AppIntents (compatibility version 0.0.0, current version 227.19.0)
+	/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 3502.1.255)
+	/System/Library/Frameworks/SwiftUI.framework/Versions/A/SwiftUI (compatibility version 1.0.0, current version 6.5.4)
+	/System/Library/Frameworks/WidgetKit.framework/Versions/A/WidgetKit (compatibility version 1.0.0, current version 537.6.13)
+	/usr/lib/swift/libswiftCore.dylib (compatibility version 1.0.0, current version 0.0.0)
+	/usr/lib/swift/libswiftCoreFoundation.dylib (compatibility version 1.0.0, current version 120.100.0)
+	/usr/lib/swift/libswiftCoreImage.dylib (compatibility version 1.0.0, current version 2.0.0, weak)
+	/usr/lib/swift/libswiftCoreLocation.dylib (compatibility version 1.0.0, current version 44.0.1, weak)
+	/usr/lib/swift/libswiftDarwin.dylib (compatibility version 1.0.0, current version 310.100.8, weak)
+	/usr/lib/swift/libswiftDataDetection.dylib (compatibility version 1.0.0, current version 801.2.0, weak)
+	/usr/lib/swift/libswiftDispatch.dylib (compatibility version 1.0.0, current version 54.0.0, weak)
+	/usr/lib/swift/libswiftIOKit.dylib (compatibility version 1.0.0, current version 1.0.0, weak)
+	/usr/lib/swift/libswiftIntents.dylib (compatibility version 1.0.0, current version 12.0.0, weak)
+	/usr/lib/swift/libswiftMetal.dylib (compatibility version 1.0.0, current version 368.12.0, weak)
+	/usr/lib/swift/libswiftOSLog.dylib (compatibility version 1.0.0, current version 8.0.0, weak)
+	/usr/lib/swift/libswiftObjectiveC.dylib (compatibility version 1.0.0, current version 940.4.0, weak)
+== run directly (expect it to complain it wasn't started by the system)
+An XPC Service cannot be run directly.
+/Users/runner/work/_temp/bf20dafb-dcb0-4897-8f4c-d7ddc76378cc.sh: line 28: 15697 Abort trap: 6           "$APPEX/Contents/MacOS/MeridianWidget"
+== log mentioning the widget
+				"AUID" => <uint64: 0x93100fbbb5670257>: 501
+				"EAI" => <string: 0xae89fee80> { length = 24, contents = "me.bradcowdrey.comridian" }
+				"PLAT" => <uint64: 0x93100fbbb5670df7>: 1
+			}
+			"RunningBoardLaunched" => <bool: 0x1f4d528b0>: true
+		}
+	}
+	"ExitTimeOut" => <int64: 0x93900fbbb5670df7>: 1
+	"Label" => <string: 0xae89ff4b0> { length = 52, contents = "application.me.bradcowdrey.comridian.3551753.3551758" }
+	"WaitForDebugger" => <bool: 0x1f4d528b0>: true
+	"MaterializeDatalessFiles" => <bool: 0x1f4d528b0>: true
+	"WorkingDirectory" => <string: 0xae8b2d320> { length = 1, contents = "/" }
+	"_LaunchType" => <int64: 0x93900fbbb5670de7>: 3
+	"AbandonProcessGroup" => <bool: 0x1f4d528b0>: true
+	"ProgramArguments" => <array: 0xae89fec40> { count = 1, capacity = 8, contents =
+		0: <string: 0xae89fcc00> { length = 50, contents = "/Applications/Meridian.app/Contents/MacOS/Meridian" }
+	}
+	"Program" => <string: 0xae89fe340> { length = 50, contents = "/Applications/Meridian.app/Contents/MacOS/Meridian" }
+}
+2026-10-31 18:48:14.655 Df kernel[0:ae71] (AppleMobileFileIntegrity) AMFI: [non-fatal] unable to accelerate context: me.bradcowdrey.comridian | 245
+2026-10-31 18:48:14.656 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] is not RunningBoard jetsam managed.
+2026-10-31 18:48:14.656 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] This process will not be managed.
+2026-10-31 18:48:14.656 Df runningboardd[150:9eee] [com.apple.runningboard:ttl] Now tracking process: [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]
+2026-10-31 18:48:14.656 Df runningboardd[150:a20d] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.657 Df runningboardd[150:9eee] [com.apple.runningboard:assertion] Using default underlying assertion for app: [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]
+2026-10-31 18:48:14.657 Df runningboardd[150:9eee] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] from originator [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] with description <RBSAssertionDescriptor| "RB Underlying Assertion" ID:150-150-541 target:15083 attributes:[
+	<RBSDomainAttribute| domain:"com.apple.underlying" name:"defaultUnderlyingAppAssertion" sourceEnvironment:"(null)">,
+	<RBSAcquisitionCompletionAttribute| policy:AfterApplication>
+	]>
+2026-10-31 18:48:14.657 Df runningboardd[150:9eee] [com.apple.runningboard:ttl] Assertion 150-150-541 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) will be created as active
+2026-10-31 18:48:14.657 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.657 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.657 Df runningboardd[150:ae6f] [com.apple.runningboard:ttl] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Set darwin role to: UserInteractive
+2026-10-31 18:48:14.657 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.657 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.657 Df runningboardd[150:ae70] [com.apple.runningboard:general] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] reported to RB as running
+2026-10-31 18:48:14.658 Df runningboardd[150:9eee] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.658 Df gamepolicyd[8762:8a57] [com.apple.runningboard:process] Hit the server for a process handle 523f3e500003aeb that resolved to: [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]
+2026-10-31 18:48:14.659 Df gamepolicyd[8762:8a57] [com.apple.runningboard:monitor] Received state update for 15083 (app<application.me.bradcowdrey.comridian.3551753.3551758(501)>, running-active-NotVisible
+2026-10-31 18:48:14.659 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.659 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.659 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.659 Df runningboardd[150:ae6f] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.659 Df gamepolicyd[8762:a0ea] [com.apple.runningboard:monitor] Received state update for 15083 (app<application.me.bradcowdrey.comridian.3551753.3551758(501)>, running-active-NotVisible
+2026-10-31 18:48:14.660 Df runningboardd[150:a20d] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] from originator [osservice<com.apple.coreservices.launchservicesd>:122] with description <RBSAssertionDescriptor| "uielement:15083" ID:150-122-542 target:15083 attributes:[
+	<RBSDomainAttribute| domain:"com.apple.launchservicesd" name:"RoleUserInteractive" sourceEnvironment:"(null)">
+	]>
+2026-10-31 18:48:14.660 Df runningboardd[150:a20d] [com.apple.runningboard:ttl] Assertion 150-122-542 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) will be created as active
+2026-10-31 18:48:14.661 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.661 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.661 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.661 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.661 Df runningboardd[150:ae6f] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.663 Df runningboardd[150:ae70] [com.apple.runningboard:assertion] Successfully acquired underlying assertion for [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]
+2026-10-31 18:48:14.663 Df CoreServicesUIAgent[326:a8de] [com.apple.processmanager:front-35286506] LAUNCH: 0x0-0x30030 me.bradcowdrey.comridian starting stopped process.
+2026-10-31 18:48:14.665 Df runningboardd[150:ae70] [com.apple.runningboard:ttl] Invalidating assertion 150-326-540 (target:app<application.me.bradcowdrey.comridian.3551753.3551758(501)>) from originator [osservice<com.apple.coreservices.uiagent(501)>:326]
+2026-10-31 18:48:14.722 Df tccd[147:a143] [com.apple.TCC:access] AUTHREQ_ATTRIBUTION: msgID=15083.1, attribution={requesting={TCCDProcess: identifier=me.bradcowdrey.comridian, pid=15083, auid=501, euid=501, binary_path=/Applications/Meridian.app/Contents/MacOS/Meridian}, },
+2026-10-31 18:48:14.725 Df tccd[147:a143] [com.apple.TCC:access] AUTHREQ_SUBJECT: msgID=15083.1, subject=me.bradcowdrey.comridian,
+2026-10-31 18:48:14.727 Df tccd[147:a143] [com.apple.TCC:access] -[TCCDAccessIdentity staticCode]: static code for: identifier me.bradcowdrey.comridian, type: 0: 0x6d8290f00 at /Applications/Meridian.app
+2026-10-31 18:48:14.734 Df tccd[147:a21a] [com.apple.TCC:access] AUTHREQ_ATTRIBUTION: msgID=157.154, attribution={accessing={TCCDProcess: identifier=me.bradcowdrey.comridian, pid=15083, auid=501, euid=501, binary_path=/Applications/Meridian.app/Contents/MacOS/Meridian}, requesting={TCCDProcess: identifier=com.apple.WindowServer, pid=157, auid=88, euid=88, binary_path=/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer}, },
+2026-10-31 18:48:14.734 Df tccd[147:a21a] [com.apple.TCC:access] requestor: TCCDProcess: identifier=com.apple.WindowServer, pid=157, auid=88, euid=88, binary_path=/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer is checking access for accessor TCCDProcess: identifier=me.bradcowdrey.comridian, pid=15083, auid=501, euid=501, binary_path=/Applications/Meridian.app/Contents/MacOS/Meridian
+2026-10-31 18:48:14.735 Df chronod[449:a975] [com.apple.chrono:extensions] Updated extension: <WidgetExtension - identifier: me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget, version: 141, containerVersion: 141, lastModifiedDate: 1970-01-01T00:00:00Z isInternal: false>, now with pluginUUID 989C6C7C-FF33-46A7-A656-7D7203033A22, (was 3FAEF01A-ADB1-40F7-8B99-880910122049)
+2026-10-31 18:48:14.735 Df tccd[147:a21a] [com.apple.TCC:access] AUTHREQ_SUBJECT: msgID=157.154, subject=me.bradcowdrey.comridian,
+2026-10-31 18:48:14.735 Df tccd[147:a21a] [com.apple.TCC:access] -[TCCDAccessIdentity staticCode]: static code for: identifier me.bradcowdrey.comridian, type: 0: 0x6d8290f00 at /Applications/Meridian.app
+2026-10-31 18:48:14.736 Df chronod[449:a975] [com.apple.chrono:extensions-verbose] Updated extensions: [<WidgetExtension - identifier: me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget, version: 141, containerVersion: 141, lastModifiedDate: 1970-01-01T00:00:00Z isInternal: false>]
+2026-10-31 18:48:14.736 Df chronod[449:a93] [com.apple.chrono:timeline] Reload requested for me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget as budgeted: false for reason: extensionChanged
+2026-10-31 18:48:14.736 Df chronod[449:a0bd] [com.apple.chrono:stateCapture] [state-capture] StateCaptureEntry created with title: Descriptors[me.bradcowdrey.comridian.widget]
+2026-10-31 18:48:14.736 Df chronod[449:a0bd] [com.apple.chrono:stateCapture] [state-capture] added StateCaptureItem with title: Descriptors[me.bradcowdrey.comridian.widget], identifier: me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget
+2026-10-31 18:48:14.736 Df chronod[449:a0bd] [com.apple.chrono:descriptor] Queuing extension added events: me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget
+2026-10-31 18:48:14.736 E  chronod[449:a0bd] [com.apple.chrono:descriptor] Requested to add extension, but purging instead because we shouldn't cache it: <WidgetExtension - identifier: me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget, version: 141, containerVersion: 141, lastModifiedDate: 1970-01-01T00:00:00Z isInternal: false> - isInternal? false
+2026-10-31 18:48:14.736 Df chronod[449:a0bd] [com.apple.chrono:descriptor] Purging descriptors for extensions: [me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget]
+2026-10-31 18:48:14.736 Df chronod[449:a0bd] [com.apple.chrono:database] Clearing descriptor cache for me.bradcowdrey.comridian.widget
+2026-10-31 18:48:14.737 Df chronod[449:a0bd] [com.apple.chrono:networkAuthorizations] Processing extensions added or updated: [me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget]
+2026-10-31 18:48:14.739 Df tccd[147:a143] [com.apple.TCC:access] AUTHREQ_ATTRIBUTION: msgID=157.155, attribution={accessing={TCCDProcess: identifier=me.bradcowdrey.comridian, pid=15083, auid=501, euid=501, binary_path=/Applications/Meridian.app/Contents/MacOS/Meridian}, requesting={TCCDProcess: identifier=com.apple.WindowServer, pid=157, auid=88, euid=88, binary_path=/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer}, },
+2026-10-31 18:48:14.739 Df tccd[147:a143] [com.apple.TCC:access] requestor: TCCDProcess: identifier=com.apple.WindowServer, pid=157, auid=88, euid=88, binary_path=/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/Resources/WindowServer is checking access for accessor TCCDProcess: identifier=me.bradcowdrey.comridian, pid=15083, auid=501, euid=501, binary_path=/Applications/Meridian.app/Contents/MacOS/Meridian
+2026-10-31 18:48:14.739 Df tccd[147:a143] [com.apple.TCC:access] AUTHREQ_SUBJECT: msgID=157.155, subject=me.bradcowdrey.comridian,
+2026-10-31 18:48:14.740 Df tccd[147:a143] [com.apple.TCC:access] -[TCCDAccessIdentity staticCode]: static code for: identifier me.bradcowdrey.comridian, type: 0: 0x6d8290f00 at /Applications/Meridian.app
+2026-10-31 18:48:14.755 Df launchservicesd[122:ae6e] [com.apple.launchservices:cas] CHECKIN:0x0-0x30030 15083 me.bradcowdrey.comridian
+2026-10-31 18:48:14.755 Df runningboardd[150:a0e8] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] from originator [osservice<com.apple.coreservices.launchservicesd>:122] with description <RBSAssertionDescriptor| "uielement:15083" ID:150-122-543 target:15083 attributes:[
+	<RBSDomainAttribute| domain:"com.apple.launchservicesd" name:"RoleUserInteractive" sourceEnvironment:"(null)">
+	]>
+2026-10-31 18:48:14.755 Df runningboardd[150:a0e8] [com.apple.runningboard:ttl] Assertion 150-122-543 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) will be created as active
+2026-10-31 18:48:14.755 Df runningboardd[150:a20d] [com.apple.runningboard:ttl] Invalidating assertion 150-122-542 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) from originator [osservice<com.apple.coreservices.launchservicesd>:122]
+2026-10-31 18:48:14.761 Df gamepolicyd[8762:8a57] [com.apple.runningboard:monitor] Received state update for 15083 (app<application.me.bradcowdrey.comridian.3551753.3551758(501)>, running-active-NotVisible
+2026-10-31 18:48:14.777 Df distnoted[300:9331] [com.apple.distnoted:diagnostic] register name: com.apple.xctest.FakeForceTouchDevice object: me.bradcowdrey.comridian token: 200000001f pid: 15083
+2026-10-31 18:48:14.795 Df linkd[486:9c5d] [com.apple.appintents:General] Queuing notification for LNAppShortcutsChangedNotification updating: ["me.bradcowdrey.comridian"]
+2026-10-31 18:48:14.799 Df linkd[486:9c5b] [com.apple.appintents:General] Queuing notification for LNMetadataChangedNotification added: ["me.bradcowdrey.comridian"], removed: []
+2026-10-31 18:48:14.850 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.850 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.850 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.850 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.850 Df runningboardd[150:ae70] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.851 Df gamepolicyd[8762:a0ea] [com.apple.runningboard:monitor] Received state update for 15083 (app<application.me.bradcowdrey.comridian.3551753.3551758(501)>, running-active-NotVisible
+2026-10-31 18:48:14.865 Df tccd[147:8d3c] [com.apple.TCC:access] -[TCCDAccessIdentity staticCode]: static code for: identifier me.bradcowdrey.comridian, type: 0: 0x6d8290f00 at /Applications/Meridian.app
+2026-10-31 18:48:14.883 Df distnoted[300:9331] [com.apple.distnoted:diagnostic] register name: com.apple.nsquiet_safe_quit_give_reason object: me.bradcowdrey.comridian token: 4200000047 pid: 15083
+2026-10-31 18:48:14.886 E  tccd[147:8d3c] [com.apple.TCC:access] Prompting policy for hardened runtime; service: kTCCServiceAppleEvents requires entitlement com.apple.security.automation.apple-events but it is missing for accessing={TCCDProcess: identifier=me.bradcowdrey.comridian, pid=15083, auid=501, euid=501, binary_path=/Applications/Meridian.app/Contents/MacOS/Meridian}, requesting={TCCDProcess: identifier=com.apple.appleeventsd, pid=188, auid=55, euid=55, binary_path=/System/Library/CoreServices/appleeventsd},
+2026-10-31 18:48:14.950 Df runningboardd[150:a0e8] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] from originator [osservice<com.apple.WindowServer(88)>:157] with description <RBSAssertionDescriptor| "AppDrawing" ID:150-157-544 target:15083 attributes:[
+	<RBSDomainAttribute| domain:"com.apple.appnap" name:"AppDrawing" sourceEnvironment:"(null)">,
+	<RBSAcquisitionCompletionAttribute| policy:AfterApplication>
+	]>
+2026-10-31 18:48:14.950 Df runningboardd[150:a0e8] [com.apple.runningboard:ttl] Assertion 150-157-544 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) will be created as active
+2026-10-31 18:48:14.951 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.951 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.951 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.951 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.951 Df runningboardd[150:a0e8] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.952 Df runningboardd[150:ae70] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] from originator [osservice<com.apple.WindowServer(88)>:157] with description <RBSAssertionDescriptor| "AppVisible" ID:150-157-545 target:15083 attributes:[
+	<RBSDomainAttribute| domain:"com.apple.appnap" name:"AppVisible" sourceEnvironment:"(null)">,
+	<RBSAcquisitionCompletionAttribute| policy:AfterApplication>
+	]>
+2026-10-31 18:48:14.952 Df runningboardd[150:ae70] [com.apple.runningboard:ttl] Assertion 150-157-545 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) will be created as active
+2026-10-31 18:48:14.953 Df runningboardd[150:a0e8] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.953 Df runningboardd[150:a0e8] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.953 Df runningboardd[150:a0e8] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.953 Df runningboardd[150:a0e8] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.953 Df runningboardd[150:9eee] [com.apple.runningboard:connection] Setting client for [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] as ready
+2026-10-31 18:48:14.954 Df runningboardd[150:a20d] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.954 Df Meridian[15083:ae8f] [com.apple.runningboard:connection] Identity resolved as app<application.me.bradcowdrey.comridian.3551753.3551758(501)>
+2026-10-31 18:48:14.954 Df runningboardd[150:a0e8] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] from originator [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] with description <RBSAssertionDescriptor| "com.apple.CFNetwork.StorageDB" ID:150-15083-546 target:15083 attributes:[
+	<RBSDomainAttribute| domain:"com.apple.common" name:"FinishTaskUninterruptable" sourceEnvironment:"(null)">,
+	<RBSAcquisitionCompletionAttribute| policy:AfterApplication>
+	]>
+2026-10-31 18:48:14.954 Df runningboardd[150:a0e8] [com.apple.runningboard:ttl] Assertion 150-15083-546 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) will be created as active as no start-time-defining assertions exist
+2026-10-31 18:48:14.954 Df runningboardd[150:ae70] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.954 Df runningboardd[150:ae70] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.955 Df runningboardd[150:ae70] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.955 Df runningboardd[150:ae70] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.955 Df runningboardd[150:ae6f] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.964 Df gamepolicyd[8762:8a57] [com.apple.runningboard:monitor] Received state update for 15083 (app<application.me.bradcowdrey.comridian.3551753.3551758(501)>, running-active-NotVisible
+2026-10-31 18:48:14.973 Df runningboardd[150:a20d] [com.apple.runningboard:ttl] Acquiring assertion targeting [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] from originator [osservice<com.apple.WindowServer(88)>:157] with description <RBSAssertionDescriptor| "FUSBProcessWindowState: visible" ID:150-157-547 target:15083 attributes:[
+	<RBSDomainAttribute| domain:"com.apple.fuseboard" name:"Visible" sourceEnvironment:"(null)">,
+	<RBSAcquisitionCompletionAttribute| policy:AfterApplication>
+	]>
+2026-10-31 18:48:14.973 Df runningboardd[150:a20d] [com.apple.runningboard:ttl] Assertion 150-157-547 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) will be created as active
+2026-10-31 18:48:14.973 Df runningboardd[150:a20d] [com.apple.runningboard:ttl] Deactivating delayed assertion 150-15083-546 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083])
+2026-10-31 18:48:14.973 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:14.973 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:14.973 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:14.973 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:14.973 Df runningboardd[150:9eee] [com.apple.runningboard:ttl] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] visiblity is yes
+2026-10-31 18:48:14.974 Df runningboardd[150:a20d] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:14.979 Df gamepolicyd[8762:a0ea] [com.apple.runningboard:monitor] Received state update for 15083 (app<application.me.bradcowdrey.comridian.3551753.3551758(501)>, running-active-NotVisible
+2026-10-31 18:48:15.993 Df runningboardd[150:a0e8] [com.apple.runningboard:ttl] Invalidating assertion 150-15083-546 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]) from originator [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083]
+2026-10-31 18:48:18.750 Df linkd[486:9c5d] [com.apple.appintents:General] Queuing notification for LNAppShortcutsChangedNotification updating: ["me.bradcowdrey.comridian"]
+2026-10-31 18:48:18.751 Df linkd[486:a200] [com.apple.appintents:General] Queuing notification for LNMetadataChangedNotification added: [], removed: ["me.bradcowdrey.comridian"]
+2026-10-31 18:48:18.771 Df lsd[333:85eb] [com.apple.appinstallation:TransactionLog] me.bradcowdrey.comridian/Unknown Persona:5:5:1:1:Building bundle record for app
+2026-10-31 18:48:18.771 Df lsd[333:85eb] [com.apple.appinstallation:TransactionLog] me.bradcowdrey.comridian/Unknown Persona:5:5:2:1:Built bundle record for app
+2026-10-31 18:48:18.777 Df lsd[333:85eb] [com.apple.appinstallation:TransactionLog] me.bradcowdrey.comridian/Unknown Persona:5:4:2:1:_LSServerRegisterItemInfo result = 0
+2026-10-31 18:48:18.802 Df dmd[343:811] Received xpc stream event (distributed notification matching) with name: com.apple.LaunchServices.applicationRegistered user info: {
+    CFBundleDisplayName = Meridian;
+    bundleIDs =     (
+        "me.bradcowdrey.comridian"
+    );
+    isForcedUpdate = 1;
+    isPlaceholder = 0;
+}
+2026-10-31 18:48:19.279 Df linkd[486:af22] [com.apple.appintents:General] Queuing notification for LNAppShortcutsChangedNotification updating: ["me.bradcowdrey.comridian"]
+2026-10-31 18:48:19.287 Df linkd[486:9c5d] [com.apple.appintents:General] Queuing notification for LNMetadataChangedNotification added: ["me.bradcowdrey.comridian"], removed: []
+2026-10-31 18:48:20.537 Df runningboardd[150:ae6f] [com.apple.runningboard:assertion] Assertion did invalidate due to timeout: 150-150-541 (target:[app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083])
+2026-10-31 18:48:20.641 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring jetsam update because this process is not memory-managed
+2026-10-31 18:48:20.641 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring suspend because this process is not lifecycle managed
+2026-10-31 18:48:20.641 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring GPU update because this process is not GPU managed
+2026-10-31 18:48:20.642 Df runningboardd[150:9eee] [com.apple.runningboard:process] [app<application.me.bradcowdrey.comridian.3551753.3551758(501)>:15083] Ignoring memory limit update because this process is not memory-managed
+2026-10-31 18:48:20.642 Df runningboardd[150:ae72] [com.apple.runningboard:monitor] Calculated state for app<application.me.bradcowdrey.comridian.3551753.3551758(501)>: running-active (role: UserInteractive) (endowments: <private>)
+2026-10-31 18:48:20.642 Df gamepolicyd[8762:8a57] [com.apple.runningboard:monitor] Received state update for 15083 (app<application.me.bradcowdrey.comridian.3551753.3551758(501)>, running-active-NotVisible
+2026-10-31 18:48:42.703 A  MeridianWidget[15697:b43d] (libsystem_secinit.dylib) AppSandbox
+2026-10-31 18:48:42.705 Df secinitd[354:a1e7] MeridianWidget[15697]: root path for bundle "<private>" of main executable "<private>"
+2026-10-31 18:48:42.916 Df secinitd[354:a1e7] MeridianWidget[15697]: AppSandbox request successful
+2026-10-31 18:48:42.919 Df MeridianWidget[15697:b43d] [com.apple.extensionkit:default] Extension `/Applications/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget` of type: `(null)` launched.
+2026-10-31 18:48:42.920 Df MeridianWidget[15697:b43d] [com.apple.PlugInKit:lifecycle] Hello, I'm launching as euid = 501, uid = 501, personaid = -1, type = NOPERSONA, name = <unknown>
+2026-10-31 18:48:42.923 Df MeridianWidget[15697:b43d] [com.apple.xpc:connection] [0x152704850] activating connection: mach=true listener=false peer=false name=com.apple.lsd.mapdb
+2026-10-31 18:48:42.927 E  MeridianWidget[15697:b43d] [com.apple.os_debug_log:] assertion failed: 24H232: libxpc.dylib + 101752 [D3682603-AC67-3242-82EB-1226B435BFF4]: 0x87
+2026-10-31 18:48:42.927 E  MeridianWidget[15697:b43d] [com.apple.os_debug_log:] assertion failed: 24H232: libxpc.dylib + 101752 [D3682603-AC67-3242-82EB-1226B435BFF4]: 0x87
+2026-10-31 18:48:42.928 A  MeridianWidget[15697:b43d] (libsystem_info.dylib) Retrieve User by ID
+2026-10-31 18:48:42.929 Df MeridianWidget[15697:b43d] [com.apple.xpc:connection] [0x6000035c4000] activating connection: mach=true listener=false peer=false name=com.apple.cfprefsd.daemon
+2026-10-31 18:48:42.929 Df MeridianWidget[15697:b458] [com.apple.xpc:connection] [0x6000035cc000] activating connection: mach=true listener=false peer=false name=com.apple.cfprefsd.agent
+2026-10-31 18:48:42.932 Df MeridianWidget[15697:b43d] [com.apple.runningboard:connection] Initializing connection
+2026-10-31 18:48:42.932 Df MeridianWidget[15697:b43d] [com.apple.runningboard:process] Removing all cached process handles
+2026-10-31 18:48:42.932 Df MeridianWidget[15697:b458] [com.apple.runningboard:connection] Sending handshake request attempt #1 to server
+2026-10-31 18:48:42.932 Df MeridianWidget[15697:b458] [com.apple.runningboard:connection] Creating connection to com.apple.runningboard
+2026-10-31 18:48:42.932 Df MeridianWidget[15697:b458] [com.apple.xpc:connection] [0x6000035c0000] activating connection: mach=true listener=false peer=false name=com.apple.runningboard
+2026-10-31 18:48:42.933 Df runningboardd[150:b299] [com.apple.runningboard:process] Resolved pid 15697 to [anon<MeridianWidget>(501):15697]
+2026-10-31 18:48:42.933 Df runningboardd[150:b299] [com.apple.runningboard:process] [anon<MeridianWidget>(501):15697] is not RunningBoard jetsam managed.
+2026-10-31 18:48:42.933 Df runningboardd[150:b299] [com.apple.runningboard:process] [anon<MeridianWidget>(501):15697] This process will not be managed.
+2026-10-31 18:48:42.933 Df runningboardd[150:b299] [com.apple.runningboard:ttl] Now tracking process: [anon<MeridianWidget>(501):15697]
+2026-10-31 18:48:42.935 Df runningboardd[150:b299] [com.apple.runningboard:connection] Setting client for [anon<MeridianWidget>(501):15697] as ready
+2026-10-31 18:48:42.935 Df MeridianWidget[15697:b458] [com.apple.runningboard:connection] Handshake succeeded
+2026-10-31 18:48:42.935 Df MeridianWidget[15697:b458] [com.apple.runningboard:connection] Identity resolved as anon<MeridianWidget>(501)
+2026-10-31 18:48:42.935 E  MeridianWidget[15697:b43d] [com.apple.PlugInKit:subsystems] Bootstrapping; external subsystem UIKit_PKSubsystem refused setup
+2026-10-31 18:48:42.935 Df MeridianWidget[15697:b43d] [com.apple.PlugInKit:lifecycle] Bootstrapping; Bootstrap complete. Ready for handshake from host.
+2026-10-31 18:48:42.936 Df gamepolicyd[8762:a0ea] [com.apple.runningboard:process] Hit the server for a process handle 721df3800003d51 that resolved to: [anon<MeridianWidget>(501):15697]
+2026-10-31 18:48:42.936 Df gamepolicyd[8762:a0ea] [com.apple.runningboard:monitor] Received state update for 15697 (anon<MeridianWidget>(501), running-NotVisible
+2026-10-31 18:48:42.937 E  MeridianWidget[15697:b43d] [com.apple.os_debug_log:] assertion failed: 24H232: libxpc.dylib + 250440 [D3682603-AC67-3242-82EB-1226B435BFF4]: 0x87
+2026-10-31 18:48:42.937 Df runningboardd[150:b45a] [com.apple.runningboard:process] [anon<MeridianWidget>(501):15697] termination reported by proc_exit
+2026-10-31 18:48:42.937 Df runningboardd[150:af02] [com.apple.runningboard:process] XPC connection invalidated: [anon<MeridianWidget>(501):15697]
+2026-10-31 18:48:43.044 Df runningboardd[150:af02] [com.apple.runningboard:process] Removing process: [anon<MeridianWidget>(501):15697]
+2026-10-31 18:48:43.044 Df runningboardd[150:af02] [com.apple.runningboard:general] removeJobWithInstance called for identity without existing job [anon<MeridianWidget>(501):15697]
+2026-10-31 18:48:43.044 Df runningboardd[150:af02] [com.apple.runningboard:process] Removing assertions for terminated process: [anon<MeridianWidget>(501):15697]
+2026-10-31 18:48:43.045 Df gamepolicyd[8762:a0ea] [com.apple.runningboard:monitor] Received state update for 15697 (anon<MeridianWidget>(501), none-NotVisible
+2026-10-31 18:48:46.718 Df log[15968:b682] [com.apple.log:] log run noninteractively, parent: 15080 (bash), args: 'log' 'show' '--start' '2026-10-31 18:48:14' '--style' 'compact' '--predicate' 'eventMessage CONTAINS[c] "comridian" OR eventMessage CONTAINS[c] "MeridianWidget" OR process == "MeridianWidget"'
+== chronod errors
+Timestamp               Ty Process[PID:TID]
+2026-10-31 18:48:14.736 E  chronod[449:a0bd] [com.apple.chrono:descriptor] Requested to add extension, but purging instead because we shouldn't cache it: <WidgetExtension - identifier: me.bradcowdrey.comridian::me.bradcowdrey.comridian.widget, version: 141, containerVersion: 141, lastModifiedDate: 1970-01-01T00:00:00Z isInternal: false> - isInternal? false
+2026-10-31 18:48:18.820 E  chronod[449:a0bd] [com.apple.PlugInKit:ls] [u E91CFD9D-DACF-41CE-97C8-BC158101DA1A] [<private>(<private>)] unable to get plugin record
+== crash reports
+== widget binary (Xcode build)
+	/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 3502.1.255)
+	/usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1351.0.0)
+	/System/Library/Frameworks/AppIntents.framework/Versions/A/AppIntents (compatibility version 0.0.0, current version 227.19.0)
+	/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 3502.1.255)
+	/System/Library/Frameworks/SwiftUI.framework/Versions/A/SwiftUI (compatibility version 1.0.0, current version 6.5.4)
+	/System/Library/Frameworks/WidgetKit.framework/Versions/A/WidgetKit (compatibility version 1.0.0, current version 537.6.13)
+	/usr/lib/swift/libswiftCore.dylib (compatibility version 1.0.0, current version 0.0.0)
+	/usr/lib/swift/libswiftCoreFoundation.dylib (compatibility version 1.0.0, current version 120.100.0)
+	/usr/lib/swift/libswiftCoreImage.dylib (compatibility version 1.0.0, current version 2.0.0, weak)
+	/usr/lib/swift/libswiftCoreLocation.dylib (compatibility version 1.0.0, current version 44.0.1, weak)
+	/usr/lib/swift/libswiftDarwin.dylib (compatibility version 1.0.0, current version 310.100.8, weak)
+	/usr/lib/swift/libswiftDataDetection.dylib (compatibility version 1.0.0, current version 801.2.0, weak)
+	/usr/lib/swift/libswiftDispatch.dylib (compatibility version 1.0.0, current version 54.0.0, weak)
+	/usr/lib/swift/libswiftIOKit.dylib (compatibility version 1.0.0, current version 1.0.0, weak)
+	/usr/lib/swift/libswiftIntents.dylib (compatibility version 1.0.0, current version 12.0.0, weak)
+	/usr/lib/swift/libswiftMetal.dylib (compatibility version 1.0.0, current version 368.12.0, weak)
+	/usr/lib/swift/libswiftOSLog.dylib (compatibility version 1.0.0, current version 8.0.0, weak)
+	/usr/lib/swift/libswiftObjectiveC.dylib (compatibility version 1.0.0, current version 940.4.0, weak)
+	/usr/lib/swift/libswiftQuartzCore.dylib (compatibility version 1.0.0, current version 4.0.0, weak)
+	/usr/lib/swift/libswiftSpatial.dylib (compatibility version 1.0.0, current version 1.0.0, weak)
+	/usr/lib/swift/libswiftUniformTypeIdentifiers.dylib (compatibility version 1.0.0, current version 840.8.0, weak)
+	/usr/lib/swift/libswiftXPC.dylib (compatibility version 1.0.0, current version 69.120.3, weak)
+	/usr/lib/swift/libswift_Concurrency.dylib (compatibility version 1.0.0, current version 0.0.0)
+	/usr/lib/swift/libswiftos.dylib (compatibility version 1.0.0, current version 1062.100.1)
+	/usr/lib/swift/libswiftsimd.dylib (compatibility version 1.0.0, current version 21.0.0, weak)
+_$s7SwiftUI12WidgetBundleP0C3KitE4mainyyFZ
+_NSExtensionMain
+-- Info.plist keys (Xcode build)
+{
+  "BuildMachineOSBuild" => "24H232"
+  "CFBundleDevelopmentRegion" => "en"
+  "CFBundleDisplayName" => "Meridian"
+  "CFBundleExecutable" => "MeridianWidget"
+  "CFBundleIdentifier" => "me.bradcowdrey.comridian.widget"
+  "CFBundleInfoDictionaryVersion" => "6.0"
+  "CFBundleName" => "MeridianWidget"
+  "CFBundlePackageType" => "XPC!"
+  "CFBundleShortVersionString" => "0.0.0-selftest"
+  "CFBundleSupportedPlatforms" => [
+    0 => "MacOSX"
+  ]
+  "CFBundleVersion" => "141"
+  "DTCompiler" => "com.apple.compilers.llvm.clang.1_0"
+  "DTPlatformBuild" => "24F74"
+  "DTPlatformName" => "macosx"
+  "DTPlatformVersion" => "15.5"
+  "DTSDKBuild" => "24F74"
+  "DTSDKName" => "macosx15.5"
+  "DTXcode" => "1640"
+  "DTXcodeBuild" => "16F6"
+  "LSMinimumSystemVersion" => "14.0"
+  "NSExtension" => {
+    "NSExtensionPointIdentifier" => "com.apple.widgetkit-extension"
+  }
+  "NSHumanReadableCopyright" => "© 2026 Bradley Cowdrey · bradcowdrey.com"
+}
+== registration log
+2026-10-31 18:48:14 +0000 refreshing widget registration for /Applications/Meridian.app
+unregister /Users/runner/work/meridian/meridian/dist/Meridian.app: 0
+register app: 0
+register widget: 0
+enable widget: 0
+restart widget service: 0
+== registered Meridian copies
+   1 path:                       /Applications/Meridian.app (0x3854)

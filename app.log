@@ -1,0 +1,568 @@
+[selftest] fitWindow content (642.0, 450.0) window (191.0, 152.0, 642.0, 475.0) -> (191.0, 177.0, 642.0, 450.0) titleBarInset 0.0
+[selftest] fitWindow content (642.0, 447.0) window (191.0, 177.0, 642.0, 450.0) -> (191.0, 180.0, 642.0, 447.0) titleBarInset 0.0
+[selftest] window attached, title bar inset 28.0
+[selftest] fitWindow content (524.0, 437.0) window (191.0, 263.0, 524.0, 364.0) -> (191.0, 190.0, 524.0, 437.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (191.0, 190.0, 524.0, 437.0) -> (191.0, 263.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 370.0) window (191.0, 213.0, 590.0, 414.0) -> (191.0, 257.0, 590.0, 370.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (191.0, 257.0, 590.0, 370.0) -> (191.0, 213.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 418.0) window (191.0, 180.0, 642.0, 447.0) -> (191.0, 209.0, 642.0, 418.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (191.0, 209.0, 642.0, 418.0) -> (191.0, 180.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 454.0) window (191.0, 135.0, 715.0, 492.0) -> (191.0, 173.0, 715.0, 454.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (191.0, 173.0, 715.0, 454.0) -> (191.0, 135.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 502.0) window (191.0, 68.0, 808.0, 559.0) -> (191.0, 125.0, 808.0, 502.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (191.0, 125.0, 808.0, 502.0) -> (191.0, 68.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (191.0, 40.0, 524.0, 587.0) -> origin (191.0, 62.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (524.0, 532.0) window (191.0, 62.0, 524.0, 587.0) -> (191.0, 117.0, 524.0, 532.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (191.0, 117.0, 524.0, 532.0) -> (191.0, 62.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (191.0, 25.0, 590.0, 624.0) -> origin (191.0, 62.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (590.0, 593.0) window (191.0, 62.0, 590.0, 624.0) -> (191.0, 93.0, 590.0, 593.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (191.0, 93.0, 590.0, 593.0) -> (191.0, 62.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (191.0, 69.0, 642.0, 617.0) -> (191.0, 69.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (191.0, 77.0, 715.0, 609.0) -> (191.0, 77.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (191.0, 85.0, 808.0, 601.0) -> (191.0, 85.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (191.0, 239.0, 642.0, 447.0) -> (191.0, 69.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (191.0, 69.0, 642.0, 617.0) -> (191.0, 239.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] placement edge(Meridian.WindowPlacement.left) -> (16.0, 280.0, 642.0, 447.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] placement edge(Meridian.WindowPlacement.center) -> (191.0, 280.0, 642.0, 447.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] placement edge(Meridian.WindowPlacement.right) -> (366.0, 280.0, 642.0, 447.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (524.0, 437.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 290.0, 524.0, 437.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 290.0, 524.0, 437.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 456,78 in 524x364 -> DocumentView
+[selftest] functional: click travel-now at 450,292 in 524x364 -> DocumentView
+[selftest] functional: click travel-later at 492,292 in 524x364 -> DocumentView
+[selftest] functional: click travel-earlier at 408,292 in 524x364 -> DocumentView
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (366.0, 140.0, 524.0, 587.0) -> (366.0, 140.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (366.0, 363.0, 524.0, 364.0) -> (366.0, 363.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] functional: probe extraSmall/system normal add 21..45 window 363+364 content 364 inset 28: 19:- 21:Y 23:Y 25:Y 27:Y 29:Y 31:Y 33:- 35:Y 37:Y 39:Y 41:Y 43:Y 45:- 47:-
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 591.0) window (366.0, 136.0, 524.0, 591.0) -> (366.0, 136.0, 524.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 368.0) window (366.0, 359.0, 524.0, 368.0) -> (366.0, 359.0, 524.0, 368.0) titleBarInset 28.0
+[selftest] functional: probe extraSmall/system header+4 add 25..49 window 359+368 content 368 inset 28: 23:- 25:Y 27:Y 29:Y 31:Y 33:Y 35:Y 37:- 39:Y 41:Y 43:Y 45:Y 47:Y 49:- 51:-
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 587.0) window (403.0, 87.0, 524.0, 587.0) -> (403.0, 87.0, 524.0, 587.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 364.0) window (403.0, 310.0, 524.0, 364.0) -> (403.0, 310.0, 524.0, 364.0) titleBarInset 28.0
+[selftest] functional: probe extraSmall/system window-moved add 21..45 window 310+364 content 364 inset 28: 19:- 21:Y 23:Y 25:Y 27:Y 29:Y 31:Y 33:- 35:Y 37:Y 39:Y 41:Y 43:Y 45:- 47:-
+[selftest] functional: click control-add at 357,331 in 524x364 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: no element result-0
+[selftest] functional: click control-add at 357,331 in 524x364 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click control-edit at 433,331 in 524x364 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: no element handle-Paris
+[selftest] functional: no element delete-Tokyo
+[selftest] functional: click control-edit at 433,331 in 524x364 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (524.0, 631.0) window (366.0, 92.0, 524.0, 631.0) -> (366.0, 92.0, 524.0, 631.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 515,89 in 590x414 -> DocumentView
+[selftest] functional: click travel-now at 509,334 in 590x414 -> DocumentView
+[selftest] functional: click travel-later at 555,334 in 590x414 -> DocumentView
+[selftest] functional: click travel-earlier at 463,334 in 590x414 -> DocumentView
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] functional: probe small/system normal add 25..49 window 309+414 content 414 inset 28: 23:- 25:Y 27:Y 29:Y 31:Y 33:Y 35:Y 37:Y 39:Y 41:Y 43:Y 45:Y 47:Y 49:- 51:-
+[selftest] functional: click control-add at 404,377 in 590x414 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 280,432 in 590x624 -> DocumentView
+[selftest] fitWindow content (590.0, 553.0) window (366.0, 170.0, 590.0, 553.0) -> (366.0, 170.0, 590.0, 553.0) titleBarInset 28.0
+[selftest] functional: click control-add at 404,516 in 590x553 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (590.0, 466.0) window (366.0, 257.0, 590.0, 466.0) -> (366.0, 257.0, 590.0, 466.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 488,429 in 590x466 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 171,89 in 590x466 -> DocumentView
+[selftest] fitWindow content (590.0, 414.0) window (366.0, 309.0, 590.0, 414.0) -> (366.0, 309.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 488,377 in 590x414 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (590.0, 624.0) window (366.0, 99.0, 590.0, 624.0) -> (366.0, 99.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 559,96 in 642x447 -> DocumentView
+[selftest] functional: click travel-now at 554,362 in 642x447 -> DocumentView
+[selftest] functional: click travel-later at 604,362 in 642x447 -> DocumentView
+[selftest] functional: click travel-earlier at 504,362 in 642x447 -> DocumentView
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] functional: probe medium/system normal add 26..52 window 276+447 content 447 inset 28: 24:- 26:Y 28:Y 30:Y 32:Y 34:Y 36:Y 38:Y 40:Y 42:Y 44:Y 46:Y 48:Y 50:Y 52:- 54:-
+[selftest] functional: click control-add at 438,408 in 642x447 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 306,408 in 642x617 -> DocumentView
+[selftest] fitWindow content (642.0, 599.0) window (366.0, 124.0, 642.0, 599.0) -> (366.0, 124.0, 642.0, 599.0) titleBarInset 28.0
+[selftest] functional: click control-add at 438,560 in 642x599 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (642.0, 503.0) window (366.0, 220.0, 642.0, 503.0) -> (366.0, 220.0, 642.0, 503.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 531,464 in 642x503 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 190,96 in 642x503 -> DocumentView
+[selftest] fitWindow content (642.0, 447.0) window (366.0, 276.0, 642.0, 447.0) -> (366.0, 276.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 531,408 in 642x447 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (642.0, 617.0) window (366.0, 106.0, 642.0, 617.0) -> (366.0, 106.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (366.0, 231.0, 715.0, 492.0) -> origin (309.0, 231.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 624,105 in 715x492 -> DocumentView
+[selftest] functional: click travel-now at 616,398 in 715x492 -> DocumentView
+[selftest] functional: click travel-later at 672,398 in 715x492 -> DocumentView
+[selftest] functional: click travel-earlier at 559,398 in 715x492 -> DocumentView
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] functional: probe large/system normal add 28..57 window 231+492 content 492 inset 28: 26:- 28:- 30:Y 32:Y 34:Y 36:Y 38:Y 40:Y 42:Y 44:Y 46:Y 48:Y 50:Y 52:Y 54:Y 56:Y 58:-
+[selftest] functional: click control-add at 487,449 in 715x492 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 342,378 in 715x609 -> DocumentView
+[selftest] functional: click control-add at 487,566 in 715x609 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (715.0, 554.0) window (309.0, 169.0, 715.0, 554.0) -> (309.0, 169.0, 715.0, 554.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 591,511 in 715x554 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 212,105 in 715x554 -> DocumentView
+[selftest] fitWindow content (715.0, 492.0) window (309.0, 231.0, 715.0, 492.0) -> (309.0, 231.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 591,449 in 715x492 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (715.0, 609.0) window (309.0, 114.0, 715.0, 609.0) -> (309.0, 114.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (309.0, 164.0, 808.0, 559.0) -> origin (216.0, 164.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 705,120 in 808x559 -> DocumentView
+[selftest] functional: click travel-now at 698,452 in 808x559 -> DocumentView
+[selftest] functional: click travel-later at 760,452 in 808x559 -> DocumentView
+[selftest] functional: click travel-earlier at 635,452 in 808x559 -> DocumentView
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] functional: probe extraLarge/system normal add 32..65 window 164+559 content 559 inset 28: 30:- 32:Y 34:Y 36:Y 38:Y 40:Y 42:Y 44:Y 46:Y 48:Y 50:Y 52:Y 54:Y 56:Y 58:Y 60:Y 62:Y 64:Y 66:-
+[selftest] functional: click control-add at 552,510 in 808x559 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 389,339 in 808x601 -> DocumentView
+[selftest] functional: click control-add at 552,552 in 808x601 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click control-edit at 668,552 in 808x601 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 239,92 in 808x601 -> DocumentView
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 164.0, 808.0, 559.0) -> (216.0, 164.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 668,510 in 808x559 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 122.0, 808.0, 601.0) -> (216.0, 122.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 631.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 92.0, 524.0, 631.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 92.0, 524.0, 631.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 456,77 in 524x363 -> DocumentView
+[selftest] functional: click travel-now at 450,291 in 524x363 -> DocumentView
+[selftest] functional: click travel-later at 492,291 in 524x363 -> DocumentView
+[selftest] functional: click travel-earlier at 408,291 in 524x363 -> DocumentView
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (216.0, 137.0, 524.0, 586.0) -> (216.0, 137.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (216.0, 360.0, 524.0, 363.0) -> (216.0, 360.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] functional: probe extraSmall/inter normal add 21..45 window 360+363 content 363 inset 28: 19:- 21:Y 23:Y 25:Y 27:Y 29:Y 31:Y 33:- 35:Y 37:Y 39:Y 41:Y 43:Y 45:- 47:-
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 590.0) window (216.0, 133.0, 524.0, 590.0) -> (216.0, 133.0, 524.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 367.0) window (216.0, 356.0, 524.0, 367.0) -> (216.0, 356.0, 524.0, 367.0) titleBarInset 28.0
+[selftest] functional: probe extraSmall/inter header+4 add 25..49 window 356+367 content 367 inset 28: 23:- 25:Y 27:Y 29:Y 31:Y 33:Y 35:Y 37:- 39:Y 41:Y 43:Y 45:Y 47:Y 49:- 51:-
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 586.0) window (253.0, 84.0, 524.0, 586.0) -> (253.0, 84.0, 524.0, 586.0) titleBarInset 28.0
+[selftest] fitWindow content (524.0, 363.0) window (253.0, 307.0, 524.0, 363.0) -> (253.0, 307.0, 524.0, 363.0) titleBarInset 28.0
+[selftest] functional: probe extraSmall/inter window-moved add 21..45 window 307+363 content 363 inset 28: 19:- 21:Y 23:Y 25:Y 27:Y 29:Y 31:Y 33:- 35:Y 37:Y 39:Y 41:Y 43:Y 45:- 47:-
+[selftest] functional: click control-add at 357,330 in 524x363 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: no element result-0
+[selftest] functional: click control-add at 357,330 in 524x363 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click control-edit at 433,330 in 524x363 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: no element handle-Paris
+[selftest] functional: no element delete-Tokyo
+[selftest] functional: click control-edit at 433,330 in 524x363 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (524.0, 631.0) window (216.0, 88.0, 524.0, 631.0) -> (216.0, 88.0, 524.0, 631.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 515,89 in 590x414 -> DocumentView
+[selftest] functional: click travel-now at 509,334 in 590x414 -> DocumentView
+[selftest] functional: click travel-later at 555,334 in 590x414 -> DocumentView
+[selftest] functional: click travel-earlier at 463,334 in 590x414 -> DocumentView
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] functional: probe small/inter normal add 25..49 window 305+414 content 414 inset 28: 23:- 25:Y 27:Y 29:Y 31:Y 33:Y 35:Y 37:Y 39:Y 41:Y 43:Y 45:Y 47:Y 49:- 51:-
+[selftest] functional: click control-add at 404,377 in 590x414 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 280,432 in 590x624 -> DocumentView
+[selftest] fitWindow content (590.0, 553.0) window (216.0, 166.0, 590.0, 553.0) -> (216.0, 166.0, 590.0, 553.0) titleBarInset 28.0
+[selftest] functional: click control-add at 404,516 in 590x553 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (590.0, 466.0) window (216.0, 253.0, 590.0, 466.0) -> (216.0, 253.0, 590.0, 466.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 488,429 in 590x466 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 171,89 in 590x466 -> DocumentView
+[selftest] fitWindow content (590.0, 414.0) window (216.0, 305.0, 590.0, 414.0) -> (216.0, 305.0, 590.0, 414.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 488,377 in 590x414 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (590.0, 624.0) window (216.0, 95.0, 590.0, 624.0) -> (216.0, 95.0, 590.0, 624.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 559,96 in 642x447 -> DocumentView
+[selftest] functional: click travel-now at 553,362 in 642x447 -> DocumentView
+[selftest] functional: click travel-later at 604,362 in 642x447 -> DocumentView
+[selftest] functional: click travel-earlier at 503,362 in 642x447 -> DocumentView
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] functional: probe medium/inter normal add 26..52 window 272+447 content 447 inset 28: 24:- 26:Y 28:Y 30:Y 32:Y 34:Y 36:Y 38:Y 40:Y 42:Y 44:Y 46:Y 48:Y 50:Y 52:- 54:-
+[selftest] functional: click control-add at 438,408 in 642x447 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 306,408 in 642x617 -> DocumentView
+[selftest] fitWindow content (642.0, 599.0) window (216.0, 120.0, 642.0, 599.0) -> (216.0, 120.0, 642.0, 599.0) titleBarInset 28.0
+[selftest] functional: click control-add at 438,560 in 642x599 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (642.0, 503.0) window (216.0, 216.0, 642.0, 503.0) -> (216.0, 216.0, 642.0, 503.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 531,464 in 642x503 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 190,96 in 642x503 -> DocumentView
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 531,408 in 642x447 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 624,105 in 715x492 -> DocumentView
+[selftest] functional: click travel-now at 615,398 in 715x492 -> DocumentView
+[selftest] functional: click travel-later at 672,398 in 715x492 -> DocumentView
+[selftest] functional: click travel-earlier at 558,398 in 715x492 -> DocumentView
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] functional: probe large/inter normal add 28..57 window 227+492 content 492 inset 28: 26:- 28:- 30:Y 32:Y 34:Y 36:Y 38:Y 40:Y 42:Y 44:Y 46:Y 48:Y 50:Y 52:Y 54:Y 56:Y 58:-
+[selftest] functional: click control-add at 487,449 in 715x492 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 342,378 in 715x609 -> DocumentView
+[selftest] functional: click control-add at 487,566 in 715x609 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (715.0, 554.0) window (216.0, 165.0, 715.0, 554.0) -> (216.0, 165.0, 715.0, 554.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 591,511 in 715x554 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 212,105 in 715x554 -> DocumentView
+[selftest] fitWindow content (715.0, 492.0) window (216.0, 227.0, 715.0, 492.0) -> (216.0, 227.0, 715.0, 492.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 591,449 in 715x492 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (715.0, 609.0) window (216.0, 110.0, 715.0, 609.0) -> (216.0, 110.0, 715.0, 609.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 705,120 in 808x559 -> DocumentView
+[selftest] functional: click travel-now at 697,452 in 808x559 -> DocumentView
+[selftest] functional: click travel-later at 760,452 in 808x559 -> DocumentView
+[selftest] functional: click travel-earlier at 633,452 in 808x559 -> DocumentView
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] functional: probe extraLarge/inter normal add 32..65 window 160+559 content 559 inset 28: 30:- 32:Y 34:Y 36:Y 38:Y 40:Y 42:Y 44:Y 46:Y 48:Y 50:Y 52:Y 54:Y 56:Y 58:Y 60:Y 62:Y 64:Y 66:-
+[selftest] functional: click control-add at 552,510 in 808x559 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 389,339 in 808x601 -> DocumentView
+[selftest] functional: click control-add at 552,552 in 808x601 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click control-edit at 668,552 in 808x601 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 239,92 in 808x601 -> DocumentView
+[selftest] fitWindow content (808.0, 559.0) window (216.0, 160.0, 808.0, 559.0) -> (216.0, 160.0, 808.0, 559.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 668,510 in 808x559 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (808.0, 601.0) window (216.0, 118.0, 808.0, 601.0) -> (216.0, 118.0, 808.0, 601.0) titleBarInset 28.0
+[selftest] centre panel under menu bar item (779.0, 744.0, 32.0, 24.0): x 0.0 -> 434.0
+[selftest] keepOnScreen moved (434.0, 0.0, 590.0, 67.0) -> origin (434.0, 62.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] centre panel under menu bar item (779.0, 744.0, 32.0, 24.0): x 221.0 -> 434.0
+[selftest] fitWindow content (590.0, 67.0) window (434.0, 311.0, 590.0, 431.0) -> (434.0, 675.0, 590.0, 67.0) titleBarInset 0.0
+[selftest] fitWindow content (590.0, 431.0) window (434.0, 675.0, 590.0, 67.0) -> (434.0, 311.0, 590.0, 431.0) titleBarInset 0.0
+[selftest] fitWindow content (642.0, 617.0) window (216.0, 272.0, 642.0, 447.0) -> (216.0, 102.0, 642.0, 617.0) titleBarInset 28.0
+[selftest] fitWindow content (642.0, 447.0) window (216.0, 102.0, 642.0, 617.0) -> (216.0, 272.0, 642.0, 447.0) titleBarInset 28.0

@@ -6,6 +6,7 @@ version is out. You can also choose ⋯ → **Check for Updates**, or download t
 
 ## 0.8.6 · 1 November 2026
 
+- **Researched working hours for every country**: each city now follows the usual working days *and hours* where it is, day by day: Israel's short Friday, Iran's Thursday morning, Germany's earlier Friday, half-hour starts like India's 9:30, shorter hours in Ramadan across the Muslim world, and Spain's July and August hours. All 246 countries and territories, with sources, are listed in [docs/working-hours.md](docs/working-hours.md). The Settings hours are gone; change any city's days and hours with its briefcase.
 - **No second card for where you are**: if a city on your list is in the time zone you're in, that city is marked as your location (with the city you're actually in, if Location Services names a different one) instead of a separate My Location card. Travel somewhere new and a My Location card appears; come home and it folds back into yours.
 - **Better sharing**: Share sends Meridian's page (Mac, iPhone and Android, and a live demo) with a preview, instead of the source code.
 

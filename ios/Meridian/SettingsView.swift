@@ -15,12 +15,8 @@ struct SettingsView: View {
                 Section {
                     Toggle("24-Hour Time", isOn: $store.use24h)
                     Toggle("Highlight Working Hours", isOn: $store.showWorkHours)
-                    if store.showWorkHours {
-                        Stepper("Work starts at \(hourLabel(store.workStart))", value: $store.workStart, in: 0...23)
-                        Stepper("Work ends at \(hourLabel(store.workEnd))", value: $store.workEnd, in: 1...24)
-                    }
                 } header: { Text("Time") } footer: {
-                    Text("Each city follows the working week where it is (Sunday to Thursday in Riyadh, Monday to Friday in Denver). To change one city's days or hours, tap its card, then Working Days & Hours.")
+                    Text("Each city follows the usual working days and hours where it is: Sunday to Thursday, 8 AM to 5 PM in Riyadh; Monday to Friday, 9 AM to 5 PM in Denver; shorter days in Ramadan and Spain's summer. To change a city's, tap its card, then Working Days & Hours.")
                         .foregroundStyle(Theme.muted)
                 }
                 Section {
@@ -54,11 +50,5 @@ struct SettingsView: View {
         }
         .tint(Theme.cream)
         .preferredColorScheme(.dark)
-    }
-
-    private func hourLabel(_ hour: Int) -> String {
-        if store.use24h { return String(format: "%02d:00", hour % 24) }
-        let h = hour % 12 == 0 ? 12 : hour % 12
-        return "\(h)\u{2009}\(hour % 24 < 12 ? "AM" : "PM")"
     }
 }

@@ -76,9 +76,7 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
                 SwitchRow("24-Hour Time", store.use24h) { store.updateUse24h(it) }
                 SwitchRow("Highlight Working Hours", store.showWorkHours) { store.updateShowWorkHours(it) }
                 if (store.showWorkHours) {
-                    StepperRow("Work starts at ${TimeMath.hourLabel(store.workStart, store.use24h)}", { store.updateWorkStart(store.workStart - 1) }, { store.updateWorkStart(store.workStart + 1) })
-                    StepperRow("Work ends at ${TimeMath.hourLabel(store.workEnd % 24, store.use24h)}", { store.updateWorkEnd(store.workEnd - 1) }, { store.updateWorkEnd(store.workEnd + 1) })
-                    Text("Each city follows the working week where it is (Sunday to Thursday in Riyadh, Monday to Friday in Denver). To change one city's days or hours, tap its card, then Working Days & Hours.",
+                    Text("Each city follows the usual working days and hours where it is: Sunday to Thursday, 8 AM to 5 PM in Riyadh; Monday to Friday, 9 AM to 5 PM in Denver; shorter days in Ramadan and Spain's summer. To change a city's, tap its card, then Working Days & Hours.",
                         fontSize = 13.sp, color = Palette.muted, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
                 }
             }
@@ -184,10 +182,14 @@ private fun WidgetPreview(store: Store, size: MeridianWidgets.Size, modifier: Mo
 @Composable
 fun WorkHoursDialog(store: Store, place: Place, onDone: () -> Unit) {
     val usual = WorkWeek.usualDays(place.zoneId)
+    // The hours most days keep there, to the whole hour (Settings' hours where none are known).
+    val typical = WorkWeek.typicalHours(place.zoneId)
+    val usualStart = typical?.start?.toInt() ?: store.workStart
+    val usualEnd = typical?.end?.let { kotlin.math.ceil(it).toInt() } ?: store.workEnd
     var days by remember { mutableStateOf(place.workDays ?: usual) }
-    var start by remember { mutableIntStateOf(place.workStart ?: store.workStart) }
-    var end by remember { mutableIntStateOf(place.workEnd ?: store.workEnd) }
-    fun save() = store.setWork(place, days.takeIf { it != usual }, start.takeIf { it != store.workStart }, end.takeIf { it != store.workEnd })
+    var start by remember { mutableIntStateOf(place.workStart ?: usualStart) }
+    var end by remember { mutableIntStateOf(place.workEnd ?: usualEnd) }
+    fun save() = store.setWork(place, days.takeIf { it != usual }, start.takeIf { it != usualStart }, end.takeIf { it != usualEnd })
     AlertDialog(
         onDismissRequest = onDone,
         containerColor = Palette.tile,
@@ -209,7 +211,7 @@ fun WorkHoursDialog(store: Store, place: Place, onDone: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(6.dp))
-                Text("Usual in ${place.name}: ${WorkWeek.describe(usual)}.", fontSize = 12.sp, color = Palette.muted)
+                Text("Usual in ${place.name}: ${WorkWeek.describeUsual(place.zoneId, store.use24h)}.", fontSize = 12.sp, color = Palette.muted)
                 Spacer(Modifier.height(16.dp))
                 Text("WORKING HOURS", fontSize = 12.sp, color = Palette.muted)
                 StepperRow("Starts at ${TimeMath.hourLabel(start, store.use24h)}",
@@ -220,8 +222,8 @@ fun WorkHoursDialog(store: Store, place: Place, onDone: () -> Unit) {
         },
         confirmButton = { TextButton(onClick = onDone) { Text("Done") } },
         dismissButton = {
-            TextButton(onClick = { days = usual; start = store.workStart; end = store.workEnd; save() },
-                enabled = days != usual || start != store.workStart || end != store.workEnd) { Text("Use Usual") }
+            TextButton(onClick = { days = usual; start = usualStart; end = usualEnd; save() },
+                enabled = days != usual || start != usualStart || end != usualEnd) { Text("Use Usual") }
         },
     )
 }

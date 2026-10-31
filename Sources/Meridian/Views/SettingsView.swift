@@ -146,8 +146,8 @@ private struct GeneralSettings: View {
             Toggle("24-hour clock", isOn: $store.use24h)
             Toggle("Highlight working hours", isOn: $store.showWorkHours)
             if store.showWorkHours {
-                Stepper("Work starts at \(store.workStart):00", value: $store.workStart, in: 0...23)
-                Stepper("Work ends at \(store.workEnd):00", value: $store.workEnd, in: 1...24)
+                Text("Each city follows the usual working days and hours where it is (Sunday to Thursday in Riyadh, shorter days in Ramadan). To change a city's, use the briefcase in Cities.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Toggle("Keep desktop window on top", isOn: $store.floatOnTop)
             Toggle("Open at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.launchAtLogin = $0 }))

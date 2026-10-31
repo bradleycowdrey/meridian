@@ -15,7 +15,10 @@ struct WorkHoursEditor: View {
     @State private var end = 18
 
     private var usualDays: Set<Int> { WorkWeek.usualDays(zoneID: place.timeZoneID) }
-    private var isUsual: Bool { days == usualDays && start == defaultStart && end == defaultEnd }
+    /// The hours most days keep there, to the whole hour (Settings' hours where none are known).
+    private var usualStart: Int { WorkWeek.typicalHours(zoneID: place.timeZoneID).map { Int($0.start) } ?? defaultStart }
+    private var usualEnd: Int { WorkWeek.typicalHours(zoneID: place.timeZoneID).map { Int($0.end.rounded(.up)) } ?? defaultEnd }
+    private var isUsual: Bool { days == usualDays && start == usualStart && end == usualEnd }
 
     var body: some View {
         Form {
@@ -41,7 +44,7 @@ struct WorkHoursEditor: View {
             } header: {
                 Text("Working days")
             } footer: {
-                Text("Usual in \(place.name): \(WorkWeek.describe(usualDays)).")
+                Text("Usual in \(place.name): \(WorkWeek.describeUsual(zoneID: place.timeZoneID, use24h: use24h)).")
             }
             Section("Working hours") {
                 Picker("Starts", selection: $start) {
@@ -53,7 +56,7 @@ struct WorkHoursEditor: View {
             }
             Section {
                 Button("Use the Usual Days and Hours") {
-                    days = usualDays; start = defaultStart; end = defaultEnd
+                    days = usualDays; start = usualStart; end = usualEnd
                     commit()
                 }
                 .disabled(isUsual)
@@ -61,8 +64,8 @@ struct WorkHoursEditor: View {
         }
         .onAppear {
             days = place.workDays ?? usualDays
-            start = place.workStart ?? defaultStart
-            end = place.workEnd ?? defaultEnd
+            start = place.workStart ?? usualStart
+            end = place.workEnd ?? usualEnd
         }
         .onChange(of: start) { _, _ in commit() }
         .onChange(of: end) { _, _ in commit() }
@@ -71,7 +74,7 @@ struct WorkHoursEditor: View {
     /// Keeps only what differs from the usual, so a city follows Settings and the country's week
     /// unless it was changed.
     private func commit() {
-        save(days == usualDays ? nil : days, start == defaultStart ? nil : start, end == defaultEnd ? nil : end)
+        save(days == usualDays ? nil : days, start == usualStart ? nil : start, end == usualEnd ? nil : end)
     }
 
     private func label(_ hour: Int) -> String {

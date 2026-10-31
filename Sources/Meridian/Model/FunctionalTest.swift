@@ -168,6 +168,29 @@ final class FunctionalTest {
         let oldPlaces = try? JSONDecoder().decode([Place].self, from: Data(#"[{"id":"6D7E1A2B-4C3D-4E5F-8A9B-0C1D2E3F4A5B","name":"Old","timeZoneID":"UTC"}]"#.utf8))
         check("work week: cities saved before it still load", oldPlaces?.first?.workDays == nil && oldPlaces?.first?.name == "Old")
 
+        // Researched weeks: per-day hours, Ramadan and summer schedules.
+        func at(_ zone: String, _ y: Int, _ mo: Int, _ d: Int, _ h: Int, _ mi: Int = 0) -> Date {
+            var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: zone)!
+            return cal.date(from: DateComponents(year: y, month: mo, day: d, hour: h, minute: mi))!
+        }
+        let telAviv = Place(name: "Tel Aviv", timeZoneID: "Asia/Jerusalem")
+        check("work week: Israel's short Friday (10 AM in, 3 PM out)",
+              WorkWeek.isWorking(telAviv, at: at("Asia/Jerusalem", 2026, 11, 6, 10), start: 9, end: 18)
+              && !WorkWeek.isWorking(telAviv, at: at("Asia/Jerusalem", 2026, 11, 6, 15), start: 9, end: 18))
+        let madrid = Place(name: "Madrid", timeZoneID: "Europe/Madrid")
+        check("work week: Spain's August hours (4 PM out, 4 PM in October)",
+              !WorkWeek.isWorking(madrid, at: at("Europe/Madrid", 2026, 8, 5, 16), start: 9, end: 18)
+              && WorkWeek.isWorking(madrid, at: at("Europe/Madrid", 2026, 10, 7, 16), start: 9, end: 18))
+        check("work week: Ramadan hours in Riyadh (9 AM out, 11 AM in)",
+              WorkWeek.isRamadan(at("Asia/Riyadh", 2027, 2, 21, 11), in: TimeZone(identifier: "Asia/Riyadh")!)
+              && !WorkWeek.isWorking(riyadh, at: at("Asia/Riyadh", 2027, 2, 21, 9), start: 9, end: 18)
+              && WorkWeek.isWorking(riyadh, at: at("Asia/Riyadh", 2027, 2, 21, 11), start: 9, end: 18))
+        check("work week: half-hour starts (Mumbai 9:15 out, 9:45 in)",
+              !WorkWeek.isWorking(Place(name: "Mumbai", timeZoneID: "Asia/Kolkata"), at: at("Asia/Kolkata", 2026, 11, 5, 9, 15), start: 9, end: 18)
+              && WorkWeek.isWorking(Place(name: "Mumbai", timeZoneID: "Asia/Kolkata"), at: at("Asia/Kolkata", 2026, 11, 5, 9, 45), start: 9, end: 18))
+        let unknown = TimeZone.knownTimeZoneIdentifiers.filter { $0.contains("/") && !$0.hasPrefix("Etc/") && !$0.hasPrefix("Antarctica/") && WorkWeek.schedule(zoneID: $0) == nil }
+        check("work week: every city's zone has a researched week", unknown.isEmpty, unknown.prefix(8).joined(separator: ","))
+
         // Terms: the version is TERMS.md's "Last updated" date.
         check("terms version from TERMS.md",
               TermsVersion.version(from: "# Terms\nLast updated: October 31, 2026 · Applies to: everything") == "2026-10-31")

@@ -451,7 +451,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
                     }
                 }
                 // This city's own note, rather than a list of names in the header.
-                if (off != null) Text("☾  $off", fontSize = 12.sp, color = Palette.muted, modifier = Modifier.padding(top = 2.dp))
+                if (off != null) OffNote(off, Modifier.padding(top = 2.dp))
             }
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, modifier = Modifier.alignByBaseline())
@@ -650,5 +650,15 @@ fun EditRow(store: Store, place: Place) {
         }
         IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) { Icon(Icons.Filled.KeyboardArrowUp, "Move ${place.name} up") }
         IconButton(onClick = { store.move(place, 1) }, enabled = place != store.places.last()) { Icon(Icons.Filled.KeyboardArrowDown, "Move ${place.name} down") }
+    }
+}
+
+/** "Off hours", "Weekend" or "Day off", with a moon, as on the iPhone. */
+@Composable
+fun OffNote(text: String, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_moon), contentDescription = null, tint = Palette.muted, modifier = Modifier.size(12.dp))
+        Spacer(Modifier.width(5.dp))
+        Text(text, fontSize = 12.sp, color = Palette.muted)
     }
 }

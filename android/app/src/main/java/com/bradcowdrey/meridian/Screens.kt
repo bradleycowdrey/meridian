@@ -302,7 +302,7 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                                 Column(Modifier.weight(1f)) {
                                     Text(place.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                     val off = if (store.showWorkHours) WorkWeek.offLabel(place, moment, store.workStart, store.workEnd) else null
-                                    if (off != null) Text("☾  $off", fontSize = 12.sp, color = Palette.muted)
+                                    if (off != null) OffNote(off)
                                 }
                                 Text(TimeMath.time(moment, place.zone, store.use24h), fontSize = 18.sp, fontWeight = FontWeight.Light)
                                 val shift = TimeMath.dayShift(moment, place.zone, store.home)

@@ -6,6 +6,7 @@ struct MeridianApp: App {
     @StateObject private var store = CityStore(demo: Screenshots.isActive)
     @Environment(\.scenePhase) private var scenePhase
     @State private var termsAccepted = Terms.accepted || (Screenshots.isActive && Screenshots.screen != "terms")
+    @State private var askLocation = false
 
     var body: some Scene {
         WindowGroup {
@@ -18,8 +19,20 @@ struct MeridianApp: App {
                     TermsView {
                         Terms.accept()
                         termsAccepted = true
-                        store.updateMyLocation()
+                        // Once the terms sheet has gone: the location question.
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(600))
+                            askLocation = !store.locationChosen && !Screenshots.isActive
+                        }
                     }
+                }
+                .onAppear { askLocation = termsAccepted && !store.locationChosen && !Screenshots.isActive }
+                .alert(MyLocation.questionTitle, isPresented: $askLocation) {
+                    Button("Use My Location") { store.useMyLocation = true }
+                        .keyboardShortcut(.defaultAction)
+                    Button("Not Now", role: .cancel) { store.useMyLocation = false }
+                } message: {
+                    Text(MyLocation.questionMessage(device: "iPhone"))
                 }
                 .task { await Screenshots.run(store: store) }
         }

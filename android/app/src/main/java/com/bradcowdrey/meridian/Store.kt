@@ -65,6 +65,9 @@ class Store(private val context: Context, val demo: Boolean = false) {
     /** Keep a "My Location" row for the city you're in (on unless turned off in Settings). */
     var useMyLocation by mutableStateOf(!demo && prefs.getBoolean("useMyLocation", true))
         private set
+    /** Answered the first-launch "Use your location?" question (or changed the setting). */
+    var locationChosen by mutableStateOf(demo || prefs.getBoolean("myLocation.chosen", false))
+        private set
 
     /** Time travel in minutes (whole quarter-hours) from the current quarter-hour; 0 is now. */
     var offsetMinutes by mutableIntStateOf(0)
@@ -162,13 +165,13 @@ class Store(private val context: Context, val demo: Boolean = false) {
     /** Adds, updates or removes the My Location row (call [locate] to look up the city name). */
     fun updateMyLocation() {
         if (demo) return
-        val list = if (useMyLocation) MyLocation.apply(places, prefs) else MyLocation.remove(places, prefs)
+        val list = if (useMyLocation && locationChosen) MyLocation.apply(places, prefs) else MyLocation.remove(places, prefs)
         if (list != places) update(list)
     }
 
     /** Looks up the city name (if allowed), then updates the row. */
     fun locate() {
-        if (demo || !useMyLocation) return
+        if (demo || !useMyLocation || !locationChosen) return
         MyLocation.locate(context) { updateMyLocation() }
     }
 
@@ -206,7 +209,8 @@ class Store(private val context: Context, val demo: Boolean = false) {
     fun updateWorkEnd(hour: Int) { workEnd = hour.coerceIn(1, 24); prefs.edit().putInt("workEnd", workEnd).apply() }
     fun updateUseMyLocation(on: Boolean) {
         useMyLocation = on
-        prefs.edit().putBoolean("useMyLocation", on).apply()
+        locationChosen = true
+        prefs.edit().putBoolean("useMyLocation", on).putBoolean("myLocation.chosen", true).apply()
         // Turning it back on asks for permission again if it was declined.
         if (on) prefs.edit().putBoolean("myLocation.asked", false).apply()
         updateMyLocation()

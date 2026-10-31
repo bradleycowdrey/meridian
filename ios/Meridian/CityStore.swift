@@ -14,9 +14,16 @@ final class CityStore: ObservableObject {
     @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
     /// Keep a "My Location" row for the city you're in (on unless turned off in Settings).
     @Published var useMyLocation: Bool {
-        didSet { defaults.set(useMyLocation, forKey: "useMyLocation"); updateMyLocation() }
+        didSet {
+            MyLocation.chosen = true
+            locationChosen = true
+            defaults.set(useMyLocation, forKey: "useMyLocation")
+            updateMyLocation()
+        }
     }
     private let locator = CityLocator()
+    /// Answered the first-launch "Use your location?" question (or changed the setting).
+    @Published private(set) var locationChosen = MyLocation.chosen
 
     /// Time travel, in minutes (whole quarter-hours) from the current quarter-hour; 0 is now.
     @Published private(set) var offsetMinutes = 0
@@ -100,13 +107,14 @@ final class CityStore: ObservableObject {
     func updateMyLocation(locate: Bool = true) {
         guard !demo else { return }
         var list = places
-        if useMyLocation {
+        let on = useMyLocation && MyLocation.chosen
+        if on {
             MyLocation.apply(to: &list, city: locator.city, defaults: defaults)
         } else {
             MyLocation.remove(from: &list, defaults: defaults)
         }
         if list != places { places = list }
-        guard useMyLocation, locate, Terms.accepted else { return }
+        guard on, locate, Terms.accepted else { return }
         locator.locate { [weak self] in self?.updateMyLocation(locate: false) }
     }
 

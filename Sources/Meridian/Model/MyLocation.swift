@@ -10,6 +10,19 @@ import CoreLocation
 enum MyLocation {
     private static let adoptedKey = "myLocation.adoptedName"
 
+    /// Asked once, after the terms: use my location or not (the setting can change it later).
+    /// Until then the row isn't added and Location Services isn't asked.
+    static var chosen: Bool {
+        get { UserDefaults.standard.bool(forKey: "myLocation.chosen") }
+        set { UserDefaults.standard.set(newValue, forKey: "myLocation.chosen") }
+    }
+
+    /// The first-launch question, the same on Mac, iPhone and Android.
+    static let questionTitle = "Use your location?"
+    static func questionMessage(device: String) -> String {
+        "Meridian can add the city you're in to your list, and keep it current when you travel. Recommended.\n\nYour location is only used to name the city, and Meridian keeps just that name, on your \(device). You can change this in Settings."
+    }
+
     /// The device's zone, named after its city ("America/Los_Angeles" -> "Los Angeles").
     static var zoneName: String {
         TimeZone.current.identifier.split(separator: "/").last.map { $0.replacingOccurrences(of: "_", with: " ") } ?? "My Location"

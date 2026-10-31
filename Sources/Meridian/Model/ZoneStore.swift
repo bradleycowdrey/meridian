@@ -34,7 +34,7 @@ final class ZoneStore: ObservableObject {
     @Published var menuBarPlaceID: UUID? { didSet { defaults.set(menuBarPlaceID?.uuidString, forKey: "menuBarPlaceID") } }
     /// Keep a "My Location" row for the city you're in (on unless turned off in Settings).
     @Published var useMyLocation: Bool {
-        didSet { defaults.set(useMyLocation, forKey: "useMyLocation"); updateMyLocation() }
+        didSet { MyLocation.chosen = true; defaults.set(useMyLocation, forKey: "useMyLocation"); updateMyLocation() }
     }
     private let locator = CityLocator()
 
@@ -62,10 +62,13 @@ final class ZoneStore: ObservableObject {
         // would cover the window.
         useMyLocation = SelfTest.isActive ? false : (d.object(forKey: "useMyLocation") as? Bool ?? true)
         updateMyLocation(locate: false)
-        // Ask Location Services once the terms are out of the way, not over them.
+        // Once the terms are agreed: ask whether to use my location (first launch only), then
+        // look up the city.
         Task { @MainActor [weak self] in
             while !Terms.accepted { try? await Task.sleep(for: .seconds(1)) }
-            self?.updateMyLocation()
+            guard let self else { return }
+            if !MyLocation.chosen && !SelfTest.isActive { self.askAboutMyLocation() }
+            self.updateMyLocation()
         }
 
         syncWidget()
@@ -164,13 +167,14 @@ final class ZoneStore: ObservableObject {
     /// which updates the row again when it arrives.
     func updateMyLocation(locate: Bool = true) {
         var list = places
-        if useMyLocation {
+        let on = useMyLocation && MyLocation.chosen
+        if on {
             MyLocation.apply(to: &list, city: locator.city, defaults: defaults)
         } else {
             MyLocation.remove(from: &list, defaults: defaults)
         }
         if list != places { places = list }
-        guard useMyLocation, locate, Terms.accepted else { return }
+        guard on, locate, Terms.accepted else { return }
         locator.locate { [weak self] in self?.updateMyLocation(locate: false) }
     }
 
@@ -180,6 +184,17 @@ final class ZoneStore: ObservableObject {
 
     var menuBarPlace: Place? {
         places.first { $0.id == menuBarPlaceID } ?? places.first
+    }
+
+    /// The first-launch question. Use My Location is the default (recommended) answer.
+    private func askAboutMyLocation() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = MyLocation.questionTitle
+        alert.informativeText = MyLocation.questionMessage(device: "Mac")
+        alert.addButton(withTitle: "Use My Location")
+        alert.addButton(withTitle: "Not Now")
+        useMyLocation = alert.runModal() == .alertFirstButtonReturn
     }
 
     // MARK: Size

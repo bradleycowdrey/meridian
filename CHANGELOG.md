@@ -6,7 +6,7 @@ version is out. You can also choose ⋯ → **Check for Updates**, or download t
 
 ## 0.8.0 · 31 October 2026
 
-- **My Location**: the city you're in is added to your list automatically, marked with a location arrow, and follows you when you travel. Its time always comes from your Mac's clock; Location Services only names the city ("Boulder" rather than "Denver"), once at launch and when your time zone changes. If a city in your time zone is already on the list, that city becomes My Location instead of appearing twice. Turn it off in Settings → Cities → **Show My Location**.
+- **My Location**: the city you're in is added to your list automatically, marked with a location arrow, and follows you when you travel. Its time always comes from your Mac's clock; Location Services only names the city ("Boulder" rather than "Denver"), once at launch and when your time zone changes. If a city in your time zone is already on the list, that city becomes My Location instead of appearing twice. Meridian asks once, after the terms, whether to use your location (Use My Location is recommended); change it any time in Settings → Cities → **Show My Location**.
 
 ## 0.7.23 · 26 October 2026
 

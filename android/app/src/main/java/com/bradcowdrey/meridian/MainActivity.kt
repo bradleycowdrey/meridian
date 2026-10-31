@@ -118,10 +118,21 @@ fun App(store: Store, initial: String) {
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) store.locate()
     }
-    LaunchedEffect(store.useMyLocation) {
-        if (!store.useMyLocation || store.demo) return@LaunchedEffect
+    LaunchedEffect(store.useMyLocation, store.locationChosen) {
+        if (!store.useMyLocation || !store.locationChosen || store.demo) return@LaunchedEffect
         if (MyLocation.permitted(context)) store.locate()
         else if (!store.locationAsked) { store.markLocationAsked(); askLocation.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
+    }
+    // First launch, after the terms: use my location? Yes is the recommended answer.
+    if (!store.locationChosen) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(MyLocation.QUESTION_TITLE) },
+            text = { Text(MyLocation.QUESTION_MESSAGE) },
+            confirmButton = { Button(onClick = { store.updateUseMyLocation(true) }) { Text("Use My Location") } },
+            dismissButton = { TextButton(onClick = { store.updateUseMyLocation(false) }) { Text("Not Now") } },
+            containerColor = Palette.tile,
+        )
     }
     BackHandler(enabled = route != "main") { route = "main" }
     when (route) {

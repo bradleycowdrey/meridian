@@ -22,6 +22,11 @@ import java.util.Locale
  */
 object MyLocation {
     const val ID = "my-location"
+
+    /** The first-launch question, the same on Mac, iPhone and Android. */
+    const val QUESTION_TITLE = "Use your location?"
+    const val QUESTION_MESSAGE = "Meridian can add the city you're in to your list, and keep it current when you travel. Recommended.\n\n" +
+        "Your location is only used to name the city, and Meridian keeps just that name, on your phone. You can change this in Settings."
     private const val ADOPTED = "myLocation.adoptedName"
 
     /** The phone's zone, named after its city ("America/Los_Angeles" -> "Los Angeles"). */

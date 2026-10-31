@@ -21,6 +21,12 @@ struct SettingsView: View {
                     }
                 }
                 Section {
+                    Toggle("Show My Location", isOn: $store.useMyLocation)
+                } header: { Text("Cities") } footer: {
+                    Text("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone.")
+                        .foregroundStyle(Theme.muted)
+                }
+                Section {
                     Text("Touch and hold your Home Screen, tap Edit, then Add Widget and choose Meridian. For the Lock Screen, touch and hold it, tap Customize, then add Meridian to the widget area.")
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)

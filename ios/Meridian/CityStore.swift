@@ -12,6 +12,11 @@ final class CityStore: ObservableObject {
     @Published var showWorkHours: Bool { didSet { defaults.set(showWorkHours, forKey: "showWorkHours") } }
     @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart") } }
     @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
+    /// Keep a "My Location" row for the city you're in (on unless turned off in Settings).
+    @Published var useMyLocation: Bool {
+        didSet { defaults.set(useMyLocation, forKey: "useMyLocation"); updateMyLocation() }
+    }
+    private let locator = CityLocator()
 
     /// Time travel, in minutes (whole quarter-hours) from the current quarter-hour; 0 is now.
     @Published private(set) var offsetMinutes = 0
@@ -47,6 +52,8 @@ final class CityStore: ObservableObject {
         showWorkHours = d.object(forKey: "showWorkHours") as? Bool ?? true
         workStart = d.object(forKey: "workStart") as? Int ?? 9
         workEnd = d.object(forKey: "workEnd") as? Int ?? 18
+        useMyLocation = demo ? false : (d.object(forKey: "useMyLocation") as? Bool ?? true)
+        updateMyLocation(locate: false)
         syncWidgets()
         let ticker = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -84,7 +91,23 @@ final class CityStore: ObservableObject {
     func refresh() {
         NSTimeZone.resetSystemTimeZone()
         now = clock
+        updateMyLocation()
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Adds, updates or removes the My Location row, and (with `locate`, once the terms are
+    /// agreed) looks up the city name, which updates the row again when it arrives.
+    func updateMyLocation(locate: Bool = true) {
+        guard !demo else { return }
+        var list = places
+        if useMyLocation {
+            MyLocation.apply(to: &list, city: locator.city, defaults: defaults)
+        } else {
+            MyLocation.remove(from: &list, defaults: defaults)
+        }
+        if list != places { places = list }
+        guard useMyLocation, locate, Terms.accepted else { return }
+        locator.locate { [weak self] in self?.updateMyLocation(locate: false) }
     }
 
     private func save() {
@@ -111,7 +134,18 @@ final class CityStore: ObservableObject {
         places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID))
     }
 
-    func remove(at offsets: IndexSet) { places.remove(atOffsets: offsets) }
+    func remove(at offsets: IndexSet) {
+        // Deleting My Location turns it off, so it doesn't come straight back.
+        let removesMyLocation = offsets.contains { places[$0].isMyLocation }
+        if removesMyLocation { MyLocation.forget(defaults: defaults) }
+        places.remove(atOffsets: offsets)
+        if removesMyLocation { useMyLocation = false }
+    }
+    func remove(_ place: Place) {
+        guard let i = places.firstIndex(where: { $0.id == place.id }) else { return }
+        remove(at: IndexSet(integer: i))
+    }
+
     func move(from source: IndexSet, to destination: Int) { places.move(fromOffsets: source, toOffset: destination) }
 
     // MARK: Time travel

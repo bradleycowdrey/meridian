@@ -62,6 +62,9 @@ class Store(private val context: Context, val demo: Boolean = false) {
         private set
     var hasScrubbed by mutableStateOf(demo || prefs.getBoolean("hasScrubbed", false))
         private set
+    /** Keep a "My Location" row for the city you're in (on unless turned off in Settings). */
+    var useMyLocation by mutableStateOf(!demo && prefs.getBoolean("useMyLocation", true))
+        private set
 
     /** Time travel in minutes (whole quarter-hours) from the current quarter-hour; 0 is now. */
     var offsetMinutes by mutableIntStateOf(0)
@@ -75,6 +78,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
     init {
         if (!demo) {
             if (loadPlaces(context) == null) update(places)   // save the starter cities for the widgets
+            updateMyLocation()
             syncWidgets()
         }
     }
@@ -148,7 +152,29 @@ class Store(private val context: Context, val demo: Boolean = false) {
         update(places + Place(entry.name, entry.zoneId))
     }
 
-    fun remove(place: Place) = update(places.filter { it.id != place.id })
+    fun remove(place: Place) {
+        // Deleting My Location turns it off, so it doesn't come straight back.
+        if (place.isMyLocation) MyLocation.forget(prefs)
+        update(places.filter { it.id != place.id })
+        if (place.isMyLocation) updateUseMyLocation(false)
+    }
+
+    /** Adds, updates or removes the My Location row (call [locate] to look up the city name). */
+    fun updateMyLocation() {
+        if (demo) return
+        val list = if (useMyLocation) MyLocation.apply(places, prefs) else MyLocation.remove(places, prefs)
+        if (list != places) update(list)
+    }
+
+    /** Looks up the city name (if allowed), then updates the row. */
+    fun locate() {
+        if (demo || !useMyLocation) return
+        MyLocation.locate(context) { updateMyLocation() }
+    }
+
+    /** Asked for location permission at launch already (so it isn't asked every time). */
+    val locationAsked get() = prefs.getBoolean("myLocation.asked", false)
+    fun markLocationAsked() = prefs.edit().putBoolean("myLocation.asked", true).apply()
 
     fun move(place: Place, by: Int) {
         val i = places.indexOfFirst { it.id == place.id }
@@ -178,6 +204,13 @@ class Store(private val context: Context, val demo: Boolean = false) {
     fun updateShowWorkHours(on: Boolean) { showWorkHours = on; prefs.edit().putBoolean("showWorkHours", on).apply() }
     fun updateWorkStart(hour: Int) { workStart = hour.coerceIn(0, 23); prefs.edit().putInt("workStart", workStart).apply() }
     fun updateWorkEnd(hour: Int) { workEnd = hour.coerceIn(1, 24); prefs.edit().putInt("workEnd", workEnd).apply() }
+    fun updateUseMyLocation(on: Boolean) {
+        useMyLocation = on
+        prefs.edit().putBoolean("useMyLocation", on).apply()
+        // Turning it back on asks for permission again if it was declined.
+        if (on) prefs.edit().putBoolean("myLocation.asked", false).apply()
+        updateMyLocation()
+    }
     fun acceptTerms() { termsAccepted = true; prefs.edit().putString("terms.accepted", Terms.VERSION).apply() }
 
     private fun syncWidgets() = MeridianWidgets.updateAll(context)

@@ -81,14 +81,16 @@ struct ContentView: View {
             .listRowSeparatorTint(Theme.border)
             .contextMenu {
                 Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
-                Button { newName = place.name; renaming = place } label: { Label("Rename", systemImage: "pencil") }
+                if !place.isMyLocation {
+                    Button { newName = place.name; renaming = place } label: { Label("Rename", systemImage: "pencil") }
+                }
                 Button(role: .destructive) {
-                    store.places.removeAll { $0.id == place.id }
+                    store.remove(place)
                 } label: { Label("Remove", systemImage: "trash") }
             }
             .accessibilityAction(named: "Copy Time") { copy(place) }
             .accessibilityAction(named: "Rename") { newName = place.name; renaming = place }
-            .accessibilityAction(named: "Remove") { store.places.removeAll { $0.id == place.id } }
+            .accessibilityAction(named: "Remove") { store.remove(place) }
     }
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
@@ -305,9 +307,16 @@ struct CityRow: View {
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)
                         .monospacedDigit()
-                    Text(place.name)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Theme.primary)
+                    HStack(spacing: 6) {
+                        Text(place.name)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Theme.primary)
+                        if place.isMyLocation {
+                            Image(systemName: "location.fill")
+                                .font(.caption)
+                                .foregroundStyle(Theme.muted)
+                        }
+                    }
                 }
                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
@@ -317,7 +326,7 @@ struct CityRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(place.name), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))")
+        .accessibilityLabel("\(place.name)\(place.isMyLocation ? ", My Location" : ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))")
     }
 
     private func clock(hour: Int, minute: Int) -> some View {

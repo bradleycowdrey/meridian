@@ -63,7 +63,8 @@ if [[ "$IDENTITY" == "-" ]]; then TIMESTAMP="--timestamp=none"; else TIMESTAMP="
 # would re-sign the widget without them).
 codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" \
   --entitlements Resources/Widget.entitlements "$APPEX"
-codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" "$APP"
+codesign --force --options runtime "$TIMESTAMP" --sign "$IDENTITY" \
+  --entitlements Resources/Meridian.entitlements "$APP"
 codesign --verify --deep --strict --verbose "$APP"
 
 echo "Built $APP ($VERSION build $BUILD)"

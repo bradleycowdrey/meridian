@@ -18,6 +18,7 @@ struct MeridianApp: App {
                     TermsView {
                         Terms.accept()
                         termsAccepted = true
+                        store.updateMyLocation()
                     }
                 }
                 .task { await Screenshots.run(store: store) }

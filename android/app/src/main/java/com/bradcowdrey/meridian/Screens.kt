@@ -102,8 +102,12 @@ fun EditCitiesScreen(store: Store, onDone: () -> Unit) {
             items(store.places, key = { it.id }) { place ->
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { store.remove(place) }) { Icon(Icons.Filled.Delete, "Remove ${place.name}", tint = Color(0xFFFF6B6B)) }
-                    Column(Modifier.weight(1f).clickable { renaming = place }.padding(vertical = 6.dp)) {
-                        Text(place.name, fontWeight = FontWeight.SemiBold)
+                    // My Location is named from where you are, so it isn't renamed.
+                    Column(Modifier.weight(1f).clickable(enabled = !place.isMyLocation) { renaming = place }.padding(vertical = 6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(place.name, fontWeight = FontWeight.SemiBold)
+                            if (place.isMyLocation) MyLocationMark()
+                        }
                         Text(TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, store.now)), fontSize = 13.sp, color = Palette.muted)
                     }
                     Text(TimeMath.time(store.now, place.zone, store.use24h), color = Palette.secondary)
@@ -146,6 +150,11 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
                     StepperRow("Work starts at ${TimeMath.hourLabel(store.workStart, store.use24h)}", { store.updateWorkStart(store.workStart - 1) }, { store.updateWorkStart(store.workStart + 1) })
                     StepperRow("Work ends at ${TimeMath.hourLabel(store.workEnd % 24, store.use24h)}", { store.updateWorkEnd(store.workEnd - 1) }, { store.updateWorkEnd(store.workEnd + 1) })
                 }
+            }
+            Section("CITIES") {
+                SwitchRow("Show My Location", store.useMyLocation) { store.updateUseMyLocation(it) }
+                Text("Keeps the city you're in on your list, and updates it when you travel. Location is used only to name the city, and only on your phone.",
+                    fontSize = 13.sp, color = Palette.muted, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
             }
             Section("WIDGETS") {
                 Text("Touch and hold your home screen, tap Widgets, then find Meridian. Widgets show your cities in the same order as here.",

@@ -28,6 +28,10 @@
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>NSLocationUsageDescription</key>
+    <string>Meridian uses your location to name the city you're in on your list. It stays on your Mac.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Meridian uses your location to name the city you're in on your list. It stays on your Mac.</string>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Bradley Cowdrey · bradcowdrey.com</string>
 </dict>

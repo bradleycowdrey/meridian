@@ -1,11 +1,14 @@
 package com.bradcowdrey.meridian
 
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -22,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
@@ -71,6 +75,14 @@ object Palette {
 }
 
 class MainActivity : ComponentActivity() {
+    private var store: Store? = null
+
+    /** Back in the app (maybe after travelling): refresh My Location. */
+    override fun onResume() {
+        super.onResume()
+        store?.takeIf { it.termsAccepted }?.let { it.updateMyLocation(); it.locate() }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
@@ -78,6 +90,7 @@ class MainActivity : ComponentActivity() {
         val demo = intent.getBooleanExtra("screenshots", false)
         val screen = intent.getStringExtra("screen") ?: "main"
         val store = Store(applicationContext, demo = demo && screen != "terms")
+        this.store = store
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(
                 background = Palette.bg, surface = Palette.bg, primary = Palette.cream, onPrimary = Palette.bg,
@@ -99,6 +112,16 @@ fun App(store: Store, initial: String) {
     LaunchedEffect(Unit) {
         if (initial == "travel") store.jump(TimeMath.hourAnchor(store.now, store.home).plusSeconds(5 * 3600))
         while (true) { store.tick(); delay(1000) }
+    }
+    // My Location: ask for location permission once (after the terms), then name the city.
+    val context = LocalContext.current
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) store.locate()
+    }
+    LaunchedEffect(store.useMyLocation) {
+        if (!store.useMyLocation || store.demo) return@LaunchedEffect
+        if (MyLocation.permitted(context)) store.locate()
+        else if (!store.locationAsked) { store.markLocationAsked(); askLocation.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
     }
     BackHandler(enabled = route != "main") { route = "main" }
     when (route) {
@@ -188,7 +211,7 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                             clipboard.setText(AnnotatedString("${place.name}: ${TimeMath.fullMoment(store.moment, place.zone, store.use24h)}"))
                             copied = true
                         })
-                        DropdownMenuItem(text = { Text("Rename") }, onClick = { actions = false; renaming = place })
+                        if (!place.isMyLocation) DropdownMenuItem(text = { Text("Rename") }, onClick = { actions = false; renaming = place })
                         DropdownMenuItem(text = { Text("Remove", color = Color(0xFFFF6B6B)) }, onClick = { actions = false; store.remove(place) })
                     }
                 }
@@ -269,11 +292,14 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     val detail = (TimeMath.relative(moment, place.zone, store.home)
         ?: if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
     Column(modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)
-        .semantics(mergeDescendants = true) { contentDescription = "${place.name}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail" }) {
+        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${if (place.isMyLocation) ", My Location" else ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail" }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1)
-                Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                    if (place.isMyLocation) MyLocationMark()
+                }
             }
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, modifier = Modifier.alignByBaseline())
@@ -410,4 +436,10 @@ fun pickDate(context: android.content.Context, store: Store) {
             store.jump(picked.plusSeconds(450))   // nearest quarter-hour
         }, current.hour, current.minute, store.use24h).show()
     }, current.year, current.monthValue - 1, current.dayOfMonth).show()
+}
+
+/** The small pin after the My Location row's name. */
+@Composable
+fun MyLocationMark() {
+    Icon(Icons.Filled.LocationOn, contentDescription = "My Location", tint = Palette.muted, modifier = Modifier.padding(start = 4.dp).size(16.dp))
 }

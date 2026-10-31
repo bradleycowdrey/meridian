@@ -32,6 +32,11 @@ final class ZoneStore: ObservableObject {
     @Published var uiSize: UISize { didSet { defaults.set(uiSize.rawValue, forKey: "uiSize") } }
     @Published var appFont: AppFont { didSet { defaults.set(appFont.rawValue, forKey: "appFont") } }
     @Published var menuBarPlaceID: UUID? { didSet { defaults.set(menuBarPlaceID?.uuidString, forKey: "menuBarPlaceID") } }
+    /// Keep a "My Location" row for the city you're in (on unless turned off in Settings).
+    @Published var useMyLocation: Bool {
+        didSet { defaults.set(useMyLocation, forKey: "useMyLocation"); updateMyLocation() }
+    }
+    private let locator = CityLocator()
 
     private let defaults = UserDefaults.standard
 
@@ -53,6 +58,15 @@ final class ZoneStore: ObservableObject {
         menuBarPlaceID = d.string(forKey: "menuBarPlaceID").flatMap(UUID.init(uuidString:))
         uiSize = UISize(rawValue: d.string(forKey: "uiSize") ?? "") ?? .medium
         appFont = AppFont(rawValue: d.string(forKey: "appFont") ?? "") ?? .system
+        // Off in the CI self-test: it drives a fixed list of cities, and a permission prompt
+        // would cover the window.
+        useMyLocation = SelfTest.isActive ? false : (d.object(forKey: "useMyLocation") as? Bool ?? true)
+        updateMyLocation(locate: false)
+        // Ask Location Services once the terms are out of the way, not over them.
+        Task { @MainActor [weak self] in
+            while !Terms.accepted { try? await Task.sleep(for: .seconds(1)) }
+            self?.updateMyLocation()
+        }
 
         syncWidget()
         reloadWidgetsAfterUpdate()
@@ -72,6 +86,7 @@ final class ZoneStore: ObservableObject {
                 Task { @MainActor in
                     NSTimeZone.resetSystemTimeZone()
                     self?.now = Date()
+                    if name == .NSSystemTimeZoneDidChange { self?.updateMyLocation() }
                     WidgetCenter.shared.reloadAllTimelines()
                 }
             }
@@ -138,8 +153,25 @@ final class ZoneStore: ObservableObject {
     }
 
     func remove(_ place: Place) {
+        // Deleting My Location turns it off, so it doesn't come straight back.
+        if place.isMyLocation { MyLocation.forget(defaults: defaults) }
         places.removeAll { $0.id == place.id }
         if menuBarPlaceID == place.id { menuBarPlaceID = nil }
+        if place.isMyLocation { useMyLocation = false }
+    }
+
+    /// Adds, updates or removes the My Location row, and (with `locate`) looks up the city name,
+    /// which updates the row again when it arrives.
+    func updateMyLocation(locate: Bool = true) {
+        var list = places
+        if useMyLocation {
+            MyLocation.apply(to: &list, city: locator.city, defaults: defaults)
+        } else {
+            MyLocation.remove(from: &list, defaults: defaults)
+        }
+        if list != places { places = list }
+        guard useMyLocation, locate, Terms.accepted else { return }
+        locator.locate { [weak self] in self?.updateMyLocation(locate: false) }
     }
 
     func move(from source: IndexSet, to destination: Int) {

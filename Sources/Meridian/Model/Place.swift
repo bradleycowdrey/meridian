@@ -8,6 +8,10 @@ struct Place: Codable, Identifiable, Hashable {
 
     var timeZone: TimeZone { TimeZone(identifier: timeZoneID) ?? .current }
 
+    /// The "My Location" row (see MyLocation) has this fixed id.
+    static let myLocationID = UUID(uuidString: "6D7E1A2B-4C3D-4E5F-8A9B-0C1D2E3F4A5B")!
+    var isMyLocation: Bool { id == Self.myLocationID }
+
     /// Three-letter tag used in the menu bar, e.g. "LON".
     var tag: String {
         String(name.filter(\.isLetter).prefix(3)).uppercased()

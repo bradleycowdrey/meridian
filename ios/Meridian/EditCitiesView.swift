@@ -14,12 +14,19 @@ struct EditCitiesView: View {
                 Section {
                     ForEach(store.places) { place in
                         Button {
+                            // My Location is named by Location Services, so it isn't renamed.
+                            guard !place.isMyLocation else { return }
                             newName = place.name
                             renaming = place
                         } label: {
                             HStack(spacing: 12) {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(place.name).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
+                                    HStack(spacing: 6) {
+                                        Text(place.name).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
+                                        if place.isMyLocation {
+                                            Image(systemName: "location.fill").font(.caption).foregroundStyle(Theme.muted)
+                                        }
+                                    }
                                     Text(place.offsetLabel(at: store.now)).font(.footnote).foregroundStyle(Theme.muted)
                                 }
                                 Spacer()
@@ -29,7 +36,7 @@ struct EditCitiesView: View {
                             }
                         }
                         .listRowBackground(Theme.tile)
-                        .accessibilityHint("Renames \(place.name)")
+                        .accessibilityHint(place.isMyLocation ? "My Location" : "Renames \(place.name)")
                     }
                     .onDelete { store.remove(at: $0) }
                     .onMove { store.move(from: $0, to: $1) }

@@ -148,6 +148,26 @@ final class FunctionalTest {
         check("version equal is not newer", !Updater.isNewer("0.7.1", than: "0.7.1"))
         check("version older is not newer", !Updater.isNewer("0.6.9", than: "0.7.0"))
         check("selftest build is older than any release", Updater.isNewer("0.1.0", than: "0.0.0-selftest"))
+
+        // My Location: a scratch UserDefaults, so the app's own settings are untouched.
+        let scratch = UserDefaults(suiteName: "selftest.mylocation")!
+        scratch.removePersistentDomain(forName: "selftest.mylocation")
+        let here = TimeZone.current.identifier
+        var list = [Place(name: "Elsewhere", timeZoneID: here == "Asia/Tokyo" ? "UTC" : "Asia/Tokyo")]
+        MyLocation.apply(to: &list, city: nil, defaults: scratch)
+        check("my location: added at the top", list.count == 2 && list[0].isMyLocation && list[0].timeZoneID == here,
+              list.map(\.name).joined(separator: ","))
+        MyLocation.apply(to: &list, city: "Testville", defaults: scratch)
+        check("my location: city name fills in", list.count == 2 && list[0].name == "Testville")
+        MyLocation.remove(from: &list, defaults: scratch)
+        check("my location: off removes it", list.map(\.name) == ["Elsewhere"])
+        list = [Place(name: "Tokyo", timeZoneID: here == "Asia/Tokyo" ? "UTC" : "Asia/Tokyo"), Place(name: "Home", timeZoneID: here)]
+        MyLocation.apply(to: &list, city: "Testville", defaults: scratch)
+        check("my location: takes over a city in the same zone, in place",
+              list.count == 2 && list[1].isMyLocation && list[1].name == "Testville", list.map(\.name).joined(separator: ","))
+        MyLocation.remove(from: &list, defaults: scratch)
+        check("my location: off gives that city back", list.count == 2 && !list[1].isMyLocation && list[1].name == "Home")
+        scratch.removePersistentDomain(forName: "selftest.mylocation")
     }
 
     // MARK: Interface, at every size and both fonts

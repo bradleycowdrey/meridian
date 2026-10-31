@@ -18,8 +18,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.7.23
+### What's new in 0.8.0
 
+- **My Location**: the city you're in, added automatically and kept current when you travel. Turn it off in Settings.
 - **Widgets match the app**: "+8 hr" under each city, "+1 d" for another day.
 - **Apple's abbreviations**: hours read "hr" ("+1 hr", "In 4 hr 20 min"), as in Apple's Clock.
 - **AM and PM, always**, Apple's style ("10:21 PM").

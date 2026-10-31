@@ -12,6 +12,7 @@ import kotlin.math.abs
 /** A city the user tracks. */
 data class Place(val name: String, val zoneId: String, val id: String = UUID.randomUUID().toString()) {
     val zone: ZoneId get() = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
+    val isMyLocation: Boolean get() = id == MyLocation.ID
 }
 
 /** Time arithmetic and labels, in the same style as the Mac and iPhone apps. */

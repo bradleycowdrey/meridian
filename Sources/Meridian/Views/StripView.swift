@@ -175,12 +175,20 @@ private struct PlaceLabel: View {
                     .onDisappear { if handleHovered { handleHovered = false; NSCursor.pop() } }
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(place.name)
-                    .font(ui.body)
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .help(place.name)
+                HStack(spacing: ui.pt(4)) {
+                    Text(place.name)
+                        .font(ui.body)
+                        .foregroundStyle(Palette.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if place.isMyLocation {
+                        Image(systemName: "location.fill")
+                            .font(ui.font(9, .medium))
+                            .foregroundStyle(Palette.textMuted)
+                            .accessibilityLabel("My Location")
+                    }
+                }
+                .help(place.isMyLocation ? "\(place.name) · My Location" : place.name)
                 HStack(spacing: ui.pt(6)) {
                     Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
                         .foregroundStyle(Palette.textSecondary)

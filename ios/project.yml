@@ -24,6 +24,7 @@ targets:
     sources:
       - path: Meridian
       - path: ../Sources/Meridian/Model/Place.swift
+      - path: ../Sources/Meridian/Model/MyLocation.swift
       - path: ../Sources/Meridian/Model/CityDirectory.swift
       - path: ../Sources/Meridian/Shared/WidgetContent.swift
     settings:
@@ -46,6 +47,7 @@ targets:
         UIUserInterfaceStyle: Dark
         ITSAppUsesNonExemptEncryption: false
         LSApplicationCategoryType: public.app-category.productivity
+        NSLocationWhenInUseUsageDescription: "Meridian uses your location to name the city you're in on your list. It stays on your iPhone."
     entitlements:
       path: Meridian/Meridian.entitlements
       properties:

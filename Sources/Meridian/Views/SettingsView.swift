@@ -7,7 +7,7 @@ struct SettingsView: View {
             GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
             AboutView().tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 480, height: 400)
+        .frame(width: 480, height: 440)
     }
 }
 
@@ -49,7 +49,14 @@ private struct CitiesSettings: View {
                 ForEach(store.places) { place in
                     HStack(spacing: 10) {
                         Image(systemName: "line.3.horizontal").foregroundStyle(.tertiary)
-                        CityNameField(place: place)
+                        if place.isMyLocation {
+                            // Named by Location Services, so not renamed here.
+                            Text(place.name).font(.body.weight(.medium))
+                            Image(systemName: "location.fill").font(.caption).foregroundStyle(.secondary)
+                                .help("My Location")
+                        } else {
+                            CityNameField(place: place)
+                        }
                         Spacer()
                         Text(TimeMath.time(store.now, in: place.timeZone, use24h: store.use24h))
                             .monospacedDigit()
@@ -74,6 +81,10 @@ private struct CitiesSettings: View {
             }
             .listStyle(.bordered)
             Text("Drag to reorder. Click a name to rename it. You can also add, remove and reorder cities with Add and Edit in the menu bar.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Toggle("Show My Location", isOn: $store.useMyLocation)
+            Text("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your Mac.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

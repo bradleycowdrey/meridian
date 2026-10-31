@@ -471,6 +471,6 @@ Pacific/Pago_Pago=AS Pacific/Palau=PW Pacific/Pitcairn=PN Pacific/Pohnpei=FM Pac
 Pacific/Rarotonga=CK Pacific/Saipan=MP Pacific/Samoa=AS Pacific/Tahiti=PF Pacific/Tarawa=KI Pacific/Tongatapu=TO
 Pacific/Truk=FM Pacific/Wake=UM Pacific/Wallis=WF Pacific/Yap=FM US/Alaska=US US/Aleutian=US
 US/Arizona=US US/Central=US US/East-Indiana=US US/Eastern=US US/Hawaii=US US/Indiana-Starke=US
-US/Michigan=US US/Mountain=US US/Pacific=US US/Pacific-New=US US/Samoa=AS
+US/Michigan=US US/Mountain=US US/Pacific=US US/Pacific-New=US US/Samoa=AS America/Coyhaique=CL
 """
 }

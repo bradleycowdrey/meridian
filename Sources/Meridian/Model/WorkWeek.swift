@@ -90,7 +90,6 @@ enum WorkWeek {
 
     /// "Monday to Friday", "Sunday to Thursday", or the days listed ("Monday, Wednesday").
     static func describe(_ days: Set<Int>) -> String {
-        let names = Calendar(identifier: .gregorian).weekdaySymbols   // Sunday first
         let sorted = days.sorted()
         guard !sorted.isEmpty else { return "No working days" }
         if sorted.count == 7 { return "Every day" }
@@ -109,17 +108,21 @@ enum WorkWeek {
         }
         let main = Set(schedule.week.indices.filter { schedule.week[$0] == typical }.map { $0 + 1 })
         var text = "\(describe(main)), \(label(typical, use24h: use24h))"
-        let names = Calendar(identifier: .gregorian).weekdaySymbols
         for (i, hours) in schedule.week.enumerated() {
             if let hours, hours != typical { text += "; \(names[i]) \(label(hours, use24h: use24h))" }
         }
         if let ramadan = schedule.ramadan { text += ". In Ramadan, \(label(ramadan, use24h: use24h))" }
         if let summer = schedule.summer?.compactMap({ $0 }).first, !schedule.summerMonths.isEmpty {
-            let months = schedule.summerMonths.sorted().map { Calendar(identifier: .gregorian).monthSymbols[$0 - 1] }
-            text += ". In \(ListFormatter.localizedString(byJoining: months)), \(label(summer, use24h: use24h))"
+            let months = schedule.summerMonths.sorted().map { monthNames[$0 - 1] }
+            text += ". In \(months.joined(separator: " and ")), \(label(summer, use24h: use24h))"
         }
         return text
     }
+
+    /// The app's text is English, so the day and month names are too (whatever the device's language).
+    private static let names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    private static let monthNames = ["January", "February", "March", "April", "May", "June", "July", "August",
+                                     "September", "October", "November", "December"]
 
     static func label(_ hours: Hours, use24h: Bool) -> String {
         "\(clock(hours.start, use24h: use24h)) to \(clock(hours.end, use24h: use24h))"
@@ -499,6 +502,6 @@ Pacific/Pago_Pago=AS Pacific/Palau=PW Pacific/Pitcairn=PN Pacific/Pohnpei=FM Pac
 Pacific/Rarotonga=CK Pacific/Saipan=MP Pacific/Samoa=AS Pacific/Tahiti=PF Pacific/Tarawa=KI Pacific/Tongatapu=TO
 Pacific/Truk=FM Pacific/Wake=UM Pacific/Wallis=WF Pacific/Yap=FM US/Alaska=US US/Aleutian=US
 US/Arizona=US US/Central=US US/East-Indiana=US US/Eastern=US US/Hawaii=US US/Indiana-Starke=US
-US/Michigan=US US/Mountain=US US/Pacific=US US/Pacific-New=US US/Samoa=AS
+US/Michigan=US US/Mountain=US US/Pacific=US US/Pacific-New=US US/Samoa=AS America/Coyhaique=CL
 """
 }

@@ -212,6 +212,25 @@ final class FunctionalTest {
                 await click("travel-earlier", in: window)
                 check("\(tag) click earlier", store.offsetHours == 0, "offset \(store.offsetHours)")
 
+                // Probe: which points of Add City take a click (logged, to find any dead band
+                // under the hidden title bar).
+                if let frame = TestAnchors.frames["control-add"], let content = window.contentView {
+                    var row: [String] = []
+                    for y in stride(from: frame.minY - 2, through: frame.maxY + 2, by: 2) {
+                        adding.wrappedValue = false
+                        await settle(0.2)
+                        let p = NSPoint(x: frame.midX, y: content.bounds.height - y)
+                        send(.leftMouseDown, at: p, in: window)
+                        try? await Task.sleep(for: .milliseconds(60))
+                        send(.leftMouseUp, at: p, in: window)
+                        await settle(0.3)
+                        row.append("\(Int(y)):\(adding.wrappedValue ? "Y" : "-")")
+                    }
+                    adding.wrappedValue = false
+                    await settle(0.3)
+                    SelfTest.log("functional: probe \(tag) add \(Int(frame.minY))..\(Int(frame.maxY)) window \(Int(window.frame.height)) inset \(Int(window.frame.height - window.contentLayoutRect.height)): \(row.joined(separator: " "))")
+                }
+
                 // Add City: open, pick a search result.
                 await click("control-add", in: window)
                 check("\(tag) Add City opens search", adding.wrappedValue)

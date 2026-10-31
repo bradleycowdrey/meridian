@@ -206,10 +206,12 @@ private struct ClockPanelContent: View {
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
                 .fixedSize()
+            // The product page (Mac, iPhone and Android, and a live demo), not the source code.
             ShareLink(
-                item: Brand.repository,
-                subject: Text("Meridian for Mac"),
-                message: Text(Brand.shareMessage)
+                item: Brand.productPage,
+                subject: Text("Meridian"),
+                message: Text(Brand.shareMessage),
+                preview: SharePreview("Meridian: every time zone at a glance", image: Image(nsImage: NSApp.applicationIconImage))
             ) {
                 Label("Share", systemImage: "square.and.arrow.up")
                     .lineLimit(1)

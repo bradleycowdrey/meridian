@@ -16,7 +16,12 @@ enum Theme {
     static let appPage = URL(string: "https://bradcowdrey.com/meridian")!
     static let legal = URL(string: "https://bradcowdrey.com/legal")!
     static let source = URL(string: "https://github.com/bradleycowdrey/meridian")!
-    static let shareMessage = "Meridian: every time zone at a glance. Free, by Bradley Cowdrey."
+    static let issues = URL(string: "https://github.com/bradleycowdrey/meridian/issues")!
+    static let macDownload = URL(string: "https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg")!
+    /// What Share says, as Two Degrees does: the app, what it does here, who made it.
+    static let shareMessage = "Meridian: every time zone at a glance, on your iPhone and its Home Screen and Lock Screen. Free, by Bradley Cowdrey."
+    /// Copy a Message to Send: ready to paste into a chat, with where to get it.
+    static let messageToSend = "\(shareMessage)\n\nGet it for iPhone, Mac or Android: \(appPage.absoluteString)"
 }
 
 /// City cards on the main screen.

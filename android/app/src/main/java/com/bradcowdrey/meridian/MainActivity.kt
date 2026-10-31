@@ -82,7 +82,12 @@ object Palette {
     const val APP_PAGE = "https://bradcowdrey.com/meridian"
     const val LEGAL = "https://bradcowdrey.com/legal"
     const val SOURCE = "https://github.com/bradleycowdrey/meridian"
-    const val SHARE_MESSAGE = "Meridian: every time zone at a glance. Free, by Bradley Cowdrey."
+    const val MAC_DOWNLOAD = "https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg"
+    const val ISSUES = "https://github.com/bradleycowdrey/meridian/issues"
+    /** What Share says, as Two Degrees does: the app, what it does here, who made it. */
+    const val SHARE_MESSAGE = "Meridian: every time zone at a glance, on your Android phone and its home screen. Free, by Bradley Cowdrey."
+    /** Copy a Message to Send: ready to paste into a chat, with where to get it. */
+    const val MESSAGE_TO_SEND = "$SHARE_MESSAGE\n\nGet it for Android, iPhone or Mac: $APP_PAGE"
 }
 
 class MainActivity : ComponentActivity() {
@@ -175,8 +180,9 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
     }
     LaunchedEffect(copied) { if (copied) { delay(1800); copied = false } }
 
-    fun share(text: String) = context.startActivity(Intent.createChooser(
-        Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), null))
+    fun share(title: String, subject: String, text: String) = context.startActivity(Intent.createChooser(
+        Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_SUBJECT, subject).putExtra(Intent.EXTRA_TEXT, text), title))
+    var shareMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = Palette.bg,
@@ -186,8 +192,24 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                     title = { Text("Meridian", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
                         if (editing) TextButton(onClick = { editing = false }) { Text("Done", color = Palette.cream, fontWeight = FontWeight.SemiBold) }
-                        else IconButton(onClick = { share("${Palette.SHARE_MESSAGE} ${Palette.APP_PAGE}") }) {
-                            Icon(Icons.Filled.Share, contentDescription = "Share Meridian")
+                        // Share, as in Cowdrey.MD: Meridian or this moment, or copy a link or a ready-to-send message.
+                        else Box {
+                            IconButton(onClick = { shareMenu = true }) { Icon(Icons.Filled.Share, contentDescription = "Share") }
+                            DropdownMenu(expanded = shareMenu, onDismissRequest = { shareMenu = false }) {
+                                DropdownMenuItem(text = { Text("Share Meridian…") }, onClick = {
+                                    shareMenu = false; share("Share Meridian", "Meridian", "${Palette.SHARE_MESSAGE} ${Palette.APP_PAGE}")
+                                })
+                                DropdownMenuItem(text = { Text("Share This Moment…") }, enabled = store.places.isNotEmpty(), onClick = {
+                                    shareMenu = false; share("Share This Moment", "Times for ${TimeMath.fullMoment(store.moment, store.home, store.use24h)}", store.momentText)
+                                })
+                                HorizontalDivider()
+                                DropdownMenuItem(text = { Text("Copy Link") }, onClick = {
+                                    shareMenu = false; clipboard.setText(AnnotatedString(Palette.APP_PAGE)); copied = true
+                                })
+                                DropdownMenuItem(text = { Text("Copy a Message to Send") }, onClick = {
+                                    shareMenu = false; clipboard.setText(AnnotatedString(Palette.MESSAGE_TO_SEND)); copied = true
+                                })
+                            }
                         }
                     },
                     actions = {
@@ -201,13 +223,20 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                                 DropdownMenuItem(text = { Text("Copy This Moment") }, enabled = store.places.isNotEmpty(), onClick = {
                                     menu = false; clipboard.setText(AnnotatedString(store.momentText)); copied = true
                                 })
-                                DropdownMenuItem(text = { Text("Share This Moment") }, enabled = store.places.isNotEmpty(), onClick = {
-                                    menu = false; share(store.momentText)
-                                })
                                 HorizontalDivider()
                                 DropdownMenuItem(text = { Text("24-Hour Time") }, onClick = { store.updateUse24h(!store.use24h) },
                                     trailingIcon = { Checkbox(checked = store.use24h, onCheckedChange = { store.updateUse24h(it) }) })
                                 DropdownMenuItem(text = { Text("Settings") }, onClick = { menu = false; open("settings") })
+                                HorizontalDivider()
+                                DropdownMenuItem(text = { Text("Get Meridian for Mac") }, onClick = {
+                                    menu = false; context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(Palette.MAC_DOWNLOAD)))
+                                })
+                                DropdownMenuItem(text = { Text("Terms & Privacy") }, onClick = {
+                                    menu = false; context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(Palette.LEGAL)))
+                                })
+                                DropdownMenuItem(text = { Text("Report an Issue") }, onClick = {
+                                    menu = false; context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(Palette.ISSUES)))
+                                })
                             }
                         }
                     },

@@ -199,10 +199,7 @@ struct ContentView: View {
             if editMode.isEditing {
                 Button("Done") { withAnimation { editMode = .inactive } }.fontWeight(.semibold)
             } else {
-                ShareLink(item: Theme.appPage, subject: Text("Meridian"), message: Text(Theme.shareMessage)) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .accessibilityLabel("Share Meridian")
+                shareMenu
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
@@ -213,16 +210,42 @@ struct ContentView: View {
                 Button { showingDate = true } label: { Label("Go to Date…", systemImage: "calendar") }
                 Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
                     .disabled(store.places.isEmpty)
-                ShareLink(item: store.momentText) { Label("Share This Moment", systemImage: "square.and.arrow.up") }
-                    .disabled(store.places.isEmpty)
                 Divider()
                 Toggle(isOn: $store.use24h) { Label("24-Hour Time", systemImage: "clock") }
                 Button { showingSettings = true } label: { Label("Settings", systemImage: "gearshape") }
+                Divider()
+                Link(destination: Theme.macDownload) { Label("Get Meridian for Mac", systemImage: "laptopcomputer") }
+                Link(destination: Theme.legal) { Label("Terms & Privacy", systemImage: "doc.text") }
+                Link(destination: Theme.issues) { Label("Report an Issue", systemImage: "exclamationmark.bubble") }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
             .accessibilityLabel("More")
         }
+    }
+
+    /// Share, as in Cowdrey.MD: the system share sheet for Meridian or this moment, or copy a link
+    /// or a ready-to-send message.
+    private var shareMenu: some View {
+        Menu {
+            ShareLink(item: Theme.appPage, subject: Text("Meridian"), message: Text(Theme.shareMessage),
+                      preview: SharePreview("Meridian: every time zone at a glance", image: Image("Mark"))) {
+                Label("Share Meridian…", systemImage: "square.and.arrow.up")
+            }
+            ShareLink(item: store.momentText, subject: Text("Times for \(TimeMath.fullMoment(store.moment, in: .current, use24h: store.use24h))"),
+                      preview: SharePreview("This moment in every city")) {
+                Label("Share This Moment…", systemImage: "clock")
+            }
+            .disabled(store.places.isEmpty)
+            Divider()
+            Button { UIPasteboard.general.url = Theme.appPage; flashCopied() } label: { Label("Copy Link", systemImage: "link") }
+            Button { UIPasteboard.general.string = Theme.messageToSend; flashCopied() } label: {
+                Label("Copy a Message to Send", systemImage: "text.bubble")
+            }
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+        }
+        .accessibilityLabel("Share")
     }
 
     private var haptic: SensoryFeedback {

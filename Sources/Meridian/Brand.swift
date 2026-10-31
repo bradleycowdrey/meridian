@@ -11,7 +11,9 @@ enum Brand {
     /// Bump when the terms change materially, so everyone is asked to agree again.
     static let termsVersion = "2026-10-31"
     static let repository = URL(string: "https://github.com/bradleycowdrey/meridian")!
-    static let shareMessage = "Meridian: every time zone at a glance, in your Mac's menu bar. Free and open source, by Bradley Cowdrey."
+    /// What Share says, as Two Degrees does: the app, what it does here, who made it.
+    static let shareMessage = "Meridian: every time zone at a glance, in your Mac's menu bar and on your desktop. Free and open source, by Bradley Cowdrey."
+    static let productPage = URL(string: "https://bradcowdrey.com/meridian")!
     static let releasesAPI = URL(string: "https://api.github.com/repos/bradleycowdrey/meridian/releases/latest")!
     static let issues = URL(string: "https://github.com/bradleycowdrey/meridian/issues")!
     static let copyright = "© 2026 Bradley Cowdrey · bradcowdrey.com"

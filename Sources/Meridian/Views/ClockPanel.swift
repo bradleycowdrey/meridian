@@ -28,6 +28,8 @@ private struct ClockPanelContent: View {
     /// is at the very top), and SwiftUI still adds it to the window height, so it's subtracted
     /// at the bottom to keep the window exactly the size of the panel.
     @State private var titleBarInset: CGFloat = 0
+    /// Self-test only: moves the header down, to probe where clicks land.
+    @AppStorage("selftest.headerShift") private var selftestHeaderShift: Double = 0
     @State private var host = HostWindow()
     @Environment(\.openWindow) private var openWindow
 
@@ -52,7 +54,7 @@ private struct ClockPanelContent: View {
 
                 header
                     .padding(.horizontal, ui.xl)
-                    .padding(.top, ui.l + ui.xs)
+                    .padding(.top, ui.l + ui.xs + selftestHeaderShift)
                     .padding(.bottom, ui.m)
             }
             // Window: drag to move. Menu bar panel (which macOS pins under its icon): drag to
@@ -230,15 +232,10 @@ private struct ClockPanelContent: View {
 
 /// An area that moves its window when dragged (the window has no visible title bar), or, in the
 /// menu bar panel, tears the panel off into a window once the pointer moves a few points.
-struct WindowDragHandle: NSViewRepresentable {
+private struct WindowDragHandle: NSViewRepresentable {
     var onTearOff: (() -> Void)?
-    /// Self-test only: take the drag area out of hit testing, to see whether it eats clicks.
-    @MainActor static var disabledForTest = false
 
     final class DragView: NSView {
-        override func hitTest(_ point: NSPoint) -> NSView? {
-            WindowDragHandle.disabledForTest ? nil : super.hitTest(point)
-        }
 
         var onTearOff: (() -> Void)?
         private var start: NSPoint?

@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.8.1 · 31 October 2026
+
+- **Asked first**: after the terms, Meridian asks once whether to use your location for My Location (Use My Location is recommended). Your answer sets Settings → Cities → **Show My Location**. Nothing asks Location Services until you say yes.
+
 ## 0.8.0 · 31 October 2026
 
 - **My Location**: the city you're in is added to your list automatically, marked with a location arrow, and follows you when you travel. Its time always comes from your Mac's clock; Location Services only names the city ("Boulder" rather than "Denver"), once at launch and when your time zone changes. If a city in your time zone is already on the list, that city becomes My Location instead of appearing twice. Meridian asks once, after the terms, whether to use your location (Use My Location is recommended); change it any time in Settings → Cities → **Show My Location**.

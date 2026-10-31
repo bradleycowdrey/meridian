@@ -63,7 +63,7 @@ struct ContentView: View {
             } header: {
                 // Pinned while the cities scroll underneath.
                 MomentHeader(copied: copied) { showingDate = true }
-                    .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 12)
+                    .padding(.horizontal, Card.margin).padding(.top, 14).padding(.bottom, 12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Theme.bg)
                     .listRowInsets(EdgeInsets())
@@ -75,10 +75,18 @@ struct ContentView: View {
     }
 
     private func row(_ place: Place) -> some View {
+        // Each city is a card: 16 pt from the screen edges, 16 pt inside, 8 pt between cards
+        // (Apple's standard margins; continuous corners like the system's own cards).
         CityRow(place: place)
-            .listRowInsets(EdgeInsets(top: 14, leading: 20, bottom: 14, trailing: 20))
-            .listRowBackground(Theme.bg)
-            .listRowSeparatorTint(Theme.border)
+            .listRowInsets(EdgeInsets(top: Card.gap / 2 + Card.padding, leading: Card.margin + Card.padding,
+                                      bottom: Card.gap / 2 + Card.padding, trailing: Card.margin + Card.padding))
+            .listRowBackground(
+                RoundedRectangle(cornerRadius: Card.radius, style: .continuous)
+                    .fill(Theme.tile)
+                    .padding(.horizontal, Card.margin)
+                    .padding(.vertical, Card.gap / 2)
+            )
+            .listRowSeparator(.hidden)
             .contextMenu {
                 Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
                 if !place.isMyLocation {

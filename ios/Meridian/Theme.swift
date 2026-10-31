@@ -18,3 +18,11 @@ enum Theme {
     static let source = URL(string: "https://github.com/bradleycowdrey/meridian")!
     static let shareMessage = "Meridian: every time zone at a glance. Free, by Bradley Cowdrey."
 }
+
+/// City cards on the main screen.
+enum Card {
+    static let margin: CGFloat = 16
+    static let padding: CGFloat = 16
+    static let gap: CGFloat = 8
+    static let radius: CGFloat = 16
+}

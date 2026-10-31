@@ -215,7 +215,9 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
             }
             items(store.places, key = { it.id }) { place ->
                 var actions by remember { mutableStateOf(false) }
-                Box {
+                // Each city is a card: 16 dp from the screen edges, 8 dp between cards,
+                // 16 dp corners (Material 3's large shape).
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).background(Palette.tile)) {
                     CityRow(store, place, Modifier.combinedClickable(onClick = {}, onLongClick = { actions = true }))
                     DropdownMenu(expanded = actions, onDismissRequest = { actions = false }) {
                         DropdownMenuItem(text = { Text("Copy Time") }, onClick = {
@@ -227,7 +229,6 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                         DropdownMenuItem(text = { Text("Remove", color = Color(0xFFFF6B6B)) }, onClick = { actions = false; store.remove(place) })
                     }
                 }
-                HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = Palette.border, thickness = 0.5.dp)
             }
             item { Footer() }
         }
@@ -238,7 +239,7 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
 /** A small "NOW" (or "IN 4 HR 20 MIN") over the date and time, a Now button when away, the meeting planner line. */
 @Composable
 fun MomentHeader(store: Store, copied: Boolean, pickDate: () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(Palette.bg).padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 12.dp)) {
+    Column(Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).clickable(onClick = pickDate)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -303,7 +304,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     val utc = TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, moment))
     val detail = (TimeMath.relative(moment, place.zone, store.home)
         ?: if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
-    Column(modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)
+    Column(modifier.fillMaxWidth().padding(16.dp)
         .semantics(mergeDescendants = true) { contentDescription = "${place.name}${if (place.isMyLocation) ", My Location" else ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail" }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
@@ -430,7 +431,7 @@ fun tone(argb: Int, dim: Boolean): Int {
 private fun Footer() {
     val context = LocalContext.current
     fun open(url: String) = context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
-    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+    Column(Modifier.fillMaxWidth().padding(16.dp)) {
         Text("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com ↗", fontSize = 13.sp, color = Palette.muted,
             modifier = Modifier.clickable { open(Palette.WEBSITE) })
         Spacer(Modifier.height(6.dp))

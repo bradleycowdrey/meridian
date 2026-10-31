@@ -419,7 +419,8 @@ private struct TimeShifter: View {
             } maximumValueLabel: {
                 Text("+12 hr").font(.caption2).foregroundStyle(Theme.faint)
             }
-            .tint(Theme.cream)
+            // No fill: Now is in the middle, so a half-filled track would read as "halfway".
+            .tint(Theme.border)
             .accessibilityValue(store.isNow ? "Now" : Self.describe(store.offsetMinutes))
             HStack(spacing: 6) {
                 ForEach(Self.presets, id: \.self) { preset in

@@ -338,7 +338,8 @@ fun TimeShifter(store: Store) {
                 onValueChange = { store.scrub((it * 4).roundToInt() * 15) },
                 valueRange = -12f..12f,
                 steps = 95,
-                colors = SliderDefaults.colors(thumbColor = Palette.cream, activeTrackColor = Palette.cream,
+                // No fill: Now is in the middle, so a half-filled track would read as "halfway".
+                colors = SliderDefaults.colors(thumbColor = Palette.cream, activeTrackColor = Palette.border,
                     inactiveTrackColor = Palette.border, activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent),
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                     .semantics { stateDescription = if (store.isNow) "Now" else relative(store) },

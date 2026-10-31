@@ -2,11 +2,13 @@
 
 <h1 align="center">Meridian</h1>
 <p align="center"><b>Every time zone at a glance.</b><br>
-A tiny, free, open-source world clock for your Mac's menu bar, with a desktop widget.<br>
+A free, open-source world clock for Mac, iPhone and Android, with widgets.<br>
 Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a></p>
 
 <p align="center">
   <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg"><b>Download for Mac</b></a> ·
+  <a href="https://apps.apple.com/app/id6826713540"><b>iPhone</b></a> (in App Review) ·
+  <a href="https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk"><b>Android APK</b></a> ·
   <a href="https://bradcowdrey.com/meridian">Try it in your browser</a> ·
   <a href="https://github.com/bradleycowdrey/meridian/issues">Report an issue</a>
 </p>
@@ -54,6 +56,7 @@ instant everywhere, so the line through the middle is *now*.
 
 ## Features
 
+- **My Location**: the city you're in, added for you and kept current when you travel. Meridian asks once (Use My Location is recommended); change it in **Settings → Cities → Show My Location**. Your location only names the city and stays on your Mac.
 - **Day/night ribbons**: night navy, dawn peach, daylight sand and dusk orange, one row per city.
 - **Time travel**: drag the strip, scroll, press ← →, or click any hour. **Now** snaps back.
 - **Meeting overlap**: a cream mark shows hours when every city is inside working hours.
@@ -65,7 +68,7 @@ instant everywhere, so the line through the middle is *now*.
 - **Menu bar first**: show an icon, or a city and its time (`LON 14:32`). Open it as a desktop window that can float above everything.
 - **Five sizes** (Extra Small to Extra Large, ⌘+ / ⌘−) and a choice of **SF Pro** or **Inter**, the typeface of bradcowdrey.com.
 - **Automatic updates**: Meridian checks GitHub Releases once a day, verifies the download's SHA-256, then installs and restarts in one click. Turn it off or check manually in **Settings → General → Updates** or the ⋯ menu.
-- Open at login. No account, no tracking, no network access. About 1 MB.
+- Open at login. No account, no tracking, no ads. The only network use is checking GitHub for updates and, with My Location on, Apple's service naming your city. About 1 MB.
 
 Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or later.
 
@@ -75,9 +78,14 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities) and large (four cities), each showing the hour before, now and the hour after as day-and-night tiles. It follows the cities and order you set in the app, or right-click it, choose **Edit Widget** and turn off **Use Meridian's Cities** to pick its own. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
 
-## Install (sideload)
+## iPhone and Android
 
-Meridian is distributed directly, not through the Mac App Store.
+- **iPhone** (iOS 17 or later): [Meridian: Every Time Zone](https://apps.apple.com/app/id6826713540) on the App Store, in App Review. Each city's time large, with a day-and-night bar you can drag to move through time; Home Screen and Lock Screen widgets; My Location. Source in [`ios/`](ios).
+- **Android** (8 or later): download [Meridian-debug.apk](https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk) on your phone and open it (allow installs from your browser if asked). Same design, home screen widgets in three sizes, My Location. Not on Google Play yet. Source in [`android/`](android).
+
+## Install on Mac (sideload)
+
+Meridian for Mac is distributed directly, not through the Mac App Store.
 
 1. Download [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg) (all versions are on [Releases](https://github.com/bradleycowdrey/meridian/releases))
    or [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), where you can also try it in your browser.
@@ -120,7 +128,7 @@ docs/                     Download page with a live web demo
 
 ## Terms and privacy
 
-Using Meridian means agreeing to the [Terms of Use and Privacy](TERMS.md) (also at [bradcowdrey.com/legal](https://bradcowdrey.com/legal)), which cover every app, AI skill, book and page Bradley Cowdrey publishes. In short: it's free and provided as is, you use it at your own risk, and your cities stay on your Mac. The app asks you to agree the first time it opens, and ⋯ → **Terms & Privacy** opens them any time.
+Using Meridian means agreeing to the [Terms of Use and Privacy](TERMS.md) (also at [bradcowdrey.com/legal](https://bradcowdrey.com/legal)), which cover every app, AI skill, book and page Bradley Cowdrey publishes. In short: it's free and provided as is, you use it at your own risk, and your cities stay on your device. If you allow it, your location is used only to name the city you're in, and only that name is kept, on your device. Each app asks you to agree the first time it opens (and again when the terms change), and **Terms & Privacy** in its menu or Settings opens them any time.
 
 ## License
 

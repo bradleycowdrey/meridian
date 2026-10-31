@@ -324,6 +324,7 @@ fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false, pickDa
  * quarter-hours, Now in the middle), one-tap −2/−1/Now/+1/+2 hours, and 123 to type an offset
  * ("+3", "-1.5", "-2:30"). The date picker goes further; the day bars still drag.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimeShifter(store: Store) {
     var typing by remember { mutableStateOf(false) }
@@ -341,6 +342,12 @@ fun TimeShifter(store: Store) {
                     inactiveTrackColor = Palette.border, activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent),
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                     .semantics { stateDescription = if (store.isNow) "Now" else relative(store) },
+                // A round knob on a thin track, as on the iPhone.
+                thumb = { Box(Modifier.size(24.dp).shadow(2.dp, CircleShape).clip(CircleShape).background(Palette.cream)) },
+                track = { state ->
+                    SliderDefaults.Track(sliderState = state, modifier = Modifier.height(4.dp), thumbTrackGapSize = 0.dp,
+                        drawStopIndicator = null, colors = SliderDefaults.colors(activeTrackColor = Palette.border, inactiveTrackColor = Palette.border))
+                },
             )
             Text("+12 hr", fontSize = 11.sp, color = Palette.faint)
         }

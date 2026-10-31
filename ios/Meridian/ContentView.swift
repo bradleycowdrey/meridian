@@ -164,7 +164,7 @@ struct ContentView: View {
         // hairline edge so cards stand apart on the dark background. Each card has its own
         // actions: tap for them, or touch and hold for the menu. No swipe to remove: a sideways
         // swipe drags the day bar, which moves the time for every city.
-        CityRow(place: place)
+        CityRow(place: place, editing: editMode.isEditing)
             .contentShape(Rectangle())
             .onTapGesture { if !editMode.isEditing { actionsFor = place } }
             .deleteDisabled(!editMode.isEditing)
@@ -440,7 +440,7 @@ private struct TimeShifter: View {
                     .accessibilityLabel(preset == 0 ? "Now" : "\(abs(preset)) \(abs(preset) == 1 ? "hour" : "hours") \(preset > 0 ? "from now" : "ago")")
                 }
                 Button { typed = ""; invalid = false; typing = true } label: {
-                    Image(systemName: "number")
+                    Text("123")
                         .font(.footnote.weight(.semibold))
                         .frame(width: 40, height: 32)
                         .background(Capsule().fill(Theme.tile))
@@ -507,6 +507,8 @@ struct CityRow: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 40
     let place: Place
+    /// In Edit List: a compact row (name, offset, time) so the delete button and handle fit.
+    var editing = false
 
     /// "My Location" on the card for where you are; with the city you're in when this card is
     /// another city in the same time zone ("My Location · Boulder" on Denver).
@@ -522,6 +524,27 @@ struct CityRow: View {
     }
 
     var body: some View {
+        if editing { compactRow } else { fullRow }
+    }
+
+    private var compactRow: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(place.name).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
+                    if store.isHere(place) { Image(systemName: "location.fill").font(.caption2).foregroundStyle(Theme.cream) }
+                }
+                Text(detail(store.moment)).font(.footnote).foregroundStyle(Theme.muted)
+            }
+            .lineLimit(1)
+            Spacer(minLength: 8)
+            Text(TimeMath.time(store.moment, in: place.timeZone, use24h: store.use24h))
+                .font(.body).monospacedDigit().foregroundStyle(Theme.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var fullRow: some View {
         let moment = store.moment
         let cal = place.calendar
         let hour = cal.component(.hour, from: moment), minute = cal.component(.minute, from: moment)

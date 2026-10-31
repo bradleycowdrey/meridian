@@ -84,6 +84,11 @@ class Store(private val context: Context, val demo: Boolean = false) {
     var now by mutableStateOf(if (demo) DEMO_DATE else Instant.now())
         private set
 
+    /** The card standing in for My Location (you already have a card in this time zone).
+     *  Declared before init, which sets it. */
+    var myLocationHost by mutableStateOf<String?>(null)
+        private set
+
     init {
         if (!demo) {
             if (loadPlaces(context) == null) update(places)   // save the starter cities for the widgets
@@ -181,20 +186,32 @@ class Store(private val context: Context, val demo: Boolean = false) {
     fun add(entry: CityEntry) {
         if (!canAdd || contains(entry)) return
         update(places + Place(entry.name, entry.zoneId))
+        // A city in your own time zone becomes My Location, rather than showing twice.
+        updateMyLocation()
     }
 
     fun remove(place: Place) {
         // Deleting My Location turns it off, so it doesn't come straight back.
         if (place.isMyLocation) MyLocation.forget(prefs)
+        val wasHost = place.id == myLocationHost
         update(places.filter { it.id != place.id })
-        if (place.isMyLocation) updateUseMyLocation(false)
+        // Deleting the card standing in for My Location brings the My Location card back.
+        if (place.isMyLocation) updateUseMyLocation(false) else if (wasHost) updateMyLocation()
     }
+
+    /** The card is where you are: the My Location card, or the one standing in for it. */
+    fun isHere(place: Place) = place.isMyLocation || place.id == myLocationHost
+
+    /** The city you're in, when location has named it ("Boulder" while your card says Denver). */
+    val hereCity: String? get() = MyLocation.city(prefs)
 
     /** Adds, updates or removes the My Location row (call [locate] to look up the city name). */
     fun updateMyLocation() {
         if (demo) return
-        val list = if (useMyLocation && locationChosen) MyLocation.apply(places, prefs) else MyLocation.remove(places, prefs)
+        val on = useMyLocation && locationChosen
+        val list = if (on) MyLocation.apply(places, prefs) else MyLocation.remove(places, prefs)
         if (list != places) update(list)
+        myLocationHost = if (on) MyLocation.hostId(prefs) else null
     }
 
     /** Looks up the city name (if allowed), then updates the row. */

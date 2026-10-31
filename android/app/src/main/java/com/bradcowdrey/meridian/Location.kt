@@ -36,46 +36,52 @@ object MyLocation {
     fun city(prefs: SharedPreferences): String? =
         if (prefs.getString("myLocation.zone", null) == ZoneId.systemDefault().id) prefs.getString("myLocation.city", null) else null
 
+    private const val HOST = "myLocation.hostID"
+
+    /** The card standing in for My Location (you already have a card in this time zone), so nothing shows twice. */
+    fun hostId(prefs: SharedPreferences): String? = prefs.getString(HOST, null)
+
     /**
-     * Adds or updates the row. The first time, a city already in the list in this time zone
-     * becomes the row (keeping its place in the order) instead of being shown twice.
+     * Shows where you are without showing anything twice. A card already in this time zone stands
+     * for it (marked My Location); otherwise there's a My Location card at the top, named after the
+     * city you're in, which follows you when you travel and folds back into your own card when you return.
      */
     fun apply(places: List<Place>, prefs: SharedPreferences): List<Place> {
         val zone = ZoneId.systemDefault().id
         val city = city(prefs)
-        val list = places.toMutableList()
+        val list = restoreAdopted(places, prefs).toMutableList()
+        val host = list.firstOrNull { !it.isMyLocation && it.zoneId == zone }
+        if (host != null) {
+            list.removeAll { it.isMyLocation }
+            prefs.edit().putString(HOST, host.id).apply()
+            return list
+        }
+        prefs.edit().remove(HOST).apply()
         val mine = list.indexOfFirst { it.isMyLocation }
-        val sameZone = list.indexOfFirst { it.zoneId == zone }
-        when {
-            mine >= 0 -> {
-                val moved = list[mine].zoneId != zone
-                list[mine] = list[mine].copy(zoneId = zone, name = city ?: if (moved) zoneName else list[mine].name)
-            }
-            sameZone >= 0 -> {
-                prefs.edit().putString(ADOPTED, list[sameZone].name).apply()
-                list[sameZone] = list[sameZone].copy(id = ID, name = city ?: list[sameZone].name)
-            }
-            else -> {
-                prefs.edit().remove(ADOPTED).apply()
-                list.add(0, Place(city ?: zoneName, zone, ID))
-            }
+        if (mine >= 0) {
+            val moved = list[mine].zoneId != zone
+            list[mine] = list[mine].copy(zoneId = zone, name = city ?: if (moved) zoneName else list[mine].name)
+        } else {
+            list.add(0, Place(city ?: zoneName, zone, ID))
         }
         return list
     }
 
-    /** Takes the row out (the setting was turned off). A city the row took over goes back to normal. */
+    /** Takes My Location out (the setting was turned off): the card goes; a card standing in for it is just a city again. */
     fun remove(places: List<Place>, prefs: SharedPreferences): List<Place> {
-        val i = places.indexOfFirst { it.isMyLocation }
-        if (i < 0) return places
-        val adopted = prefs.getString(ADOPTED, null)
-        prefs.edit().remove(ADOPTED).apply()
-        val list = places.toMutableList()
-        if (adopted != null) list[i] = list[i].copy(id = java.util.UUID.randomUUID().toString(), name = adopted) else list.removeAt(i)
-        return list
+        prefs.edit().remove(HOST).apply()
+        return restoreAdopted(places, prefs).filter { !it.isMyLocation }
     }
 
-    /** The user deleted the row itself: it goes, whatever it took over. */
-    fun forget(prefs: SharedPreferences) = prefs.edit().remove(ADOPTED).apply()
+    /** The user deleted the My Location card (or the card standing in for it). */
+    fun forget(prefs: SharedPreferences) = prefs.edit().remove(ADOPTED).remove(HOST).apply()
+
+    /** Before this version a city in your time zone was turned into the My Location card; give it back. */
+    private fun restoreAdopted(places: List<Place>, prefs: SharedPreferences): List<Place> {
+        val name = prefs.getString(ADOPTED, null) ?: return places
+        prefs.edit().remove(ADOPTED).apply()
+        return places.map { if (it.isMyLocation) it.copy(id = java.util.UUID.randomUUID().toString(), name = name) else it }
+    }
 
     fun permitted(context: Context) =
         context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED

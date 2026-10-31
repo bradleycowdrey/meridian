@@ -431,16 +431,25 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     val shift = TimeMath.dayShift(moment, place.zone, store.home)
     val utc = TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, moment))
     val outside = store.showWorkHours && !store.isWorking(place, moment)
+    // "My Location" on the card for where you are; with the city you're in when this card is
+    // another city in the same time zone ("My Location · Boulder" on Denver).
+    val here = if (!store.isHere(place)) null
+        else store.hereCity?.takeIf { !place.isMyLocation && it != place.name }?.let { "My Location · $it" } ?: "My Location"
     val detail = (TimeMath.relative(moment, place.zone, store.home)
         ?: if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
     Column(modifier.fillMaxWidth().padding(16.dp)
-        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${if (place.isMyLocation) ", My Location" else ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail${if (outside) ", outside work hours" else ""}" }) {
+        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${here?.let { ", $it" } ?: ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail${if (outside) ", outside work hours" else ""}" }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
-                    if (place.isMyLocation) MyLocationMark()
+                Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                // Where you are, on this card rather than a second card for the same place.
+                here?.let {
+                    Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = Palette.cream, modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(3.dp))
+                        Text(it, fontSize = 12.sp, color = Palette.cream)
+                    }
                 }
                 // This city's own note, rather than a list of names in the header.
                 if (outside) Text("☾  Outside work hours", fontSize = 12.sp, color = Palette.muted, modifier = Modifier.padding(top = 2.dp))
@@ -647,7 +656,7 @@ fun EditRow(store: Store, place: Place) {
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(place.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                if (place.isMyLocation) MyLocationMark()
+                if (store.isHere(place)) MyLocationMark()
             }
             Text(TimeMath.time(store.now, place.zone, store.use24h), fontSize = 13.sp, color = Palette.muted)
         }

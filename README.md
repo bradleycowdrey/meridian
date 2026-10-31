@@ -20,8 +20,9 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.8.5
+### What's new in 0.8.6
 
+- **No duplicate for where you are**: a city already on your list is marked as your location instead of a second card.
 - **Each country's working week**: Sunday to Thursday in Riyadh, Monday to Friday in Denver; change any city's days and hours.
 - **My Location**: the city you're in, kept current when you travel. Meridian asks once whether to use it; change it in Settings.
 - **Widgets match the app**: "+8 hr" under each city, "+1 d" for another day.

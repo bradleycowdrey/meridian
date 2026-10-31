@@ -175,14 +175,14 @@ private struct PlaceLabel: View {
                         .foregroundStyle(Palette.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    if place.isMyLocation {
+                    if store.isHere(place) {
                         Image(systemName: "location.fill")
                             .font(ui.font(9, .medium))
                             .foregroundStyle(Palette.textMuted)
                             .accessibilityLabel("My Location")
                     }
                 }
-                .help(place.isMyLocation ? "\(place.name) · My Location" : place.name)
+                .help(store.isHere(place) ? "\(place.name) · My Location\(store.hereCity.map { $0 != place.name ? " (\($0))" : "" } ?? "")" : place.name)
                 HStack(spacing: ui.pt(6)) {
                     Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
                         .foregroundStyle(Palette.textSecondary)

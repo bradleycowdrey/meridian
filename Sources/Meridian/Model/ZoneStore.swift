@@ -148,6 +148,8 @@ final class ZoneStore: ObservableObject {
     func add(_ entry: CityEntry) {
         guard canAdd, !contains(entry) else { return }
         places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID))
+        // A city in your own time zone becomes My Location, rather than showing twice.
+        updateMyLocation(locate: false)
     }
 
     /// Already tracking this city (same name and zone)?
@@ -160,8 +162,18 @@ final class ZoneStore: ObservableObject {
         if place.isMyLocation { MyLocation.forget(defaults: defaults) }
         places.removeAll { $0.id == place.id }
         if menuBarPlaceID == place.id { menuBarPlaceID = nil }
-        if place.isMyLocation { useMyLocation = false }
+        // Deleting the card standing in for My Location brings the My Location card back.
+        if place.isMyLocation { useMyLocation = false } else if place.id == myLocationHost { updateMyLocation(locate: false) }
     }
+
+    /// The card standing in for My Location (you already have a card in this time zone).
+    @Published private(set) var myLocationHost: UUID?
+
+    /// The card is where you are: the My Location card, or the one standing in for it.
+    func isHere(_ place: Place) -> Bool { place.isMyLocation || place.id == myLocationHost }
+
+    /// The city you're in, when Location Services has named it ("Boulder" while your card says Denver).
+    var hereCity: String? { locator.city }
 
     /// Adds, updates or removes the My Location row, and (with `locate`) looks up the city name,
     /// which updates the row again when it arrives.
@@ -174,6 +186,8 @@ final class ZoneStore: ObservableObject {
             MyLocation.remove(from: &list, defaults: defaults)
         }
         if list != places { places = list }
+        let host = on ? MyLocation.hostID(defaults: defaults) : nil
+        if host != myLocationHost { myLocationHost = host }
         guard on, locate, Terms.accepted else { return }
         locator.locate { [weak self] in self?.updateMyLocation(locate: false) }
     }

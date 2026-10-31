@@ -188,10 +188,13 @@ final class FunctionalTest {
         check("my location: off removes it", list.map(\.name) == ["Elsewhere"])
         list = [Place(name: "Tokyo", timeZoneID: here == "Asia/Tokyo" ? "UTC" : "Asia/Tokyo"), Place(name: "Home", timeZoneID: here)]
         MyLocation.apply(to: &list, city: "Testville", defaults: scratch)
-        check("my location: takes over a city in the same zone, in place",
-              list.count == 2 && list[1].isMyLocation && list[1].name == "Testville", list.map(\.name).joined(separator: ","))
+        check("my location: a card in your zone stands in for it, no second card",
+              list.map(\.name) == ["Tokyo", "Home"] && MyLocation.hostID(defaults: scratch) == list[1].id, list.map(\.name).joined(separator: ","))
+        list.append(Place(id: Place.myLocationID, name: "Testville", timeZoneID: here))
+        MyLocation.apply(to: &list, city: "Testville", defaults: scratch)
+        check("my location: a duplicate card folds into yours", list.map(\.name) == ["Tokyo", "Home"], list.map(\.name).joined(separator: ","))
         MyLocation.remove(from: &list, defaults: scratch)
-        check("my location: off gives that city back", list.count == 2 && !list[1].isMyLocation && list[1].name == "Home")
+        check("my location: off leaves your card as it was", list.map(\.name) == ["Tokyo", "Home"] && MyLocation.hostID(defaults: scratch) == nil)
         scratch.removePersistentDomain(forName: "selftest.mylocation")
     }
 

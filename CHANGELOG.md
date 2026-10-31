@@ -4,11 +4,15 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.8.6 · 1 November 2026
+
+- **No second card for where you are**: if a city on your list is in the time zone you're in, that city is marked as your location (with the city you're actually in, if Location Services names a different one) instead of a separate My Location card. Travel somewhere new and a My Location card appears; come home and it folds back into yours.
+- **Better sharing**: Share sends Meridian's page (Mac, iPhone and Android, and a live demo) with a preview, instead of the source code.
+
 ## 0.8.5 · 1 November 2026
 
 - **Each country's working week**: cities follow the usual working days where they are, so noon on Friday is working hours in Denver but the weekend in Riyadh (Sunday to Thursday). Weekends come from the Unicode CLDR data that Apple and Android use (Friday and Saturday across most of the Gulf and Middle East, Israel, Egypt and Bangladesh; Friday in Iran; Thursday and Friday in Afghanistan; Friday and Sunday in Brunei).
 - **Each city's own days and hours**: Settings → Cities → the briefcase next to a city. Only what you change is kept; the rest follows the country and your hours in Settings.
-- **Better sharing**: Share now sends Meridian's page (Mac, iPhone and Android, and a live demo) with a preview, instead of the source code.
 
 ## 0.8.4 · 1 November 2026
 

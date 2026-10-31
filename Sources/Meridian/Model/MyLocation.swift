@@ -28,39 +28,62 @@ enum MyLocation {
         TimeZone.current.identifier.split(separator: "/").last.map { $0.replacingOccurrences(of: "_", with: " ") } ?? "My Location"
     }
 
-    /// Adds or updates the row. The first time, a city already in the list in this time zone
-    /// becomes the row (keeping its place in the order) instead of being shown twice.
+    private static let hostKey = "myLocation.hostID"
+
+    /// The card that stands for where you are, when you already have a card in this time zone
+    /// (then there's no separate My Location card, so nothing shows twice).
+    static func hostID(defaults: UserDefaults = .standard) -> UUID? {
+        defaults.string(forKey: hostKey).flatMap(UUID.init(uuidString:))
+    }
+
+    /// The card is where you are: the My Location card, or the card standing in for it.
+    static func isHere(_ place: Place, defaults: UserDefaults = .standard) -> Bool {
+        place.isMyLocation || place.id == hostID(defaults: defaults)
+    }
+
+    /// Shows where you are without showing anything twice. A card already in this time zone stands
+    /// for it (marked My Location); otherwise there's a My Location card at the top, named after the
+    /// city you're in, which follows you when you travel and folds back into your own card when you
+    /// return.
     static func apply(to places: inout [Place], city: String?, defaults: UserDefaults = .standard) {
+        restoreAdopted(&places, defaults: defaults)
         let zone = TimeZone.current.identifier
+        if let host = places.first(where: { !$0.isMyLocation && $0.timeZoneID == zone }) {
+            places.removeAll(where: \.isMyLocation)
+            defaults.set(host.id.uuidString, forKey: hostKey)
+            return
+        }
+        defaults.removeObject(forKey: hostKey)
         if let i = places.firstIndex(where: \.isMyLocation) {
             let moved = places[i].timeZoneID != zone
             places[i].timeZoneID = zone
             if let city { places[i].name = city } else if moved { places[i].name = zoneName }
-        } else if let i = places.firstIndex(where: { $0.timeZoneID == zone }) {
-            defaults.set(places[i].name, forKey: adoptedKey)
-            places[i].id = Place.myLocationID
-            if let city { places[i].name = city }
         } else {
-            defaults.removeObject(forKey: adoptedKey)
             places.insert(Place(id: Place.myLocationID, name: city ?? zoneName, timeZoneID: zone), at: 0)
         }
     }
 
-    /// Takes the row out (the setting was turned off). A city the row took over goes back to
-    /// being an ordinary city with its old name.
+    /// Takes My Location out (the setting was turned off): the card goes, and a card standing in
+    /// for it is just a city again.
     static func remove(from places: inout [Place], defaults: UserDefaults = .standard) {
-        guard let i = places.firstIndex(where: \.isMyLocation) else { return }
-        if let name = defaults.string(forKey: adoptedKey) {
-            places[i].id = UUID()
-            places[i].name = name
-        } else {
-            places.remove(at: i)
-        }
-        defaults.removeObject(forKey: adoptedKey)
+        restoreAdopted(&places, defaults: defaults)
+        places.removeAll(where: \.isMyLocation)
+        defaults.removeObject(forKey: hostKey)
     }
 
-    /// The user deleted the row itself: it goes, whatever it took over.
+    /// The user deleted the My Location card (or the card standing in for it).
     static func forget(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: adoptedKey)
+        defaults.removeObject(forKey: hostKey)
+    }
+
+    /// Before 0.8.6 a city in your time zone was turned into the My Location card; give it back.
+    private static func restoreAdopted(_ places: inout [Place], defaults: UserDefaults) {
+        guard let name = defaults.string(forKey: adoptedKey) else { return }
+        if let i = places.firstIndex(where: \.isMyLocation) {
+            places[i].id = UUID()
+            places[i].name = name
+        }
         defaults.removeObject(forKey: adoptedKey)
     }
 }

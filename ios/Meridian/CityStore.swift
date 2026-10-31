@@ -105,6 +105,15 @@ final class CityStore: ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    /// The card standing in for My Location (you already have a card in this time zone).
+    @Published private(set) var myLocationHost: UUID?
+
+    /// The card is where you are: the My Location card, or the one standing in for it.
+    func isHere(_ place: Place) -> Bool { place.isMyLocation || place.id == myLocationHost }
+
+    /// The city you're in, when Location Services has named it ("Boulder" while your card says Denver).
+    var hereCity: String? { locator.city }
+
     /// Adds, updates or removes the My Location row, and (with `locate`, once the terms are
     /// agreed) looks up the city name, which updates the row again when it arrives.
     func updateMyLocation(locate: Bool = true) {
@@ -117,6 +126,8 @@ final class CityStore: ObservableObject {
             MyLocation.remove(from: &list, defaults: defaults)
         }
         if list != places { places = list }
+        let host = on ? MyLocation.hostID(defaults: defaults) : nil
+        if host != myLocationHost { myLocationHost = host }
         guard on, locate, Terms.accepted else { return }
         locator.locate { [weak self] in self?.updateMyLocation(locate: false) }
     }
@@ -143,14 +154,18 @@ final class CityStore: ObservableObject {
     func add(_ entry: CityEntry) {
         guard canAdd, !contains(entry) else { return }
         places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID))
+        // A city in your own time zone becomes My Location, rather than showing twice.
+        updateMyLocation(locate: false)
     }
 
     func remove(at offsets: IndexSet) {
         // Deleting My Location turns it off, so it doesn't come straight back.
         let removesMyLocation = offsets.contains { places[$0].isMyLocation }
         if removesMyLocation { MyLocation.forget(defaults: defaults) }
+        let removesHost = offsets.contains { places[$0].id == myLocationHost }
         places.remove(atOffsets: offsets)
-        if removesMyLocation { useMyLocation = false }
+        // Deleting the card standing in for My Location brings the My Location card back.
+        if removesMyLocation { useMyLocation = false } else if removesHost { updateMyLocation(locate: false) }
     }
     func remove(_ place: Place) {
         guard let i = places.firstIndex(where: { $0.id == place.id }) else { return }

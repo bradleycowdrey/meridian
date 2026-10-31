@@ -508,6 +508,14 @@ struct CityRow: View {
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 40
     let place: Place
 
+    /// "My Location" on the card for where you are; with the city you're in when this card is
+    /// another city in the same time zone ("My Location · Boulder" on Denver).
+    private var hereLabel: String? {
+        guard store.isHere(place) else { return nil }
+        if !place.isMyLocation, let city = store.hereCity, city != place.name { return "My Location · \(city)" }
+        return "My Location"
+    }
+
     /// Outside working hours at the selected moment (when that setting is on).
     private var outsideWorkHours: Bool {
         store.showWorkHours && !store.isWorking(place, at: store.moment)
@@ -527,15 +535,16 @@ struct CityRow: View {
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)
                         .monospacedDigit()
-                    HStack(spacing: 6) {
-                        Text(place.name)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Theme.primary)
-                        if place.isMyLocation {
-                            Image(systemName: "location.fill")
-                                .font(.caption)
-                                .foregroundStyle(Theme.muted)
-                        }
+                    Text(place.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Theme.primary)
+                    // Where you are, on this card rather than a second card for the same place.
+                    if let here = hereLabel {
+                        Label(here, systemImage: "location.fill")
+                            .font(.caption)
+                            .foregroundStyle(Theme.cream)
+                            .labelStyle(.titleAndIcon)
+                            .padding(.top, 2)
                     }
                     // This city's own note, rather than a list of names in the header.
                     if outsideWorkHours {
@@ -554,7 +563,7 @@ struct CityRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(place.name)\(place.isMyLocation ? ", My Location" : ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(outsideWorkHours ? ", outside work hours" : "")")
+        .accessibilityLabel("\(place.name)\(hereLabel.map { ", \($0)" } ?? ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(outsideWorkHours ? ", outside work hours" : "")")
     }
 
     private func clock(hour: Int, minute: Int) -> some View {

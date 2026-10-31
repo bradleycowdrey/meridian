@@ -77,10 +77,12 @@ private struct CitiesSettings: View {
                         if place.isMyLocation {
                             // Named by Location Services, so not renamed here.
                             Text(place.name).font(.body.weight(.medium))
-                            Image(systemName: "location.fill").font(.caption).foregroundStyle(.secondary)
-                                .help("My Location")
                         } else {
                             CityNameField(place: place)
+                        }
+                        if store.isHere(place) {
+                            Image(systemName: "location.fill").font(.caption).foregroundStyle(.secondary)
+                                .help("My Location")
                         }
                         Spacer()
                         Text(TimeMath.time(store.now, in: place.timeZone, use24h: store.use24h))

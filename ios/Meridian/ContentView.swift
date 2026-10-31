@@ -13,6 +13,8 @@ struct ContentView: View {
     @State private var renaming: Place?
     /// The card tapped: its actions show in a dialog.
     @State private var actionsFor: Place?
+    /// The city whose working days and hours are being edited.
+    @State private var workFor: Place?
     @State private var newName = ""
 
     var body: some View {
@@ -40,6 +42,9 @@ struct ContentView: View {
             }
             .confirmationDialog(actionsFor?.name ?? "", isPresented: showingActions, titleVisibility: .visible, presenting: actionsFor) { place in
                 Button("Copy Time") { copy(place) }
+                Button("Working Days & Hours") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { workFor = place }
+                }
                 if !place.isMyLocation {
                     Button("Rename") {
                         newName = place.name
@@ -50,6 +55,20 @@ struct ContentView: View {
                 Button("Remove", role: .destructive) { store.remove(place) }
             } message: { place in
                 Text("\(TimeMath.fullMoment(store.moment, in: place.timeZone, use24h: store.use24h)) · \(place.offsetLabel(at: store.moment))")
+            }
+            .sheet(item: $workFor) { place in
+                NavigationStack {
+                    WorkHoursEditor(place: place, defaultStart: store.workStart, defaultEnd: store.workEnd, use24h: store.use24h) {
+                        store.setWork(for: place, days: $0, start: $1, end: $2)
+                    }
+                    .scrollContentBackground(.hidden)
+                    .background(Theme.bg)
+                    .navigationTitle(place.name)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { workFor = nil } } }
+                }
+                .presentationDetents([.medium, .large])
+                .preferredColorScheme(.dark)
             }
             .task { await openScreenshotScreen() }
     }
@@ -118,6 +137,7 @@ struct ContentView: View {
             .listRowSeparator(.hidden)
             .contextMenu {
                 Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
+                Button { workFor = place } label: { Label("Working Days & Hours", systemImage: "briefcase") }
                 if !place.isMyLocation {
                     Button { newName = place.name; renaming = place } label: { Label("Rename", systemImage: "pencil") }
                 }
@@ -313,7 +333,7 @@ struct CityRow: View {
 
     /// Outside working hours at the selected moment (when that setting is on).
     private var outsideWorkHours: Bool {
-        store.showWorkHours && !store.isWorkHour(place.calendar.component(.hour, from: store.moment))
+        store.showWorkHours && !store.isWorking(place, at: store.moment)
     }
 
     var body: some View {
@@ -423,7 +443,7 @@ struct DayBar: View {
                     let at = start.addingTimeInterval(Double(i) * 900 + 450)
                     let parts = cal.dateComponents([.hour, .minute], from: at)
                     let hour = parts.hour ?? 0
-                    let dim = store.showWorkHours && !store.isWorkHour(hour)
+                    let dim = store.showWorkHours && !store.isWorking(place, at: at)
                     let fill = Self.tone(DayColor.style(at: Double(hour) + Double(parts.minute ?? 0) / 60).fill, dim: dim)
                     // Opaque and slightly overlapping, so no seams show between slices.
                     let rect = CGRect(x: CGFloat(i) * perHour / 4, y: 0, width: perHour / 4 + 1, height: size.height)

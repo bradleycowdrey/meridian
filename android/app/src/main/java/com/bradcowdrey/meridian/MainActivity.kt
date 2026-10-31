@@ -215,6 +215,7 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
             }
             items(store.places, key = { it.id }) { place ->
                 var actions by remember { mutableStateOf(false) }
+                var work by remember { mutableStateOf(false) }
                 // Each city is a card: 16 dp from the screen edges, 12 dp between cards, 16 dp
                 // corners (Material 3's large shape) and a hairline edge. Tap or touch and hold a
                 // card for its own actions; dragging its day bar still moves every city's time.
@@ -227,9 +228,11 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                             clipboard.setText(AnnotatedString("${place.name}: ${TimeMath.fullMoment(store.moment, place.zone, store.use24h)}"))
                             copied = true
                         })
+                        DropdownMenuItem(text = { Text("Working Days & Hours") }, onClick = { actions = false; work = true })
                         if (!place.isMyLocation) DropdownMenuItem(text = { Text("Rename") }, onClick = { actions = false; renaming = place })
                         DropdownMenuItem(text = { Text("Remove", color = Color(0xFFFF6B6B)) }, onClick = { actions = false; store.remove(place) })
                     }
+                    if (work) WorkHoursDialog(store, place) { work = false }
                 }
             }
             item { Footer() }
@@ -286,7 +289,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     val (clock, suffix) = TimeMath.clock(moment, place.zone, store.use24h)
     val shift = TimeMath.dayShift(moment, place.zone, store.home)
     val utc = TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, moment))
-    val outside = store.showWorkHours && !store.isWorkHour(moment.atZone(place.zone).hour)
+    val outside = store.showWorkHours && !store.isWorking(place, moment)
     val detail = (TimeMath.relative(moment, place.zone, store.home)
         ?: if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
     Column(modifier.fillMaxWidth().padding(16.dp)
@@ -356,7 +359,7 @@ fun DayBar(store: Store, place: Place) {
                 val slice = size.width / slices
                 for (i in 0 until slices) {
                     val at = start.plusSeconds(i * 900L + 450).atZone(place.zone)
-                    val dim = store.showWorkHours && !store.isWorkHour(at.hour)
+                    val dim = store.showWorkHours && !store.isWorking(place, at.toInstant())
                     drawRect(Color(tone(DayColor.at(at.hour + at.minute / 60.0), dim)),
                         topLeft = Offset(i * slice, 0f), size = Size(slice + 1f, size.height))
                 }

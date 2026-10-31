@@ -149,6 +149,8 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
                 if (store.showWorkHours) {
                     StepperRow("Work starts at ${TimeMath.hourLabel(store.workStart, store.use24h)}", { store.updateWorkStart(store.workStart - 1) }, { store.updateWorkStart(store.workStart + 1) })
                     StepperRow("Work ends at ${TimeMath.hourLabel(store.workEnd % 24, store.use24h)}", { store.updateWorkEnd(store.workEnd - 1) }, { store.updateWorkEnd(store.workEnd + 1) })
+                    Text("Each city follows the working week where it is (Sunday to Thursday in Riyadh, Monday to Friday in Denver). To change one city's days or hours, tap its card, then Working Days & Hours.",
+                        fontSize = 13.sp, color = Palette.muted, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
                 }
             }
             Section("CITIES") {
@@ -247,4 +249,50 @@ private fun WidgetPreview(store: Store, size: MeridianWidgets.Size, modifier: Mo
             addView(views.apply(context, this))
         }
     })
+}
+
+/** One city's working days and hours. Saves only what differs from the usual week there and Settings' hours. */
+@Composable
+fun WorkHoursDialog(store: Store, place: Place, onDone: () -> Unit) {
+    val usual = WorkWeek.usualDays(place.zoneId)
+    var days by remember { mutableStateOf(place.workDays ?: usual) }
+    var start by remember { mutableIntStateOf(place.workStart ?: store.workStart) }
+    var end by remember { mutableIntStateOf(place.workEnd ?: store.workEnd) }
+    fun save() = store.setWork(place, days.takeIf { it != usual }, start.takeIf { it != store.workStart }, end.takeIf { it != store.workEnd })
+    AlertDialog(
+        onDismissRequest = onDone,
+        containerColor = Palette.tile,
+        title = { Text(place.name) },
+        text = {
+            Column {
+                Text("WORKING DAYS", fontSize = 12.sp, color = Palette.muted)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("S", "M", "T", "W", "T", "F", "S").forEachIndexed { i, letter ->
+                        val day = i + 1
+                        val on = day in days
+                        Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(50))
+                            .background(if (on) Palette.cream else Palette.border)
+                            .clickable { days = if (on) days - day else days + day; save() },
+                            contentAlignment = Alignment.Center) {
+                            Text(letter, fontWeight = FontWeight.SemiBold, color = if (on) Palette.bg else Palette.primary)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("Usual in ${place.name}: ${WorkWeek.describe(usual)}.", fontSize = 12.sp, color = Palette.muted)
+                Spacer(Modifier.height(16.dp))
+                Text("WORKING HOURS", fontSize = 12.sp, color = Palette.muted)
+                StepperRow("Starts at ${TimeMath.hourLabel(start, store.use24h)}",
+                    { start = (start - 1).coerceIn(0, 23); save() }, { start = (start + 1).coerceIn(0, 23); save() })
+                StepperRow("Ends at ${TimeMath.hourLabel(end % 24, store.use24h)}",
+                    { end = (end - 1).coerceIn(1, 24); save() }, { end = (end + 1).coerceIn(1, 24); save() })
+            }
+        },
+        confirmButton = { TextButton(onClick = onDone) { Text("Done") } },
+        dismissButton = {
+            TextButton(onClick = { days = usual; start = store.workStart; end = store.workEnd; save() },
+                enabled = days != usual || start != store.workStart || end != store.workEnd) { Text("Use Usual") }
+        },
+    )
 }

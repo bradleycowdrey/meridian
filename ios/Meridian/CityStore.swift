@@ -215,12 +215,24 @@ final class CityStore: ObservableObject {
     /// Cities outside working hours at the selected moment (empty when the setting is off).
     var outsideWorkHours: [Place] {
         guard showWorkHours else { return [] }
-        return places.filter { !isWorkHour($0.calendar.component(.hour, from: moment)) }
+        return places.filter { !isWorking($0, at: moment) }
     }
 
     func isWorkHour(_ hour: Int) -> Bool {
-        if workStart == workEnd || (workStart == 0 && workEnd == 24) { return true }
-        return workStart <= workEnd ? (hour >= workStart && hour < workEnd) : (hour >= workStart || hour < workEnd)
+        WorkWeek.isWorkHour(hour, start: workStart, end: workEnd)
+    }
+
+    /// A working day and hour in this city (its own week and hours, or the usual ones there).
+    func isWorking(_ place: Place, at date: Date) -> Bool {
+        WorkWeek.isWorking(place, at: date, start: workStart, end: workEnd)
+    }
+
+    /// Sets a city's own working days and hours; nil goes back to the usual ones.
+    func setWork(for place: Place, days: Set<Int>?, start: Int?, end: Int?) {
+        guard let i = places.firstIndex(where: { $0.id == place.id }) else { return }
+        places[i].workDays = days
+        places[i].workStart = start
+        places[i].workEnd = end
     }
 
     /// Plain text for the selected moment in every city, for pasting into a chat or invite.

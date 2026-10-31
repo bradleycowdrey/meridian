@@ -149,6 +149,25 @@ final class FunctionalTest {
         check("version older is not newer", !Updater.isNewer("0.6.9", than: "0.7.0"))
         check("selftest build is older than any release", Updater.isNewer("0.1.0", than: "0.0.0-selftest"))
 
+        // Working week: each country's usual days, and a city's own.
+        func noonFriday(_ zone: String) -> Date {
+            var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: zone)!
+            return cal.date(from: DateComponents(year: 2026, month: 11, day: 6, hour: 12))!   // a Friday
+        }
+        let denver = Place(name: "Denver", timeZoneID: "America/Denver")
+        let riyadh = Place(name: "Riyadh", timeZoneID: "Asia/Riyadh")
+        check("work week: noon Friday in Denver is working", WorkWeek.isWorking(denver, at: noonFriday("America/Denver"), start: 9, end: 18))
+        check("work week: noon Friday in Riyadh is the weekend", !WorkWeek.isWorking(riyadh, at: noonFriday("Asia/Riyadh"), start: 9, end: 18))
+        check("work week: Riyadh works Sunday to Thursday", WorkWeek.describe(WorkWeek.usualDays(zoneID: "Asia/Riyadh")) == "Sunday to Thursday",
+              WorkWeek.describe(WorkWeek.usualDays(zoneID: "Asia/Riyadh")))
+        check("work week: Denver works Monday to Friday", WorkWeek.describe(WorkWeek.usualDays(zoneID: "America/Denver")) == "Monday to Friday")
+        var ownWeek = riyadh; ownWeek.workDays = [2, 3, 4, 5, 6]
+        check("work week: a city's own days win", WorkWeek.isWorking(ownWeek, at: noonFriday("Asia/Riyadh"), start: 9, end: 18))
+        var ownHours = denver; ownHours.workStart = 13; ownHours.workEnd = 17
+        check("work week: a city's own hours win", !WorkWeek.isWorking(ownHours, at: noonFriday("America/Denver"), start: 9, end: 18))
+        let saved = try? JSONDecoder().decode([Place].self, from: Data(#"[{"id":"6D7E1A2B-4C3D-4E5F-8A9B-0C1D2E3F4A5B","name":"Old","timeZoneID":"UTC"}]"#.utf8))
+        check("work week: cities saved before it still load", saved?.first?.workDays == nil && saved?.first?.name == "Old")
+
         // Terms: the version is TERMS.md's "Last updated" date.
         check("terms version from TERMS.md",
               TermsVersion.version(from: "# Terms\nLast updated: October 31, 2026 · Applies to: everything") == "2026-10-31")

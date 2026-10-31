@@ -40,6 +40,31 @@ private struct CityNameField: View {
     }
 }
 
+/// A city's working days and hours, in a popover. Filled when the city has its own.
+private struct WorkHoursButton: View {
+    @EnvironmentObject private var store: ZoneStore
+    let place: Place
+    @State private var open = false
+
+    private var custom: Bool { place.workDays != nil || place.workStart != nil || place.workEnd != nil }
+
+    var body: some View {
+        Button { open = true } label: {
+            Image(systemName: custom ? "briefcase.fill" : "briefcase")
+                .foregroundStyle(custom ? .primary : .secondary)
+        }
+        .buttonStyle(.plain)
+        .help("Working days and hours in \(place.name)")
+        .popover(isPresented: $open, arrowEdge: .trailing) {
+            WorkHoursEditor(place: place, defaultStart: store.workStart, defaultEnd: store.workEnd, use24h: store.use24h) {
+                store.setWork(for: place, days: $0, start: $1, end: $2)
+            }
+            .formStyle(.grouped)
+            .frame(width: 380, height: 380)
+        }
+    }
+}
+
 private struct CitiesSettings: View {
     @EnvironmentObject private var store: ZoneStore
 
@@ -65,6 +90,7 @@ private struct CitiesSettings: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(width: 64, alignment: .trailing)
+                        WorkHoursButton(place: place)
                         Button {
                             // After the row's own update, so a focused name field can't
                             // outlive its city.

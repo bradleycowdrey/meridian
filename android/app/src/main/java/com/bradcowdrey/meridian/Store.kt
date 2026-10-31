@@ -28,7 +28,12 @@ class Store(private val context: Context, val demo: Boolean = false) {
                 val array = JSONArray(json)
                 (0 until array.length()).map {
                     val o = array.getJSONObject(it)
-                    Place(o.getString("name"), o.getString("zone"), o.optString("id").ifEmpty { java.util.UUID.randomUUID().toString() })
+                    Place(
+                        o.getString("name"), o.getString("zone"), o.optString("id").ifEmpty { java.util.UUID.randomUUID().toString() },
+                        workDays = o.optJSONArray("workDays")?.let { a -> (0 until a.length()).map { a.getInt(it) }.toSet() },
+                        workStart = if (o.has("workStart")) o.getInt("workStart") else null,
+                        workEnd = if (o.has("workEnd")) o.getInt("workEnd") else null,
+                    )
                 }
             }.getOrNull()
         }
@@ -131,13 +136,17 @@ class Store(private val context: Context, val demo: Boolean = false) {
 
     fun backToNow() { offsetMinutes = 0; userMoves++ }
 
-    fun isWorkHour(hour: Int): Boolean {
-        if (workStart == workEnd || (workStart == 0 && workEnd == 24)) return true
-        return if (workStart <= workEnd) hour in workStart until workEnd else hour >= workStart || hour < workEnd
-    }
+    fun isWorkHour(hour: Int): Boolean = WorkWeek.isWorkHour(hour, workStart, workEnd)
+
+    /** A working day and hour in this city (its own week and hours, or the usual ones there). */
+    fun isWorking(place: Place, at: Instant): Boolean = WorkWeek.isWorking(place, at, workStart, workEnd)
+
+    /** Sets a city's own working days and hours; null goes back to the usual ones. */
+    fun setWork(place: Place, days: Set<Int>?, start: Int?, end: Int?) =
+        update(places.map { if (it.id == place.id) it.copy(workDays = days, workStart = start, workEnd = end) else it })
 
     val outsideWorkHours: List<Place>
-        get() = if (!showWorkHours) emptyList() else places.filter { !isWorkHour(moment.atZone(it.zone).hour) }
+        get() = if (!showWorkHours) emptyList() else places.filter { !isWorking(it, moment) }
 
     /** Plain text for the selected moment in every city, for a chat or invite. */
     val momentText: String
@@ -196,7 +205,13 @@ class Store(private val context: Context, val demo: Boolean = false) {
         places = list
         if (demo) return
         val array = JSONArray()
-        list.forEach { array.put(JSONObject().put("name", it.name).put("zone", it.zoneId).put("id", it.id)) }
+        list.forEach { p ->
+            val o = JSONObject().put("name", p.name).put("zone", p.zoneId).put("id", p.id)
+            p.workDays?.let { o.put("workDays", JSONArray(it.sorted())) }
+            p.workStart?.let { o.put("workStart", it) }
+            p.workEnd?.let { o.put("workEnd", it) }
+            array.put(o)
+        }
         prefs.edit().putString("places", array.toString()).apply()
         syncWidgets()
     }

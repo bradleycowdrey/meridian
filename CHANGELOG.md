@@ -4,6 +4,11 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.8.5 · 1 November 2026
+
+- **Each country's working week**: cities follow the usual working days where they are, so noon on Friday is working hours in Denver but the weekend in Riyadh (Sunday to Thursday). Weekends come from the Unicode CLDR data that Apple and Android use (Friday and Saturday across most of the Gulf and Middle East, Israel, Egypt and Bangladesh; Friday in Iran; Thursday and Friday in Afghanistan; Friday and Sunday in Brunei).
+- **Each city's own days and hours**: Settings → Cities → the briefcase next to a city. Only what you change is kept; the rest follows the country and your hours in Settings.
+
 ## 0.8.4 · 1 November 2026
 
 - **Add City and Edit always respond**: at Extra Small, a click on the middle of either button could be missed (the thin outline drawn around them was catching it). Outlines no longer take clicks, there or on the search field.

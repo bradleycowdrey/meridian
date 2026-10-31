@@ -12,13 +12,16 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Time") {
+                Section {
                     Toggle("24-Hour Time", isOn: $store.use24h)
                     Toggle("Highlight Working Hours", isOn: $store.showWorkHours)
                     if store.showWorkHours {
                         Stepper("Work starts at \(hourLabel(store.workStart))", value: $store.workStart, in: 0...23)
                         Stepper("Work ends at \(hourLabel(store.workEnd))", value: $store.workEnd, in: 1...24)
                     }
+                } header: { Text("Time") } footer: {
+                    Text("Each city follows the working week where it is (Sunday to Thursday in Riyadh, Monday to Friday in Denver). To change one city's days or hours, tap its card, then Working Days & Hours.")
+                        .foregroundStyle(Theme.muted)
                 }
                 Section {
                     Toggle("Show My Location", isOn: $store.useMyLocation)

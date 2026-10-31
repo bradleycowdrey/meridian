@@ -10,7 +10,15 @@ import java.util.UUID
 import kotlin.math.abs
 
 /** A city the user tracks. */
-data class Place(val name: String, val zoneId: String, val id: String = UUID.randomUUID().toString()) {
+data class Place(
+    val name: String,
+    val zoneId: String,
+    val id: String = UUID.randomUUID().toString(),
+    /** This city's own working days (1 is Sunday) and hours; null uses the usual week there (WorkWeek) and Settings' hours. */
+    val workDays: Set<Int>? = null,
+    val workStart: Int? = null,
+    val workEnd: Int? = null,
+) {
     val zone: ZoneId get() = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
     val isMyLocation: Boolean get() = id == MyLocation.ID
 }

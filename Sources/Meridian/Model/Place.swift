@@ -5,6 +5,11 @@ struct Place: Codable, Identifiable, Hashable {
     var id = UUID()
     var name: String
     var timeZoneID: String
+    /// This city's own working days (Calendar weekdays, 1 is Sunday) and hours; nil uses the usual
+    /// week where the city is (WorkWeek) and the hours in Settings.
+    var workDays: Set<Int>? = nil
+    var workStart: Int? = nil
+    var workEnd: Int? = nil
 
     var timeZone: TimeZone { TimeZone(identifier: timeZoneID) ?? .current }
 

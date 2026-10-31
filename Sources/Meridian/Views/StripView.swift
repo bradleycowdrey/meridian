@@ -63,7 +63,7 @@ struct StripView: View {
                                         date: date,
                                         zone: place.timeZone,
                                         use24h: store.use24h,
-                                        dimmed: store.showWorkHours && !store.isWorkHour(hour(date, place.timeZone)),
+                                        dimmed: store.showWorkHours && !store.isWorking(place, at: date),
                                         isCenter: index == base,
                                         hovered: hoverIndex == index && index != base
                                     )
@@ -129,15 +129,9 @@ struct StripView: View {
         .frame(height: overlapRowHeight + CGFloat(store.places.count) * pitch + ui.lensOutset)
     }
 
-    private func hour(_ date: Date, _ zone: TimeZone) -> Int {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = zone
-        return calendar.component(.hour, from: date)
-    }
-
     private func allWorking(at date: Date) -> Bool {
         store.showWorkHours && store.places.count > 1
-            && store.places.allSatisfy { store.isWorkHour(hour(date, $0.timeZone)) }
+            && store.places.allSatisfy { store.isWorking($0, at: date) }
     }
 }
 

@@ -61,6 +61,18 @@ object WorkWeek {
         return contains(local.hour + local.minute / 60.0, h)
     }
 
+    /**
+     * Why a city isn't at work, in a word for its card: "Weekend" on its usual days off (Friday in
+     * Riyadh), "Day off" on a working day the city has been given off, "Off hours" before or after
+     * work. Null while it's working.
+     */
+    fun offLabel(place: Place, at: Instant, start: Int, end: Int): String? {
+        if (isWorking(place, at, start, end)) return null
+        if (hours(place, at, start, end) != null) return "Off hours"
+        val weekday = dayNumber(at.atZone(place.zone).dayOfWeek)
+        return if (weekday in usualDays(place.zoneId)) "Day off" else "Weekend"
+    }
+
     /** Ramadan (the ninth month of the Islamic calendar) on this day where the city is. */
     fun isRamadan(at: Instant, zoneId: String): Boolean = runCatching {
         val cal = IslamicCalendar(android.icu.util.TimeZone.getTimeZone(zoneId))

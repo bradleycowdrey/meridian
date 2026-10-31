@@ -519,9 +519,9 @@ struct CityRow: View {
         return "My Location"
     }
 
-    /// Outside working hours at the selected moment (when that setting is on).
-    private var outsideWorkHours: Bool {
-        store.showWorkHours && !store.isWorking(place, at: store.moment)
+    /// "Off hours", "Weekend" or "Day off" when the city isn't at work (and that setting is on).
+    private var offLabel: String? {
+        store.showWorkHours ? WorkWeek.offLabel(place, at: store.moment, start: store.workStart, end: store.workEnd) : nil
     }
 
     var body: some View {
@@ -572,7 +572,7 @@ struct CityRow: View {
                     .layoutPriority(1)
             }
             // Notes on their own line, so they never squeeze the time.
-            if hereLabel != nil || outsideWorkHours {
+            if hereLabel != nil || offLabel != nil {
                 HStack(spacing: 14) {
                     // Where you are, on this card rather than a second card for the same place.
                     if let here = hereLabel {
@@ -580,8 +580,8 @@ struct CityRow: View {
                             .foregroundStyle(Theme.cream)
                     }
                     // This city's own note, rather than a list of names in the header.
-                    if outsideWorkHours {
-                        Label("Outside work hours", systemImage: "moon.zzz.fill")
+                    if let off = offLabel {
+                        Label(off, systemImage: "moon.zzz.fill")
                             .foregroundStyle(Theme.muted)
                     }
                 }
@@ -594,7 +594,7 @@ struct CityRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(place.name)\(hereLabel.map { ", \($0)" } ?? ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(outsideWorkHours ? ", outside work hours" : "")")
+        .accessibilityLabel("\(place.name)\(hereLabel.map { ", \($0)" } ?? ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(offLabel.map { ", \($0.lowercased())" } ?? "")")
     }
 
     private func clock(hour: Int, minute: Int) -> some View {

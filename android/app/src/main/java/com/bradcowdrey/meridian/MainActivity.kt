@@ -430,7 +430,8 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     val (clock, suffix) = TimeMath.clock(moment, place.zone, store.use24h)
     val shift = TimeMath.dayShift(moment, place.zone, store.home)
     val utc = TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, moment))
-    val outside = store.showWorkHours && !store.isWorking(place, moment)
+    // "Off hours", "Weekend" or "Day off" when the city isn't at work.
+    val off = if (store.showWorkHours) WorkWeek.offLabel(place, moment, store.workStart, store.workEnd) else null
     // "My Location" on the card for where you are; with the city you're in when this card is
     // another city in the same time zone ("My Location · Boulder" on Denver).
     val here = if (!store.isHere(place)) null
@@ -438,7 +439,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     val detail = (TimeMath.relative(moment, place.zone, store.home)
         ?: if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
     Column(modifier.fillMaxWidth().padding(16.dp)
-        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${here?.let { ", $it" } ?: ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail${if (outside) ", outside work hours" else ""}" }) {
+        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${here?.let { ", $it" } ?: ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail${off?.let { ", ${it.lowercase()}" } ?: ""}" }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1)
@@ -452,7 +453,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
                     }
                 }
                 // This city's own note, rather than a list of names in the header.
-                if (outside) Text("☾  Outside work hours", fontSize = 12.sp, color = Palette.muted, modifier = Modifier.padding(top = 2.dp))
+                if (off != null) Text("☾  $off", fontSize = 12.sp, color = Palette.muted, modifier = Modifier.padding(top = 2.dp))
             }
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, modifier = Modifier.alignByBaseline())

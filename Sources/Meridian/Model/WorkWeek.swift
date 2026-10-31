@@ -81,6 +81,16 @@ enum WorkWeek {
         return contains(Double(parts.hour ?? 0) + Double(parts.minute ?? 0) / 60, hours)
     }
 
+    /// Why a city isn't at work, in a word for its card: "Weekend" on its usual days off (Friday in
+    /// Riyadh), "Day off" on a working day the city has been given off, "Off hours" before or after
+    /// work. Nil while it's working.
+    static func offLabel(_ place: Place, at date: Date, start: Int, end: Int) -> String? {
+        guard !isWorking(place, at: date, start: start, end: end) else { return nil }
+        if hours(place, at: date, start: start, end: end) != nil { return "Off hours" }
+        let weekday = place.calendar.component(.weekday, from: date)
+        return usualDays(zoneID: place.timeZoneID).contains(weekday) ? "Day off" : "Weekend"
+    }
+
     /// Ramadan (the ninth month of the Islamic calendar) on this day where the city is.
     static func isRamadan(_ date: Date, in zone: TimeZone) -> Bool {
         var cal = Calendar(identifier: .islamicUmmAlQura)

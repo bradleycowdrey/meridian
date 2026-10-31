@@ -1,0 +1,7 @@
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }

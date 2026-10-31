@@ -13,7 +13,7 @@ enum Terms {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "Terms of Use and Privacy"
-        alert.informativeText = "Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your Mac.\n\nBy choosing I Agree and using \(Brand.appName), you agree to the Terms of Use and Privacy at bradcowdrey.com/legal."
+        alert.informativeText = "Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your Mac. If you allow it, your location is used only to name the city you're in.\n\nBy choosing I Agree and using \(Brand.appName), you agree to the Terms of Use and Privacy at bradcowdrey.com/legal."
         alert.addButton(withTitle: "I Agree")
         alert.addButton(withTitle: "Read the Terms")
         alert.addButton(withTitle: "Quit")

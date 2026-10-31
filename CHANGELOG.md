@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.8.2 · 31 October 2026
+
+- **Updated terms**: the Terms of Use and Privacy now cover My Location, so Meridian asks you to agree once more. The prompt adds: "If you allow it, your location is used only to name the city you're in."
+
 ## 0.8.1 · 31 October 2026
 
 - **Asked first**: after the terms, Meridian asks once whether to use your location for My Location (Use My Location is recommended). Your answer sets Settings → Cities → **Show My Location**. Nothing asks Location Services until you say yes.

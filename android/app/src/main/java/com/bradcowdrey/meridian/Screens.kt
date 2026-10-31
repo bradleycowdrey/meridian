@@ -211,7 +211,7 @@ fun TermsScreen(onAgree: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Text("Terms of Use and Privacy", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(16.dp))
-        Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your phone.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.",
+        Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your phone. If you allow it, your location is used only to name the city you're in.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.",
             color = Palette.secondary, textAlign = TextAlign.Center)
         Spacer(Modifier.weight(1f))
         Button(onClick = onAgree, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("I Agree", fontWeight = FontWeight.SemiBold) }

@@ -221,5 +221,5 @@ class Store(private val context: Context, val demo: Boolean = false) {
 }
 
 object Terms {
-    const val VERSION = "2026-10-21"
+    const val VERSION = "2026-10-31"
 }

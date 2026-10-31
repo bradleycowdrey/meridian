@@ -52,7 +52,7 @@ struct DateJumpView: View {
                 .monospacedDigit()
                 .foregroundStyle(Theme.primary)
                 .contentTransition(.numericText())
-            Text("\(moment.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))) · \(Self.relative(from: store.now, to: moment))")
+            Text("\(Self.day.string(from: moment)) · \(Self.relative(from: store.now, to: moment))")
                 .font(.subheadline)
                 .foregroundStyle(Theme.muted)
         }
@@ -197,6 +197,14 @@ struct DateJumpView: View {
     private var pmBinding: Binding<Bool> {
         Binding(get: { hour >= 12 }, set: { pm in hour = hour % 12 + (pm ? 12 : 0) })
     }
+
+    /// "Tue 9 Jun", as everywhere else in the app.
+    private static let day: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE d MMM"
+        return f
+    }()
 
     /// "Now", "In 3 d 2 hr", "5 hr ago".
     static func relative(from now: Date, to date: Date) -> String {

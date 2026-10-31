@@ -302,11 +302,7 @@ private struct MomentHeader: View {
                     .accessibilityLabel("Back to now")
                 }
             }
-            if !store.hasScrubbed && !store.places.isEmpty && !Screenshots.isActive {
-                Label("Drag any bar to change the time", systemImage: "hand.draw")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.muted)
-            }
+            if !store.places.isEmpty { TimeShifter() }
         }
     }
 
@@ -321,6 +317,115 @@ private struct MomentHeader: View {
         return total > 0 ? "In \(span)" : "\(span) ago"
     }
 
+}
+
+/// Moves every city through time from the header: a slider from 12 hours back to 12 ahead (in
+/// quarter-hours, "Now" in the middle), one-tap −3/−1/Now/+1/+3 hours, and 123 to type an offset
+/// ("+3", "-1.5", "-2:30"). The date picker in the header goes further; the day bars still drag.
+private struct TimeShifter: View {
+    @EnvironmentObject private var store: CityStore
+    @State private var typing = false
+    @State private var typed = ""
+    @State private var invalid = false
+
+    private static let range = 12.0
+    private static let presets = [-3, -1, 0, 1, 3]
+
+    /// Hours from now, as the slider shows them (clamped to its range).
+    private var hours: Binding<Double> {
+        Binding(
+            get: { min(max(Double(store.offsetMinutes) / 60, -Self.range), Self.range) },
+            set: { store.scrub(to: Int(($0 * 4).rounded()) * 15) }
+        )
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Slider(value: hours, in: -Self.range...Self.range, step: 0.25) {
+                Text("Hours from now")
+            } minimumValueLabel: {
+                Text("−12 hr").font(.caption2).foregroundStyle(Theme.faint)
+            } maximumValueLabel: {
+                Text("+12 hr").font(.caption2).foregroundStyle(Theme.faint)
+            }
+            .tint(Theme.cream)
+            .accessibilityValue(store.isNow ? "Now" : Self.describe(store.offsetMinutes))
+            HStack(spacing: 6) {
+                ForEach(Self.presets, id: \.self) { preset in
+                    let on = store.offsetMinutes == preset * 60
+                    Button {
+                        if preset == 0 { store.backToNow() } else { store.shift(minutes: preset * 60) }
+                    } label: {
+                        Text(preset == 0 ? "Now" : "\(preset > 0 ? "+" : "−")\(abs(preset)) hr")
+                            .font(.footnote.weight(.semibold))
+                            .monospacedDigit()
+                            .frame(maxWidth: .infinity, minHeight: 32)
+                            .background(Capsule().fill(on ? Theme.cream : Theme.tile))
+                            .overlay(Capsule().strokeBorder(Theme.border, lineWidth: on ? 0 : 0.5).allowsHitTesting(false))
+                            .foregroundStyle(on ? Theme.bg : Theme.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(preset == 0 ? "Now" : "\(abs(preset)) \(abs(preset) == 1 ? "hour" : "hours") \(preset > 0 ? "from now" : "ago")")
+                }
+                Button { typed = ""; invalid = false; typing = true } label: {
+                    Image(systemName: "number")
+                        .font(.footnote.weight(.semibold))
+                        .frame(width: 40, height: 32)
+                        .background(Capsule().fill(Theme.tile))
+                        .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
+                        .foregroundStyle(Theme.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Type hours from now")
+            }
+        }
+        .alert("Hours from now", isPresented: $typing) {
+            TextField("+3, -1.5 or -2:30", text: $typed)
+                .keyboardType(.numbersAndPunctuation)
+            Button("Cancel", role: .cancel) {}
+            Button("Go") {
+                if let minutes = Self.parse(typed) {
+                    store.shift(minutes: minutes)
+                } else {
+                    invalid = true
+                }
+            }
+        } message: {
+            Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.")
+        }
+        .alert("That isn't a number of hours", isPresented: $invalid) {
+            Button("OK") { typed = ""; typing = true }
+        } message: {
+            Text("Try +3, -1.5 or -2:30.")
+        }
+    }
+
+    /// "+3", "3", "-1.5", "−2:30", "+0:45 hr" -> minutes from now (up to a week either way).
+    static func parse(_ text: String) -> Int? {
+        var t = text.lowercased().replacingOccurrences(of: "−", with: "-")
+            .replacingOccurrences(of: "hours", with: "").replacingOccurrences(of: "hour", with: "")
+            .replacingOccurrences(of: "hrs", with: "").replacingOccurrences(of: "hr", with: "")
+            .replacingOccurrences(of: "h", with: "").replacingOccurrences(of: " ", with: "")
+        var sign = 1
+        if t.hasPrefix("-") { sign = -1; t.removeFirst() } else if t.hasPrefix("+") { t.removeFirst() }
+        let minutes: Double
+        if t.contains(":") {
+            let parts = t.split(separator: ":", omittingEmptySubsequences: false)
+            guard parts.count == 2, let h = Double(parts[0].isEmpty ? "0" : String(parts[0])), let m = Double(parts[1]), m < 60 else { return nil }
+            minutes = h * 60 + m
+        } else {
+            guard let h = Double(t.replacingOccurrences(of: ",", with: ".")) else { return nil }
+            minutes = h * 60
+        }
+        guard minutes <= 7 * 24 * 60 else { return nil }
+        return sign * Int(minutes.rounded())
+    }
+
+    static func describe(_ minutes: Int) -> String {
+        let a = abs(minutes), h = a / 60, m = a % 60
+        let span = [h > 0 ? "\(h) \(h == 1 ? "hour" : "hours")" : nil, m > 0 ? "\(m) minutes" : nil].compactMap { $0 }.joined(separator: " ")
+        return minutes > 0 ? "\(span) from now" : "\(span) ago"
+    }
 }
 
 /// One city, in the manner of Apple's Clock: how it relates to you and its name on the left, its

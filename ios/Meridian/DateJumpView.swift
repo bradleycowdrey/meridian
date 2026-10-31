@@ -25,7 +25,7 @@ struct DateJumpView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Go") {
-                        store.jump(to: date.addingTimeInterval(450))  // nearest quarter-hour
+                        store.jump(to: date)
                         dismiss()
                     }
                 }

@@ -7,6 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.semantics.stateDescription
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
@@ -262,11 +267,99 @@ fun MomentHeader(store: Store, copied: Boolean, pickDate: () -> Unit) {
                     contentPadding = PaddingValues(horizontal = 18.dp), modifier = Modifier.height(34.dp)) { Text("Now", fontWeight = FontWeight.SemiBold) }
             }
         }
-        if (!store.hasScrubbed && store.places.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Text("Drag any bar to change the time", fontSize = 13.sp, color = Palette.muted)
+        if (store.places.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            TimeShifter(store)
         }
     }
+}
+
+/**
+ * Moves every city through time from the header: a slider from 12 hours back to 12 ahead (in
+ * quarter-hours, Now in the middle), one-tap −3/−1/Now/+1/+3 hours, and 123 to type an offset
+ * ("+3", "-1.5", "-2:30"). The date picker goes further; the day bars still drag.
+ */
+@Composable
+fun TimeShifter(store: Store) {
+    var typing by remember { mutableStateOf(false) }
+    val hours = (store.offsetMinutes / 60f).coerceIn(-12f, 12f)
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("−12 hr", fontSize = 11.sp, color = Palette.faint)
+            Slider(
+                value = hours,
+                onValueChange = { store.scrub((it * 4).roundToInt() * 15) },
+                valueRange = -12f..12f,
+                steps = 95,
+                colors = SliderDefaults.colors(thumbColor = Palette.cream, activeTrackColor = Palette.cream,
+                    inactiveTrackColor = Palette.border, activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent),
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                    .semantics { stateDescription = if (store.isNow) "Now" else relative(store) },
+            )
+            Text("+12 hr", fontSize = 11.sp, color = Palette.faint)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(-3, -1, 0, 1, 3).forEach { preset ->
+                val on = store.offsetMinutes == preset * 60
+                Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(50))
+                    .background(if (on) Palette.cream else Palette.tile)
+                    .border(0.5.dp, if (on) Color.Transparent else Palette.border, RoundedCornerShape(50))
+                    .clickable { if (preset == 0) store.backToNow() else store.shift(preset * 60) },
+                    contentAlignment = Alignment.Center) {
+                    Text(if (preset == 0) "Now" else "${if (preset > 0) "+" else "−"}${kotlin.math.abs(preset)} hr",
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) Palette.bg else Palette.secondary)
+                }
+            }
+            Box(Modifier.width(44.dp).height(34.dp).clip(RoundedCornerShape(50)).background(Palette.tile)
+                .border(0.5.dp, Palette.border, RoundedCornerShape(50)).clickable { typing = true },
+                contentAlignment = Alignment.Center) {
+                Text("123", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.secondary)
+            }
+        }
+    }
+    if (typing) TypeOffsetDialog(onDone = { minutes -> typing = false; minutes?.let { store.shift(it) } })
+}
+
+/** "+3", "3", "-1.5", "−2:30", "+0:45 hr" -> minutes from now (up to a week either way). */
+fun parseOffset(text: String): Int? {
+    var t = text.lowercase().replace("−", "-").replace("hours", "").replace("hour", "").replace("hrs", "")
+        .replace("hr", "").replace("h", "").replace(" ", "")
+    var sign = 1
+    if (t.startsWith("-")) { sign = -1; t = t.drop(1) } else if (t.startsWith("+")) t = t.drop(1)
+    val minutes = if (":" in t) {
+        val parts = t.split(":")
+        if (parts.size != 2) return null
+        val h = (parts[0].ifEmpty { "0" }).toDoubleOrNull() ?: return null
+        val m = parts[1].toDoubleOrNull() ?: return null
+        if (m >= 60) return null
+        h * 60 + m
+    } else (t.replace(",", ".").toDoubleOrNull() ?: return null) * 60
+    if (minutes > 7 * 24 * 60) return null
+    return sign * minutes.roundToInt()
+}
+
+@Composable
+private fun TypeOffsetDialog(onDone: (Int?) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    var invalid by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = { onDone(null) },
+        containerColor = Palette.tile,
+        title = { Text("Hours from now") },
+        text = {
+            Column {
+                Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.", fontSize = 13.sp, color = Palette.muted)
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(text, { text = it; invalid = false }, singleLine = true, isError = invalid,
+                    placeholder = { Text("+3, -1.5 or -2:30") },
+                    supportingText = { if (invalid) Text("That isn't a number of hours") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Go),
+                    keyboardActions = KeyboardActions(onGo = { parseOffset(text)?.let { onDone(it) } ?: run { invalid = true } }))
+            }
+        },
+        confirmButton = { TextButton(onClick = { parseOffset(text)?.let { onDone(it) } ?: run { invalid = true } }) { Text("Go") } },
+        dismissButton = { TextButton(onClick = { onDone(null) }) { Text("Cancel") } },
+    )
 }
 
 private fun relative(store: Store): String {
@@ -436,7 +529,7 @@ fun pickDate(context: android.content.Context, store: Store) {
     android.app.DatePickerDialog(context, android.R.style.Theme_DeviceDefault_Dialog, { _, y, m, d ->
         android.app.TimePickerDialog(context, android.R.style.Theme_DeviceDefault_Dialog, { _, h, min ->
             val picked = current.withYear(y).withMonth(m + 1).withDayOfMonth(d).withHour(h).withMinute(min).toInstant()
-            store.jump(picked.plusSeconds(450))   // nearest quarter-hour
+            store.jump(picked)
         }, current.hour, current.minute, store.use24h).show()
     }, current.year, current.monthValue - 1, current.dayOfMonth).show()
 }

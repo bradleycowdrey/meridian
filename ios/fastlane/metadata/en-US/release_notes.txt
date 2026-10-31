@@ -1,4 +1,4 @@
-A calmer, clearer design: each city on its own card, time large, with a slim day-and-night bar you can drag to move through time.
+A calmer, clearer design: each city on its own card, time large, and a slider at the top to move every city through time: Now, ±1 or ±3 hours, or type any offset.
 
 My Location: the city you're in is added to your list and follows you when you travel.
 

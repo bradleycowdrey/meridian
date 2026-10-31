@@ -88,9 +88,12 @@ final class CityStore: ObservableObject {
         let date = clock
         guard Calendar.current.component(.minute, from: date) != Calendar.current.component(.minute, from: now)
             || abs(date.timeIntervalSince(now)) > 60 else { return }
-        // Keep a travelled-to time where it is when the clock passes a quarter-hour.
-        let passed = Int((Self.quarter(date).timeIntervalSince(Self.quarter(now)) / 60).rounded())
-        if offsetMinutes != 0 && passed != 0 { offsetMinutes -= passed }
+        // A picked time (a date, a tapped hour) stays where it is as the clock moves; a shift
+        // ("+3 hr") moves with it.
+        if anchored && offsetMinutes != 0 {
+            let passed = Int((date.timeIntervalSince(now) / 60).rounded())
+            if passed != 0 { offsetMinutes -= passed }
+        }
         now = date
     }
 
@@ -158,10 +161,14 @@ final class CityStore: ObservableObject {
 
     // MARK: Time travel
 
-    /// The moment being looked at: now, or a quarter-hour in the past or future.
+    /// The moment being looked at: now, or some minutes from now ("+3 hr" is exactly three hours on).
     var moment: Date {
-        offsetMinutes == 0 ? now : Self.quarter(now).addingTimeInterval(Double(offsetMinutes) * 60)
+        now.addingTimeInterval(Double(offsetMinutes) * 60)
     }
+
+    /// The moment was picked (a date, a tapped hour), so it stays put as the clock moves; false
+    /// for a shift from now (the slider, the hour buttons, a typed offset).
+    private var anchored = false
 
     var isNow: Bool { offsetMinutes == 0 }
 
@@ -171,16 +178,25 @@ final class CityStore: ObservableObject {
         Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / 900).rounded(.down) * 900)
     }
 
-    /// Go to a moment (rounded to its quarter-hour).
+    /// Go to a moment, which then stays put.
     func jump(to date: Date, animated: Bool = true) {
-        let minutes = Int((Self.quarter(date).timeIntervalSince(Self.quarter(now)) / 60).rounded())
+        let minutes = Int((date.timeIntervalSince(now) / 60).rounded())
+        anchored = true
         if animated { withAnimation(.snappy) { offsetMinutes = minutes } } else { offsetMinutes = minutes }
+        userMoves += 1
+    }
+
+    /// Look some minutes from now ("+3 hr"); it moves with the clock.
+    func shift(minutes: Int) {
+        anchored = false
+        withAnimation(.snappy) { offsetMinutes = minutes }
         userMoves += 1
     }
 
     /// Set the offset directly while dragging (no animation; the drag is the animation).
     func scrub(to minutes: Int) {
         guard minutes != offsetMinutes else { return }
+        anchored = false
         offsetMinutes = minutes
         userMoves += 1
         if !hasScrubbed { hasScrubbed = true }
@@ -192,7 +208,7 @@ final class CityStore: ObservableObject {
     }
 
     /// True when the selected moment is on a whole hour on the user's clock.
-    var onTheHour: Bool { Calendar.current.component(.minute, from: moment) == 0 }
+    var onTheHour: Bool { offsetMinutes % 60 == 0 || Calendar.current.component(.minute, from: moment) == 0 }
 
     /// Step to the next or previous whole hour on the user's clock.
     func travel(_ hours: Int) {

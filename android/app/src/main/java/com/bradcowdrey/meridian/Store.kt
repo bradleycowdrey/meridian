@@ -9,6 +9,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneId
+import kotlin.math.roundToInt
 
 /**
  * All app state. Settings and cities persist to SharedPreferences (the widgets read the same
@@ -107,22 +108,40 @@ class Store(private val context: Context, val demo: Boolean = false) {
         if (demo) return
         val date = Instant.now()
         if (date.epochSecond / 60 == now.epochSecond / 60) return
-        val passed = ((TimeMath.quarter(date).epochSecond - TimeMath.quarter(now).epochSecond) / 60).toInt()
-        if (offsetMinutes != 0 && passed != 0) offsetMinutes -= passed
+        // A picked time (a date, a tapped hour) stays where it is as the clock moves; a shift
+        // ("+3 hr") moves with it.
+        if (anchored && offsetMinutes != 0) {
+            val passed = ((date.epochSecond - now.epochSecond) / 60.0).roundToInt()
+            if (passed != 0) offsetMinutes -= passed
+        }
         now = date
     }
 
     val isNow get() = offsetMinutes == 0
-    val moment: Instant get() = if (offsetMinutes == 0) now else TimeMath.quarter(now).plusSeconds(offsetMinutes * 60L)
-    val onTheHour get() = moment.atZone(home).minute == 0
+    /** Now, or some minutes from now ("+3 hr" is exactly three hours on). */
+    val moment: Instant get() = now.plusSeconds(offsetMinutes * 60L)
+    val onTheHour get() = offsetMinutes % 60 == 0 || moment.atZone(home).minute == 0
 
+    /** The moment was picked (a date, a tapped hour), so it stays put as the clock moves. */
+    private var anchored = false
+
+    /** Go to a moment, which then stays put. */
     fun jump(to: Instant) {
-        offsetMinutes = ((TimeMath.quarter(to).epochSecond - TimeMath.quarter(now).epochSecond) / 60).toInt()
+        anchored = true
+        offsetMinutes = ((to.epochSecond - now.epochSecond) / 60.0).roundToInt()
+        userMoves++
+    }
+
+    /** Look some minutes from now ("+3 hr"); it moves with the clock. */
+    fun shift(minutes: Int) {
+        anchored = false
+        offsetMinutes = minutes
         userMoves++
     }
 
     fun scrub(to: Int) {
         if (to == offsetMinutes) return
+        anchored = false
         offsetMinutes = to
         userMoves++
         if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }

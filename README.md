@@ -20,7 +20,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.8.7
+### What's new in 0.8.8
 
 - **Working hours researched for every country**: each city's usual days and hours, Ramadan and summer schedules included.
 - **No duplicate for where you are**: a city already on your list is marked as your location instead of a second card.

@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.8.8 · 1 November 2026
+
+- Working days read in full ("Sunday to Thursday", not "Sun to Thu"), and Coyhaique in Chile (a time zone new in 2025) has its working week.
+
 ## 0.8.7 · 1 November 2026
 
 - **Researched working hours for every country**: each city now follows the usual working days *and hours* where it is, day by day: Israel's short Friday, Iran's Thursday morning, Germany's earlier Friday, half-hour starts like India's 9:30, shorter hours in Ramadan across the Muslim world, and Spain's July and August hours. All 246 countries and territories, with sources, are listed in [docs/working-hours.md](docs/working-hours.md). The Settings hours are gone; change any city's days and hours with its briefcase.

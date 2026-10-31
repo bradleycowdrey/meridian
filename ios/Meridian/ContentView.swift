@@ -60,6 +60,12 @@ struct ContentView: View {
                 ForEach(store.places) { place in
                     row(place)
                 }
+                // The last row, not a section footer: a plain list pins footers to the bottom
+                // of the screen on a black band, over the home indicator.
+                footer
+                    .listRowInsets(EdgeInsets(top: 8, leading: Card.margin, bottom: 24, trailing: Card.margin))
+                    .listRowBackground(Theme.bg)
+                    .listRowSeparator(.hidden)
             } header: {
                 // Pinned while the cities scroll underneath.
                 MomentHeader(copied: copied) { showingDate = true }
@@ -68,8 +74,6 @@ struct ContentView: View {
                     .background(Theme.bg)
                     .listRowInsets(EdgeInsets())
                     .textCase(nil)
-            } footer: {
-                footer
             }
         }
     }

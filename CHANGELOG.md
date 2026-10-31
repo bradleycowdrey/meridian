@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.8.3 · 31 October 2026
+
+- **Always the current terms**: Meridian checks once a day whether the Terms of Use and Privacy have changed. When they have, it asks you to agree again, no more than once a month. The first time you open Meridian, you're always asked.
+
 ## 0.8.2 · 31 October 2026
 
 - **Updated terms**: the Terms of Use and Privacy now cover My Location, so Meridian asks you to agree once more. The prompt adds: "If you allow it, your location is used only to name the city you're in."

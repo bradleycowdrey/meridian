@@ -149,6 +149,12 @@ final class FunctionalTest {
         check("version older is not newer", !Updater.isNewer("0.6.9", than: "0.7.0"))
         check("selftest build is older than any release", Updater.isNewer("0.1.0", than: "0.0.0-selftest"))
 
+        // Terms: the version is TERMS.md's "Last updated" date.
+        check("terms version from TERMS.md",
+              TermsVersion.version(from: "# Terms\nLast updated: October 31, 2026 · Applies to: everything") == "2026-10-31")
+        check("terms version: single-digit day", TermsVersion.version(from: "Last updated: November 3, 2026") == "2026-11-03")
+        check("terms version: none without a date", TermsVersion.version(from: "No date here") == nil)
+
         // My Location: a scratch UserDefaults, so the app's own settings are untouched.
         let scratch = UserDefaults(suiteName: "selftest.mylocation")!
         scratch.removePersistentDomain(forName: "selftest.mylocation")

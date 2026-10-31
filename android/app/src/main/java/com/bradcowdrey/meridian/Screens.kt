@@ -203,13 +203,14 @@ private fun LinkRow(label: String, onClick: () -> Unit) {
 
 /** Terms of Use and Privacy: asked once, and again if the terms change (same version as the Mac and iPhone apps). */
 @Composable
-fun TermsScreen(onAgree: () -> Unit) {
+fun TermsScreen(changed: Boolean = false, onAgree: () -> Unit) {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().background(Palette.bg).systemBarsPadding().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.weight(1f))
         Image(painterResource(R.drawable.mark), contentDescription = null, modifier = Modifier.size(88.dp).clip(RoundedCornerShape(20.dp)))
         Spacer(Modifier.height(20.dp))
-        Text("Terms of Use and Privacy", fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+        Text(if (changed) "The Terms of Use and Privacy have changed" else "Terms of Use and Privacy",
+            fontSize = 22.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
         Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your phone. If you allow it, your location is used only to name the city you're in.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.",
             color = Palette.secondary, textAlign = TextAlign.Center)

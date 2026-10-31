@@ -58,7 +58,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         private set
     var workEnd by mutableIntStateOf(prefs.getInt("workEnd", 18))
         private set
-    var termsAccepted by mutableStateOf(demo || prefs.getString("terms.accepted", null) == Terms.VERSION)
+    var termsAccepted by mutableStateOf(demo || !Terms.due(prefs))
         private set
     var hasScrubbed by mutableStateOf(demo || prefs.getBoolean("hasScrubbed", false))
         private set
@@ -215,11 +215,63 @@ class Store(private val context: Context, val demo: Boolean = false) {
         if (on) prefs.edit().putBoolean("myLocation.asked", false).apply()
         updateMyLocation()
     }
-    fun acceptTerms() { termsAccepted = true; prefs.edit().putString("terms.accepted", Terms.VERSION).apply() }
+    fun acceptTerms() { termsAccepted = true; Terms.accept(prefs) }
+
+    /** Changed terms on GitHub: ask again (at most once a month). */
+    fun checkTerms() {
+        if (demo) return
+        Terms.refresh(prefs) { if (Terms.due(prefs)) termsAccepted = false }
+    }
 
     private fun syncWidgets() = MeridianWidgets.updateAll(context)
 }
 
+/**
+ * Terms of Use and Privacy, the same rules as the Mac and iPhone apps: the latest version is the
+ * "Last updated" date of TERMS.md on GitHub (looked up at most once a day) or the one built in,
+ * whichever is newer. The first time, you're always asked; a changed version is asked for at
+ * most once a month (30 days after you last agreed).
+ */
 object Terms {
     const val VERSION = "2026-10-31"
+    private const val SOURCE = "https://raw.githubusercontent.com/bradleycowdrey/cowdrey-md/main/TERMS.md"
+    private const val MONTH_MS = 30L * 86_400_000
+    private const val DAY_MS = 86_400_000L
+
+    fun agreed(prefs: android.content.SharedPreferences): String? = prefs.getString("terms.accepted", null)
+    fun latest(prefs: android.content.SharedPreferences): String = maxOf(VERSION, prefs.getString("terms.latest", "") ?: "")
+
+    fun due(prefs: android.content.SharedPreferences, now: Long = System.currentTimeMillis()): Boolean {
+        val agreed = agreed(prefs) ?: return true
+        if (agreed >= latest(prefs)) return false
+        return now - prefs.getLong("terms.acceptedAt", 0L) >= MONTH_MS
+    }
+
+    fun accept(prefs: android.content.SharedPreferences) {
+        prefs.edit().putString("terms.accepted", latest(prefs)).putLong("terms.acceptedAt", System.currentTimeMillis()).apply()
+    }
+
+    /** "Last updated: October 31, 2026" -> "2026-10-31". */
+    fun version(markdown: String): String? {
+        val match = Regex("Last updated: ([A-Z][a-z]+ \\d{1,2}, \\d{4})").find(markdown) ?: return null
+        return runCatching {
+            java.time.LocalDate.parse(match.groupValues[1], java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy", java.util.Locale.US)).toString()
+        }.getOrNull()
+    }
+
+    /** Looks up the latest version on GitHub (at most daily), then calls [done] on the main thread. */
+    fun refresh(prefs: android.content.SharedPreferences, done: () -> Unit) {
+        if (System.currentTimeMillis() - prefs.getLong("terms.checkedAt", 0L) < DAY_MS) { done(); return }
+        Thread {
+            runCatching {
+                val connection = java.net.URL(SOURCE).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 10_000; connection.readTimeout = 10_000
+                val text = connection.inputStream.bufferedReader().use { it.readText() }
+                version(text)?.let { prefs.edit().putString("terms.latest", it).putLong("terms.checkedAt", System.currentTimeMillis()).apply() }
+            }
+            android.os.Handler(android.os.Looper.getMainLooper()).post(done)
+        }.start()
+    }
+
+    fun changed(prefs: android.content.SharedPreferences) = agreed(prefs) != null
 }

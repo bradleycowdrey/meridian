@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
     /** Back in the app (maybe after travelling): refresh My Location. */
     override fun onResume() {
         super.onResume()
+        store?.checkTerms()
         store?.takeIf { it.termsAccepted }?.let { it.updateMyLocation(); it.locate() }
     }
 
@@ -98,7 +99,7 @@ class MainActivity : ComponentActivity() {
                 onSurfaceVariant = Palette.muted, outlineVariant = Palette.border,
             )) {
                 Surface(color = Palette.bg, modifier = Modifier.fillMaxSize()) {
-                    if (!store.termsAccepted) TermsScreen { store.acceptTerms() }
+                    if (!store.termsAccepted) TermsScreen(changed = Terms.changed(Store.prefs(applicationContext))) { store.acceptTerms() }
                     else App(store, if (demo) screen else "main")
                 }
             }

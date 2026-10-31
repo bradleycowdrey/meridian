@@ -20,7 +20,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.8.2
+### What's new in 0.8.3
 
 - **My Location**: the city you're in, kept current when you travel. Meridian asks once whether to use it; change it in Settings.
 - **Widgets match the app**: "+8 hr" under each city, "+1 d" for another day.
@@ -128,7 +128,7 @@ docs/                     Download page with a live web demo
 
 ## Terms and privacy
 
-Using Meridian means agreeing to the [Terms of Use and Privacy](TERMS.md) (also at [bradcowdrey.com/legal](https://bradcowdrey.com/legal)), which cover every app, AI skill, book and page Bradley Cowdrey publishes. In short: it's free and provided as is, you use it at your own risk, and your cities stay on your device. If you allow it, your location is used only to name the city you're in, and only that name is kept, on your device. Each app asks you to agree the first time it opens (and again when the terms change), and **Terms & Privacy** in its menu or Settings opens them any time.
+Using Meridian means agreeing to the [Terms of Use and Privacy](TERMS.md) (also at [bradcowdrey.com/legal](https://bradcowdrey.com/legal)), which cover every app, AI skill, book and page Bradley Cowdrey publishes. In short: it's free and provided as is, you use it at your own risk, and your cities stay on your device. If you allow it, your location is used only to name the city you're in, and only that name is kept, on your device. Each app asks you to agree the first time it opens, and again when the terms change (it checks GitHub daily and asks at most once a month), and **Terms & Privacy** in its menu or Settings opens them any time.
 
 ## License
 

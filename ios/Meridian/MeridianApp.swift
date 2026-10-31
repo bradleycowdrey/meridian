@@ -37,7 +37,13 @@ struct MeridianApp: App {
                 .task { await Screenshots.run(store: store) }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { store.refresh() }
+            guard phase == .active else { return }
+            store.refresh()
+            // Changed terms on GitHub: ask again (at most once a month).
+            Task {
+                await TermsVersion.refresh()
+                if !Screenshots.isActive && !Terms.accepted { termsAccepted = false }
+            }
         }
     }
 }

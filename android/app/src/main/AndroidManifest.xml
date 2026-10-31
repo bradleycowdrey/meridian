@@ -3,6 +3,8 @@
 
     <!-- My Location: city-level only, to name the city you're in. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Checks GitHub (at most daily) for a newer version of the Terms of Use and Privacy. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"

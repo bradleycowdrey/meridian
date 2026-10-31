@@ -20,7 +20,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.8.3
+### What's new in 0.8.4
 
 - **My Location**: the city you're in, kept current when you travel. Meridian asks once whether to use it; change it in Settings.
 - **Widgets match the app**: "+8 hr" under each city, "+1 d" for another day.

@@ -28,8 +28,6 @@ private struct ClockPanelContent: View {
     /// is at the very top), and SwiftUI still adds it to the window height, so it's subtracted
     /// at the bottom to keep the window exactly the size of the panel.
     @State private var titleBarInset: CGFloat = 0
-    /// Self-test only: moves the header down, to probe where clicks land.
-    @AppStorage("selftest.headerShift") private var selftestHeaderShift: Double = 0
     @State private var host = HostWindow()
     @Environment(\.openWindow) private var openWindow
 
@@ -54,7 +52,7 @@ private struct ClockPanelContent: View {
 
                 header
                     .padding(.horizontal, ui.xl)
-                    .padding(.top, ui.l + ui.xs + selftestHeaderShift)
+                    .padding(.top, ui.l + ui.xs)
                     .padding(.bottom, ui.m)
             }
             // Window: drag to move. Menu bar panel (which macOS pins under its icon): drag to
@@ -286,7 +284,7 @@ private struct HeaderCircleButton: View {
                 .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
                 .frame(width: ui.pt(32), height: ui.pt(32))
                 .background(Circle().fill(hovering ? Palette.border : Palette.raisedTile))
-                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5))
+                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5).allowsHitTesting(false))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -504,7 +502,9 @@ private struct ListControls: View {
         }
         .padding(ui.pt(3))
         .background(Capsule().fill(Palette.raisedTile))
-        .overlay(Capsule().strokeBorder(Palette.borderStrong, lineWidth: 0.5))
+        // Outlines are drawn on top, so they mustn't take clicks: at Extra Small the outline's
+        // own hit test caught clicks along its centre line, before Add City and Edit saw them.
+        .overlay(Capsule().strokeBorder(Palette.borderStrong, lineWidth: 0.5).allowsHitTesting(false))
     }
 
     private struct Segment: View {
@@ -532,9 +532,7 @@ private struct ListControls: View {
                 .background(
                     Capsule().fill(active ? Palette.cream : (hovering && enabled ? Palette.border : .clear))
                 )
-                // A rectangle, not a capsule: at Extra Small, clicks on the capsule's exact
-                // centre line were missed.
-                .contentShape(Rectangle())
+                .contentShape(Capsule())
             }
             .buttonStyle(.plain)
             .disabled(!enabled)
@@ -614,7 +612,7 @@ private struct MoreMenu: View {
                 .foregroundStyle(Palette.textSecondary)
                 .frame(width: ui.pt(32), height: ui.pt(32))
                 .background(Circle().fill(Palette.raisedTile))
-                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5))
+                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5).allowsHitTesting(false))
                 .contentShape(Circle())
         }
         .menuStyle(.button)
@@ -803,6 +801,7 @@ struct AddCityField: View {
             .overlay(
                 RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous)
                     .strokeBorder(focused ? Palette.textFaint : .clear, lineWidth: 0.5)
+                    .allowsHitTesting(false)
             )
 
             if !store.canAdd {

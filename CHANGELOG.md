@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 0.8.4 · 1 November 2026
+
+- **Add City and Edit always respond**: at Extra Small, a click on the middle of either button could be missed (the thin outline drawn around them was catching it). Outlines no longer take clicks, there or on the search field.
+
 ## 0.8.3 · 31 October 2026
 
 - **Always the current terms**: Meridian checks once a day whether the Terms of Use and Privacy have changed. When they have, it asks you to agree again, no more than once a month. The first time you open Meridian, you're always asked.

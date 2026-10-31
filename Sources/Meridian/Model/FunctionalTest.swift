@@ -212,35 +212,6 @@ final class FunctionalTest {
                 await click("travel-earlier", in: window)
                 check("\(tag) click earlier", store.offsetHours == 0, "offset \(store.offsetHours)")
 
-                // Probe: which points of Add City take a click (logged). At Extra Small, also with
-                // the header moved down 4 pt and with the window moved, to see whether the dead
-                // line follows the button, the window or the screen.
-                let variants: [(String, Double, Bool)] = size == .extraSmall
-                    ? [("normal", 0, false), ("header+4", 4, false), ("window-moved", 0, true)] : [("normal", 0, false)]
-                for (label, shift, moveWindow) in variants {
-                    UserDefaults.standard.set(shift, forKey: "selftest.headerShift")
-                    let origin = window.frame.origin
-                    if moveWindow { window.setFrameOrigin(NSPoint(x: origin.x + 37, y: origin.y - 53)) }
-                    await settle(0.8)
-                    guard let frame = TestAnchors.frames["control-add"], let content = window.contentView else { continue }
-                    var row: [String] = []
-                    for y in stride(from: frame.minY - 2, through: frame.maxY + 2, by: 2) {
-                        adding.wrappedValue = false
-                        await settle(0.2)
-                        let p = NSPoint(x: frame.midX, y: content.bounds.height - y)
-                        send(.leftMouseDown, at: p, in: window)
-                        try? await Task.sleep(for: .milliseconds(60))
-                        send(.leftMouseUp, at: p, in: window)
-                        await settle(0.3)
-                        row.append("\(Int(y)):\(adding.wrappedValue ? "Y" : "-")")
-                    }
-                    adding.wrappedValue = false
-                    SelfTest.log("functional: probe \(tag) \(label) add \(Int(frame.minY))..\(Int(frame.maxY)) window \(Int(window.frame.minY))+\(Int(window.frame.height)) content \(Int(content.bounds.height)) inset \(Int(window.frame.height - window.contentLayoutRect.height)): \(row.joined(separator: " "))")
-                    if moveWindow { window.setFrameOrigin(origin) }
-                }
-                UserDefaults.standard.removeObject(forKey: "selftest.headerShift")
-                await settle(0.8)
-
                 // Add City: open, pick a search result.
                 await click("control-add", in: window)
                 check("\(tag) Add City opens search", adding.wrappedValue)

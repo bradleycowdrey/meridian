@@ -156,6 +156,7 @@ fun App(store: Store, initial: String) {
         "add" -> MainScreen(store, initialQuery = "san") { route = it }
         "edit" -> MainScreen(store, initialEditing = true) { route = it }
         "settings" -> SettingsScreen(store) { route = "main" }
+        "date" -> DateJumpScreen(store) { route = "main" }
         "widgets" -> WidgetShowcase(store)
         else -> MainScreen(store) { route = it }
     }
@@ -219,7 +220,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                                 DropdownMenuItem(text = { Text("Edit List") }, enabled = store.places.isNotEmpty(),
                                     onClick = { menu = false; query = ""; editing = true })
                                 HorizontalDivider()
-                                DropdownMenuItem(text = { Text("Go to Date…") }, onClick = { menu = false; pickDate(context, store) })
+                                DropdownMenuItem(text = { Text("Go to a Time…") }, onClick = { menu = false; open("date") })
                                 DropdownMenuItem(text = { Text("Copy This Moment") }, enabled = store.places.isNotEmpty(), onClick = {
                                     menu = false; clipboard.setText(AnnotatedString(store.momentText)); copied = true
                                 })
@@ -254,7 +255,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
         }
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             stickyHeader {
-                MomentHeader(store, copied) { pickDate(context, store) }
+                MomentHeader(store, copied) { open("date") }
             }
             if (store.places.isEmpty()) item {
                 Column(Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -579,17 +580,6 @@ private fun Footer() {
         Text("Terms & Privacy", fontSize = 13.sp, color = Palette.muted, modifier = Modifier.clickable { open(Palette.LEGAL) })
         Spacer(Modifier.height(24.dp))
     }
-}
-
-/** Pick a day, then a time (on your clock); every city follows. */
-fun pickDate(context: android.content.Context, store: Store) {
-    val current = store.moment.atZone(store.home)
-    android.app.DatePickerDialog(context, android.R.style.Theme_DeviceDefault_Dialog, { _, y, m, d ->
-        android.app.TimePickerDialog(context, android.R.style.Theme_DeviceDefault_Dialog, { _, h, min ->
-            val picked = current.withYear(y).withMonth(m + 1).withDayOfMonth(d).withHour(h).withMinute(min).toInstant()
-            store.jump(picked)
-        }, current.hour, current.minute, store.use24h).show()
-    }, current.year, current.monthValue - 1, current.dayOfMonth).show()
 }
 
 /** The small pin after the My Location row's name. */

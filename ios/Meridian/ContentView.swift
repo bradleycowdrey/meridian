@@ -207,7 +207,7 @@ struct ContentView: View {
                 Button { query = ""; withAnimation { editMode = .active } } label: { Label("Edit List", systemImage: "pencil") }
                     .disabled(store.places.isEmpty)
                 Divider()
-                Button { showingDate = true } label: { Label("Go to Date…", systemImage: "calendar") }
+                Button { showingDate = true } label: { Label("Go to a Time…", systemImage: "calendar") }
                 Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
                     .disabled(store.places.isEmpty)
                 Divider()

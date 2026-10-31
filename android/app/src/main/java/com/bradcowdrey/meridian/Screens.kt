@@ -227,3 +227,120 @@ fun WorkHoursDialog(store: Store, place: Place, onDone: () -> Unit) {
         },
     )
 }
+
+/**
+ * Go to a day and time (on your clock), in quarter-hours, and see every city at that moment
+ * before going there: the answer at the top, quick picks, a calendar, the time, your cities.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateJumpScreen(store: Store, onDone: () -> Unit) {
+    val zone = store.home
+    fun quarterOf(i: java.time.Instant) = java.time.Instant.ofEpochSecond(Math.round(i.epochSecond / 900.0) * 900)
+    fun utcMillis(d: java.time.LocalDate) = d.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+    val first = remember { quarterOf(store.moment).atZone(zone) }
+    val dateState = rememberDatePickerState(initialSelectedDateMillis = utcMillis(first.toLocalDate()))
+    var hour by remember { mutableIntStateOf(first.hour) }
+    var quarter by remember { mutableIntStateOf(first.minute / 15) }
+    val day = dateState.selectedDateMillis?.let { java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneOffset.UTC).toLocalDate() } ?: first.toLocalDate()
+    val moment = day.atTime(hour, quarter * 15).atZone(zone).toInstant()
+    fun set(i: java.time.Instant) {
+        val z = quarterOf(i).atZone(zone)
+        dateState.selectedDateMillis = utcMillis(z.toLocalDate()); hour = z.hour; quarter = z.minute / 15
+    }
+    val nine = if (store.use24h) "09:00" else "9${TimeMath.THIN}AM"
+
+    Screen("Go to a Time", onDone, backLabel = "Cancel") { padding ->
+        Column(Modifier.padding(padding).fillMaxSize()) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                // The answer: the chosen time, large, with its day and how far away it is.
+                Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(TimeMath.time(moment, zone, store.use24h), fontSize = 44.sp, fontWeight = FontWeight.Light)
+                    Text("${moment.atZone(zone).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))} · ${relativeSpan(store.now, moment)}",
+                        fontSize = 14.sp, color = Palette.muted)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QuickChip("Tomorrow $nine", Modifier.weight(1f)) { set(store.now.atZone(zone).toLocalDate().plusDays(1).atTime(9, 0).atZone(zone).toInstant()) }
+                    QuickChip("Monday $nine", Modifier.weight(1f)) {
+                        set(store.now.atZone(zone).toLocalDate().with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY)).atTime(9, 0).atZone(zone).toInstant())
+                    }
+                    QuickChip("In a Week", Modifier.weight(1f)) { set(store.now.plusSeconds(7 * 86_400L)) }
+                }
+                DateCard {
+                    DatePicker(state = dateState, title = null, headline = null, showModeToggle = false,
+                        colors = DatePickerDefaults.colors(containerColor = Palette.tile, selectedDayContainerColor = Palette.cream,
+                            selectedDayContentColor = Palette.bg, todayDateBorderColor = Palette.cream, todayContentColor = Palette.cream))
+                }
+                DateCard {
+                    // Hour, then the quarter-hour: it can only land on :00, :15, :30 or :45.
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Hour", Modifier.weight(1f), color = Palette.secondary)
+                            OutlinedIconButton(onClick = { hour = (hour + 23) % 24 }) { Text("−", fontSize = 20.sp) }
+                            Text(if (store.use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}${TimeMath.THIN}${if (hour < 12) "AM" else "PM"}",
+                                fontSize = 20.sp, textAlign = TextAlign.Center, modifier = Modifier.width(88.dp))
+                            OutlinedIconButton(onClick = { hour = (hour + 1) % 24 }) { Text("+", fontSize = 20.sp) }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            (0..3).forEach { q ->
+                                val on = q == quarter
+                                Box(Modifier.weight(1f).height(36.dp).clip(RoundedCornerShape(50))
+                                    .background(if (on) Palette.cream else Palette.border).clickable { quarter = q },
+                                    contentAlignment = Alignment.Center) {
+                                    Text(":%02d".format(q * 15), fontWeight = FontWeight.SemiBold, color = if (on) Palette.bg else Palette.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+                if (store.places.isNotEmpty()) DateCard {
+                    // Every city at the chosen moment, with whether it's working there.
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        store.places.forEachIndexed { i, place ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(place.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                    val off = if (store.showWorkHours) WorkWeek.offLabel(place, moment, store.workStart, store.workEnd) else null
+                                    if (off != null) Text("☾  $off", fontSize = 12.sp, color = Palette.muted)
+                                }
+                                Text(TimeMath.time(moment, place.zone, store.use24h), fontSize = 18.sp, fontWeight = FontWeight.Light)
+                                val shift = TimeMath.dayShift(moment, place.zone, store.home)
+                                if (shift != 0) Text(if (shift > 0) " +$shift d" else " −${-shift} d", fontSize = 11.sp, color = Palette.cream, fontWeight = FontWeight.SemiBold)
+                            }
+                            if (i < store.places.size - 1) HorizontalDivider(color = Palette.border, thickness = 0.5.dp)
+                        }
+                    }
+                }
+            }
+            Button(onClick = { store.jump(moment); onDone() },
+                colors = ButtonDefaults.buttonColors(containerColor = Palette.cream, contentColor = Palette.bg),
+                modifier = Modifier.fillMaxWidth().padding(16.dp).height(52.dp)) {
+                Text("Go to This Time", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DateCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.tile), content = content)
+}
+
+@Composable
+private fun QuickChip(title: String, modifier: Modifier, onClick: () -> Unit) {
+    Box(modifier.height(36.dp).clip(RoundedCornerShape(50)).background(Palette.tile).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center) {
+        Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Palette.secondary, maxLines = 1)
+    }
+}
+
+/** "Now", "In 3 d 2 hr", "5 hr ago". */
+fun relativeSpan(now: java.time.Instant, at: java.time.Instant): String {
+    val total = ((at.epochSecond - now.epochSecond) / 60.0).let { Math.round(it).toInt() }
+    if (kotlin.math.abs(total) < 1) return "Now"
+    val a = kotlin.math.abs(total)
+    val span = listOfNotNull((a / 1440).takeIf { it > 0 }?.let { "$it d" }, (a % 1440 / 60).takeIf { it > 0 }?.let { "$it hr" },
+        (a % 60).takeIf { it > 0 && a < 1440 }?.let { "$it min" }).joinToString(" ")
+    return if (total > 0) "In $span" else "$span ago"
+}

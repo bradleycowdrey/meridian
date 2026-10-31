@@ -261,15 +261,6 @@ fun MomentHeader(store: Store, copied: Boolean, pickDate: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Text("Drag any bar to change the time", fontSize = 13.sp, color = Palette.muted)
         }
-        overlap(store)?.let { (allIn, text) ->
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.clip(RoundedCornerShape(50)).background(Palette.tile).padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(if (allIn) "✓" else "☾", color = if (allIn) Palette.cream else Palette.faint, fontSize = 13.sp)
-                Spacer(Modifier.width(6.dp))
-                Text(text, fontSize = 13.sp, color = Palette.secondary, maxLines = 1)
-            }
-        }
     }
 }
 
@@ -285,15 +276,6 @@ private fun relative(store: Store): String {
     return if (total > 0) "In $span" else "$span ago"
 }
 
-private fun overlap(store: Store): Pair<Boolean, String>? {
-    if (!store.showWorkHours || store.places.size < 2) return null
-    val out = store.outsideWorkHours
-    return when {
-        out.isEmpty() -> true to "Working hours in every city"
-        out.size == store.places.size -> false to "Outside working hours everywhere"
-        else -> false to "Outside working hours: ${out.take(3).joinToString(", ") { it.name }}${if (out.size > 3) " +${out.size - 3}" else ""}"
-    }
-}
 
 /** One city: how it relates to you and its name on the left, its time large and light on the right; then its day bar. */
 @Composable
@@ -302,10 +284,11 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     val (clock, suffix) = TimeMath.clock(moment, place.zone, store.use24h)
     val shift = TimeMath.dayShift(moment, place.zone, store.home)
     val utc = TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, moment))
+    val outside = store.showWorkHours && !store.isWorkHour(moment.atZone(place.zone).hour)
     val detail = (TimeMath.relative(moment, place.zone, store.home)
         ?: if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
     Column(modifier.fillMaxWidth().padding(16.dp)
-        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${if (place.isMyLocation) ", My Location" else ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail" }) {
+        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${if (place.isMyLocation) ", My Location" else ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail${if (outside) ", outside work hours" else ""}" }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1)
@@ -313,6 +296,8 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
                     Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
                     if (place.isMyLocation) MyLocationMark()
                 }
+                // This city's own note, rather than a list of names in the header.
+                if (outside) Text("☾  Outside work hours", fontSize = 12.sp, color = Palette.muted, modifier = Modifier.padding(top = 2.dp))
             }
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, modifier = Modifier.alignByBaseline())

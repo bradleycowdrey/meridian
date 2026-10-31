@@ -262,16 +262,6 @@ private struct MomentHeader: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.muted)
             }
-            if let overlap {
-                HStack(spacing: 6) {
-                    Image(systemName: store.outsideWorkHours.isEmpty ? "checkmark.circle.fill" : "moon.zzz.fill")
-                        .foregroundStyle(store.outsideWorkHours.isEmpty ? Theme.cream : Theme.faint)
-                    Text(overlap).foregroundStyle(Theme.secondary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1)
-                }
-                .font(.footnote)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(Capsule().fill(Theme.tile))
-            }
         }
     }
 
@@ -286,15 +276,6 @@ private struct MomentHeader: View {
         return total > 0 ? "In \(span)" : "\(span) ago"
     }
 
-    /// The meeting planner in one line.
-    private var overlap: String? {
-        guard store.showWorkHours, store.places.count > 1 else { return nil }
-        let out = store.outsideWorkHours
-        if out.isEmpty { return "Working hours in every city" }
-        if out.count == store.places.count { return "Outside working hours everywhere" }
-        let names = out.prefix(3).map(\.name).joined(separator: ", ")
-        return "Outside working hours: \(names)\(out.count > 3 ? " +\(out.count - 3)" : "")"
-    }
 }
 
 /// One city, in the manner of Apple's Clock: how it relates to you and its name on the left, its
@@ -304,6 +285,11 @@ struct CityRow: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 40
     let place: Place
+
+    /// Outside working hours at the selected moment (when that setting is on).
+    private var outsideWorkHours: Bool {
+        store.showWorkHours && !store.isWorkHour(place.calendar.component(.hour, from: store.moment))
+    }
 
     var body: some View {
         let moment = store.moment
@@ -329,6 +315,14 @@ struct CityRow: View {
                                 .foregroundStyle(Theme.muted)
                         }
                     }
+                    // This city's own note, rather than a list of names in the header.
+                    if outsideWorkHours {
+                        Label("Outside work hours", systemImage: "moon.zzz.fill")
+                            .font(.caption)
+                            .foregroundStyle(Theme.muted)
+                            .labelStyle(.titleAndIcon)
+                            .padding(.top, 2)
+                    }
                 }
                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
@@ -338,7 +332,7 @@ struct CityRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(place.name)\(place.isMyLocation ? ", My Location" : ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))")
+        .accessibilityLabel("\(place.name)\(place.isMyLocation ? ", My Location" : ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(outsideWorkHours ? ", outside work hours" : "")")
     }
 
     private func clock(hour: Int, minute: Int) -> some View {

@@ -165,8 +165,8 @@ final class FunctionalTest {
         check("work week: a city's own days win", WorkWeek.isWorking(ownWeek, at: noonFriday("Asia/Riyadh"), start: 9, end: 18))
         var ownHours = denver; ownHours.workStart = 13; ownHours.workEnd = 17
         check("work week: a city's own hours win", !WorkWeek.isWorking(ownHours, at: noonFriday("America/Denver"), start: 9, end: 18))
-        let saved = try? JSONDecoder().decode([Place].self, from: Data(#"[{"id":"6D7E1A2B-4C3D-4E5F-8A9B-0C1D2E3F4A5B","name":"Old","timeZoneID":"UTC"}]"#.utf8))
-        check("work week: cities saved before it still load", saved?.first?.workDays == nil && saved?.first?.name == "Old")
+        let oldPlaces = try? JSONDecoder().decode([Place].self, from: Data(#"[{"id":"6D7E1A2B-4C3D-4E5F-8A9B-0C1D2E3F4A5B","name":"Old","timeZoneID":"UTC"}]"#.utf8))
+        check("work week: cities saved before it still load", oldPlaces?.first?.workDays == nil && oldPlaces?.first?.name == "Old")
 
         // Terms: the version is TERMS.md's "Last updated" date.
         check("terms version from TERMS.md",

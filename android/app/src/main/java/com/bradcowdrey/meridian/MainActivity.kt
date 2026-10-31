@@ -30,6 +30,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.MoreVert
@@ -142,8 +148,8 @@ fun App(store: Store, initial: String) {
     }
     BackHandler(enabled = route != "main") { route = "main" }
     when (route) {
-        "add" -> AddCityScreen(store) { route = "main" }
-        "edit" -> EditCitiesScreen(store) { route = "main" }
+        "add" -> MainScreen(store, initialQuery = "san") { route = it }
+        "edit" -> MainScreen(store, initialEditing = true) { route = it }
         "settings" -> SettingsScreen(store) { route = "main" }
         "widgets" -> WidgetShowcase(store)
         else -> MainScreen(store) { route = it }
@@ -152,8 +158,11 @@ fun App(store: Store, initial: String) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(store: Store, open: (String) -> Unit) {
+fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean = false, open: (String) -> Unit) {
     val context = LocalContext.current
+    // Search to add a city, right above the cards; Edit List (⋯) to reorder and remove in place.
+    var query by remember { mutableStateOf(initialQuery) }
+    var editing by remember { mutableStateOf(initialEditing) }
     val clipboard = LocalClipboardManager.current
     val haptics = LocalHapticFeedback.current
     var menu by remember { mutableStateOf(false) }
@@ -176,16 +185,18 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                 CenterAlignedTopAppBar(
                     title = { Text("Meridian", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
-                        IconButton(onClick = { share("${Palette.SHARE_MESSAGE} ${Palette.APP_PAGE}") }) {
+                        if (editing) TextButton(onClick = { editing = false }) { Text("Done", color = Palette.cream, fontWeight = FontWeight.SemiBold) }
+                        else IconButton(onClick = { share("${Palette.SHARE_MESSAGE} ${Palette.APP_PAGE}") }) {
                             Icon(Icons.Filled.Share, contentDescription = "Share Meridian")
                         }
                     },
                     actions = {
-                        if (store.places.isNotEmpty()) TextButton(onClick = { open("edit") }) { Text("Edit", color = Palette.cream) }
-                        IconButton(onClick = { open("add") }, enabled = store.canAdd) { Icon(Icons.Filled.Add, "Add City") }
                         Box {
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                DropdownMenuItem(text = { Text("Edit List") }, enabled = store.places.isNotEmpty(),
+                                    onClick = { menu = false; query = ""; editing = true })
+                                HorizontalDivider()
                                 DropdownMenuItem(text = { Text("Go to Date…") }, onClick = { menu = false; pickDate(context, store) })
                                 DropdownMenuItem(text = { Text("Copy This Moment") }, enabled = store.places.isNotEmpty(), onClick = {
                                     menu = false; clipboard.setText(AnnotatedString(store.momentText)); copied = true
@@ -204,9 +215,14 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                         titleContentColor = Palette.primary, navigationIconContentColor = Palette.cream, actionIconContentColor = Palette.cream),
                 )
                 Box(Modifier.fillMaxWidth().height(3.dp).background(Palette.crimson))
+                if (!editing) CitySearchField(query) { query = it }
             }
         },
     ) { padding ->
+        if (query.isNotBlank()) {
+            SearchResults(store, query, Modifier.padding(padding)) { query = "" }
+            return@Scaffold
+        }
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             stickyHeader {
                 MomentHeader(store, copied) { pickDate(context, store) }
@@ -215,7 +231,8 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                 Column(Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("No cities yet", fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(10.dp))
-                    Button(onClick = { open("add") }) { Text("Add a City") }
+                    Text("Search above to add one: a city, an airport code like SFO, or a time zone like PST.",
+                        fontSize = 14.sp, color = Palette.muted, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
                 }
             }
             items(store.places, key = { it.id }) { place ->
@@ -226,7 +243,8 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
                 // card for its own actions; dragging its day bar still moves every city's time.
                 Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Palette.tile)
                     .border(0.5.dp, Palette.border, RoundedCornerShape(16.dp))) {
-                    CityRow(store, place, Modifier.combinedClickable(onClickLabel = "Actions for ${place.name}", onClick = { actions = true }, onLongClick = { actions = true }))
+                    if (editing) EditRow(store, place)
+                    else CityRow(store, place, Modifier.combinedClickable(onClickLabel = "Actions for ${place.name}", onClick = { actions = true }, onLongClick = { actions = true }))
                     DropdownMenu(expanded = actions, onDismissRequest = { actions = false }) {
                         DropdownMenuItem(text = { Text("Copy Time") }, onClick = {
                             actions = false
@@ -538,4 +556,72 @@ fun pickDate(context: android.content.Context, store: Store) {
 @Composable
 fun MyLocationMark() {
     Icon(Icons.Filled.LocationOn, contentDescription = "My Location", tint = Palette.muted, modifier = Modifier.padding(start = 4.dp).size(16.dp))
+}
+
+/** The search field above the cards: type to add a city (results replace the cards). */
+@Composable
+fun CitySearchField(query: String, onChange: (String) -> Unit) {
+    OutlinedTextField(query, onChange, singleLine = true,
+        placeholder = { Text("Add a city, SFO, PST, UTC+5", color = Palette.faint) },
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Palette.faint) },
+        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { onChange("") }) { Icon(Icons.Filled.Close, "Clear") } },
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Palette.tile, focusedContainerColor = Palette.tile,
+            unfocusedBorderColor = Color.Transparent, focusedBorderColor = Palette.border),
+        modifier = Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp))
+}
+
+/** Search results in place of the cards; tap one to add it. */
+@Composable
+fun SearchResults(store: Store, query: String, modifier: Modifier, added: () -> Unit) {
+    val results = remember(query) { CityDirectory.search(query) }
+    LazyColumn(modifier.fillMaxSize()) {
+        if (!store.canAdd) item {
+            Text("You can keep up to ${Store.MAX_PLACES} cities. Remove one to add another.", color = Palette.muted, modifier = Modifier.padding(16.dp))
+        }
+        if (results.isEmpty()) item {
+            Text("No places match \u201c$query\u201d. Try a city, an airport code like SFO, a time zone like PST, or UTC+5:30.",
+                color = Palette.muted, modifier = Modifier.padding(16.dp))
+        }
+        items(results, key = { it.name + it.zoneId }) { entry ->
+            val have = store.contains(entry)
+            val zone = runCatching { java.time.ZoneId.of(entry.zoneId) }.getOrNull()
+            Row(Modifier.fillMaxWidth().clickable(enabled = !have && store.canAdd) { store.add(entry); added() }
+                .padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(entry.name, fontWeight = FontWeight.SemiBold)
+                    Text(entry.region.replace("_", " "), fontSize = 13.sp, color = Palette.muted)
+                }
+                if (zone != null) Column(horizontalAlignment = Alignment.End) {
+                    Text(TimeMath.time(store.now, zone, store.use24h), color = Palette.secondary)
+                    Text(TimeMath.offsetLabel(TimeMath.offsetSeconds(zone, store.now)), fontSize = 13.sp, color = Palette.muted)
+                }
+                Spacer(Modifier.width(12.dp))
+                Icon(if (have) Icons.Filled.Check else Icons.Filled.Add, contentDescription = if (have) "Already added" else "Add",
+                    tint = if (have) Palette.faint else Palette.cream)
+            }
+            HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = Palette.border, thickness = 0.5.dp)
+        }
+    }
+}
+
+/** A card in Edit List: remove on the left, the city, move up and down on the right. */
+@Composable
+fun EditRow(store: Store, place: Place) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { store.remove(place) }) {
+            Box(Modifier.size(22.dp).clip(CircleShape).background(Color(0xFFE5484D)), contentAlignment = Alignment.Center) {
+                Box(Modifier.width(10.dp).height(2.dp).background(Color.White))
+            }
+        }
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(place.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                if (place.isMyLocation) MyLocationMark()
+            }
+            Text(TimeMath.time(store.now, place.zone, store.use24h), fontSize = 13.sp, color = Palette.muted)
+        }
+        IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) { Icon(Icons.Filled.KeyboardArrowUp, "Move ${place.name} up") }
+        IconButton(onClick = { store.move(place, 1) }, enabled = place != store.places.last()) { Icon(Icons.Filled.KeyboardArrowDown, "Move ${place.name} down") }
+    }
 }

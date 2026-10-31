@@ -5,8 +5,10 @@ import SwiftUI
 /// quarter-hours; tap the date to jump to any day.
 struct ContentView: View {
     @EnvironmentObject private var store: CityStore
-    @State private var showingEdit = false
-    @State private var showingAdd = false
+    /// Search to add a city, right above the cards (as in Apple's Weather and Two Degrees).
+    @State private var query = ""
+    /// Edit List (from ⋯): reorder and remove in place, then Done.
+    @State private var editMode: EditMode = .inactive
     @State private var showingSettings = false
     @State private var showingDate = false
     @State private var copied = false
@@ -29,10 +31,8 @@ struct ContentView: View {
     private var screen: some View {
         styledList
             .toolbar { toolbarContent }
-            .sheet(isPresented: $showingAdd) { AddCityView(query: Screenshots.screen == "add" ? "san" : "") }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingDate) { DateJumpView() }
-            .sheet(isPresented: $showingEdit) { EditCitiesView() }
             // A tick per quarter-hour, a firmer one on each whole hour; only for the user's own moves.
             .sensoryFeedback(trigger: store.userMoves) { _, _ in haptic }
             .alert("Rename City", isPresented: isRenaming) {
@@ -85,34 +85,76 @@ struct ContentView: View {
             .safeAreaInset(edge: .top, spacing: 0) { Theme.crimson.frame(height: 3) }
             .navigationTitle("Meridian")
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Add a city, SFO, PST, UTC+5")
+            .autocorrectionDisabled()
+            .environment(\.editMode, $editMode)
             .toolbarBackground(Theme.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private var cityList: some View {
         List {
-            Section {
-                if store.places.isEmpty {
-                    emptyState
-                }
-                ForEach(store.places) { place in
-                    row(place)
-                }
-                // The last row, not a section footer: a plain list pins footers to the bottom
-                // of the screen on a black band, over the home indicator.
-                footer
-                    .listRowInsets(EdgeInsets(top: 8, leading: Card.margin, bottom: 24, trailing: Card.margin))
-                    .listRowBackground(Theme.bg)
-                    .listRowSeparator(.hidden)
-            } header: {
-                // Pinned while the cities scroll underneath.
-                MomentHeader(copied: copied) { showingDate = true }
-                    .padding(.horizontal, Card.margin).padding(.top, 14).padding(.bottom, 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Theme.bg)
-                    .listRowInsets(EdgeInsets())
-                    .textCase(nil)
+            if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                searchResults
+            } else {
+                cards
             }
+        }
+    }
+
+    /// Search results in place of the cards; tap one to add it.
+    @ViewBuilder private var searchResults: some View {
+        if !store.canAdd {
+            Text("You can keep up to \(CityStore.maxPlaces) cities. Remove one to add another.")
+                .foregroundStyle(Theme.muted)
+                .listRowBackground(Theme.bg)
+        }
+        let results = CityDirectory.search(query)
+        if results.isEmpty {
+            Text("No places match “\(query)”. Try a city, an airport code like SFO, a time zone like PST, or UTC+5:30.")
+                .foregroundStyle(Theme.muted)
+                .listRowBackground(Theme.bg)
+        }
+        ForEach(results) { entry in
+            let added = store.contains(entry)
+            Button {
+                store.add(entry)
+                query = ""
+            } label: {
+                SearchResultRow(entry: entry, added: added)
+            }
+            .disabled(added || !store.canAdd)
+            .listRowBackground(Theme.bg)
+            .listRowSeparatorTint(Theme.border)
+            .accessibilityHint(added ? "Already added" : "Adds \(entry.name)")
+        }
+    }
+
+    @ViewBuilder private var cards: some View {
+        Section {
+            if store.places.isEmpty {
+                emptyState
+            }
+            ForEach(store.places) { place in
+                row(place)
+            }
+            // Remove and reorder in Edit List only: a sideways swipe on a card drags its day bar.
+            .onDelete { store.remove(at: $0) }
+            .onMove { store.move(from: $0, to: $1) }
+            // The last row, not a section footer: a plain list pins footers to the bottom
+            // of the screen on a black band, over the home indicator.
+            footer
+                .listRowInsets(EdgeInsets(top: 8, leading: Card.margin, bottom: 24, trailing: Card.margin))
+                .listRowBackground(Theme.bg)
+                .listRowSeparator(.hidden)
+        } header: {
+            // Pinned while the cities scroll underneath.
+            MomentHeader(copied: copied) { showingDate = true }
+                .padding(.horizontal, Card.margin).padding(.top, 14).padding(.bottom, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.bg)
+                .listRowInsets(EdgeInsets())
+                .textCase(nil)
         }
     }
 
@@ -124,7 +166,9 @@ struct ContentView: View {
         // swipe drags the day bar, which moves the time for every city.
         CityRow(place: place)
             .contentShape(Rectangle())
-            .onTapGesture { actionsFor = place }
+            .onTapGesture { if !editMode.isEditing { actionsFor = place } }
+            .deleteDisabled(!editMode.isEditing)
+            .moveDisabled(!editMode.isEditing)
             .listRowInsets(EdgeInsets(top: Card.gap / 2 + Card.padding, leading: Card.margin + Card.padding,
                                       bottom: Card.gap / 2 + Card.padding, trailing: Card.margin + Card.padding))
             .listRowBackground(
@@ -152,17 +196,20 @@ struct ContentView: View {
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            ShareLink(item: Theme.appPage, subject: Text("Meridian"), message: Text(Theme.shareMessage)) {
-                Image(systemName: "square.and.arrow.up")
+            if editMode.isEditing {
+                Button("Done") { withAnimation { editMode = .inactive } }.fontWeight(.semibold)
+            } else {
+                ShareLink(item: Theme.appPage, subject: Text("Meridian"), message: Text(Theme.shareMessage)) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Share Meridian")
             }
-            .accessibilityLabel("Share Meridian")
         }
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            if !store.places.isEmpty { Button("Edit") { showingEdit = true } }
-            Button { showingAdd = true } label: { Image(systemName: "plus") }
-                .disabled(!store.canAdd)
-                .accessibilityLabel("Add City")
+        ToolbarItem(placement: .topBarTrailing) {
             Menu {
+                Button { query = ""; withAnimation { editMode = .active } } label: { Label("Edit List", systemImage: "pencil") }
+                    .disabled(store.places.isEmpty)
+                Divider()
                 Button { showingDate = true } label: { Label("Go to Date…", systemImage: "calendar") }
                 Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
                     .disabled(store.places.isEmpty)
@@ -194,7 +241,8 @@ struct ContentView: View {
     private var emptyState: some View {
         VStack(spacing: 10) {
             Text("No cities yet").font(.headline).foregroundStyle(Theme.primary)
-            Button("Add a City") { showingAdd = true }.buttonStyle(.borderedProminent).tint(Theme.cream).foregroundStyle(Theme.bg)
+            Text("Search above to add one: a city, an airport code like SFO, or a time zone like PST.")
+                .font(.subheadline).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
@@ -218,10 +266,10 @@ struct ContentView: View {
         // After the first layout, so the list and toolbar pick the change up.
         try? await Task.sleep(for: .milliseconds(400))
         switch Screenshots.screen {
-        case "add": showingAdd = true
+        case "add": query = "san"
         case "settings": showingSettings = true
         case "date": showingDate = true
-        case "edit": showingEdit = true
+        case "edit": editMode = .active
         case "travel": store.jump(to: TimeMath.hourAnchor(store.now).addingTimeInterval(5 * 3600), animated: false)
         default: break
         }
@@ -654,5 +702,34 @@ private struct Scrub: ViewModifier {
                     horizontal = nil
                 }
         )
+    }
+}
+
+/// One search result: the city and its region; its time and offset; added or not.
+private struct SearchResultRow: View {
+    @EnvironmentObject private var store: CityStore
+    let entry: CityEntry
+    let added: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.name).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
+                Text(entry.region.replacingOccurrences(of: "_", with: " "))
+                    .font(.footnote).foregroundStyle(Theme.muted)
+            }
+            Spacer()
+            if let zone = TimeZone(identifier: entry.timeZoneID) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(TimeMath.time(store.now, in: zone, use24h: store.use24h))
+                        .foregroundStyle(Theme.secondary).monospacedDigit()
+                    Text(TimeMath.offsetLabel(seconds: zone.secondsFromGMT(for: store.now)))
+                        .font(.footnote).foregroundStyle(Theme.muted)
+                }
+            }
+            Image(systemName: added ? "checkmark" : "plus.circle.fill")
+                .foregroundStyle(added ? Theme.faint : Theme.cream)
+        }
+        .contentShape(Rectangle())
     }
 }

@@ -53,78 +53,7 @@ private fun Screen(title: String, onBack: () -> Unit, backLabel: String = "Done"
     )
 }
 
-/** Search by city, airport code (SFO), abbreviation (PST) or offset (UTC+5:30); tap to add. All offline. */
-@Composable
-fun AddCityScreen(store: Store, onDone: () -> Unit) {
-    var query by remember { mutableStateOf(if (store.demo) "san" else "") }
-    val results = remember(query) { CityDirectory.search(query) }
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { if (!store.demo) focus.requestFocus() }
-    Screen("Add City", onDone, backLabel = "Cancel") { padding ->
-        Column(Modifier.padding(padding)) {
-            OutlinedTextField(query, { query = it }, singleLine = true, placeholder = { Text("City, SFO, PST, UTC+5…") },
-                shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).focusRequester(focus))
-            if (!store.canAdd) Text("You can track up to ${Store.MAX_PLACES} cities. Remove one to add another.",
-                color = Palette.muted, modifier = Modifier.padding(16.dp))
-            else if (query.isBlank()) Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30.",
-                fontSize = 14.sp, color = Palette.muted, modifier = Modifier.padding(16.dp))
-            LazyColumn {
-                items(results, key = { it.name + it.zoneId }) { entry ->
-                    val added = store.contains(entry)
-                    val zone = runCatching { java.time.ZoneId.of(entry.zoneId) }.getOrNull()
-                    Row(Modifier.fillMaxWidth().clickable(enabled = !added && store.canAdd) { store.add(entry); onDone() }
-                        .padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(entry.name, fontWeight = FontWeight.SemiBold)
-                            Text(entry.region.replace("_", " "), fontSize = 13.sp, color = Palette.muted)
-                        }
-                        if (zone != null) Column(horizontalAlignment = Alignment.End) {
-                            Text(TimeMath.time(store.now, zone, store.use24h), color = Palette.secondary)
-                            Text(TimeMath.offsetLabel(TimeMath.offsetSeconds(zone, store.now)), fontSize = 13.sp, color = Palette.muted)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Icon(if (added) Icons.Filled.Check else Icons.Filled.Add, contentDescription = if (added) "Already added" else "Add",
-                            tint = if (added) Palette.faint else Palette.cream)
-                    }
-                    HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = Palette.border, thickness = 0.5.dp)
-                }
-            }
-        }
-    }
-}
-
-/** Remove, reorder and rename (tap a city). */
-@Composable
-fun EditCitiesScreen(store: Store, onDone: () -> Unit) {
-    var renaming by remember { mutableStateOf<Place?>(null) }
-    Screen("Edit Cities", onDone) { padding ->
-        LazyColumn(Modifier.padding(padding)) {
-            items(store.places, key = { it.id }) { place ->
-                Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { store.remove(place) }) { Icon(Icons.Filled.Delete, "Remove ${place.name}", tint = Color(0xFFFF6B6B)) }
-                    // My Location is named from where you are, so it isn't renamed.
-                    Column(Modifier.weight(1f).clickable(enabled = !place.isMyLocation) { renaming = place }.padding(vertical = 6.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(place.name, fontWeight = FontWeight.SemiBold)
-                            if (place.isMyLocation) MyLocationMark()
-                        }
-                        Text(TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, store.now)), fontSize = 13.sp, color = Palette.muted)
-                    }
-                    Text(TimeMath.time(store.now, place.zone, store.use24h), color = Palette.secondary)
-                    IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) { Icon(Icons.Filled.KeyboardArrowUp, "Move up") }
-                    IconButton(onClick = { store.move(place, 1) }, enabled = place != store.places.last()) { Icon(Icons.Filled.KeyboardArrowDown, "Move down") }
-                }
-                HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = Palette.border, thickness = 0.5.dp)
-            }
-            item {
-                Text(if (store.places.isEmpty()) "No cities. Tap + on the main screen to add one." else "Use the arrows to reorder. Tap a city to rename it.",
-                    fontSize = 13.sp, color = Palette.muted, modifier = Modifier.padding(20.dp))
-            }
-        }
-    }
-    renaming?.let { place -> RenameDialog(place) { name -> if (name != null) store.rename(place, name); renaming = null } }
-}
-
+/** Rename a city (not My Location, which is named from where you are). */
 @Composable
 fun RenameDialog(place: Place, onDone: (String?) -> Unit) {
     var name by remember { mutableStateOf(place.name) }

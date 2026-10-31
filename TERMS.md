@@ -198,6 +198,7 @@ What each Service does:
   - The web version can use your location only if you choose "Use My Location" and your browser asks your permission.
 - **Updates:**
   - The Mac apps contact GitHub to check for and download updates.
+  - Meridian's apps contact GitHub, at most once a day, to check whether these terms have changed. When they have, the app asks you to agree again, no more than once a month.
   - Cowdrey.MD for Android, when downloaded from bradcowdrey.com, asks GitHub once a day whether a newer version exists. If you choose to update, it downloads the new version from GitHub.
   - App Store apps are updated by Apple and don't contact GitHub.
 - **Book and product purchases:**
@@ -268,7 +269,7 @@ To the fullest extent permitted by law:
 
 ## 18. General
 
-- **Changes.** I may update these terms by posting a new version at bradcowdrey.com/legal and changing the "Last updated" date. For a significant change, I will also note it in the apps' release notes. When the terms change, Cowdrey.MD asks you to agree to the new version, no more than once a month. A change applies from the date it is posted. Continuing to use the Services after that means you accept it.
+- **Changes.** I may update these terms by posting a new version at bradcowdrey.com/legal and changing the "Last updated" date. For a significant change, I will also note it in the apps' release notes. When the terms change, Cowdrey.MD and Meridian ask you to agree to the new version, no more than once a month. A change applies from the date it is posted. Continuing to use the Services after that means you accept it.
 - **Whole agreement.** These terms, together with the MIT License for the source code, are the entire agreement between us about the Services.
 - **Severability.** If any part of these terms can't be enforced, it will be enforced as far as possible, and the rest stays in full effect.
 - **No waiver.** If I don't enforce a term, that doesn't waive it.

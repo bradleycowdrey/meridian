@@ -23,6 +23,6 @@ enum Theme {
 enum Card {
     static let margin: CGFloat = 16
     static let padding: CGFloat = 16
-    static let gap: CGFloat = 8
+    static let gap: CGFloat = 12
     static let radius: CGFloat = 16
 }

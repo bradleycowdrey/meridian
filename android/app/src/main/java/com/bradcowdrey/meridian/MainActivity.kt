@@ -215,10 +215,12 @@ fun MainScreen(store: Store, open: (String) -> Unit) {
             }
             items(store.places, key = { it.id }) { place ->
                 var actions by remember { mutableStateOf(false) }
-                // Each city is a card: 16 dp from the screen edges, 8 dp between cards,
-                // 16 dp corners (Material 3's large shape).
-                Box(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).clip(RoundedCornerShape(16.dp)).background(Palette.tile)) {
-                    CityRow(store, place, Modifier.combinedClickable(onClick = {}, onLongClick = { actions = true }))
+                // Each city is a card: 16 dp from the screen edges, 12 dp between cards, 16 dp
+                // corners (Material 3's large shape) and a hairline edge. Tap or touch and hold a
+                // card for its own actions; dragging its day bar still moves every city's time.
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Palette.tile)
+                    .border(0.5.dp, Palette.border, RoundedCornerShape(16.dp))) {
+                    CityRow(store, place, Modifier.combinedClickable(onClickLabel = "Actions for ${place.name}", onClick = { actions = true }, onLongClick = { actions = true }))
                     DropdownMenu(expanded = actions, onDismissRequest = { actions = false }) {
                         DropdownMenuItem(text = { Text("Copy Time") }, onClick = {
                             actions = false

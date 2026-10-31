@@ -11,6 +11,8 @@ struct ContentView: View {
     @State private var showingDate = false
     @State private var copied = false
     @State private var renaming: Place?
+    /// The card tapped: its actions show in a dialog.
+    @State private var actionsFor: Place?
     @State private var newName = ""
 
     var body: some View {
@@ -36,7 +38,24 @@ struct ContentView: View {
                 Button("Cancel", role: .cancel) { renaming = nil }
                 Button("Rename") { finishRename() }
             }
+            .confirmationDialog(actionsFor?.name ?? "", isPresented: showingActions, titleVisibility: .visible, presenting: actionsFor) { place in
+                Button("Copy Time") { copy(place) }
+                if !place.isMyLocation {
+                    Button("Rename") {
+                        newName = place.name
+                        // After the dialog has gone, so the rename alert can show.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { renaming = place }
+                    }
+                }
+                Button("Remove", role: .destructive) { store.remove(place) }
+            } message: { place in
+                Text("\(TimeMath.fullMoment(store.moment, in: place.timeZone, use24h: store.use24h)) · \(place.offsetLabel(at: store.moment))")
+            }
             .task { await openScreenshotScreen() }
+    }
+
+    private var showingActions: Binding<Bool> {
+        Binding(get: { actionsFor != nil }, set: { if !$0 { actionsFor = nil } })
     }
 
     private var styledList: some View {
@@ -79,14 +98,20 @@ struct ContentView: View {
     }
 
     private func row(_ place: Place) -> some View {
-        // Each city is a card: 16 pt from the screen edges, 16 pt inside, 8 pt between cards
-        // (Apple's standard margins; continuous corners like the system's own cards).
+        // Each city is a card: 16 pt from the screen edges, 16 pt inside, 12 pt between cards
+        // (Apple's standard margins; continuous corners like the system's own cards), with a
+        // hairline edge so cards stand apart on the dark background. Each card has its own
+        // actions: tap for them, or touch and hold for the menu. No swipe to remove: a sideways
+        // swipe drags the day bar, which moves the time for every city.
         CityRow(place: place)
+            .contentShape(Rectangle())
+            .onTapGesture { actionsFor = place }
             .listRowInsets(EdgeInsets(top: Card.gap / 2 + Card.padding, leading: Card.margin + Card.padding,
                                       bottom: Card.gap / 2 + Card.padding, trailing: Card.margin + Card.padding))
             .listRowBackground(
                 RoundedRectangle(cornerRadius: Card.radius, style: .continuous)
                     .fill(Theme.tile)
+                    .overlay(RoundedRectangle(cornerRadius: Card.radius, style: .continuous).strokeBorder(Theme.border, lineWidth: 0.5))
                     .padding(.horizontal, Card.margin)
                     .padding(.vertical, Card.gap / 2)
             )
@@ -101,7 +126,7 @@ struct ContentView: View {
                 } label: { Label("Remove", systemImage: "trash") }
             }
             .accessibilityAction(named: "Copy Time") { copy(place) }
-            .accessibilityAction(named: "Rename") { newName = place.name; renaming = place }
+            .accessibilityAction(named: "Rename") { if !place.isMyLocation { newName = place.name; renaming = place } }
             .accessibilityAction(named: "Remove") { store.remove(place) }
     }
 

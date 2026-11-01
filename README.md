@@ -7,7 +7,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 <p align="center">
   <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg"><b>Download for Mac</b></a> ·
-  <a href="https://apps.apple.com/app/id6826713540"><b>iPhone</b></a> ·
+  <a href="https://apps.apple.com/app/id6826713540"><b>iPhone</b></a> (in App Review) ·
   <a href="https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk"><b>Android APK</b></a> ·
   <a href="https://bradcowdrey.com/meridian">Try it in your browser</a> ·
   <a href="https://github.com/bradleycowdrey/meridian/issues">Report an issue</a>
@@ -83,7 +83,7 @@ Add Meridian to your desktop or Notification Center in three sizes: small (one c
 
 ## iPhone and Android
 
-- **iPhone** (iOS 17 or later): [Meridian: Every Time Zone](https://apps.apple.com/app/id6826713540) on the App Store. Each city's time large, with a day-and-night bar you can drag to move through time; Home Screen and Lock Screen widgets; My Location. Source in [`ios/`](ios).
+- **iPhone** (iOS 17 or later): [Meridian: Every Time Zone](https://apps.apple.com/app/id6826713540) on the App Store, in App Review. Each city's time large, with a day-and-night bar you can drag to move through time; Home Screen and Lock Screen widgets; My Location. Source in [`ios/`](ios).
 - **Android** (8 or later): download [Meridian-debug.apk](https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk) on your phone and open it (allow installs from your browser if asked). Same design, home screen widgets in three sizes, My Location. Not on Google Play yet. Source in [`android/`](android).
 
 ## Install on Mac (sideload)

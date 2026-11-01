@@ -677,9 +677,20 @@ struct CityRow: View {
                     .fixedSize()
                     .layoutPriority(1)
             }
-            // Notes on their own line, so they never squeeze the time.
-            if hereLabel != nil || offLabel != nil {
+            // Notes on their own line, so they never squeeze or move the time.
+            let shift = TimeMath.dayShift(moment, zone: place.timeZone)
+            if hereLabel != nil || offLabel != nil || shift != 0 {
                 HStack(spacing: 14) {
+                    // "+1 d" / "−1 d" when the city is on another day, as in the Mac app and widgets.
+                    if shift != 0 {
+                        Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
+                            .font(.caption2.weight(.semibold))
+                            .monospacedDigit()
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Capsule().fill(Theme.border))
+                            .foregroundStyle(Theme.cream)
+                            .fixedSize()
+                    }
                     // Where you are, on this card rather than a second card for the same place.
                     if let here = hereLabel {
                         Label(here, systemImage: "location.fill")
@@ -700,7 +711,7 @@ struct CityRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(place.name)\(hereLabel.map { ", \($0)" } ?? ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(offLabel.map { ", \($0.lowercased())" } ?? "")")
+        .accessibilityLabel("\(place.name)\(hereLabel.map { ", \($0)" } ?? ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(dayNote(moment))\(offLabel.map { ", \($0.lowercased())" } ?? "")")
     }
 
     private func clock(hour: Int, minute: Int) -> some View {
@@ -715,15 +726,6 @@ struct CityRow: View {
                     .font(.title3)
                     .foregroundStyle(Theme.muted)
             }
-            // "+1 d" / "−1 d" when the city is on another day, as in the Mac app and widgets.
-            let shift = TimeMath.dayShift(store.moment, zone: place.timeZone)
-            if shift != 0 {
-                Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
-                    .font(.caption2.weight(.semibold))
-                    .padding(.horizontal, 5).padding(.vertical, 1)
-                    .background(Capsule().fill(Theme.border))
-                    .foregroundStyle(Theme.cream)
-            }
         }
         .monospacedDigit()
         .lineLimit(1)
@@ -736,6 +738,16 @@ struct CityRow: View {
         f.dateFormat = "EEE d MMM"
         return f
     }()
+
+    /// ", tomorrow there" for VoiceOver.
+    private func dayNote(_ moment: Date) -> String {
+        switch TimeMath.dayShift(moment, zone: place.timeZone) {
+        case 0: return ""
+        case 1: return ", tomorrow there"
+        case -1: return ", yesterday there"
+        case let d: return ", \(abs(d)) days \(d > 0 ? "ahead" : "behind")"
+        }
+    }
 
     private func detail(_ moment: Date) -> String {
         let utc = place.offsetLabel(at: moment)

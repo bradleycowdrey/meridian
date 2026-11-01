@@ -450,19 +450,24 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
                         Text(it, fontSize = 12.sp, color = Palette.cream)
                     }
                 }
-                // This city's own note, rather than a list of names in the header.
-                if (off != null) OffNote(off, Modifier.padding(top = 2.dp))
+                // "+1 d" when the city is on another day, beside its note, so the time never moves.
+                if (shift != 0 || off != null) {
+                    Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (shift != 0) {
+                            Text(if (shift > 0) "+$shift d" else "−${-shift} d", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Palette.cream,
+                                maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.border).padding(horizontal = 6.dp, vertical = 1.dp))
+                            if (off != null) Spacer(Modifier.width(10.dp))
+                        }
+                        // This city's own note, rather than a list of names in the header.
+                        if (off != null) OffNote(off)
+                    }
+                }
             }
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, modifier = Modifier.alignByBaseline())
                 if (suffix != null) {
                     Spacer(Modifier.width(4.dp))
                     Text(suffix, fontSize = 20.sp, color = Palette.muted, modifier = Modifier.alignByBaseline())
-                }
-                if (shift != 0) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (shift > 0) "+$shift d" else "−${-shift} d", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Palette.cream,
-                        modifier = Modifier.alignByBaseline().clip(RoundedCornerShape(50)).background(Palette.border).padding(horizontal = 5.dp, vertical = 1.dp))
                 }
             }
         }

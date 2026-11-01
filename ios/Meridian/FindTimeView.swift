@@ -41,7 +41,8 @@ struct FindTimeView: View {
             }
             .onAppear {
                 if chosen.isEmpty { chosen = Set(store.visiblePlaces.map(\.id)) }
-                // After work today, start with tomorrow.
+                // Today on the app's clock; after work, tomorrow.
+                day = calendar.startOfDay(for: store.now)
                 if calendar.component(.hour, from: store.now) >= 17 { day = calendar.date(byAdding: .day, value: 1, to: day) ?? day }
             }
         }

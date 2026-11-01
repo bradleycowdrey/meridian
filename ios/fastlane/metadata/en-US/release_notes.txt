@@ -1,5 +1,9 @@
-A calmer, clearer design: each city on its own card, time large, and a slider at the top to move every city through time: Now, ±1 or ±2 hours, or type any offset.
+Find a Time: pick a day and who's in it, and see when everyone is working, with the best times first. Add it to your calendar or share an invite with every city's time.
 
-My Location: the city you're in is added to your list and follows you when you travel.
+People and groups: add a card for a colleague in their city, put cards in groups, and show one group at a time.
 
-Working weeks: each city follows the working days where it is (Sunday to Thursday in Riyadh), and you can set any city's own days and hours.
+Every card has a status line: working or not, when the sun sets or rises there, and +1 d when it's another day.
+
+Public holidays count as days off, and the card names the holiday. Clock changes in the next two weeks show above your cities.
+
+Search 34,000 cities, offline. A time ruler moves every city through the day in quarter-hours. My Location adds the city you're in. Each city follows its own working days (Sunday to Thursday in Riyadh).

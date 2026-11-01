@@ -609,10 +609,21 @@ private struct RulerTick: View {
 
 /// One city, in the manner of Apple's Clock: how it relates to you and its name on the left, its
 /// time large and light on the right; then a slim day-and-night bar of its hours.
+/// A status: a small icon and its words, close together.
+struct StatusLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.icon.imageScale(.small)
+            configuration.title
+        }
+    }
+}
+
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .caption) private var statusHeight: CGFloat = 20
     let place: Place
     /// In Edit List: a compact row (name, offset, time) so the delete button and handle fit.
     var editing = false
@@ -628,6 +639,26 @@ struct CityRow: View {
     /// "Off hours", "Weekend" or "Day off" when the city isn't at work (and that setting is on).
     private var offLabel: String? {
         store.showWorkHours ? WorkWeek.offLabel(place, at: store.moment, start: store.workStart, end: store.workEnd) : nil
+    }
+
+    /// "Working" with a briefcase, or "Off hours", "Weekend", "Day off" with a moon (when that
+    /// setting is on).
+    private var workStatus: (text: String, icon: String, working: Bool)? {
+        guard store.showWorkHours else { return nil }
+        if let off = offLabel { return (off, "moon.zzz.fill", false) }
+        return ("Working", "briefcase.fill", true)
+    }
+
+    /// "Sets 4:59 PM" while the sun is up there, "Rises 6:27 AM" while it's down.
+    private var sunStatus: (text: String, icon: String)? {
+        let time = { (date: Date) in TimeMath.time(date, in: place.timeZone, use24h: store.use24h) }
+        switch Sun.phase(zoneID: place.timeZoneID, at: store.moment) {
+        case .day(let sets)?: return ("Sets \(time(sets))", "sun.max.fill")
+        case .night(let rises)?: return ("Rises \(time(rises))", "sunrise.fill")
+        case .allDay?: return ("Sun all day", "sun.max.fill")
+        case .allNight?: return ("Polar night", "moon.stars.fill")
+        case nil: return nil
+        }
     }
 
     var body: some View {
@@ -665,10 +696,19 @@ struct CityRow: View {
                         .font(.footnote)
                         .foregroundStyle(Theme.muted)
                         .monospacedDigit()
-                    Text(place.name)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(Theme.primary)
-                        .minimumScaleFactor(0.8)
+                    HStack(spacing: 6) {
+                        Text(place.name)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Theme.primary)
+                            .minimumScaleFactor(0.8)
+                        // Where you are, on this card rather than a second card for the same place.
+                        if hereLabel != nil {
+                            Image(systemName: "location.fill")
+                                .font(.caption)
+                                .foregroundStyle(Theme.cream)
+                                .accessibilityHidden(true)
+                        }
+                    }
                 }
                 .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
                 if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
@@ -677,41 +717,43 @@ struct CityRow: View {
                     .fixedSize()
                     .layoutPriority(1)
             }
-            // Notes on their own line, so they never squeeze or move the time.
-            let shift = TimeMath.dayShift(moment, zone: place.timeZone)
-            if hereLabel != nil || offLabel != nil || shift != 0 {
-                HStack(spacing: 14) {
-                    // "+1 d" / "−1 d" when the city is on another day, as in the Mac app and widgets.
-                    if shift != 0 {
-                        Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
-                            .font(.caption2.weight(.semibold))
-                            .monospacedDigit()
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Capsule().fill(Theme.border))
-                            .foregroundStyle(Theme.cream)
-                            .fixedSize()
-                    }
-                    // Where you are, on this card rather than a second card for the same place.
-                    if let here = hereLabel {
-                        Label(here, systemImage: "location.fill")
-                            .foregroundStyle(Theme.cream)
-                    }
-                    // This city's own note, rather than a list of names in the header.
-                    if let off = offLabel {
-                        Label(off, systemImage: "moon.zzz.fill")
-                            .foregroundStyle(Theme.muted)
-                    }
+            // One status line on every card, always there (so every card is the same height) and
+            // apart from the time (so it never squeezes or moves it): the day, work, the sun.
+            HStack(spacing: 14) {
+                // "+1 d" / "−1 d" when the city is on another day, as in the Mac app and widgets.
+                let shift = TimeMath.dayShift(moment, zone: place.timeZone)
+                if shift != 0 {
+                    Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
+                        .font(.caption2.weight(.semibold))
+                        .monospacedDigit()
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Capsule().fill(Theme.border))
+                        .foregroundStyle(Theme.cream)
+                        .fixedSize()
                 }
-                .font(.caption)
-                .labelStyle(.titleAndIcon)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+                if let work = workStatus {
+                    Label(work.text, systemImage: work.icon)
+                        .foregroundStyle(work.working ? Theme.secondary : Theme.muted)
+                }
+                if let sun = sunStatus {
+                    Label(sun.text, systemImage: sun.icon)
+                        .foregroundStyle(Theme.muted)
+                        .monospacedDigit()
+                }
+                Spacer(minLength: 0)
             }
+            .font(.caption)
+            .labelStyle(StatusLabelStyle())
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(minHeight: statusHeight)
             DayBar(place: place)
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(place.name)\(hereLabel.map { ", \($0)" } ?? ""), \(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h)), \(detail(moment))\(dayNote(moment))\(offLabel.map { ", \($0.lowercased())" } ?? "")")
+        .accessibilityLabel([place.name, hereLabel, TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
+                             detail(moment), dayNote(moment), workStatus?.text, sunStatus.map { "sun \($0.text.lowercased())" }]
+                             .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
     }
 
     private func clock(hour: Int, minute: Int) -> some View {
@@ -743,13 +785,20 @@ struct CityRow: View {
     private func dayNote(_ moment: Date) -> String {
         switch TimeMath.dayShift(moment, zone: place.timeZone) {
         case 0: return ""
-        case 1: return ", tomorrow there"
-        case -1: return ", yesterday there"
-        case let d: return ", \(abs(d)) days \(d > 0 ? "ahead" : "behind")"
+        case 1: return "tomorrow there"
+        case -1: return "yesterday there"
+        case let d: return "\(abs(d)) days \(d > 0 ? "ahead" : "behind")"
         }
     }
 
+    /// "My Location · UTC−7" on the card for where you are, else how the city relates to you.
     private func detail(_ moment: Date) -> String {
+        let base = relation(moment)
+        guard let here = hereLabel else { return base }
+        return here + " · " + (base.hasPrefix("Your time · ") || base.hasPrefix("Same time · ") ? String(base.split(separator: "·").last!).trimmingCharacters(in: .whitespaces) : base)
+    }
+
+    private func relation(_ moment: Date) -> String {
         let utc = place.offsetLabel(at: moment)
         let diff = place.timeZone.secondsFromGMT(for: moment) - TimeZone.current.secondsFromGMT(for: moment)
         if diff == 0 {

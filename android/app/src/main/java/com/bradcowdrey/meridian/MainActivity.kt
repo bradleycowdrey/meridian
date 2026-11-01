@@ -433,43 +433,62 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
         else store.hereCity?.takeIf { !place.isMyLocation && it != place.name }?.let { "My Location · $it" } ?: "My Location"
     // Your own city on another day (a date you went to) shows that date instead of "Your time".
     val otherDay = place.zone.id == store.home.id && moment.atZone(store.home).toLocalDate() != store.now.atZone(store.home).toLocalDate()
-    val detail = (TimeMath.relative(moment, place.zone, store.home)
+    val relation = TimeMath.relative(moment, place.zone, store.home)
         ?: if (otherDay) moment.atZone(store.home).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))
-        else if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
+        else if (place.zone.id == store.home.id) "Your time" else "Same time"
+    // "My Location · UTC−7" on the card for where you are.
+    val detail = (here?.let { if (relation == "Your time" || relation == "Same time") it else "$it · $relation" } ?: relation) + " · " + utc
+    // "Working", or "Off hours" / "Weekend" / "Day off" (when that setting is on).
+    val work = if (store.showWorkHours) off ?: "Working" else null
+    // "Sets 4:59 PM" while the sun is up there, "Rises 6:27 AM" while it's down.
+    val sun = when (val p = Sun.phase(place.zoneId, moment)) {
+        is Sun.Phase.Day -> "Sets ${TimeMath.time(p.sets, place.zone, store.use24h)}"
+        is Sun.Phase.Night -> "Rises ${TimeMath.time(p.rises, place.zone, store.use24h)}"
+        Sun.Phase.AllDay -> "Sun all day"
+        Sun.Phase.AllNight -> "Polar night"
+        null -> null
+    }
+    val sunUp = Sun.phase(place.zoneId, moment).let { it is Sun.Phase.Day || it == Sun.Phase.AllDay }
+    val dayNote = when (shift) { 0 -> null; 1 -> "tomorrow there"; -1 -> "yesterday there"; else -> "${kotlin.math.abs(shift)} days ${if (shift > 0) "ahead" else "behind"}" }
     Column(modifier.fillMaxWidth().padding(16.dp)
-        .semantics(mergeDescendants = true) { contentDescription = "${place.name}${here?.let { ", $it" } ?: ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail${off?.let { ", ${it.lowercase()}" } ?: ""}" }) {
+        .semantics(mergeDescendants = true) {
+            contentDescription = listOfNotNull(place.name, TimeMath.time(moment, place.zone, store.use24h), detail, dayNote, work, sun?.let { "sun ${it.lowercase()}" }).joinToString(", ")
+        }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
-                Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1)
-                Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                // Where you are, on this card rather than a second card for the same place.
-                here?.let {
-                    Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = Palette.cream, modifier = Modifier.size(13.dp))
-                        Spacer(Modifier.width(3.dp))
-                        Text(it, fontSize = 12.sp, color = Palette.cream)
-                    }
-                }
-                // "+1 d" when the city is on another day, beside its note, so the time never moves.
-                if (shift != 0 || off != null) {
-                    Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (shift != 0) {
-                            Text(if (shift > 0) "+$shift d" else "−${-shift} d", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Palette.cream,
-                                maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.border).padding(horizontal = 6.dp, vertical = 1.dp))
-                            if (off != null) Spacer(Modifier.width(10.dp))
-                        }
-                        // This city's own note, rather than a list of names in the header.
-                        if (off != null) OffNote(off)
+                Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    // Where you are, on this card rather than a second card for the same place.
+                    if (here != null) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = Palette.cream, modifier = Modifier.size(15.dp))
                     }
                 }
             }
+            Spacer(Modifier.width(8.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, modifier = Modifier.alignByBaseline())
+                Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, maxLines = 1, softWrap = false, modifier = Modifier.alignByBaseline())
                 if (suffix != null) {
                     Spacer(Modifier.width(4.dp))
-                    Text(suffix, fontSize = 20.sp, color = Palette.muted, modifier = Modifier.alignByBaseline())
+                    Text(suffix, fontSize = 20.sp, color = Palette.muted, maxLines = 1, softWrap = false, modifier = Modifier.alignByBaseline())
                 }
             }
+        }
+        // One status line on every card, always there (so every card is the same height) and apart
+        // from the time (so it never squeezes or moves it): the day, work, the sun.
+        Row(Modifier.padding(top = 8.dp).heightIn(min = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (shift != 0) {
+                Text(if (shift > 0) "+$shift d" else "−${-shift} d", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Palette.cream,
+                    maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.border).padding(horizontal = 6.dp, vertical = 1.dp))
+                Spacer(Modifier.width(12.dp))
+            }
+            if (work != null) {
+                StatusNote(work, if (off == null) R.drawable.ic_briefcase else R.drawable.ic_moon, if (off == null) Palette.secondary else Palette.muted)
+                Spacer(Modifier.width(12.dp))
+            }
+            if (sun != null) StatusNote(sun, if (sunUp) R.drawable.ic_sun else R.drawable.ic_sunrise, Palette.muted)
         }
         Spacer(Modifier.height(12.dp))
         DayBar(store, place)
@@ -661,13 +680,13 @@ fun EditRow(store: Store, place: Place) {
     }
 }
 
-/** "Off hours", "Weekend" or "Day off", with a moon, as on the iPhone. */
+/** A status on a card: a small icon and its words ("Working", "Off hours", "Sets 4:59 PM"). */
 @Composable
-fun OffNote(text: String, modifier: Modifier = Modifier) {
+fun StatusNote(text: String, icon: Int, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_moon), contentDescription = null, tint = Palette.muted, modifier = Modifier.size(12.dp))
-        Spacer(Modifier.width(5.dp))
-        Text(text, fontSize = 12.sp, color = Palette.muted)
+        Icon(androidx.compose.ui.res.painterResource(icon), contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(text, fontSize = 12.sp, color = color, maxLines = 1, softWrap = false)
     }
 }
 

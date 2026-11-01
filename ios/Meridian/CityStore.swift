@@ -308,7 +308,7 @@ final class CityStore: ObservableObject {
 
     /// Plain text for the selected moment in every city, for pasting into a chat or invite.
     var momentText: String {
-        places.map { "\($0.person.map { p in "\(p) (\($0.name))" } ?? $0.name): \(TimeMath.fullMoment(moment, in: $0.timeZone, use24h: use24h)) (\($0.offsetLabel(at: moment)))" }
+        places.map { place in "\(place.person.map { "\($0) (\(place.name))" } ?? place.name): \(TimeMath.fullMoment(moment, in: place.timeZone, use24h: use24h)) (\(place.offsetLabel(at: moment)))" }
             .joined(separator: "\n")
     }
 }

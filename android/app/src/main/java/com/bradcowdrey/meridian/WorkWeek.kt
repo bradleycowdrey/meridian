@@ -43,6 +43,8 @@ object WorkWeek {
     fun hours(place: Place, at: Instant, start: Int, end: Int): Hours? {
         val local = at.atZone(place.zone)
         val weekday = dayNumber(local.dayOfWeek)
+        // A public holiday there is a day off.
+        if (Holidays.name(place, at) != null) return null
         val schedule = schedule(place.zoneId)
         var today: Hours? = if (schedule != null) {
             val week = (if (local.monthValue in schedule.summerMonths) schedule.summer else null) ?: schedule.week
@@ -73,6 +75,7 @@ object WorkWeek {
     fun offLabel(place: Place, at: Instant, start: Int, end: Int): String? {
         if (isWorking(place, at, start, end)) return null
         if (hours(place, at, start, end) != null) return "Off hours"
+        Holidays.name(place, at)?.let { return it }
         val weekday = dayNumber(at.atZone(place.zone).dayOfWeek)
         return if (weekday in usualDays(place.zoneId)) "Day off" else "Weekend"
     }

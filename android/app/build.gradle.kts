@@ -31,6 +31,12 @@ android {
     buildFeatures {
         compose = true
     }
+    // The city list and public holidays, shared with the Mac and iPhone apps (not copied).
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs("../../Resources/Data")
+        }
+    }
 }
 
 dependencies {

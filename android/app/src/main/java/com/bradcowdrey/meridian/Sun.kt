@@ -22,9 +22,22 @@ object Sun {
         object AllNight : Phase()
     }
 
+    /** Where the sun is for this card: at the city itself when it's known, else its time zone's city. */
+    fun phase(place: Place, at: Instant): Phase? {
+        val lat = place.latitude
+        val lon = place.longitude
+        if (lat != null && lon != null) return phase(lat, lon, place.zone, at)
+        return phase(place.zoneId, at)
+    }
+
+    /** Where the sun is in this zone's city, or null for a zone with no known place (UTC, an offset). */
     fun phase(zoneId: String, at: Instant): Phase? {
         val (lat, lon) = coordinates[zoneId] ?: return null
         val zone = runCatching { ZoneId.of(zoneId) }.getOrNull() ?: return null
+        return phase(lat, lon, zone, at)
+    }
+
+    fun phase(lat: Double, lon: Double, zone: ZoneId, at: Instant): Phase? {
         val day = at.atZone(zone).toLocalDate()
         val today = events(lat, lon, day) ?: return polar(lat, day)
         if (at < today.first) return Phase.Night(today.first)

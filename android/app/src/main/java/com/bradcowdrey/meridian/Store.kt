@@ -17,7 +17,7 @@ import kotlin.math.roundToInt
  */
 class Store(private val context: Context, val demo: Boolean = false) {
     companion object {
-        const val MAX_PLACES = 12
+        const val MAX_PLACES = 24
         /** Demo moment: Tuesday 9 June 2026, 9:41 AM in San Francisco. */
         val DEMO_DATE: Instant = Instant.ofEpochSecond(1_781_023_260)
 
@@ -34,6 +34,11 @@ class Store(private val context: Context, val demo: Boolean = false) {
                         workDays = o.optJSONArray("workDays")?.let { a -> (0 until a.length()).map { a.getInt(it) }.toSet() },
                         workStart = if (o.has("workStart")) o.getInt("workStart") else null,
                         workEnd = if (o.has("workEnd")) o.getInt("workEnd") else null,
+                        countryCode = if (o.has("countryCode")) o.getString("countryCode") else null,
+                        latitude = if (o.has("latitude")) o.getDouble("latitude") else null,
+                        longitude = if (o.has("longitude")) o.getDouble("longitude") else null,
+                        person = if (o.has("person")) o.getString("person") else null,
+                        groups = o.optJSONArray("groups")?.let { a -> (0 until a.length()).map { a.getString(it) } },
                     )
                 }
             }.getOrNull()
@@ -44,6 +49,13 @@ class Store(private val context: Context, val demo: Boolean = false) {
     }
 
     private val prefs = prefs(context)
+
+    init {
+        // The city list and holidays come from the app's data files; read them in the background.
+        DataFiles.init(context)
+        Holidays.counted = prefs.getBoolean("countHolidays", true)
+        DataFiles.preload()
+    }
 
     /** "Your time": the phone's zone (Los Angeles in demo mode, so screenshots are the same everywhere). */
     val home: ZoneId = if (demo) ZoneId.of("America/Los_Angeles") else ZoneId.systemDefault()
@@ -73,6 +85,15 @@ class Store(private val context: Context, val demo: Boolean = false) {
         private set
     /** Answered the first-launch "Use your location?" question (or changed the setting). */
     var locationChosen by mutableStateOf(demo || prefs.getBoolean("myLocation.chosen", false))
+        private set
+    /** Count public holidays as days off (Settings). */
+    var countHolidays by mutableStateOf(Holidays.counted)
+        private set
+    /** The group the list shows ("Design team"); null shows everyone. */
+    var groupFilter by mutableStateOf(if (demo) null else prefs.getString("groupFilter", null))
+        private set
+    /** Clock changes the user has closed the notice for ("Europe/London|1793000000"). */
+    var dismissedClockChanges by mutableStateOf<Set<String>>(if (demo) emptySet() else prefs.getStringSet("dismissedClockChanges", null)?.toSet() ?: emptySet())
         private set
 
     /** Time travel in minutes (whole quarter-hours) from the current quarter-hour; 0 is now. */
@@ -207,20 +228,21 @@ class Store(private val context: Context, val demo: Boolean = false) {
     val outsideWorkHours: List<Place>
         get() = if (!showWorkHours) emptyList() else places.filter { !isWorking(it, moment) }
 
-    /** Plain text for the selected moment in every city, for a chat or invite. */
+    /** Plain text for the selected moment in every city, for a chat or invite ("Ana (Lisbon): ..."). */
     val momentText: String
         get() = places.joinToString("\n") {
-            "${it.name}: ${TimeMath.fullMoment(moment, it.zone, use24h)} (${TimeMath.offsetLabel(TimeMath.offsetSeconds(it.zone, moment))})"
+            "${it.fullName}: ${TimeMath.fullMoment(moment, it.zone, use24h)} (${TimeMath.offsetLabel(TimeMath.offsetSeconds(it.zone, moment))})"
         }
 
     // MARK: Cities
 
     val canAdd get() = places.size < MAX_PLACES
-    fun contains(entry: CityEntry) = places.any { it.name == entry.name && it.zoneId == entry.zoneId }
+    fun contains(entry: CityEntry) = places.any { it.person == null && it.name == entry.name && it.zoneId == entry.zoneId }
 
     fun add(entry: CityEntry) {
         if (!canAdd || contains(entry)) return
-        update(places + Place(entry.name, entry.zoneId))
+        update(places + Place(entry.name, entry.zoneId, countryCode = entry.countryCode,
+            latitude = entry.latitude, longitude = entry.longitude))
         // A city in your own time zone becomes My Location, rather than showing twice.
         updateMyLocation()
     }
@@ -269,7 +291,82 @@ class Store(private val context: Context, val demo: Boolean = false) {
     fun rename(place: Place, name: String) {
         val trimmed = name.trim().take(40)
         if (trimmed.isEmpty()) return
-        update(places.map { if (it.id == place.id) it.copy(name = trimmed) else it })
+        // A person's card renames the person; a city's, the city.
+        update(places.map { if (it.id != place.id) it else if (it.person != null) it.copy(person = trimmed) else it.copy(name = trimmed) })
+    }
+
+    // MARK: People
+
+    /** A card for a person in this card's city ("Ana", in Lisbon), right after it. */
+    fun addPerson(name: String, at: Place) {
+        val trimmed = name.trim()
+        val i = places.indexOfFirst { it.id == at.id }
+        if (trimmed.isEmpty() || !canAdd || i < 0) return
+        val city = if (at.isMyLocation) hereCity ?: at.name else at.name
+        val person = at.copy(id = java.util.UUID.randomUUID().toString(), person = trimmed.take(40), name = city)
+        update(places.toMutableList().also { it.add(i + 1, person) })
+    }
+
+    // MARK: Groups
+
+    /** Every group on the list, A to Z. */
+    val groups: List<String>
+        get() = places.flatMap { it.groups ?: emptyList() }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+
+    /** The cards the list shows: everyone, or one group. */
+    val visiblePlaces: List<Place>
+        get() {
+            val group = groupFilter ?: return places
+            if (group !in groups) return places
+            return places.filter { it.groups?.contains(group) == true }
+        }
+
+    fun setGroups(groups: List<String>, place: Place) {
+        val clean = groups.map { it.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
+        update(places.map { if (it.id == place.id) it.copy(groups = clean.ifEmpty { null }) else it })
+        groupFilter?.let { if (it !in this.groups) updateGroupFilter(null) }
+    }
+
+    fun updateGroupFilter(group: String?) {
+        groupFilter = group
+        if (demo) return
+        val edit = prefs.edit()
+        if (group == null) edit.remove("groupFilter") else edit.putString("groupFilter", group)
+        edit.apply()
+    }
+
+    // MARK: Clock changes
+
+    /**
+     * Daylight-saving changes in the next two weeks, where any card is or where you are, with how
+     * far each city will be from you afterwards; the ones closed with × are left out.
+     */
+    val clockChanges: List<ClockChange>
+        get() {
+            val horizon = now.plusSeconds(14 * 86_400L)
+            val zones = LinkedHashMap<String, String>()   // zone -> a name for it
+            places.forEach { if (it.zoneId !in zones) zones[it.zoneId] = it.name }
+            if (home.id !in zones) zones[home.id] = "Your time zone"
+            val changes = mutableListOf<ClockChange>()
+            for ((id, name) in zones) {
+                val zone = runCatching { ZoneId.of(id) }.getOrNull() ?: continue
+                val transition = zone.rules.nextTransition(now) ?: continue
+                if (!transition.instant.isBefore(horizon)) continue
+                val key = "$id|${transition.instant.epochSecond}"
+                if (key in dismissedClockChanges) continue
+                val before = transition.offsetBefore.totalSeconds
+                val after = transition.offsetAfter.totalSeconds
+                val mineBefore = home.rules.getOffset(transition.instant.minusSeconds(60)).totalSeconds
+                val mineAfter = home.rules.getOffset(transition.instant.plusSeconds(60)).totalSeconds
+                changes += ClockChange(key, name, transition, isMine = id == home.id,
+                    gapBefore = before - mineBefore, gapAfter = after - mineAfter)
+            }
+            return changes.sortedBy { it.transition.instant }
+        }
+
+    fun dismiss(change: ClockChange) {
+        dismissedClockChanges = dismissedClockChanges + change.key
+        if (!demo) prefs.edit().putStringSet("dismissedClockChanges", HashSet(dismissedClockChanges)).apply()
     }
 
     private fun update(list: List<Place>) {
@@ -281,6 +378,11 @@ class Store(private val context: Context, val demo: Boolean = false) {
             p.workDays?.let { o.put("workDays", JSONArray(it.sorted())) }
             p.workStart?.let { o.put("workStart", it) }
             p.workEnd?.let { o.put("workEnd", it) }
+            p.countryCode?.let { o.put("countryCode", it) }
+            p.latitude?.let { o.put("latitude", it) }
+            p.longitude?.let { o.put("longitude", it) }
+            p.person?.let { o.put("person", it) }
+            p.groups?.let { o.put("groups", JSONArray(it)) }
             array.put(o)
         }
         prefs.edit().putString("places", array.toString()).apply()
@@ -290,6 +392,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
     // MARK: Settings
 
     fun updateUse24h(on: Boolean) { use24h = on; prefs.edit().putBoolean("use24h", on).apply(); syncWidgets() }
+    fun updateCountHolidays(on: Boolean) { countHolidays = on; Holidays.counted = on; prefs.edit().putBoolean("countHolidays", on).apply() }
     fun updateShowWorkHours(on: Boolean) { showWorkHours = on; prefs.edit().putBoolean("showWorkHours", on).apply() }
     fun updateWorkStart(hour: Int) { workStart = hour.coerceIn(0, 23); prefs.edit().putInt("workStart", workStart).apply() }
     fun updateWorkEnd(hour: Int) { workEnd = hour.coerceIn(1, 24); prefs.edit().putInt("workEnd", workEnd).apply() }
@@ -360,4 +463,45 @@ object Terms {
     }
 
     fun changed(prefs: android.content.SharedPreferences) = agreed(prefs) != null
+}
+
+/** A city's clocks going forward or back soon. */
+class ClockChange(
+    val key: String,
+    val name: String,
+    val transition: java.time.zone.ZoneOffsetTransition,
+    val isMine: Boolean,
+    /** The city's offset from you, in seconds, just before and just after. */
+    val gapBefore: Int,
+    val gapAfter: Int,
+) {
+    /** Seconds the clocks move (+3600 forward, −3600 back). */
+    val shift: Int get() = transition.offsetAfter.totalSeconds - transition.offsetBefore.totalSeconds
+
+    /** "London's clocks go back 1 hr on Sun 25 Oct at 2:00 AM." */
+    fun headline(use24h: Boolean): String {
+        // The time on the clock as it changes (before it moves).
+        val before = transition.offsetBefore
+        val day = transition.instant.atOffset(before).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))
+        val at = TimeMath.time(transition.instant, before, use24h)
+        val whose = if (isMine) "Your clocks" else "$name\u2019s clocks"
+        return "$whose go ${if (shift > 0) "forward" else "back"} ${hours(kotlin.math.abs(shift))} on $day at $at."
+    }
+
+    /** "Then 7 hr ahead of you (now 8)." when the gap changes. */
+    val detail: String?
+        get() {
+            if (isMine && gapBefore == gapAfter) return null
+            if (gapBefore == gapAfter) return "Still the same time apart from you."
+            fun gap(s: Int) = if (s == 0) "the same time as you" else "${hours(kotlin.math.abs(s))} ${if (s > 0) "ahead of" else "behind"} you"
+            return "Then ${gap(gapAfter)} (now ${if (gapBefore == 0) "the same" else hours(kotlin.math.abs(gapBefore))})."
+        }
+
+    companion object {
+        fun hours(seconds: Int): String {
+            val h = seconds / 3600
+            val m = seconds % 3600 / 60
+            return if (m == 0) "$h hr" else if (h == 0) "$m min" else "$h:%02d hr".format(m)
+        }
+    }
 }

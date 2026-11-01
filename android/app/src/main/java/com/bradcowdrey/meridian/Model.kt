@@ -1,5 +1,7 @@
 package com.bradcowdrey.meridian
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -18,9 +20,80 @@ data class Place(
     val workDays: Set<Int>? = null,
     val workStart: Int? = null,
     val workEnd: Int? = null,
+    /** The city's country (for its public holidays) and where it is (for its sunrise and sunset), from the city list; null for older cards, which use their time zone's. */
+    val countryCode: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    /** A person this card is for ("Ana", in Lisbon): shown as the card's name, with the city under. */
+    val person: String? = null,
+    /** Groups this card is in ("Design team"), for Find a Time and the list's filter. */
+    val groups: List<String>? = null,
 ) {
     val zone: ZoneId get() = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
     val isMyLocation: Boolean get() = id == MyLocation.ID
+    /** What the card is called: the person, or the city. */
+    val title: String get() = person ?: name
+    /** "Ana (Lisbon)" for a person, else the city: for copied and shared times. */
+    val fullName: String get() = person?.let { "$it ($name)" } ?: name
+    /** The city's country code: its own, or its time zone's. */
+    val country: String? get() = countryCode ?: WorkWeek.countryByZone[zoneId]
+}
+
+/** The data files built into the app (Resources/Data, packaged as assets): the city list and public holidays. */
+object DataFiles {
+    @Volatile private var assets: android.content.res.AssetManager? = null
+
+    fun init(context: android.content.Context) {
+        if (assets == null) assets = context.applicationContext.assets
+    }
+
+    /** The file's lines, or null before [init] or if it can't be read. */
+    fun lines(name: String): List<String>? = assets?.let { a ->
+        runCatching { a.open(name).bufferedReader(Charsets.UTF_8).use { it.readLines() } }.getOrNull()
+    }
+
+    /** Reads both files in the background, so the first search and the first card don't wait. */
+    fun preload() {
+        Thread { runCatching { Holidays.load(); CityDirectory.all } }.start()
+    }
+}
+
+/**
+ * National public holidays, offline (Resources/Data/holidays.tsv: five years for every country the
+ * python-holidays project covers), as on the iPhone. A city on a holiday isn't working.
+ */
+object Holidays {
+    /** Settings: count public holidays as days off (on unless turned off). Set by the Store. */
+    var counted by androidx.compose.runtime.mutableStateOf(true)
+
+    @Volatile private var table: Map<String, Map<Int, String>>? = null
+
+    /** Country code -> yyyymmdd -> name (empty until the file can be read). */
+    fun load(): Map<String, Map<Int, String>> {
+        table?.let { return it }
+        synchronized(this) {
+            table?.let { return it }
+            val lines = DataFiles.lines("holidays.tsv") ?: return emptyMap()
+            val map = HashMap<String, HashMap<Int, String>>()
+            for (line in lines) {
+                val p = line.split('\t', limit = 3)
+                if (p.size != 3) continue
+                val day = p[1].toIntOrNull() ?: continue
+                val days = map.getOrPut(p[0]) { HashMap() }
+                if (day !in days) days[day] = p[2]
+            }
+            table = map
+            return map
+        }
+    }
+
+    /** The holiday's name on this local day in the city ("Thanksgiving Day"), or null. */
+    fun name(place: Place, at: Instant): String? {
+        if (!counted) return null
+        val cc = place.country ?: return null
+        val d = at.atZone(place.zone).toLocalDate()
+        return load()[cc]?.get(d.year * 10_000 + d.monthValue * 100 + d.dayOfMonth)
+    }
 }
 
 /** Time arithmetic and labels, in the same style as the Mac and iPhone apps. */
@@ -58,6 +131,12 @@ object TimeMath {
 
     fun weekday(at: Instant, zone: ZoneId): String =
         at.atZone(zone).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.US)
+
+    /** "Tue 3 Nov". */
+    fun fullDay(at: Instant, zone: ZoneId): String {
+        val t = at.atZone(zone)
+        return "${weekday(at, zone)} ${t.dayOfMonth} ${t.month.getDisplayName(TextStyle.SHORT, Locale.US)}"
+    }
 
     /** "Tue 9 Jun, 9:41 AM". */
     fun fullMoment(at: Instant, zone: ZoneId, use24h: Boolean): String {
@@ -115,7 +194,19 @@ object DayColor {
     }
 }
 
-data class CityEntry(val name: String, val region: String, val zoneId: String, val aliases: List<String> = emptyList())
+data class CityEntry(
+    val name: String,
+    val region: String,
+    val zoneId: String,
+    val aliases: List<String> = emptyList(),
+    /** From the world city list (GeoNames): country, where it is, and how many live there (to rank the bigger city first). */
+    val countryCode: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val population: Int = 0,
+) {
+    val id: String get() = "$name|$region|$zoneId"
+}
 
 /**
  * Searchable list of cities, all on the device (no network): every IANA zone city, popular cities
@@ -179,7 +270,38 @@ object CityDirectory {
             "Johannesburg" to listOf("JNB"), "Cairo" to listOf("CAI"), "Lagos" to listOf("LOS"), "Nairobi" to listOf("NBO"),
             "Honolulu" to listOf("HNL"), "Anchorage" to listOf("ANC"), "Kolkata" to listOf("CCU", "Calcutta"),
         )
-        entries.map { it.copy(aliases = it.aliases + (airports[it.name] ?: emptyList())) }.sortedBy { it.name }
+        val merged = entries.map { it.copy(aliases = it.aliases + (airports[it.name] ?: emptyList())) }.toMutableList()
+        // Every city of 15,000 people or more (Resources/Data/cities.tsv), so Boulder and Leeds are
+        // there too; a city already listed above gains its country and place.
+        val index = HashMap<String, Int>()
+        merged.forEachIndexed { i, e -> index["${e.name.lowercase()}|${e.zoneId}"] = i }
+        for (city in worldCities()) {
+            val key = "${city.name.lowercase()}|${city.zoneId}"
+            val i = index[key]
+            if (i != null) {
+                val e = merged[i]
+                if (e.latitude == null) merged[i] = e.copy(region = city.region, countryCode = city.countryCode,
+                    latitude = city.latitude, longitude = city.longitude, population = city.population)
+            } else {
+                index[key] = merged.size
+                merged += city
+            }
+        }
+        merged.sortedBy { it.name }
+    }
+
+    /** cities.tsv: name, region, country code, zone, latitude, longitude, population (biggest first). */
+    private fun worldCities(): List<CityEntry> {
+        val lines = DataFiles.lines("cities.tsv") ?: return emptyList()
+        val known = ZoneId.getAvailableZoneIds()
+        val seen = HashSet<String>()
+        return lines.mapNotNull { line ->
+            val p = line.split('\t')
+            // One of each name in each region and zone (the biggest, as the file is by size).
+            if (p.size != 7 || p[3] !in known || !seen.add("${p[0]}|${p[1]}|${p[3]}")) null
+            else CityEntry(p[0], p[1], p[3], countryCode = p[2].ifEmpty { null }, latitude = p[4].toDoubleOrNull(),
+                longitude = p[5].toDoubleOrNull(), population = p[6].toIntOrNull() ?: 0)
+        }
     }
 
     private val abbreviations = mapOf(
@@ -205,13 +327,14 @@ object CityDirectory {
                 e.region.lowercase().startsWith(lower) -> 3 to e
                 else -> null
             }
-        }.sortedWith(compareBy({ it.first }, { it.second.name })).map { it.second }.toMutableList()
+        }.sortedWith(compareBy({ it.first }, { -it.second.population }, { it.second.name })).map { it.second }.toMutableList()
+        // Best match first; then the bigger city (Paris, France before Paris, Texas).
         val offset = offsetZone(q)
         if (offset == null) abbreviations[q.uppercase()]?.let { ranked.add(0, CityEntry(q.uppercase(), it, it)) }
         if (offset != null) {
             ranked.add(0, CityEntry(TimeMath.offsetLabel(offset.totalSeconds), "Fixed offset, no daylight saving", "UTC" + offset.id.replace("Z", "")))
         }
-        return ranked.take(40)
+        return ranked.distinctBy { it.id }.take(40)
     }
 
     /** "UTC+5", "GMT-3", "+9", "UTC+5:30". */

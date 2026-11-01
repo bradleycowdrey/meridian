@@ -80,7 +80,9 @@ struct ClockChange: Identifiable {
     func headline(use24h: Bool) -> String {
         let local = date.addingTimeInterval(-60)   // the time on the clock as it changes
         let when = Self.day.string(from: local, zone: zone)
-        let at = TimeMath.time(date.addingTimeInterval(Double(-shift)), in: zone, use24h: use24h)
+        // The clock's reading as it changes, on the old offset (2:00 AM back, 1:00 AM forward).
+        let old = TimeZone(secondsFromGMT: zone.secondsFromGMT(for: date.addingTimeInterval(-60))) ?? zone
+        let at = TimeMath.time(date, in: old, use24h: use24h)
         let amount = Self.hours(abs(shift))
         let whose = isMine ? "Your clocks" : "\(name)\u{2019}s clocks"
         return "\(whose) go \(shift > 0 ? "forward" : "back") \(amount) on \(when) at \(at)."

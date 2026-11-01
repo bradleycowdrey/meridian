@@ -48,7 +48,7 @@ enum MyLocation {
     static func apply(to places: inout [Place], city: String?, defaults: UserDefaults = .standard) {
         restoreAdopted(&places, defaults: defaults)
         let zone = TimeZone.current.identifier
-        if let host = places.first(where: { !$0.isMyLocation && $0.timeZoneID == zone }) {
+        if let host = places.first(where: { !$0.isMyLocation && $0.person == nil && $0.timeZoneID == zone }) {
             places.removeAll(where: \.isMyLocation)
             defaults.set(host.id.uuidString, forKey: hostKey)
             return

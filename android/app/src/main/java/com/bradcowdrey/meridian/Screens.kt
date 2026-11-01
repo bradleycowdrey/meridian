@@ -7,6 +7,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -38,7 +42,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 /** A sub-screen: its title and, as Material does, one way back (the arrow). */
-private fun Screen(title: String, onBack: () -> Unit, content: @Composable (PaddingValues) -> Unit) {
+internal fun Screen(title: String, onBack: () -> Unit, content: @Composable (PaddingValues) -> Unit) {
     Scaffold(
         containerColor = Palette.bg,
         topBar = {
@@ -53,16 +57,78 @@ private fun Screen(title: String, onBack: () -> Unit, content: @Composable (Padd
     )
 }
 
-/** Rename a city (not My Location, which is named from where you are). */
+/** Rename a city (not My Location, which is named from where you are), or the person on a person's card. */
 @Composable
 fun RenameDialog(place: Place, onDone: (String?) -> Unit) {
-    var name by remember { mutableStateOf(place.name) }
+    var name by remember { mutableStateOf(place.title) }
     AlertDialog(
         onDismissRequest = { onDone(null) },
-        title = { Text("Rename City") },
+        title = { Text(if (place.person != null) "Rename Person" else "Rename City") },
         text = { OutlinedTextField(name, { name = it }, singleLine = true) },
         confirmButton = { TextButton(onClick = { onDone(name) }) { Text("Rename") } },
         dismissButton = { TextButton(onClick = { onDone(null) }) { Text("Cancel") } },
+    )
+}
+
+/** "Add a Person Here": a card for someone in this card's city ("Ana", in Lisbon). */
+@Composable
+fun AddPersonDialog(city: String, onDone: (String?) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { onDone(null) },
+        containerColor = Palette.tile,
+        title = { Text("Add a Person in $city") },
+        text = {
+            OutlinedTextField(name, { name = it }, singleLine = true, placeholder = { Text("Name") },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank()) onDone(name) }))
+        },
+        confirmButton = { TextButton(onClick = { onDone(name) }, enabled = name.isNotBlank()) { Text("Add") } },
+        dismissButton = { TextButton(onClick = { onDone(null) }) { Text("Cancel") } },
+    )
+}
+
+/** The groups a card is in ("Design team", "Family"): tick existing ones or make a new one. */
+@Composable
+fun GroupsDialog(store: Store, place: Place, onDone: () -> Unit) {
+    var chosen by remember { mutableStateOf(place.groups?.toSet() ?: emptySet()) }
+    var newGroup by remember { mutableStateOf("") }
+    val all = (store.groups + chosen).distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+    fun addNew() {
+        val name = newGroup.trim()
+        if (name.isEmpty()) return
+        chosen = chosen + name.take(30)
+        newGroup = ""
+    }
+    AlertDialog(
+        onDismissRequest = onDone,
+        containerColor = Palette.tile,
+        title = { Text(place.title) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                all.forEach { group ->
+                    val on = group in chosen
+                    Row(Modifier.fillMaxWidth().clickable { chosen = if (on) chosen - group else chosen + group }.padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(group, Modifier.weight(1f), color = Palette.primary)
+                        Checkbox(checked = on, onCheckedChange = { chosen = if (it) chosen + group else chosen - group },
+                            colors = CheckboxDefaults.colors(checkedColor = Palette.cream, checkmarkColor = Palette.bg, uncheckedColor = Palette.muted))
+                    }
+                }
+                if (all.isNotEmpty()) Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(newGroup, { newGroup = it }, singleLine = true, modifier = Modifier.weight(1f),
+                        placeholder = { Text("New group, like Design Team") },
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { addNew() }))
+                    TextButton(onClick = { addNew() }, enabled = newGroup.isNotBlank()) { Text("Add") }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Show one group at a time on your list, and pick a group in Find a Time.", fontSize = 13.sp, color = Palette.muted)
+            }
+        },
+        confirmButton = { TextButton(onClick = { store.setGroups(chosen.toList(), place); onDone() }) { Text("Done") } },
+        dismissButton = { TextButton(onClick = onDone) { Text("Cancel") } },
     )
 }
 
@@ -75,8 +141,9 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
             Section("TIME") {
                 SwitchRow("24-Hour Time", store.use24h) { store.updateUse24h(it) }
                 SwitchRow("Highlight Working Hours", store.showWorkHours) { store.updateShowWorkHours(it) }
+                SwitchRow("Public Holidays Are Days Off", store.countHolidays) { store.updateCountHolidays(it) }
                 if (store.showWorkHours) {
-                    Text("Each city follows its country's usual working days and hours. To change a city's, tap its card.",
+                    Text("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, tap its card.",
                         fontSize = 13.sp, color = Palette.muted, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
                 }
             }
@@ -196,7 +263,7 @@ fun WorkHoursDialog(store: Store, place: Place, onDone: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDone,
         containerColor = Palette.tile,
-        title = { Text(place.name) },
+        title = { Text(place.title) },
         text = {
             Column {
                 Text("WORKING DAYS", fontSize = 12.sp, color = Palette.muted)
@@ -307,7 +374,7 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                         store.places.forEachIndexed { i, place ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(place.name, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                    Text(place.title, fontWeight = FontWeight.SemiBold, maxLines = 1)
                                     val off = if (store.showWorkHours) WorkWeek.offLabel(place, moment, store.workStart, store.workEnd) else null
                                     if (off != null) StatusNote(off, R.drawable.ic_moon, Palette.muted)
                                 }

@@ -50,7 +50,7 @@ object MyLocation {
         val zone = ZoneId.systemDefault().id
         val city = city(prefs)
         val list = restoreAdopted(places, prefs).toMutableList()
-        val host = list.firstOrNull { !it.isMyLocation && it.zoneId == zone }
+        val host = list.firstOrNull { !it.isMyLocation && it.person == null && it.zoneId == zone }
         if (host != null) {
             list.removeAll { it.isMyLocation }
             prefs.edit().putString(HOST, host.id).apply()

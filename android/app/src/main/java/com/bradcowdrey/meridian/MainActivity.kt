@@ -49,6 +49,9 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -112,7 +115,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
-        // Screenshot mode (CI): --ez screenshots true --es screen main|travel|add|edit|settings|widgets|terms
+        // Screenshot mode (CI): --ez screenshots true --es screen main|travel|add|edit|settings|date|find|widgets|terms
         val demo = intent.getBooleanExtra("screenshots", false)
         val screen = intent.getStringExtra("screen") ?: "main"
         val store = Store(applicationContext, demo = demo && screen != "terms")
@@ -166,6 +169,7 @@ fun App(store: Store, initial: String) {
         "edit" -> MainScreen(store, initialEditing = true) { route = it }
         "settings" -> SettingsScreen(store) { route = "main" }
         "date" -> DateJumpScreen(store) { route = "main" }
+        "find" -> FindTimeScreen(store) { route = "main" }
         "widgets" -> WidgetShowcase(store)
         else -> MainScreen(store) { route = it }
     }
@@ -186,6 +190,8 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
     var menu by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Place?>(null) }
+    var personFor by remember { mutableStateOf<Place?>(null) }
+    var groupsFor by remember { mutableStateOf<Place?>(null) }
 
     LaunchedEffect(store.userMoves) {
         if (store.userMoves > 0) haptics.performHapticFeedback(
@@ -231,6 +237,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                         Box {
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                DropdownMenuItem(text = { Text("Find a Time…") }, enabled = store.places.isNotEmpty(), onClick = { menu = false; open("find") })
                                 DropdownMenuItem(text = { Text("Go to a Time…") }, onClick = { menu = false; open("date") })
                                 DropdownMenuItem(text = { Text("Copy This Moment") }, enabled = store.places.isNotEmpty(), onClick = {
                                     menu = false; clipboard.setText(AnnotatedString(store.momentText)); copied = true
@@ -266,9 +273,19 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                 fontSize = 14.sp, color = Palette.muted, modifier = Modifier.padding(padding).padding(20.dp))
             return@Scaffold
         }
+        // Everyone or one group, and clocks about to change, above the cards (not in Edit List,
+        // which shows every card so removing and moving follow the full list).
+        val groups = store.groups
+        val changes = if (editing) emptyList() else store.clockChanges
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             stickyHeader {
                 MomentHeader(store, copied, editing)
+            }
+            if (!editing && groups.isNotEmpty()) item(key = "group-filter") {
+                GroupFilter(store, groups)
+            }
+            items(changes, key = { "clock-" + it.key }) { change ->
+                ClockNotice(change, store.use24h) { store.dismiss(change) }
             }
             if (store.places.isEmpty()) item {
                 Column(Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -278,7 +295,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                         fontSize = 14.sp, color = Palette.muted, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
                 }
             }
-            items(store.places, key = { it.id }) { place ->
+            items(if (editing) store.places else store.visiblePlaces, key = { it.id }) { place ->
                 var actions by remember { mutableStateOf(false) }
                 var work by remember { mutableStateOf(false) }
                 // Each city is a card: 16 dp from the screen edges, 12 dp between cards, 16 dp
@@ -287,15 +304,17 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                 Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Palette.tile)
                     .border(0.5.dp, Palette.border, RoundedCornerShape(16.dp))) {
                     if (editing) EditRow(store, place)
-                    else CityRow(store, place, Modifier.combinedClickable(onClickLabel = "Actions for ${place.name}", onClick = { actions = true }, onLongClick = { actions = true }))
+                    else CityRow(store, place, Modifier.combinedClickable(onClickLabel = "Actions for ${place.title}", onClick = { actions = true }, onLongClick = { actions = true }))
                     DropdownMenu(expanded = actions, onDismissRequest = { actions = false }) {
                         DropdownMenuItem(text = { Text("Copy Time") }, onClick = {
                             actions = false
-                            clipboard.setText(AnnotatedString("${place.name}: ${TimeMath.fullMoment(store.moment, place.zone, store.use24h)}"))
+                            clipboard.setText(AnnotatedString("${place.fullName}: ${TimeMath.fullMoment(store.moment, place.zone, store.use24h)}"))
                             copied = true
                         })
                         DropdownMenuItem(text = { Text("Working Days & Hours") }, onClick = { actions = false; work = true })
-                        if (!place.isMyLocation) DropdownMenuItem(text = { Text("Rename") }, onClick = { actions = false; renaming = place })
+                        DropdownMenuItem(text = { Text("Add a Person Here") }, enabled = store.canAdd, onClick = { actions = false; personFor = place })
+                        DropdownMenuItem(text = { Text("Groups") }, onClick = { actions = false; groupsFor = place })
+                        if (!place.isMyLocation || place.person != null) DropdownMenuItem(text = { Text("Rename") }, onClick = { actions = false; renaming = place })
                         DropdownMenuItem(text = { Text("Remove", color = Color(0xFFFF6B6B)) }, onClick = { actions = false; store.remove(place) })
                     }
                     if (work) WorkHoursDialog(store, place) { work = false }
@@ -305,6 +324,47 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
         }
     }
     renaming?.let { place -> RenameDialog(place, onDone = { name -> if (name != null) store.rename(place, name); renaming = null }) }
+    personFor?.let { place ->
+        val city = if (place.isMyLocation) store.hereCity ?: "My Location" else place.name
+        AddPersonDialog(city) { name -> if (name != null) store.addPerson(name, place); personFor = null }
+    }
+    groupsFor?.let { place -> GroupsDialog(store, place) { groupsFor = null } }
+}
+
+/** Everyone, or one group: chips above the cards. */
+@Composable
+fun GroupFilter(store: Store, groups: List<String>) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        PillChip("Everyone", store.groupFilter == null) { store.updateGroupFilter(null) }
+        groups.forEach { group -> PillChip(group, store.groupFilter == group) { store.updateGroupFilter(group) } }
+    }
+}
+
+/** A city's clocks change soon: when, and how far it will be from you afterwards. Closed with ×. */
+@Composable
+fun ClockNotice(change: ClockChange, use24h: Boolean, onClose: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    val headline = change.headline(use24h)
+    val detail = change.detail
+    Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(shape)
+        .background(Palette.crimson.copy(alpha = 0.16f)).border(0.5.dp, Palette.crimson.copy(alpha = 0.5f), shape)
+        .padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 4.dp)
+        .semantics(mergeDescendants = true) { contentDescription = listOfNotNull(headline, detail).joinToString(" ") },
+        verticalAlignment = Alignment.Top) {
+        Icon(Icons.Filled.Refresh, contentDescription = null, tint = Palette.cream, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(headline, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary)
+            if (detail != null) {
+                Spacer(Modifier.height(3.dp))
+                Text(detail, fontSize = 13.sp, color = Palette.muted)
+            }
+        }
+        Box(Modifier.size(32.dp).clip(CircleShape).clickable(onClickLabel = "Close", onClick = onClose), contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Close, contentDescription = "Close", tint = Palette.faint, modifier = Modifier.size(16.dp))
+        }
+    }
 }
 
 /** A small "NOW" (or "IN 4 HR 20 MIN") over the date and time, a Now button when away, the meeting planner line. */
@@ -430,35 +490,39 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     // "My Location" on the card for where you are; with the city you're in when this card is
     // another city in the same time zone ("My Location · Boulder" on Denver).
     val here = if (!store.isHere(place)) null
-        else store.hereCity?.takeIf { !place.isMyLocation && it != place.name }?.let { "My Location · $it" } ?: "My Location"
+        else store.hereCity?.takeIf { !place.isMyLocation && place.person == null && it != place.name }?.let { "My Location · $it" } ?: "My Location"
     // Your own city on another day (a date you went to) shows that date instead of "Your time".
     val otherDay = place.zone.id == store.home.id && moment.atZone(store.home).toLocalDate() != store.now.atZone(store.home).toLocalDate()
     val relation = TimeMath.relative(moment, place.zone, store.home)
         ?: if (otherDay) moment.atZone(store.home).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))
         else if (place.zone.id == store.home.id) "Your time" else "Same time"
     // "My Location · UTC−7" on the card for where you are.
-    val detail = (here?.let { if (relation == "Your time" || relation == "Same time") it else "$it · $relation" } ?: relation) + " · " + utc
+    // A person's card names their city first: "Lisbon · +8 hr · UTC+1".
+    val city = if (place.person != null) "${place.name} · " else ""
+    val detail = city + (here?.let { if (relation == "Your time" || relation == "Same time") it else "$it · $relation" } ?: relation) + " · " + utc
     // "Working", or "Off hours" / "Weekend" / "Day off" (when that setting is on).
     val work = if (store.showWorkHours) off ?: "Working" else null
     // "Sets 4:59 PM" while the sun is up there, "Rises 6:27 AM" while it's down.
-    val sun = when (val p = Sun.phase(place.zoneId, moment)) {
+    // At the city itself when the card knows where it is, else its time zone's city.
+    val phase = Sun.phase(place, moment)
+    val sun = when (val p = phase) {
         is Sun.Phase.Day -> "Sets ${TimeMath.time(p.sets, place.zone, store.use24h)}"
         is Sun.Phase.Night -> "Rises ${TimeMath.time(p.rises, place.zone, store.use24h)}"
         Sun.Phase.AllDay -> "Sun all day"
         Sun.Phase.AllNight -> "Polar night"
         null -> null
     }
-    val sunUp = Sun.phase(place.zoneId, moment).let { it is Sun.Phase.Day || it == Sun.Phase.AllDay }
+    val sunUp = phase is Sun.Phase.Day || phase == Sun.Phase.AllDay
     val dayNote = when (shift) { 0 -> null; 1 -> "tomorrow there"; -1 -> "yesterday there"; else -> "${kotlin.math.abs(shift)} days ${if (shift > 0) "ahead" else "behind"}" }
     Column(modifier.fillMaxWidth().padding(16.dp)
         .semantics(mergeDescendants = true) {
-            contentDescription = listOfNotNull(place.name, TimeMath.time(moment, place.zone, store.use24h), detail, dayNote, work, sun?.let { "sun ${it.lowercase()}" }).joinToString(", ")
+            contentDescription = listOfNotNull(place.title, place.person?.let { place.name }, TimeMath.time(moment, place.zone, store.use24h), detail, dayNote, work, sun?.let { "sun ${it.lowercase()}" }).joinToString(", ")
         }) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {
                 Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(place.name, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                    Text(place.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     // Where you are, on this card rather than a second card for the same place.
                     if (here != null) {
@@ -637,14 +701,16 @@ fun SearchResults(store: Store, query: String, modifier: Modifier, added: () -> 
             Text("No places match \u201c$query\u201d. Try a city, an airport code like SFO, a time zone like PST, or UTC+5:30.",
                 color = Palette.muted, modifier = Modifier.padding(16.dp))
         }
-        items(results, key = { it.name + it.zoneId }) { entry ->
+        items(results, key = { it.id }) { entry ->
             val have = store.contains(entry)
             val zone = runCatching { java.time.ZoneId.of(entry.zoneId) }.getOrNull()
             Row(Modifier.fillMaxWidth().clickable(enabled = !have && store.canAdd) { store.add(entry); added() }
                 .padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(entry.name, fontWeight = FontWeight.SemiBold)
-                    Text(WorkWeek.countryName(entry.zoneId) ?: entry.region.replace("_", " "), fontSize = 13.sp, color = Palette.muted)
+                    // "Colorado, United States" for a city from the world list; else the zone's country.
+                    Text(if (entry.countryCode != null) entry.region else WorkWeek.countryName(entry.zoneId) ?: entry.region.replace("_", " "),
+                        fontSize = 13.sp, color = Palette.muted)
                 }
                 if (zone != null) Column(horizontalAlignment = Alignment.End) {
                     Text(TimeMath.time(store.now, zone, store.use24h), color = Palette.secondary)
@@ -670,13 +736,13 @@ fun EditRow(store: Store, place: Place) {
         }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(place.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(place.title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 if (store.isHere(place)) MyLocationMark()
             }
             Text(TimeMath.time(store.now, place.zone, store.use24h), fontSize = 13.sp, color = Palette.muted)
         }
-        IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) { Icon(Icons.Filled.KeyboardArrowUp, "Move ${place.name} up") }
-        IconButton(onClick = { store.move(place, 1) }, enabled = place != store.places.last()) { Icon(Icons.Filled.KeyboardArrowDown, "Move ${place.name} down") }
+        IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) { Icon(Icons.Filled.KeyboardArrowUp, "Move ${place.title} up") }
+        IconButton(onClick = { store.move(place, 1) }, enabled = place != store.places.last()) { Icon(Icons.Filled.KeyboardArrowDown, "Move ${place.title} down") }
     }
 }
 

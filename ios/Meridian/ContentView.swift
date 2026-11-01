@@ -7,7 +7,10 @@ struct ContentView: View {
     @EnvironmentObject private var store: CityStore
     /// Search to add a city, right above the cards (as in Apple's Weather and Two Degrees).
     @State private var query = ""
-    /// Edit List (from ⋯): reorder and remove in place, then Done.
+    /// + in the top bar: the search field shows (and the keyboard) until a city is added or ✓.
+    @State private var adding = false
+    @FocusState private var searchFocused: Bool
+    /// Edit List (the pencil): reorder and remove in place, then ✓.
     @State private var editMode: EditMode = .inactive
     @State private var showingSettings = false
     @State private var showingDate = false
@@ -85,8 +88,6 @@ struct ContentView: View {
             .safeAreaInset(edge: .top, spacing: 0) { Theme.crimson.frame(height: 3) }
             .navigationTitle("Meridian")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Add a city, SFO, PST, UTC+5")
-            .autocorrectionDisabled()
             .environment(\.editMode, $editMode)
             .toolbarBackground(Theme.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -94,12 +95,56 @@ struct ContentView: View {
 
     private var cityList: some View {
         List {
-            if !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                searchResults
+            if adding {
+                searchField
+                if !query.trimmingCharacters(in: .whitespaces).isEmpty { searchResults } else { searchHint }
             } else {
                 cards
             }
         }
+    }
+
+    /// The search field, shown by + in the top bar.
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(Theme.faint)
+            TextField("City, SFO, PST, UTC+5", text: $query)
+                .focused($searchFocused)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.words)
+                .submitLabel(.search)
+                .onSubmit { if let first = CityDirectory.search(query).first(where: { !store.contains($0) }) { add(first) } }
+            if !query.isEmpty {
+                Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.faint) }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear")
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.tile))
+        .listRowInsets(EdgeInsets(top: 12, leading: Card.margin, bottom: 8, trailing: Card.margin))
+        .listRowBackground(Theme.bg)
+        .listRowSeparator(.hidden)
+    }
+
+    private var searchHint: some View {
+        Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30.")
+            .font(.subheadline)
+            .foregroundStyle(Theme.muted)
+            .listRowBackground(Theme.bg)
+            .listRowSeparator(.hidden)
+    }
+
+    private func add(_ entry: CityEntry) {
+        store.add(entry)
+        closeSearch()
+    }
+
+    private func closeSearch() {
+        query = ""
+        searchFocused = false
+        withAnimation(.snappy) { adding = false }
     }
 
     /// Search results in place of the cards; tap one to add it.
@@ -118,8 +163,7 @@ struct ContentView: View {
         ForEach(results) { entry in
             let added = store.contains(entry)
             Button {
-                store.add(entry)
-                query = ""
+                add(entry)
             } label: {
                 SearchResultRow(entry: entry, added: added)
             }
@@ -195,18 +239,10 @@ struct ContentView: View {
     }
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if editMode.isEditing {
-                Button("Done") { withAnimation { editMode = .inactive } }.fontWeight(.semibold)
-            } else {
-                shareMenu
-            }
-        }
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .topBarLeading) { shareMenu }
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            listControls
             Menu {
-                Button { query = ""; withAnimation { editMode = .active } } label: { Label("Edit List", systemImage: "pencil") }
-                    .disabled(store.places.isEmpty)
-                Divider()
                 Button { showingDate = true } label: { Label("Go to a Time…", systemImage: "calendar") }
                 Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
                     .disabled(store.places.isEmpty)
@@ -222,6 +258,43 @@ struct ContentView: View {
             }
             .accessibilityLabel("More")
         }
+    }
+
+    /// + and the pencil in one capsule, as in Two Degrees and Meridian for Mac: + shows the search
+    /// field, the pencil turns on Edit List; whichever is on shows ✓ to finish.
+    private var listControls: some View {
+        HStack(spacing: 0) {
+            controlButton(symbol: adding ? "checkmark" : "plus", on: adding,
+                          label: adding ? "Done Adding" : "Add a City", enabled: store.canAdd || adding) {
+                if adding { closeSearch() } else {
+                    withAnimation(.snappy) { editMode = .inactive; adding = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { searchFocused = true }
+                }
+            }
+            Theme.border.frame(width: 0.5, height: 14).opacity(adding || editMode.isEditing ? 0 : 1)
+            controlButton(symbol: editMode.isEditing ? "checkmark" : "pencil", on: editMode.isEditing,
+                          label: editMode.isEditing ? "Done Editing" : "Edit List", enabled: !store.places.isEmpty || editMode.isEditing) {
+                if adding { closeSearch() }
+                withAnimation(.snappy) { editMode = editMode.isEditing ? .inactive : .active }
+            }
+        }
+        .padding(2)
+        .background(Capsule().fill(Theme.tile))
+        .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
+    }
+
+    private func controlButton(symbol: String, on: Bool, label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .bold))
+                .frame(width: 34, height: 28)
+                .background(Capsule().fill(on ? Theme.cream : .clear))
+                .foregroundStyle(on ? Theme.bg : (enabled ? Theme.secondary : Theme.faint))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .accessibilityLabel(label)
     }
 
     /// Share, as in Cowdrey.MD: the system share sheet for Meridian or this moment, or copy a link
@@ -264,7 +337,7 @@ struct ContentView: View {
     private var emptyState: some View {
         VStack(spacing: 10) {
             Text("No cities yet").font(.headline).foregroundStyle(Theme.primary)
-            Text("Search above to add one: a city, an airport code like SFO, or a time zone like PST.")
+            Text("Tap + at the top to add one: a city, an airport code like SFO, or a time zone like PST.")
                 .font(.subheadline).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -289,7 +362,7 @@ struct ContentView: View {
         // After the first layout, so the list and toolbar pick the change up.
         try? await Task.sleep(for: .milliseconds(400))
         switch Screenshots.screen {
-        case "add": query = "san"
+        case "add": adding = true; query = "san"
         case "settings": showingSettings = true
         case "date": showingDate = true
         case "edit": editMode = .active

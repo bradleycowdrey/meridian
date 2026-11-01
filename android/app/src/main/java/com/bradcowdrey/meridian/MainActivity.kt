@@ -37,6 +37,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -173,9 +175,12 @@ fun App(store: Store, initial: String) {
 @Composable
 fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean = false, open: (String) -> Unit) {
     val context = LocalContext.current
-    // Search to add a city, right above the cards; Edit List (⋯) to reorder and remove in place.
+    // + in the top bar shows the search field until a city is added or ✓; the pencil turns on Edit
+    // List (reorder and remove in place) until ✓.
     var query by remember { mutableStateOf(initialQuery) }
+    var adding by remember { mutableStateOf(initialQuery.isNotEmpty()) }
     var editing by remember { mutableStateOf(initialEditing) }
+    fun closeSearch() { query = ""; adding = false }
     val clipboard = LocalClipboardManager.current
     val haptics = LocalHapticFeedback.current
     var menu by remember { mutableStateOf(false) }
@@ -199,9 +204,8 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                 CenterAlignedTopAppBar(
                     title = { Text("Meridian", fontWeight = FontWeight.SemiBold) },
                     navigationIcon = {
-                        if (editing) TextButton(onClick = { editing = false }) { Text("Done", color = Palette.cream, fontWeight = FontWeight.SemiBold) }
                         // Share, as in Cowdrey.MD: Meridian or this moment, or copy a link or a ready-to-send message.
-                        else Box {
+                        Box {
                             IconButton(onClick = { shareMenu = true }) { Icon(Icons.Filled.Share, contentDescription = "Share") }
                             DropdownMenu(expanded = shareMenu, onDismissRequest = { shareMenu = false }) {
                                 DropdownMenuItem(text = { Text("Share Meridian…") }, onClick = {
@@ -221,12 +225,12 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                         }
                     },
                     actions = {
+                        ListControls(adding = adding, editing = editing, canAdd = store.canAdd, canEdit = store.places.isNotEmpty(),
+                            onAdd = { if (adding) closeSearch() else { editing = false; adding = true } },
+                            onEdit = { if (adding) closeSearch(); editing = !editing })
                         Box {
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                                DropdownMenuItem(text = { Text("Edit List") }, enabled = store.places.isNotEmpty(),
-                                    onClick = { menu = false; query = ""; editing = true })
-                                HorizontalDivider()
                                 DropdownMenuItem(text = { Text("Go to a Time…") }, onClick = { menu = false; open("date") })
                                 DropdownMenuItem(text = { Text("Copy This Moment") }, enabled = store.places.isNotEmpty(), onClick = {
                                     menu = false; clipboard.setText(AnnotatedString(store.momentText)); copied = true
@@ -252,12 +256,14 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                         titleContentColor = Palette.primary, navigationIconContentColor = Palette.cream, actionIconContentColor = Palette.cream),
                 )
                 Box(Modifier.fillMaxWidth().height(3.dp).background(Palette.crimson))
-                if (!editing) CitySearchField(query) { query = it }
+                if (adding) CitySearchField(query, focus = !store.demo) { query = it }
             }
         },
     ) { padding ->
-        if (query.isNotBlank()) {
-            SearchResults(store, query, Modifier.padding(padding)) { query = "" }
+        if (adding) {
+            if (query.isNotBlank()) SearchResults(store, query, Modifier.padding(padding)) { closeSearch() }
+            else Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30.",
+                fontSize = 14.sp, color = Palette.muted, modifier = Modifier.padding(padding).padding(20.dp))
             return@Scaffold
         }
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
@@ -268,7 +274,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                 Column(Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("No cities yet", fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(10.dp))
-                    Text("Search above to add one: a city, an airport code like SFO, or a time zone like PST.",
+                    Text("Tap + at the top to add one: a city, an airport code like SFO, or a time zone like PST.",
                         fontSize = 14.sp, color = Palette.muted, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
                 }
             }
@@ -597,7 +603,9 @@ fun MyLocationMark() {
 
 /** The search field above the cards: type to add a city (results replace the cards). */
 @Composable
-fun CitySearchField(query: String, onChange: (String) -> Unit) {
+fun CitySearchField(query: String, focus: Boolean = true, onChange: (String) -> Unit) {
+    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { if (focus) runCatching { focusRequester.requestFocus() } }
     OutlinedTextField(query, onChange, singleLine = true,
         placeholder = { Text("Add a city, SFO, PST, UTC+5", color = Palette.faint) },
         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = Palette.faint) },
@@ -605,7 +613,8 @@ fun CitySearchField(query: String, onChange: (String) -> Unit) {
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Palette.tile, focusedContainerColor = Palette.tile,
             unfocusedBorderColor = Color.Transparent, focusedBorderColor = Palette.border),
-        modifier = Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp))
+        modifier = Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 4.dp)
+            .then(Modifier.focusRequester(focusRequester)))
 }
 
 /** Search results in place of the cards; tap one to add it. */
@@ -749,5 +758,28 @@ private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, modifier: Mo
         Spacer(Modifier.height(4.dp))
         Box(Modifier.width(if (minute == 0) 2.dp else 1.5.dp).height(if (minute == 0) 20.dp else if (minute == 30) 13.dp else 8.dp)
             .clip(RoundedCornerShape(50)).background(if (minute == 0) Palette.secondary else Palette.faint))
+    }
+}
+
+/**
+ * + and the pencil in one capsule, as in Two Degrees and Meridian for Mac: + shows the search
+ * field, the pencil turns on Edit List; whichever is on shows ✓ to finish.
+ */
+@Composable
+fun ListControls(adding: Boolean, editing: Boolean, canAdd: Boolean, canEdit: Boolean, onAdd: () -> Unit, onEdit: () -> Unit) {
+    Row(Modifier.padding(end = 2.dp).clip(RoundedCornerShape(50)).background(Palette.tile)
+        .border(0.5.dp, Palette.border, RoundedCornerShape(50)).padding(2.dp), verticalAlignment = Alignment.CenterVertically) {
+        ControlButton(if (adding) Icons.Filled.Check else Icons.Filled.Add, adding, if (adding) "Done adding" else "Add a city", canAdd || adding, onAdd)
+        Box(Modifier.width(0.5.dp).height(14.dp).background(if (adding || editing) Color.Transparent else Palette.border))
+        ControlButton(if (editing) Icons.Filled.Check else Icons.Filled.Edit, editing, if (editing) "Done editing" else "Edit list", canEdit || editing, onEdit)
+    }
+}
+
+@Composable
+private fun ControlButton(icon: androidx.compose.ui.graphics.vector.ImageVector, on: Boolean, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(Modifier.width(38.dp).height(30.dp).clip(RoundedCornerShape(50)).background(if (on) Palette.cream else Color.Transparent)
+        .clickable(enabled = enabled, onClickLabel = label, onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp),
+            tint = if (on) Palette.bg else if (enabled) Palette.secondary else Palette.faint)
     }
 }

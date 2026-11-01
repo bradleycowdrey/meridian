@@ -4,6 +4,14 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 2.0 · 1 November 2026
+
+Meridian 2.0, on Mac, iPhone and Android.
+
+- **Public holidays**: a city on a national public holiday isn't working, and its status names the holiday ("Thanksgiving Day"). Every country, through 2030.
+- **34,000 cities**: search every city of 15,000 people or more, offline, the bigger city first (Paris, France before Paris, Texas). Boulder, Leeds and Pune are all there.
+- On iPhone and Android also: **Find a Time** (when everyone is working, then Add to Calendar or share an invite), **people and groups**, **clock-change notices**, a **status line** on every city (working or not, sunrise and sunset), and a time ruler that moves in quarter-hours of the clock.
+
 ## 0.8.8 · 1 November 2026
 
 - Working days read in full ("Sunday to Thursday", not "Sun to Thu"), and Coyhaique in Chile (a time zone new in 2025) has its working week.

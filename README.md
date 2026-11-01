@@ -20,7 +20,16 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
-### What's new in 0.8.8
+### What's new in 2.0
+
+- **Find a Time** (iPhone and Android): see when everyone is working across your cities, then add it to your calendar or share an invite with every city's time.
+- **People and groups**: a card for a colleague in their city; show one group at a time.
+- **Public holidays** count as days off, by name, in every country.
+- **34,000 cities**, offline, the bigger city first.
+- **Clock-change notices** two weeks ahead, with how far each city will be from you.
+- **A status line on every city**: working or not, and when the sun sets or rises there.
+
+### Earlier
 
 - **Working hours researched for every country**: each city's usual days and hours, Ramadan and summer schedules included.
 - **No duplicate for where you are**: a city already on your list is marked as your location instead of a second card.

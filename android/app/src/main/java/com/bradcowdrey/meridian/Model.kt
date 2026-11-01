@@ -83,6 +83,7 @@ object Holidays {
                 if (day !in days) days[day] = p[2]
             }
             table = map
+            loaded = true
             return map
         }
     }
@@ -91,9 +92,16 @@ object Holidays {
     fun name(place: Place, at: Instant): String? {
         if (!counted) return null
         val cc = place.country ?: return null
+        // Never read the file on the main thread: until the background read is done, no holidays
+        // (reading [loaded] makes the cards redraw when they arrive).
+        if (!loaded) return null
         val d = at.atZone(place.zone).toLocalDate()
-        return load()[cc]?.get(d.year * 10_000 + d.monthValue * 100 + d.dayOfMonth)
+        return table?.get(cc)?.get(d.year * 10_000 + d.monthValue * 100 + d.dayOfMonth)
     }
+
+    /** True once the background read has finished (Compose state, so cards update). */
+    var loaded by androidx.compose.runtime.mutableStateOf(false)
+        private set
 }
 
 /** Time arithmetic and labels, in the same style as the Mac and iPhone apps. */

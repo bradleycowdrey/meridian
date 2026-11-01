@@ -324,6 +324,9 @@ private struct MomentHeader: View {
     /// In Edit List the header keeps only the moment; the time controls step aside.
     var editing = false
     let pickDate: () -> Void
+    @State private var typing = false
+    @State private var typed = ""
+    @State private var invalid = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -362,9 +365,41 @@ private struct MomentHeader: View {
                     }
                 }
                 Spacer(minLength: 0)
+                // Type an offset ("+3", "-1.5", "-2:30").
+                if !store.places.isEmpty && !editing {
+                    Button { typed = ""; invalid = false; typing = true } label: {
+                        Text("123")
+                            .font(.footnote.weight(.semibold))
+                            .frame(width: 44, height: 30)
+                            .background(Capsule().fill(Theme.tile))
+                            .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
+                            .foregroundStyle(Theme.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Type hours from now")
+                }
             }
-            // The Now chip below brings you back; no second Now button up here.
+            // The Now button below brings you back; no second Now up here.
             if !store.places.isEmpty && !editing { TimeShifter() }
+        }
+        .alert("Hours from now", isPresented: $typing) {
+            TextField("+3, -1.5 or -2:30", text: $typed)
+                .keyboardType(.numbersAndPunctuation)
+            Button("Cancel", role: .cancel) {}
+            Button("Go") {
+                if let minutes = TimeShifter.parse(typed) {
+                    store.shift(minutes: minutes)
+                } else {
+                    invalid = true
+                }
+            }
+        } message: {
+            Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.")
+        }
+        .alert("That isn't a number of hours", isPresented: $invalid) {
+            Button("OK") { typed = ""; typing = true }
+        } message: {
+            Text("Try +3, -1.5 or -2:30.")
         }
     }
 
@@ -386,63 +421,52 @@ private struct MomentHeader: View {
 /// ("+3", "-1.5", "-2:30"). The date picker in the header goes further; the day bars still drag.
 struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
-    @State private var typing = false
-    @State private var typed = ""
-    @State private var invalid = false
 
     private static let presets = [-2, -1, 0, 1, 2]
 
     var body: some View {
         VStack(spacing: 8) {
             TimeRuler()
+            // −2 · −1 · Now · +1 · +2: Now in the middle, wider, and always easy to find: solid when
+            // you've moved away (come back), outlined with the red dot when you're there.
             HStack(spacing: 6) {
                 ForEach(Self.presets, id: \.self) { preset in
-                    let on = store.offsetMinutes == preset * 60
-                    Button {
-                        if preset == 0 { store.backToNow() } else { store.shift(minutes: preset * 60) }
-                    } label: {
-                        Text(preset == 0 ? "Now" : "\(preset > 0 ? "+" : "−")\(abs(preset)) hr")
-                            .font(.footnote.weight(.semibold))
-                            .monospacedDigit()
-                            .frame(maxWidth: .infinity, minHeight: 32)
-                            .background(Capsule().fill(on ? Theme.cream : Theme.tile))
-                            .overlay(Capsule().strokeBorder(Theme.border, lineWidth: on ? 0 : 0.5).allowsHitTesting(false))
-                            .foregroundStyle(on ? Theme.bg : Theme.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(preset == 0 ? "Now" : "\(abs(preset)) \(abs(preset) == 1 ? "hour" : "hours") \(preset > 0 ? "from now" : "ago")")
-                }
-                Button { typed = ""; invalid = false; typing = true } label: {
-                    Text("123")
-                        .font(.footnote.weight(.semibold))
-                        .frame(width: 40, height: 32)
-                        .background(Capsule().fill(Theme.tile))
-                        .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
-                        .foregroundStyle(Theme.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Type hours from now")
-            }
-        }
-        .alert("Hours from now", isPresented: $typing) {
-            TextField("+3, -1.5 or -2:30", text: $typed)
-                .keyboardType(.numbersAndPunctuation)
-            Button("Cancel", role: .cancel) {}
-            Button("Go") {
-                if let minutes = Self.parse(typed) {
-                    store.shift(minutes: minutes)
-                } else {
-                    invalid = true
+                    if preset == 0 { nowButton } else { hourButton(preset) }
                 }
             }
-        } message: {
-            Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.")
         }
-        .alert("That isn't a number of hours", isPresented: $invalid) {
-            Button("OK") { typed = ""; typing = true }
-        } message: {
-            Text("Try +3, -1.5 or -2:30.")
+    }
+
+    private var nowButton: some View {
+        Button { store.backToNow() } label: {
+            HStack(spacing: 6) {
+                if store.isNow { Circle().fill(Theme.crimson).frame(width: 6, height: 6) }
+                Text("Now").font(.subheadline.weight(.bold))
+            }
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .background(Capsule().fill(store.isNow ? Theme.tile : Theme.cream))
+            .overlay(Capsule().strokeBorder(Theme.cream, lineWidth: store.isNow ? 1.5 : 0).allowsHitTesting(false))
+            .foregroundStyle(store.isNow ? Theme.cream : Theme.bg)
         }
+        .buttonStyle(.plain)
+        .layoutPriority(1)
+        .frame(minWidth: 84)
+        .accessibilityLabel(store.isNow ? "Now" : "Back to now")
+    }
+
+    private func hourButton(_ preset: Int) -> some View {
+        let on = store.offsetMinutes == preset * 60
+        return Button { store.shift(minutes: preset * 60) } label: {
+            Text("\(preset > 0 ? "+" : "−")\(abs(preset)) hr")
+                .font(.footnote.weight(.semibold))
+                .monospacedDigit()
+                .frame(maxWidth: .infinity, minHeight: 32)
+                .background(Capsule().fill(on ? Theme.secondary : Theme.tile))
+                .overlay(Capsule().strokeBorder(Theme.border, lineWidth: on ? 0 : 0.5).allowsHitTesting(false))
+                .foregroundStyle(on ? Theme.bg : Theme.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(abs(preset)) \(abs(preset) == 1 ? "hour" : "hours") \(preset > 0 ? "from now" : "ago")")
     }
 
     /// "+3", "3", "-1.5", "−2:30", "+0:45 hr" -> minutes from now (up to a week either way).

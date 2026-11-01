@@ -304,6 +304,8 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
 /** A small "NOW" (or "IN 4 HR 20 MIN") over the date and time, a Now button when away, the meeting planner line. */
 @Composable
 fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false, pickDate: () -> Unit) {
+    var typing by remember { mutableStateOf(false) }
+    if (typing) TypeOffsetDialog(onDone = { minutes -> typing = false; minutes?.let { store.shift(it) } })
     Column(Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).clickable(onClick = pickDate)) {
@@ -315,6 +317,14 @@ fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false, pickDa
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(TimeMath.fullMoment(store.moment, store.home, store.use24h), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     Icon(Icons.Filled.ArrowDropDown, contentDescription = "Choose a date and time", tint = Palette.faint)
+                }
+            }
+            // Type an offset ("+3", "-1.5", "-2:30").
+            if (store.places.isNotEmpty() && !editing) {
+                Box(Modifier.width(48.dp).height(32.dp).clip(RoundedCornerShape(50)).background(Palette.tile)
+                    .border(0.5.dp, Palette.border, RoundedCornerShape(50)).clickable { typing = true },
+                    contentAlignment = Alignment.Center) {
+                    Text("123", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.secondary)
                 }
             }
         }
@@ -334,30 +344,36 @@ fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false, pickDa
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimeShifter(store: Store) {
-    var typing by remember { mutableStateOf(false) }
     Column {
         TimeRuler(store)
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // −2 · −1 · Now · +1 · +2: Now in the middle, wider, and always easy to find: solid when
+        // you've moved away (come back), outlined with the red dot when you're there.
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf(-2, -1, 0, 1, 2).forEach { preset ->
-                val on = store.offsetMinutes == preset * 60
-                Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(50))
-                    .background(if (on) Palette.cream else Palette.tile)
-                    .border(0.5.dp, if (on) Color.Transparent else Palette.border, RoundedCornerShape(50))
-                    .clickable { if (preset == 0) store.backToNow() else store.shift(preset * 60) },
-                    contentAlignment = Alignment.Center) {
-                    Text(if (preset == 0) "Now" else "${if (preset > 0) "+" else "−"}${kotlin.math.abs(preset)} hr",
-                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) Palette.bg else Palette.secondary)
+                if (preset == 0) {
+                    Row(Modifier.weight(1.4f).height(38.dp).clip(RoundedCornerShape(50))
+                        .background(if (store.isNow) Palette.tile else Palette.cream)
+                        .border(1.5.dp, if (store.isNow) Palette.cream else Color.Transparent, RoundedCornerShape(50))
+                        .clickable { store.backToNow() },
+                        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        if (store.isNow) { Box(Modifier.size(6.dp).clip(CircleShape).background(Palette.crimson)); Spacer(Modifier.width(6.dp)) }
+                        Text("Now", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (store.isNow) Palette.cream else Palette.bg)
+                    }
+                } else {
+                    val on = store.offsetMinutes == preset * 60
+                    Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(50))
+                        .background(if (on) Palette.secondary else Palette.tile)
+                        .border(0.5.dp, if (on) Color.Transparent else Palette.border, RoundedCornerShape(50))
+                        .clickable { store.shift(preset * 60) },
+                        contentAlignment = Alignment.Center) {
+                        Text("${if (preset > 0) "+" else "−"}${kotlin.math.abs(preset)} hr",
+                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) Palette.bg else Palette.secondary)
+                    }
                 }
-            }
-            Box(Modifier.width(44.dp).height(34.dp).clip(RoundedCornerShape(50)).background(Palette.tile)
-                .border(0.5.dp, Palette.border, RoundedCornerShape(50)).clickable { typing = true },
-                contentAlignment = Alignment.Center) {
-                Text("123", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.secondary)
             }
         }
     }
-    if (typing) TypeOffsetDialog(onDone = { minutes -> typing = false; minutes?.let { store.shift(it) } })
 }
 
 /** "+3", "3", "-1.5", "−2:30", "+0:45 hr" -> minutes from now (up to a week either way). */

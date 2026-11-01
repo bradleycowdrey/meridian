@@ -113,69 +113,78 @@ class Store(private val context: Context, val demo: Boolean = false) {
         if (demo) return
         val date = Instant.now()
         if (date.epochSecond / 60 == now.epochSecond / 60) return
-        // A picked time (a date, a tapped hour) stays where it is as the clock moves; a shift
-        // ("+3 hr") moves with it.
-        if (anchored && offsetMinutes != 0) {
-            val passed = ((date.epochSecond - now.epochSecond) / 60.0).roundToInt()
-            if (passed != 0) offsetMinutes -= passed
-        }
         now = date
+        // A picked time stays exactly where it is as the clock moves; a shift ("+2 hr") moves with it.
+        pinned?.let { offsetMinutes = minutesTo(it) }
     }
 
-    val isNow get() = offsetMinutes == 0
-    /** Now, or some minutes from now ("+3 hr" is exactly three hours on). */
-    val moment: Instant get() = now.plusSeconds(offsetMinutes * 60L)
+    val isNow get() = pinned == null && offsetMinutes == 0
+    /** A picked time exactly (8:15:00 from the ruler, a tapped hour, a date), or now plus a shift. */
+    val moment: Instant get() = pinned ?: now.plusSeconds(offsetMinutes * 60L)
     val onTheHour get() = offsetMinutes % 60 == 0 || moment.atZone(home).minute == 0
 
-    /** The moment was picked (a date, a tapped hour), so it stays put as the clock moves. */
-    private var anchored = false
+    /**
+     * A picked clock time, kept exactly (not as minutes from now, which would round to the minute
+     * and land on 8:14 or 8:16); null for now or a shift from now.
+     */
+    private var pinned by mutableStateOf<Instant?>(null)
+
+    private fun minutesTo(at: Instant): Int = ((at.toEpochMilli() - now.toEpochMilli()) / 60_000.0).roundToInt()
+
+    /** Pin a picked time (or let go of it at now). */
+    private fun pin(at: Instant?) {
+        pinned = at
+        var next = at?.let { minutesTo(it) } ?: 0
+        if (at != null && next == 0) next = if (at > now) 1 else -1   // still "away"
+        offsetMinutes = next
+    }
 
     /** Go to a moment, which then stays put. */
     fun jump(to: Instant) {
-        anchored = true
-        offsetMinutes = ((to.epochSecond - now.epochSecond) / 60.0).roundToInt()
+        pin(to)
         userMoves++
     }
 
-    /** Look some minutes from now ("+3 hr"); it moves with the clock. */
+    /** Look some minutes from now ("+2 hr"); it moves with the clock. */
     fun shift(minutes: Int) {
-        anchored = false
+        pinned = null
         offsetMinutes = minutes
         userMoves++
     }
 
+    private fun scrubbed() {
+        userMoves++
+        if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
+    }
+
     /**
-     * While dragging the slider or a day bar: the quarter-hour on the clock nearest to this many
-     * minutes from now (11:00, 11:15, 11:30), which then stays put as the clock moves.
+     * While dragging a day bar: the quarter-hour on the clock nearest to this many minutes from
+     * now (11:00, 11:15, 11:30), exactly, which then stays put as the clock moves.
      */
     fun scrubToQuarterNear(minutes: Double) {
         val target = now.epochSecond + (minutes * 60).toLong()
-        val snapped = Math.round(target / 900.0) * 900
-        val next = if (kotlin.math.abs(minutes) < 7.5) 0 else ((snapped - now.epochSecond) / 60.0).roundToInt()
-        if (next == offsetMinutes) return
-        anchored = next != 0
-        offsetMinutes = next
-        userMoves++
-        if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
+        val snapped = Instant.ofEpochSecond(Math.round(target / 900.0) * 900)
+        val atNow = kotlin.math.abs(minutes) < 7.5
+        if (if (atNow) isNow else pinned == snapped) return
+        pin(if (atNow) null else snapped)
+        scrubbed()
     }
 
-    /** The time ruler settled on a quarter-hour of the clock, which then stays put; the quarter-hour just begun is now. */
+    /** The time ruler settled on a quarter-hour of the clock, exactly; the quarter-hour just begun is now. */
     fun scrubToQuarter(at: Instant) {
         val quarterNow = Math.floorDiv(now.epochSecond, 900L) * 900
-        val next = if (at.epochSecond == quarterNow) 0 else ((at.epochSecond - now.epochSecond) / 60.0).roundToInt()
-        if (next == offsetMinutes) return
-        anchored = next != 0
-        offsetMinutes = next
-        userMoves++
-        if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
+        val exact = Instant.ofEpochSecond(Math.floorDiv(at.epochSecond, 900L) * 900)
+        val atNow = exact.epochSecond == quarterNow
+        if (if (atNow) isNow else pinned == exact) return
+        pin(if (atNow) null else exact)
+        scrubbed()
     }
 
     fun scrub(to: Int) {
-        if (to == offsetMinutes) return
-        anchored = false
+        if (to == offsetMinutes && pinned == null) return
+        pinned = null
         offsetMinutes = to
-        userMoves++
-        if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
+        scrubbed()
     }
 
     fun travel(hours: Int) {
@@ -184,7 +193,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         jump(anchor.plusSeconds(((if (hours < 0 && !aligned) hours + 1 else hours) * 3600).toLong()))
     }
 
-    fun backToNow() { offsetMinutes = 0; userMoves++ }
+    fun backToNow() { pinned = null; offsetMinutes = 0; userMoves++ }
 
     fun isWorkHour(hour: Int): Boolean = WorkWeek.isWorkHour(hour, workStart, workEnd)
 

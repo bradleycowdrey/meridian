@@ -88,13 +88,9 @@ final class CityStore: ObservableObject {
         let date = clock
         guard Calendar.current.component(.minute, from: date) != Calendar.current.component(.minute, from: now)
             || abs(date.timeIntervalSince(now)) > 60 else { return }
-        // A picked time (a date, a tapped hour) stays where it is as the clock moves; a shift
-        // ("+3 hr") moves with it.
-        if anchored && offsetMinutes != 0 {
-            let passed = Int((date.timeIntervalSince(now) / 60).rounded())
-            if passed != 0 { offsetMinutes -= passed }
-        }
         now = date
+        // A picked time stays exactly where it is as the clock moves; a shift ("+2 hr") moves with it.
+        if let pinned { offsetMinutes = Self.minutes(from: now, to: pinned) }
     }
 
     /// The app came back to the front: catch up the clock and the widgets.
@@ -176,16 +172,27 @@ final class CityStore: ObservableObject {
 
     // MARK: Time travel
 
-    /// The moment being looked at: now, or some minutes from now ("+3 hr" is exactly three hours on).
+    /// The moment being looked at: a picked time exactly (8:15:00 from the ruler, a tapped hour, a
+    /// date), or now plus a shift ("+2 hr" is exactly two hours on).
     var moment: Date {
-        now.addingTimeInterval(Double(offsetMinutes) * 60)
+        pinned ?? now.addingTimeInterval(Double(offsetMinutes) * 60)
     }
 
-    /// The moment was picked (a date, a tapped hour), so it stays put as the clock moves; false
-    /// for a shift from now (the slider, the hour buttons, a typed offset).
-    private var anchored = false
+    /// A picked clock time, kept exactly (not as minutes from now, which would round to the minute
+    /// and land on 8:14 or 8:16); nil for now or a shift from now.
+    private var pinned: Date?
 
-    var isNow: Bool { offsetMinutes == 0 }
+    var isNow: Bool { pinned == nil && offsetMinutes == 0 }
+
+    /// Whole minutes from one time to another, for the offset the views read.
+    private static func minutes(from: Date, to: Date) -> Int { Int((to.timeIntervalSince(from) / 60).rounded()) }
+
+    /// Pin a picked time (or let go of it at now).
+    private func pin(_ date: Date?) {
+        pinned = date
+        offsetMinutes = date.map { Self.minutes(from: now, to: $0) } ?? 0
+        if date != nil && offsetMinutes == 0 { offsetMinutes = date! > now ? 1 : -1 }   // still "away"
+    }
 
     /// Start of the quarter-hour. Every time zone's offset is a whole number of quarter-hours, so
     /// this is a quarter-hour boundary everywhere.
@@ -195,15 +202,13 @@ final class CityStore: ObservableObject {
 
     /// Go to a moment, which then stays put.
     func jump(to date: Date, animated: Bool = true) {
-        let minutes = Int((date.timeIntervalSince(now) / 60).rounded())
-        anchored = true
-        if animated { withAnimation(.snappy) { offsetMinutes = minutes } } else { offsetMinutes = minutes }
+        if animated { withAnimation(.snappy) { pin(date) } } else { pin(date) }
         userMoves += 1
     }
 
     /// Look some minutes from now ("+3 hr"); it moves with the clock.
     func shift(minutes: Int) {
-        anchored = false
+        pinned = nil
         withAnimation(.snappy) { offsetMinutes = minutes }
         userMoves += 1
     }
@@ -211,11 +216,9 @@ final class CityStore: ObservableObject {
     /// The time ruler settled on a quarter-hour of the clock, which then stays put; the quarter-hour
     /// just begun stands for now.
     func scrub(toQuarter date: Date) {
-        let quarterNow = Self.quarter(now)
-        let next = abs(date.timeIntervalSince(quarterNow)) < 1 ? 0 : Int((date.timeIntervalSince(now) / 60).rounded())
-        guard next != offsetMinutes else { return }
-        anchored = next != 0
-        offsetMinutes = next
+        let atNow = abs(date.timeIntervalSince(Self.quarter(now))) < 1
+        guard atNow ? !isNow : pinned != date else { return }
+        pin(atNow ? nil : date)
         userMoves += 1
         if !hasScrubbed { hasScrubbed = true }
     }
@@ -225,19 +228,17 @@ final class CityStore: ObservableObject {
     func scrub(toQuarterNear minutes: Double) {
         let target = now.addingTimeInterval(minutes * 60)
         let snapped = Date(timeIntervalSinceReferenceDate: (target.timeIntervalSinceReferenceDate / 900).rounded() * 900)
-        var next = Int((snapped.timeIntervalSince(now) / 60).rounded())
-        if abs(minutes) < 7.5 { next = 0 }   // near the middle is Now
-        guard next != offsetMinutes else { return }
-        anchored = next != 0
-        offsetMinutes = next
+        let atNow = abs(minutes) < 7.5   // near the middle is Now
+        guard atNow ? !isNow : pinned != snapped else { return }
+        pin(atNow ? nil : snapped)
         userMoves += 1
         if !hasScrubbed { hasScrubbed = true }
     }
 
     /// Set the offset directly while dragging (no animation; the drag is the animation).
     func scrub(to minutes: Int) {
-        guard minutes != offsetMinutes else { return }
-        anchored = false
+        guard minutes != offsetMinutes || pinned != nil else { return }
+        pinned = nil
         offsetMinutes = minutes
         userMoves += 1
         if !hasScrubbed { hasScrubbed = true }
@@ -259,6 +260,7 @@ final class CityStore: ObservableObject {
     }
 
     func backToNow() {
+        pinned = nil
         withAnimation(.snappy) { offsetMinutes = 0 }
         userMoves += 1
     }

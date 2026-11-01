@@ -147,14 +147,15 @@ final class ZoneStore: ObservableObject {
 
     func add(_ entry: CityEntry) {
         guard canAdd, !contains(entry) else { return }
-        places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID))
+        places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID, countryCode: entry.countryCode,
+                            latitude: entry.latitude, longitude: entry.longitude))
         // A city in your own time zone becomes My Location, rather than showing twice.
         updateMyLocation(locate: false)
     }
 
     /// Already tracking this city (same name and zone)?
     func contains(_ entry: CityEntry) -> Bool {
-        places.contains { $0.name == entry.name && $0.timeZoneID == entry.timeZoneID }
+        places.contains { $0.person == nil && $0.name == entry.name && $0.timeZoneID == entry.timeZoneID }
     }
 
     func remove(_ place: Place) {

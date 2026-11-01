@@ -5,13 +5,23 @@ import WidgetKit
 /// widgets through the App Group (see WidgetSnapshot).
 @MainActor
 final class CityStore: ObservableObject {
-    static let maxPlaces = 12
+    static let maxPlaces = 24
 
     @Published var places: [Place] { didSet { save(); syncWidgets() } }
     @Published var use24h: Bool { didSet { defaults.set(use24h, forKey: "use24h"); syncWidgets() } }
     @Published var showWorkHours: Bool { didSet { defaults.set(showWorkHours, forKey: "showWorkHours") } }
     @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart") } }
     @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
+    /// Count public holidays as days off (Settings).
+    @Published var countHolidays = Holidays.counted { didSet { Holidays.counted = countHolidays } }
+    /// The group the list shows ("Design team"); nil shows everyone.
+    @Published var groupFilter: String? = UserDefaults.standard.string(forKey: "groupFilter") {
+        didSet { defaults.set(groupFilter, forKey: "groupFilter") }
+    }
+    /// Clock changes the user has closed the notice for ("Europe/London|1793000000").
+    @Published var dismissedClockChanges = Set(UserDefaults.standard.stringArray(forKey: "dismissedClockChanges") ?? []) {
+        didSet { defaults.set(Array(dismissedClockChanges), forKey: "dismissedClockChanges") }
+    }
     /// Keep a "My Location" row for the city you're in (on unless turned off in Settings).
     @Published var useMyLocation: Bool {
         didSet {
@@ -144,12 +154,13 @@ final class CityStore: ObservableObject {
     var canAdd: Bool { places.count < Self.maxPlaces }
 
     func contains(_ entry: CityEntry) -> Bool {
-        places.contains { $0.name == entry.name && $0.timeZoneID == entry.timeZoneID }
+        places.contains { $0.person == nil && $0.name == entry.name && $0.timeZoneID == entry.timeZoneID }
     }
 
     func add(_ entry: CityEntry) {
         guard canAdd, !contains(entry) else { return }
-        places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID))
+        places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID, countryCode: entry.countryCode,
+                            latitude: entry.latitude, longitude: entry.longitude))
         // A city in your own time zone becomes My Location, rather than showing twice.
         updateMyLocation(locate: false)
     }
@@ -268,7 +279,8 @@ final class CityStore: ObservableObject {
     func rename(_ place: Place, to name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let i = places.firstIndex(where: { $0.id == place.id }) else { return }
-        places[i].name = String(trimmed.prefix(40))
+        // A person's card renames the person; a city's, the city.
+        if places[i].person != nil { places[i].person = String(trimmed.prefix(40)) } else { places[i].name = String(trimmed.prefix(40)) }
     }
 
     /// Cities outside working hours at the selected moment (empty when the setting is off).
@@ -296,7 +308,7 @@ final class CityStore: ObservableObject {
 
     /// Plain text for the selected moment in every city, for pasting into a chat or invite.
     var momentText: String {
-        places.map { "\($0.name): \(TimeMath.fullMoment(moment, in: $0.timeZone, use24h: use24h)) (\($0.offsetLabel(at: moment)))" }
+        places.map { "\($0.person.map { p in "\(p) (\($0.name))" } ?? $0.name): \(TimeMath.fullMoment(moment, in: $0.timeZone, use24h: use24h)) (\($0.offsetLabel(at: moment)))" }
             .joined(separator: "\n")
     }
 }

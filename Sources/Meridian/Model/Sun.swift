@@ -15,9 +15,20 @@ enum Sun {
 
     /// Where the sun is in this city at this moment, or nil for a zone with no known place
     /// (UTC, an offset).
+    /// Where the sun is for this card: at the city itself when it's known, else its time zone's city.
+    static func phase(_ place: Place, at date: Date) -> Phase? {
+        if let lat = place.latitude, let lon = place.longitude {
+            return phase(lat: lat, lon: lon, zone: place.timeZone, at: date)
+        }
+        return phase(zoneID: place.timeZoneID, at: date)
+    }
+
     static func phase(zoneID: String, at date: Date) -> Phase? {
         guard let c = coordinates[zoneID], let zone = TimeZone(identifier: zoneID) else { return nil }
-        let (lat, lon) = c
+        return phase(lat: c.0, lon: c.1, zone: zone, at: date)
+    }
+
+    static func phase(lat: Double, lon: Double, zone: TimeZone, at date: Date) -> Phase? {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = zone
         guard let today = events(lat: lat, lon: lon, day: cal.dateComponents([.year, .month, .day], from: date)) else {

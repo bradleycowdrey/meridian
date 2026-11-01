@@ -41,7 +41,7 @@ jobs:
           xcrun simctl ui "$DEVICE" appearance dark
           xcrun simctl status_bar "$DEVICE" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
           xcrun simctl install "$DEVICE" "$APP" || echo "install failed" >> "$OUT/device.txt"
-          for screen in terms main travel edit add settings date; do
+          for screen in terms main travel edit add settings date find; do
             xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
             xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen -render-widgets >> "$OUT/launch.txt" 2>&1
             sleep 6

@@ -28,6 +28,11 @@ targets:
       - path: ../Sources/Meridian/Model/TermsVersion.swift
       - path: ../Sources/Meridian/Model/WorkWeek.swift
       - path: ../Sources/Meridian/Model/Sun.swift
+      - path: ../Sources/Meridian/Model/Holidays.swift
+      - path: ../Resources/Data/cities.tsv
+        buildPhase: resources
+      - path: ../Resources/Data/holidays.tsv
+        buildPhase: resources
       - path: ../Sources/Meridian/Shared/WorkHoursEditor.swift
       - path: ../Sources/Meridian/Model/CityDirectory.swift
       - path: ../Sources/Meridian/Shared/WidgetContent.swift

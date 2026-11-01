@@ -2,11 +2,17 @@ import Foundation
 
 struct CityEntry: Identifiable, Hashable {
     let name: String
-    let region: String
+    var region: String
     let timeZoneID: String
     var aliases: [String] = []
+    /// From the world city list (GeoNames): country, where it is, and how many live there (to
+    /// rank the bigger city first).
+    var countryCode: String? = nil
+    var latitude: Double? = nil
+    var longitude: Double? = nil
+    var population = 0
 
-    var id: String { "\(name)|\(timeZoneID)" }
+    var id: String { "\(name)|\(region)|\(timeZoneID)" }
 }
 
 /// Searchable list of cities: every IANA zone city, plus popular cities that share a zone,
@@ -80,8 +86,40 @@ enum CityDirectory {
             entry.aliases += airports[entry.name] ?? []
             return entry
         }
+        // Every city of 15,000 people or more (Resources/Data/cities.tsv), so Boulder and Leeds
+        // are there too; a city already listed above gains its country and place.
+        var index: [String: Int] = [:]
+        for (i, e) in entries.enumerated() { index["\(e.name.lowercased())|\(e.timeZoneID)"] = i }
+        for city in worldCities {
+            let key = "\(city.name.lowercased())|\(city.timeZoneID)"
+            if let i = index[key] {
+                if entries[i].latitude == nil {
+                    entries[i].countryCode = city.countryCode; entries[i].latitude = city.latitude
+                    entries[i].longitude = city.longitude; entries[i].population = city.population
+                    entries[i].region = city.region
+                }
+            } else {
+                index[key] = entries.count
+                entries.append(city)
+            }
+        }
         return entries.sorted { $0.name < $1.name }
     }()
+
+    private static var worldCities: [CityEntry] {
+        guard let url = Bundle.main.url(forResource: "cities", withExtension: "tsv"),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
+        let known = Set(TimeZone.knownTimeZoneIdentifiers)
+        var seen = Set<String>()
+        return text.split(separator: "\n").compactMap { line in
+            let p = line.split(separator: "\t", omittingEmptySubsequences: false)
+            // One of each name in each region and zone (the biggest, as the file is by size).
+            guard p.count == 7, known.contains(String(p[3])), seen.insert("\(p[0])|\(p[1])|\(p[3])").inserted else { return nil }
+            return CityEntry(name: String(p[0]), region: String(p[1]), timeZoneID: String(p[3]),
+                             countryCode: String(p[2]), latitude: Double(p[4]), longitude: Double(p[5]),
+                             population: Int(p[6]) ?? 0)
+        }
+    }
 
     static func search(_ query: String) -> [CityEntry] {
         let q = query.trimmingCharacters(in: .whitespaces)
@@ -101,7 +139,8 @@ enum CityDirectory {
                 results.append((3, entry))
             }
         }
-        var ranked = results.sorted { ($0.0, $0.1.name) < ($1.0, $1.1.name) }.map(\.1)
+        // Best match first; then the bigger city (Paris, France before Paris, Texas).
+        var ranked = results.sorted { ($0.0, -$0.1.population, $0.1.name) < ($1.0, -$1.1.population, $1.1.name) }.map(\.1)
 
         // "PST", "CET", "IST"... (not offsets like "GMT+5", handled below, and not UTC/GMT,
         // which already have a city entry)

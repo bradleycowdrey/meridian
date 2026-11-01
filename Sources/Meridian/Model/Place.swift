@@ -10,6 +10,18 @@ struct Place: Codable, Identifiable, Hashable {
     var workDays: Set<Int>? = nil
     var workStart: Int? = nil
     var workEnd: Int? = nil
+    /// The city's country (for its public holidays) and where it is (for its sunrise and sunset),
+    /// from the city list; nil for older cards, which use their time zone's.
+    var countryCode: String? = nil
+    var latitude: Double? = nil
+    var longitude: Double? = nil
+    /// A person this card is for ("Ana", in Lisbon): shown as the card's name, with the city under.
+    var person: String? = nil
+    /// Groups this card is in ("Design team"), for Find a Time and the list's filter.
+    var groups: [String]? = nil
+
+    /// What the card is called: the person, or the city.
+    var title: String { person ?? name }
 
     var timeZone: TimeZone { TimeZone(identifier: timeZoneID) ?? .current }
 
@@ -68,6 +80,11 @@ enum TimeMath {
     /// "14:05" or "2:05 PM", with a thin space before AM/PM (as everywhere in Meridian).
     static func time(_ date: Date, in zone: TimeZone, use24h: Bool) -> String {
         formatter(use24h ? "HH:mm" : "h:mm\u{2009}a", zone).string(from: date)
+    }
+
+    /// "Tue 3 Nov".
+    static func fullDay(_ date: Date, in zone: TimeZone) -> String {
+        formatter("EEE d MMM", zone).string(from: date)
     }
 
     static func weekday(_ date: Date, in zone: TimeZone) -> String {

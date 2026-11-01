@@ -59,6 +59,8 @@ enum WorkWeek {
     static func hours(_ place: Place, at date: Date, start: Int, end: Int) -> Hours? {
         let cal = place.calendar
         let weekday = cal.component(.weekday, from: date)
+        // A public holiday there is a day off.
+        if Holidays.name(for: place, at: date) != nil { return nil }
         let schedule = schedule(zoneID: place.timeZoneID)
         var today: Hours?
         if let schedule {
@@ -92,6 +94,7 @@ enum WorkWeek {
     static func offLabel(_ place: Place, at date: Date, start: Int, end: Int) -> String? {
         guard !isWorking(place, at: date, start: start, end: end) else { return nil }
         if hours(place, at: date, start: start, end: end) != nil { return "Off hours" }
+        if let holiday = Holidays.name(for: place, at: date) { return holiday }
         let weekday = place.calendar.component(.weekday, from: date)
         return usualDays(zoneID: place.timeZoneID).contains(weekday) ? "Day off" : "Weekend"
     }

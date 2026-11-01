@@ -21,6 +21,12 @@ struct ContentView: View {
     /// The city whose working days and hours are being edited.
     @State private var workFor: Place?
     @State private var newName = ""
+    @State private var showingFind = false
+    /// "Add a Person Here": the card the person is in the city of, and their name.
+    @State private var personFor: Place?
+    @State private var personName = ""
+    /// The card whose groups are being chosen.
+    @State private var groupsFor: Place?
 
     var body: some View {
         NavigationStack {
@@ -36,21 +42,34 @@ struct ContentView: View {
             .toolbar { toolbarContent }
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingDate) { DateJumpView() }
+            .sheet(isPresented: $showingFind) { FindTimeView() }
+            .sheet(item: $groupsFor) { place in GroupsView(place: place) }
+            .alert("Add a Person in \(personFor?.isMyLocation == true ? (store.hereCity ?? "My Location") : personFor?.name ?? "")", isPresented: isAddingPerson) {
+                TextField("Name", text: $personName).textInputAutocapitalization(.words)
+                Button("Cancel", role: .cancel) { personFor = nil }
+                Button("Add") { if let p = personFor { store.addPerson(personName, at: p) }; personFor = nil }
+            } message: {
+                Text("Their card shows their name, with the city's time, working hours and holidays.")
+            }
             // A tick per quarter-hour, a firmer one on each whole hour; only for the user's own moves.
             .sensoryFeedback(trigger: store.userMoves) { _, _ in haptic }
-            .alert("Rename City", isPresented: isRenaming) {
+            .alert(renaming?.person != nil ? "Rename Person" : "Rename City", isPresented: isRenaming) {
                 TextField("Name", text: $newName)
                 Button("Cancel", role: .cancel) { renaming = nil }
                 Button("Rename") { finishRename() }
             }
-            .confirmationDialog(actionsFor?.name ?? "", isPresented: showingActions, titleVisibility: .visible, presenting: actionsFor) { place in
+            .confirmationDialog(actionsFor?.title ?? "", isPresented: showingActions, titleVisibility: .visible, presenting: actionsFor) { place in
                 Button("Copy Time") { copy(place) }
                 Button("Working Days & Hours") {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { workFor = place }
                 }
-                if !place.isMyLocation {
+                if store.canAdd {
+                    Button("Add a Person Here") { later { personName = ""; personFor = place } }
+                }
+                Button(place.groups == nil ? "Add to a Group" : "Groups") { later { groupsFor = place } }
+                if !place.isMyLocation || place.person != nil {
                     Button("Rename") {
-                        newName = place.name
+                        newName = place.title
                         // After the dialog has gone, so the rename alert can show.
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { renaming = place }
                     }
@@ -74,6 +93,15 @@ struct ContentView: View {
                 .preferredColorScheme(.dark)
             }
             .task { await openScreenshotScreen() }
+    }
+
+    /// After the dialog has gone, so the next alert or sheet can show.
+    private func later(_ action: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: action)
+    }
+
+    private var isAddingPerson: Binding<Bool> {
+        Binding(get: { personFor != nil }, set: { if !$0 { personFor = nil } })
     }
 
     private var showingActions: Binding<Bool> {
@@ -179,7 +207,12 @@ struct ContentView: View {
             if store.places.isEmpty {
                 emptyState
             }
-            ForEach(store.places) { place in
+            if !editMode.isEditing {
+                if !store.groups.isEmpty { groupFilter }
+                ForEach(store.clockChanges) { change in clockNotice(change) }
+            }
+            // In Edit List every card shows, so removing and moving follow the full list.
+            ForEach(editMode.isEditing ? store.places : store.visiblePlaces) { place in
                 row(place)
             }
             // Remove and reorder in Edit List only: a sideways swipe on a card drags its day bar.
@@ -200,6 +233,69 @@ struct ContentView: View {
                 .listRowInsets(EdgeInsets())
                 .textCase(nil)
         }
+    }
+
+    /// Everyone, or one group: chips above the cards.
+    private var groupFilter: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterChip("Everyone", on: store.groupFilter == nil) { store.groupFilter = nil }
+                ForEach(store.groups, id: \.self) { group in
+                    filterChip(group, on: store.groupFilter == group) { store.groupFilter = group }
+                }
+            }
+            .padding(.horizontal, Card.margin)
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
+        .listRowBackground(Theme.bg)
+        .listRowSeparator(.hidden)
+    }
+
+    private func filterChip(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .padding(.horizontal, 14).frame(minHeight: 32)
+                .background(Capsule().fill(on ? Theme.cream : Theme.tile))
+                .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
+                .foregroundStyle(on ? Theme.bg : Theme.secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    /// A city's clocks change soon: when, and how far it will be from you afterwards.
+    private func clockNotice(_ change: ClockChange) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "clock.arrow.2.circlepath")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.cream)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(change.headline(use24h: store.use24h))
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.primary)
+                if let detail = change.detail {
+                    Text(detail).font(.footnote).foregroundStyle(Theme.muted)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Button { withAnimation(.snappy) { store.dismiss(change) } } label: {
+                Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(Theme.faint)
+                    .frame(width: 28, height: 28).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close")
+        }
+        .listRowInsets(EdgeInsets(top: Card.gap / 2 + 14, leading: Card.margin + 14, bottom: Card.gap / 2 + 14, trailing: Card.margin + 8))
+        .listRowBackground(
+            RoundedRectangle(cornerRadius: Card.radius, style: .continuous)
+                .fill(Theme.crimson.opacity(0.16))
+                .overlay(RoundedRectangle(cornerRadius: Card.radius, style: .continuous).strokeBorder(Theme.crimson.opacity(0.5), lineWidth: 0.5))
+                .padding(.horizontal, Card.margin)
+                .padding(.vertical, Card.gap / 2)
+        )
+        .listRowSeparator(.hidden)
+        .accessibilityElement(children: .combine)
     }
 
     private func row(_ place: Place) -> some View {
@@ -226,15 +322,18 @@ struct ContentView: View {
             .contextMenu {
                 Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
                 Button { workFor = place } label: { Label("Working Days & Hours", systemImage: "briefcase") }
-                if !place.isMyLocation {
-                    Button { newName = place.name; renaming = place } label: { Label("Rename", systemImage: "pencil") }
+                Button { personName = ""; personFor = place } label: { Label("Add a Person Here", systemImage: "person.badge.plus") }
+                    .disabled(!store.canAdd)
+                Button { groupsFor = place } label: { Label("Groups", systemImage: "person.3") }
+                if !place.isMyLocation || place.person != nil {
+                    Button { newName = place.title; renaming = place } label: { Label("Rename", systemImage: "pencil") }
                 }
                 Button(role: .destructive) {
                     store.remove(place)
                 } label: { Label("Remove", systemImage: "trash") }
             }
             .accessibilityAction(named: "Copy Time") { copy(place) }
-            .accessibilityAction(named: "Rename") { if !place.isMyLocation { newName = place.name; renaming = place } }
+            .accessibilityAction(named: "Rename") { if !place.isMyLocation || place.person != nil { newName = place.title; renaming = place } }
             .accessibilityAction(named: "Remove") { store.remove(place) }
     }
 
@@ -243,6 +342,8 @@ struct ContentView: View {
         ToolbarItemGroup(placement: .topBarTrailing) {
             listControls
             Menu {
+                Button { showingFind = true } label: { Label("Find a Time…", systemImage: "person.2.badge.gearshape") }
+                    .disabled(store.places.isEmpty)
                 Button { showingDate = true } label: { Label("Go to a Time…", systemImage: "calendar") }
                 Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
                     .disabled(store.places.isEmpty)
@@ -365,6 +466,7 @@ struct ContentView: View {
         case "add": adding = true; query = "san"
         case "settings": showingSettings = true
         case "date": showingDate = true
+        case "find": showingFind = true
         case "edit": editMode = .active
         case "travel": store.jump(to: TimeMath.hourAnchor(store.now).addingTimeInterval(5 * 3600), animated: false)
         default: break
@@ -372,7 +474,7 @@ struct ContentView: View {
     }
 
     private func copy(_ place: Place) {
-        UIPasteboard.general.string = "\(place.name): \(TimeMath.fullMoment(store.moment, in: place.timeZone, use24h: store.use24h))"
+        UIPasteboard.general.string = "\(place.title): \(TimeMath.fullMoment(store.moment, in: place.timeZone, use24h: store.use24h))"
         flashCopied()
     }
 
@@ -632,7 +734,7 @@ struct CityRow: View {
     /// another city in the same time zone ("My Location · Boulder" on Denver).
     private var hereLabel: String? {
         guard store.isHere(place) else { return nil }
-        if !place.isMyLocation, let city = store.hereCity, city != place.name { return "My Location · \(city)" }
+        if !place.isMyLocation, place.person == nil, let city = store.hereCity, city != place.name { return "My Location · \(city)" }
         return "My Location"
     }
 
@@ -669,7 +771,7 @@ struct CityRow: View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(place.name).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
+                    Text(place.title).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
                     if store.isHere(place) { Image(systemName: "location.fill").font(.caption2).foregroundStyle(Theme.cream) }
                 }
                 Text(detail(store.moment)).font(.footnote).foregroundStyle(Theme.muted)
@@ -697,7 +799,7 @@ struct CityRow: View {
                         .foregroundStyle(Theme.muted)
                         .monospacedDigit()
                     HStack(spacing: 6) {
-                        Text(place.name)
+                        Text(place.title)
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(Theme.primary)
                             .minimumScaleFactor(0.8)
@@ -751,7 +853,7 @@ struct CityRow: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([place.name, hereLabel, TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
+        .accessibilityLabel([place.title, place.person != nil ? place.name : nil, hereLabel, TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
                              detail(moment), dayNote(moment), workStatus?.text, sunStatus.map { "sun \($0.text.lowercased())" }]
                              .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
     }
@@ -793,7 +895,8 @@ struct CityRow: View {
 
     /// "My Location · UTC−7" on the card for where you are, else how the city relates to you.
     private func detail(_ moment: Date) -> String {
-        let base = relation(moment)
+        // A person's card names their city first: "Lisbon · +8 hr · UTC+1".
+        let base = (place.person != nil ? "\(place.name) · " : "") + relation(moment)
         guard let here = hereLabel else { return base }
         return here + " · " + (base.hasPrefix("Your time · ") || base.hasPrefix("Same time · ") ? String(base.split(separator: "·").last!).trimmingCharacters(in: .whitespaces) : base)
     }
@@ -972,5 +1075,69 @@ private struct SearchResultRow: View {
                 .foregroundStyle(added ? Theme.faint : Theme.cream)
         }
         .contentShape(Rectangle())
+    }
+}
+
+/// The groups a card is in ("Design team", "Family"): tick existing ones or make a new one.
+struct GroupsView: View {
+    @EnvironmentObject private var store: CityStore
+    @Environment(\.dismiss) private var dismiss
+    let place: Place
+    @State private var chosen: Set<String> = []
+    @State private var newGroup = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if !allGroups.isEmpty {
+                    Section {
+                        ForEach(allGroups, id: \.self) { group in
+                            Button {
+                                if chosen.contains(group) { chosen.remove(group) } else { chosen.insert(group) }
+                            } label: {
+                                HStack {
+                                    Text(group).foregroundStyle(Theme.primary)
+                                    Spacer()
+                                    if chosen.contains(group) { Image(systemName: "checkmark").foregroundStyle(Theme.cream) }
+                                }
+                            }
+                        }
+                    }
+                }
+                Section {
+                    HStack {
+                        TextField("New group, like Design Team", text: $newGroup)
+                            .textInputAutocapitalization(.words)
+                            .onSubmit(addNew)
+                        Button("Add", action: addNew).disabled(newGroup.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                } footer: {
+                    Text("Show one group at a time on your list, and pick a group in Find a Time.")
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Theme.bg)
+            .navigationTitle(place.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { store.setGroups(Array(chosen), for: place); dismiss() }
+                }
+            }
+            .onAppear { chosen = Set(place.groups ?? []) }
+        }
+        .tint(Theme.cream)
+        .presentationDetents([.medium, .large])
+        .preferredColorScheme(.dark)
+    }
+
+    private var allGroups: [String] { Array(Set(store.groups).union(chosen)).sorted() }
+
+    private func addNew() {
+        let name = newGroup.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        chosen.insert(String(name.prefix(30)))
+        newGroup = ""
     }
 }

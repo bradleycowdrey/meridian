@@ -159,6 +159,17 @@ class Store(private val context: Context, val demo: Boolean = false) {
         if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
     }
 
+    /** The time ruler settled on a quarter-hour of the clock, which then stays put; the quarter-hour just begun is now. */
+    fun scrubToQuarter(at: Instant) {
+        val quarterNow = Math.floorDiv(now.epochSecond, 900L) * 900
+        val next = if (at.epochSecond == quarterNow) 0 else ((at.epochSecond - now.epochSecond) / 60.0).roundToInt()
+        if (next == offsetMinutes) return
+        anchored = next != 0
+        offsetMinutes = next
+        userMoves++
+        if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
+    }
+
     fun scrub(to: Int) {
         if (to == offsetMinutes) return
         anchored = false

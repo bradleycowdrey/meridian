@@ -25,6 +25,13 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -328,29 +335,9 @@ fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false, pickDa
 @Composable
 fun TimeShifter(store: Store) {
     var typing by remember { mutableStateOf(false) }
-    val hours = (store.offsetMinutes / 60f).coerceIn(-12f, 12f)
     Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("−12 hr", fontSize = 11.sp, color = Palette.faint)
-            Slider(
-                value = hours,
-                // Continuous (no row of tick marks); the store snaps to the clock's quarter-hours.
-                onValueChange = { store.scrubToQuarterNear(it * 60.0) },
-                valueRange = -12f..12f,
-                // No fill: Now is in the middle, so a half-filled track would read as "halfway".
-                colors = SliderDefaults.colors(thumbColor = Palette.cream, activeTrackColor = Palette.border,
-                    inactiveTrackColor = Palette.border, activeTickColor = Color.Transparent, inactiveTickColor = Color.Transparent),
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
-                    .semantics { stateDescription = if (store.isNow) "Now" else relative(store) },
-                // A round knob on a thin track, as on the iPhone.
-                thumb = { Box(Modifier.size(24.dp).shadow(2.dp, CircleShape).clip(CircleShape).background(Palette.cream)) },
-                track = { state ->
-                    SliderDefaults.Track(sliderState = state, modifier = Modifier.height(4.dp), thumbTrackGapSize = 0.dp,
-                        drawStopIndicator = null, colors = SliderDefaults.colors(activeTrackColor = Palette.border, inactiveTrackColor = Palette.border))
-                },
-            )
-            Text("+12 hr", fontSize = 11.sp, color = Palette.faint)
-        }
+        TimeRuler(store)
+        Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(-2, -1, 0, 1, 2).forEach { preset ->
                 val on = store.offsetMinutes == preset * 60
@@ -667,5 +654,84 @@ fun OffNote(text: String, modifier: Modifier = Modifier) {
         Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_moon), contentDescription = null, tint = Palette.muted, modifier = Modifier.size(12.dp))
         Spacer(Modifier.width(5.dp))
         Text(text, fontSize = 12.sp, color = Palette.muted)
+    }
+}
+
+/**
+ * The time ruler: the day as a strip of hours and quarter-hours under a fixed line, as in a
+ * camera's zoom dial. Swipe or flick it and it settles on a quarter-hour of the clock (:00, :15,
+ * :30, :45), ticking as it passes each one; tap an hour to go there. Two days either way.
+ */
+@Composable
+fun TimeRuler(store: Store) {
+    val tick = 14.dp
+    val span = 4 * 48
+    val nowIndex = Math.floorDiv(store.now.epochSecond, 900L).toInt()
+    val selected = if (store.isNow) nowIndex else Math.round(store.moment.epochSecond / 900.0).toInt()
+    // Fixed for this screen, so an item keeps its quarter-hour as the clock moves.
+    val base = remember { nowIndex - span }
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = (selected - base).coerceAtLeast(0))
+    val fling = rememberSnapFlingBehavior(listState, SnapPosition.Center)
+    val scope = rememberCoroutineScope()
+    val tickPx = with(LocalDensity.current) { tick.toPx() }
+    // True while the ruler is being moved to match the time (not by the user).
+    val syncing = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
+    val centered by remember { derivedStateOf { base + listState.firstVisibleItemIndex + (listState.firstVisibleItemScrollOffset / tickPx).roundToInt() } }
+
+    // The ruler moved: go to its quarter-hour (the one just begun is now).
+    LaunchedEffect(Unit) {
+        snapshotFlow { centered }.collect { index ->
+            if (!listState.isScrollInProgress || syncing.get()) return@collect
+            val current = if (store.isNow) Math.floorDiv(store.now.epochSecond, 900L).toInt() else Math.round(store.moment.epochSecond / 900.0).toInt()
+            if (index == current) return@collect
+            if (index == Math.floorDiv(store.now.epochSecond, 900L).toInt()) store.backToNow()
+            else store.scrubToQuarter(java.time.Instant.ofEpochSecond(index * 900L))
+        }
+    }
+    // The time moved some other way (Now, the buttons, a date): bring the ruler along.
+    LaunchedEffect(selected) {
+        if (!listState.isScrollInProgress && centered != selected) {
+            syncing.set(true)
+            try { listState.animateScrollToItem((selected - base).coerceIn(0, 4 * span)) } finally { syncing.set(false) }
+        }
+    }
+
+    BoxWithConstraints(Modifier.fillMaxWidth().height(56.dp)) {
+        val side = ((maxWidth - tick) / 2).coerceAtLeast(0.dp)
+        LazyRow(state = listState, flingBehavior = fling, contentPadding = PaddingValues(horizontal = side),
+            modifier = Modifier.fillMaxSize().semantics { stateDescription = if (store.isNow) "Now" else relative(store) }) {
+            items(4 * span + 1) { k ->
+                val index = base + k
+                RulerTick(java.time.Instant.ofEpochSecond(index * 900L).atZone(store.home), store.use24h,
+                    Modifier.width(tick).fillMaxHeight().clickable { scope.launch { listState.animateScrollToItem(k) } })
+            }
+        }
+        // The fixed line: where you are in time.
+        Box(Modifier.align(Alignment.TopCenter).padding(top = 22.dp).width(3.dp).height(34.dp)
+            .clip(RoundedCornerShape(50)).background(Palette.cream))
+        // Fade the ends.
+        Box(Modifier.align(Alignment.CenterStart).width(40.dp).fillMaxHeight()
+            .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Palette.bg, Color.Transparent))))
+        Box(Modifier.align(Alignment.CenterEnd).width(40.dp).fillMaxHeight()
+            .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color.Transparent, Palette.bg))))
+    }
+}
+
+/** One quarter-hour on the ruler: a tall tick and its hour on the hour (the day at midnight), shorter ones between. */
+@Composable
+private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, modifier: Modifier) {
+    val hour = at.hour; val minute = at.minute
+    Column(modifier.padding(top = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.height(16.dp).wrapContentWidth(unbounded = true), contentAlignment = Alignment.Center) {
+            if (minute == 0) Text(
+                if (hour == 0) at.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH).uppercase()
+                else if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}${TimeMath.THIN}${if (hour < 12) "AM" else "PM"}",
+                fontSize = 11.sp, maxLines = 1, softWrap = false,
+                fontWeight = if (hour == 0) FontWeight.Bold else FontWeight.Medium,
+                color = if (hour == 0) Palette.cream else Palette.muted)
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(Modifier.width(if (minute == 0) 2.dp else 1.5.dp).height(if (minute == 0) 20.dp else if (minute == 30) 13.dp else 8.dp)
+            .clip(RoundedCornerShape(50)).background(if (minute == 0) Palette.secondary else Palette.faint))
     }
 }

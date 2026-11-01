@@ -208,6 +208,18 @@ final class CityStore: ObservableObject {
         userMoves += 1
     }
 
+    /// The time ruler settled on a quarter-hour of the clock, which then stays put; the quarter-hour
+    /// just begun stands for now.
+    func scrub(toQuarter date: Date) {
+        let quarterNow = Self.quarter(now)
+        let next = abs(date.timeIntervalSince(quarterNow)) < 1 ? 0 : Int((date.timeIntervalSince(now) / 60).rounded())
+        guard next != offsetMinutes else { return }
+        anchored = next != 0
+        offsetMinutes = next
+        userMoves += 1
+        if !hasScrubbed { hasScrubbed = true }
+    }
+
     /// While dragging the slider or a day bar: the quarter-hour on the clock nearest to this many
     /// minutes from now (11:00, 11:15, 11:30), which then stays put as the clock moves.
     func scrub(toQuarterNear minutes: Double) {

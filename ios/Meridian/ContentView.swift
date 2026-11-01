@@ -384,36 +384,17 @@ private struct MomentHeader: View {
 /// Moves every city through time from the header: a slider from 12 hours back to 12 ahead (in
 /// quarter-hours, "Now" in the middle), one-tap −2/−1/Now/+1/+2 hours, and 123 to type an offset
 /// ("+3", "-1.5", "-2:30"). The date picker in the header goes further; the day bars still drag.
-private struct TimeShifter: View {
+struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
     @State private var typing = false
     @State private var typed = ""
     @State private var invalid = false
 
-    private static let range = 12.0
     private static let presets = [-2, -1, 0, 1, 2]
-
-    /// Hours from now, as the slider shows them (clamped to its range).
-    private var hours: Binding<Double> {
-        Binding(
-            get: { min(max(Double(store.offsetMinutes) / 60, -Self.range), Self.range) },
-            set: { store.scrub(toQuarterNear: $0 * 60) }
-        )
-    }
 
     var body: some View {
         VStack(spacing: 8) {
-            // Continuous (no row of tick marks); the store snaps to the clock's quarter-hours.
-            Slider(value: hours, in: -Self.range...Self.range) {
-                Text("Hours from now")
-            } minimumValueLabel: {
-                Text("−12 hr").font(.caption2).foregroundStyle(Theme.faint)
-            } maximumValueLabel: {
-                Text("+12 hr").font(.caption2).foregroundStyle(Theme.faint)
-            }
-            // No fill: Now is in the middle, so a half-filled track would read as "halfway".
-            .tint(Theme.border)
-            .accessibilityValue(store.isNow ? "Now" : Self.describe(store.offsetMinutes))
+            TimeRuler()
             HStack(spacing: 6) {
                 ForEach(Self.presets, id: \.self) { preset in
                     let on = store.offsetMinutes == preset * 60
@@ -489,6 +470,116 @@ private struct TimeShifter: View {
         let a = abs(minutes), h = a / 60, m = a % 60
         let span = [h > 0 ? "\(h) \(h == 1 ? "hour" : "hours")" : nil, m > 0 ? "\(m) minutes" : nil].compactMap { $0 }.joined(separator: " ")
         return minutes > 0 ? "\(span) from now" : "\(span) ago"
+    }
+}
+
+/// The time ruler: the day as a strip of hours and quarter-hours under a fixed line, as in the
+/// camera's zoom dial. Swipe or flick it and it settles on a quarter-hour of the clock (:00, :15,
+/// :30, :45), ticking as it passes each one; tap an hour to go there. Two days either way; the date
+/// in the header goes further.
+private struct TimeRuler: View {
+    @EnvironmentObject private var store: CityStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The quarter-hour under the line, as an index (quarter-hours since 2001).
+    @State private var position: Int?
+
+    private static let tick: CGFloat = 14
+    private static let span = 4 * 48
+
+    private static func index(_ date: Date, rounded rule: FloatingPointRoundingRule) -> Int {
+        Int((date.timeIntervalSinceReferenceDate / 900).rounded(rule))
+    }
+    private static func date(_ index: Int) -> Date { Date(timeIntervalSinceReferenceDate: Double(index) * 900) }
+
+    /// The quarter-hour that stands for now (the one just begun).
+    private var nowIndex: Int { Self.index(store.now, rounded: .down) }
+    private var selectedIndex: Int { store.isNow ? nowIndex : Self.index(store.moment, rounded: .toNearestOrAwayFromZero) }
+
+    var body: some View {
+        let center = nowIndex
+        GeometryReader { geo in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 0) {
+                    ForEach((center - Self.span)...(center + Self.span), id: \.self) { i in
+                        RulerTick(date: Self.date(i), isNow: i == center, use24h: store.use24h)
+                            .frame(width: Self.tick, height: 56)
+                            .contentShape(Rectangle())
+                            .onTapGesture { withAnimation(.snappy) { position = i } }
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .contentMargins(.horizontal, max(0, (geo.size.width - Self.tick) / 2), for: .scrollContent)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $position, anchor: .center)
+        }
+        .frame(height: 56)
+        // The fixed line: where you are in time.
+        .overlay {
+            VStack(spacing: 0) {
+                Capsule().fill(Theme.cream).frame(width: 3, height: 34)
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 22)
+            .allowsHitTesting(false)
+        }
+        .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12),
+                                     .init(color: .black, location: 0.88), .init(color: .clear, location: 1)],
+                             startPoint: .leading, endPoint: .trailing))
+        .onAppear { position = selectedIndex }
+        .onChange(of: position) { _, new in
+            guard let new, new != selectedIndex else { return }
+            if new == nowIndex { store.backToNow() } else { store.scrub(toQuarter: Self.date(new)) }
+        }
+        .onChange(of: selectedIndex) { _, new in
+            guard position != new else { return }
+            if reduceMotion { position = new } else { withAnimation(.snappy) { position = new } }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Time")
+        .accessibilityValue(store.isNow ? "Now" : TimeShifter.describe(store.offsetMinutes))
+        .accessibilityAdjustableAction { direction in
+            let step = direction == .increment ? 1 : -1
+            store.scrub(toQuarter: Self.date(selectedIndex + step))
+        }
+    }
+}
+
+/// One quarter-hour on the ruler: a tall tick and its hour on the hour ("9 AM", or the day at
+/// midnight), a shorter one at the half-hour, a short one at the quarters.
+private struct RulerTick: View {
+    let date: Date
+    let isNow: Bool
+    let use24h: Bool
+
+    var body: some View {
+        let parts = Calendar.current.dateComponents([.hour, .minute, .weekday], from: date)
+        let hour = parts.hour ?? 0, minute = parts.minute ?? 0
+        VStack(spacing: 4) {
+            Group {
+                if minute == 0 {
+                    Text(label(hour: hour, weekday: parts.weekday ?? 1))
+                        .font(.caption2.weight(hour == 0 ? .bold : .medium))
+                        .foregroundStyle(hour == 0 ? Theme.cream : Theme.muted)
+                        .monospacedDigit()
+                        .fixedSize()
+                } else {
+                    Text(" ").font(.caption2)
+                }
+            }
+            .frame(height: 14)
+            Capsule()
+                .fill(minute == 0 ? Theme.secondary : Theme.faint)
+                .frame(width: minute == 0 ? 2 : 1.5, height: minute == 0 ? 20 : (minute == 30 ? 13 : 8))
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 2)
+    }
+
+    private func label(hour: Int, weekday: Int) -> String {
+        if hour == 0 { return Calendar(identifier: .gregorian).shortWeekdaySymbols[weekday - 1].uppercased() }
+        if use24h { return String(format: "%02d", hour) }
+        return "\(hour % 12 == 0 ? 12 : hour % 12)\u{2009}\(hour < 12 ? "AM" : "PM")"
     }
 }
 

@@ -111,7 +111,10 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
 private fun SwitchRow(label: String, on: Boolean, set: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f))
-        Switch(on, set, colors = SwitchDefaults.colors(checkedTrackColor = Palette.cream, checkedThumbColor = Palette.bg))
+        // On: the brand crimson with a white knob (clear against the dark, unlike cream); off: dark grey.
+        Switch(on, set, colors = SwitchDefaults.colors(checkedTrackColor = Palette.crimson, checkedThumbColor = Color.White,
+            checkedBorderColor = Palette.crimson, uncheckedTrackColor = Palette.border, uncheckedThumbColor = Palette.muted,
+            uncheckedBorderColor = Palette.border))
     }
 }
 

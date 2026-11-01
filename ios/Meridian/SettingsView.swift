@@ -14,13 +14,16 @@ struct SettingsView: View {
             Form {
                 Section {
                     Toggle("24-Hour Time", isOn: $store.use24h)
+                        .tint(Theme.crimson)
                     Toggle("Highlight Working Hours", isOn: $store.showWorkHours)
+                        .tint(Theme.crimson)
                 } header: { Text("Time") } footer: {
                     Text("Each city follows its country's usual working days and hours. To change a city's, tap its card.")
                         .foregroundStyle(Theme.muted)
                 }
                 Section {
                     Toggle("Show My Location", isOn: $store.useMyLocation)
+                        .tint(Theme.crimson)
                 } header: { Text("Cities") } footer: {
                     Text("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone.")
                         .foregroundStyle(Theme.muted)

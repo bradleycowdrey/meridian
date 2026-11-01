@@ -9,6 +9,10 @@ struct DateJumpView: View {
     @State private var day = Date()
     @State private var hour = 9
     @State private var quarter = 0
+    /// 123: type hours from now ("+3", "-1.5", "-2:30").
+    @State private var typing = false
+    @State private var typed = ""
+    @State private var invalid = false
 
     private var calendar: Calendar { Calendar.current }
 
@@ -37,6 +41,26 @@ struct DateJumpView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .onAppear { set(store.moment) }
+            .alert("Hours from now", isPresented: $typing) {
+                TextField("+3, -1.5 or -2:30", text: $typed)
+                    .keyboardType(.numbersAndPunctuation)
+                Button("Cancel", role: .cancel) {}
+                Button("Go") {
+                    if let minutes = TimeShifter.parse(typed) {
+                        store.shift(minutes: minutes)
+                        dismiss()
+                    } else {
+                        invalid = true
+                    }
+                }
+            } message: {
+                Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.")
+            }
+            .alert("That isn't a number of hours", isPresented: $invalid) {
+                Button("OK") { typed = ""; typing = true }
+            } message: {
+                Text("Try +3, -1.5 or -2:30.")
+            }
         }
         .tint(Theme.cream)
         .preferredColorScheme(.dark)
@@ -72,6 +96,9 @@ struct DateJumpView: View {
                 set(calendar.date(bySettingHour: 9, minute: 0, second: 0, of: next) ?? next)
             }
             chip("In a Week") { set(store.now.addingTimeInterval(7 * 86_400)) }
+            chip("123") { typed = ""; invalid = false; typing = true }
+                .frame(maxWidth: 56)
+                .accessibilityLabel("Type hours from now")
         }
     }
 

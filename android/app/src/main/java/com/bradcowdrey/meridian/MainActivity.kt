@@ -268,7 +268,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
         }
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             stickyHeader {
-                MomentHeader(store, copied, editing) { open("date") }
+                MomentHeader(store, copied, editing)
             }
             if (store.places.isEmpty()) item {
                 Column(Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -309,36 +309,17 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
 
 /** A small "NOW" (or "IN 4 HR 20 MIN") over the date and time, a Now button when away, the meeting planner line. */
 @Composable
-fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false, pickDate: () -> Unit) {
-    var typing by remember { mutableStateOf(false) }
-    if (typing) TypeOffsetDialog(onDone = { minutes -> typing = false; minutes?.let { store.shift(it) } })
-    Column(Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).clickable(onClick = pickDate)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (store.isNow) { Box(Modifier.size(6.dp).clip(CircleShape).background(Palette.crimson)); Spacer(Modifier.width(6.dp)) }
-                    Text(if (copied) "COPIED" else relative(store).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.8.sp, color = if (store.isNow) Palette.muted else Palette.cream)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(TimeMath.fullMoment(store.moment, store.home, store.use24h), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Choose a date and time", tint = Palette.faint)
-                }
-            }
-            // Type an offset ("+3", "-1.5", "-2:30").
-            if (store.places.isNotEmpty() && !editing) {
-                Box(Modifier.width(48.dp).height(32.dp).clip(RoundedCornerShape(50)).background(Palette.tile)
-                    .border(0.5.dp, Palette.border, RoundedCornerShape(50)).clickable { typing = true },
-                    contentAlignment = Alignment.Center) {
-                    Text("123", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.secondary)
-                }
-            }
+fun MomentHeader(store: Store, copied: Boolean, editing: Boolean = false) {
+    // The ruler and the hour buttons, nothing more: the "Your time" card already shows the time (and
+    // its date, when that's another day). "Copied" shows briefly after copying.
+    Column(Modifier.fillMaxWidth().background(Palette.bg).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        if (copied) {
+            Text("✓  Copied", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Palette.cream,
+                modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.tile).padding(horizontal = 12.dp, vertical = 6.dp))
+            Spacer(Modifier.height(8.dp))
         }
-        // The Now chip below brings you back (no second Now up here); in Edit List the controls step aside.
-        if (store.places.isNotEmpty() && !editing) {
-            Spacer(Modifier.height(10.dp))
-            TimeShifter(store)
-        }
+        if (store.places.isNotEmpty() && !editing) TimeShifter(store)
     }
 }
 
@@ -401,7 +382,7 @@ fun parseOffset(text: String): Int? {
 }
 
 @Composable
-private fun TypeOffsetDialog(onDone: (Int?) -> Unit) {
+fun TypeOffsetDialog(onDone: (Int?) -> Unit) {
     var text by remember { mutableStateOf("") }
     var invalid by remember { mutableStateOf(false) }
     AlertDialog(
@@ -450,8 +431,11 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     // another city in the same time zone ("My Location · Boulder" on Denver).
     val here = if (!store.isHere(place)) null
         else store.hereCity?.takeIf { !place.isMyLocation && it != place.name }?.let { "My Location · $it" } ?: "My Location"
+    // Your own city on another day (a date you went to) shows that date instead of "Your time".
+    val otherDay = place.zone.id == store.home.id && moment.atZone(store.home).toLocalDate() != store.now.atZone(store.home).toLocalDate()
     val detail = (TimeMath.relative(moment, place.zone, store.home)
-        ?: if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
+        ?: if (otherDay) moment.atZone(store.home).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))
+        else if (place.zone.id == store.home.id) "Your time" else "Same time") + " · " + utc
     Column(modifier.fillMaxWidth().padding(16.dp)
         .semantics(mergeDescendants = true) { contentDescription = "${place.name}${here?.let { ", $it" } ?: ""}, ${TimeMath.time(moment, place.zone, store.use24h)}, $detail${off?.let { ", ${it.lowercase()}" } ?: ""}" }) {
         Row(verticalAlignment = Alignment.Bottom) {

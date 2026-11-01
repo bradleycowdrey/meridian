@@ -193,7 +193,7 @@ struct ContentView: View {
                 .listRowSeparator(.hidden)
         } header: {
             // Pinned while the cities scroll underneath.
-            MomentHeader(copied: copied, editing: editMode.isEditing) { showingDate = true }
+            MomentHeader(copied: copied, editing: editMode.isEditing)
                 .padding(.horizontal, Card.margin).padding(.top, 14).padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.bg)
@@ -392,99 +392,26 @@ struct ContentView: View {
 /// quiet line.
 private struct MomentHeader: View {
     @EnvironmentObject private var store: CityStore
-    @Environment(\.dynamicTypeSize) private var typeSize
     let copied: Bool
-    /// In Edit List the header keeps only the moment; the time controls step aside.
+    /// In Edit List the time controls step aside.
     var editing = false
-    let pickDate: () -> Void
-    @State private var typing = false
-    @State private var typed = ""
-    @State private var invalid = false
 
+    /// The ruler and the hour buttons, nothing more: the "Your time" card already shows the time
+    /// (and its date, when that's another day). "Copied" shows briefly after copying.
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
-                Button(action: pickDate) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            if store.isNow { Circle().fill(Theme.crimson).frame(width: 6, height: 6) }
-                            Text(copied ? "COPIED" : relative.uppercased())
-                                .font(.caption.weight(.semibold))
-                                .tracking(0.8)
-                                .foregroundStyle(store.isNow ? Theme.muted : Theme.cream)
-                                .contentTransition(.numericText())
-                        }
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text(TimeMath.fullMoment(store.moment, in: .current, use24h: store.use24h))
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(Theme.primary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                                .contentTransition(.numericText())
-                            Image(systemName: "chevron.down")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(Theme.faint)
-                        }
-                    }
-                    .monospacedDigit()
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint("Choose a date and time. Swipe up or down to move an hour.")
-                .accessibilityAdjustableAction { direction in
-                    switch direction {
-                    case .increment: store.travel(1)
-                    case .decrement: store.travel(-1)
-                    @unknown default: break
-                    }
-                }
-                Spacer(minLength: 0)
-                // Type an offset ("+3", "-1.5", "-2:30").
-                if !store.places.isEmpty && !editing {
-                    Button { typed = ""; invalid = false; typing = true } label: {
-                        Text("123")
-                            .font(.footnote.weight(.semibold))
-                            .frame(width: 44, height: 30)
-                            .background(Capsule().fill(Theme.tile))
-                            .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
-                            .foregroundStyle(Theme.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Type hours from now")
-                }
+        VStack(spacing: 8) {
+            if copied {
+                Label("Copied", systemImage: "checkmark.circle.fill")
+                    .font(.footnote.weight(.semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Capsule().fill(Theme.tile))
+                    .foregroundStyle(Theme.cream)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            // The Now button below brings you back; no second Now up here.
             if !store.places.isEmpty && !editing { TimeShifter() }
         }
-        .alert("Hours from now", isPresented: $typing) {
-            TextField("+3, -1.5 or -2:30", text: $typed)
-                .keyboardType(.numbersAndPunctuation)
-            Button("Cancel", role: .cancel) {}
-            Button("Go") {
-                if let minutes = TimeShifter.parse(typed) {
-                    store.shift(minutes: minutes)
-                } else {
-                    invalid = true
-                }
-            }
-        } message: {
-            Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.")
-        }
-        .alert("That isn't a number of hours", isPresented: $invalid) {
-            Button("OK") { typed = ""; typing = true }
-        } message: {
-            Text("Try +3, -1.5 or -2:30.")
-        }
-    }
-
-    private var relative: String {
-        if store.isNow { return "Now" }
-        // From the real time now, to the nearest 5 minutes ("In 4 hr 20 min").
-        let total = Int((store.moment.timeIntervalSince(store.now) / 300).rounded()) * 5
-        if total == 0 { return "Now" }
-        let days = abs(total) / 1440, hours = abs(total) % 1440 / 60, minutes = abs(total) % 60
-        let span = [days > 0 ? "\(days) d" : nil, hours > 0 ? "\(hours) hr" : nil, minutes > 0 ? "\(minutes) min" : nil]
-            .compactMap { $0 }.joined(separator: " ")
-        return total > 0 ? "In \(span)" : "\(span) ago"
+        .frame(maxWidth: .infinity)
+        .animation(.snappy, value: copied)
     }
 
 }
@@ -803,10 +730,21 @@ struct CityRow: View {
     }
 
     /// "+8 hr · UTC+1", "+5:30 hr · UTC+5:30", "Your time · UTC−7".
+    private static let day: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_GB")
+        f.dateFormat = "EEE d MMM"
+        return f
+    }()
+
     private func detail(_ moment: Date) -> String {
         let utc = place.offsetLabel(at: moment)
         let diff = place.timeZone.secondsFromGMT(for: moment) - TimeZone.current.secondsFromGMT(for: moment)
         if diff == 0 {
+            // Your own city on another day (a date you went to) shows that date instead.
+            if place.timeZone.identifier == TimeZone.current.identifier, !Calendar.current.isDate(moment, inSameDayAs: store.now) {
+                return "\(Self.day.string(from: moment)) · \(utc)"
+            }
             return "\(place.timeZone.identifier == TimeZone.current.identifier ? "Your time" : "Same time") · \(utc)"
         }
         let h = abs(diff) / 3600, m = abs(diff) % 3600 / 60

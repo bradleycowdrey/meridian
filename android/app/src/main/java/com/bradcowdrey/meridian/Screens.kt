@@ -252,6 +252,9 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
         dateState.selectedDateMillis = utcMillis(z.toLocalDate()); hour = z.hour; quarter = z.minute / 15
     }
     val nine = if (store.use24h) "09:00" else "9${TimeMath.THIN}AM"
+    // 123: type hours from now ("+3", "-1.5", "-2:30").
+    var typing by remember { mutableStateOf(false) }
+    if (typing) TypeOffsetDialog(onDone = { minutes -> typing = false; minutes?.let { store.shift(it); onDone() } })
 
     Screen("Go to a Time", onDone) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
@@ -269,6 +272,7 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                         set(store.now.atZone(zone).toLocalDate().with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.MONDAY)).atTime(9, 0).atZone(zone).toInstant())
                     }
                     QuickChip("In a Week", Modifier.weight(1f)) { set(store.now.plusSeconds(7 * 86_400L)) }
+                    QuickChip("123", Modifier.width(56.dp)) { typing = true }
                 }
                 DateCard {
                     DatePicker(state = dateState, title = null, headline = null, showModeToggle = false,

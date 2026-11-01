@@ -429,7 +429,7 @@ struct TimeShifter: View {
             TimeRuler()
             // −2 · −1 · Now · +1 · +2: Now in the middle, wider, and always easy to find: solid when
             // you've moved away (come back), outlined with the red dot when you're there.
-            HStack(spacing: 6) {
+            HStack(alignment: .center, spacing: 6) {
                 ForEach(Self.presets, id: \.self) { preset in
                     if preset == 0 { nowButton } else { hourButton(preset) }
                 }
@@ -441,16 +441,16 @@ struct TimeShifter: View {
         Button { store.backToNow() } label: {
             HStack(spacing: 6) {
                 if store.isNow { Circle().fill(Theme.crimson).frame(width: 6, height: 6) }
-                Text("Now").font(.subheadline.weight(.bold))
+                Text("Now").font(.body.weight(.bold))
             }
-            .frame(maxWidth: .infinity, minHeight: 36)
+            .frame(maxWidth: .infinity, minHeight: 44)
             .background(Capsule().fill(store.isNow ? Theme.tile : Theme.cream))
             .overlay(Capsule().strokeBorder(Theme.cream, lineWidth: store.isNow ? 1.5 : 0).allowsHitTesting(false))
             .foregroundStyle(store.isNow ? Theme.cream : Theme.bg)
         }
         .buttonStyle(.plain)
         .layoutPriority(1)
-        .frame(minWidth: 84)
+        .frame(minWidth: 100)
         .accessibilityLabel(store.isNow ? "Now" : "Back to now")
     }
 
@@ -460,7 +460,7 @@ struct TimeShifter: View {
             Text("\(preset > 0 ? "+" : "−")\(abs(preset)) hr")
                 .font(.footnote.weight(.semibold))
                 .monospacedDigit()
-                .frame(maxWidth: .infinity, minHeight: 32)
+                .frame(maxWidth: .infinity, minHeight: 34)
                 .background(Capsule().fill(on ? Theme.secondary : Theme.tile))
                 .overlay(Capsule().strokeBorder(Theme.border, lineWidth: on ? 0 : 0.5).allowsHitTesting(false))
                 .foregroundStyle(on ? Theme.bg : Theme.secondary)

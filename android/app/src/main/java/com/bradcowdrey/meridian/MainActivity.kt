@@ -352,13 +352,13 @@ fun TimeShifter(store: Store) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf(-2, -1, 0, 1, 2).forEach { preset ->
                 if (preset == 0) {
-                    Row(Modifier.weight(1.4f).height(38.dp).clip(RoundedCornerShape(50))
+                    Row(Modifier.weight(1.6f).height(44.dp).clip(RoundedCornerShape(50))
                         .background(if (store.isNow) Palette.tile else Palette.cream)
                         .border(1.5.dp, if (store.isNow) Palette.cream else Color.Transparent, RoundedCornerShape(50))
                         .clickable { store.backToNow() },
                         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         if (store.isNow) { Box(Modifier.size(6.dp).clip(CircleShape).background(Palette.crimson)); Spacer(Modifier.width(6.dp)) }
-                        Text("Now", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (store.isNow) Palette.cream else Palette.bg)
+                        Text("Now", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = if (store.isNow) Palette.cream else Palette.bg)
                     }
                 } else {
                     val on = store.offsetMinutes == preset * 60

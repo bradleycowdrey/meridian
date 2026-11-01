@@ -267,6 +267,31 @@ platform :ios do
     end
   end
 
+  # Lists every App Store version with its state and build; a version whose name no longer
+  # matches its build's (renamed while it was in review) gets its build's name back.
+  lane :store_status do
+    sign_in_api
+    app = asc_app_id
+    _, versions = asc(:get, "v1/apps/#{app}/appStoreVersions?include=build&limit=10")
+    builds = (versions["included"] || []).select { |i| i["type"] == "builds" }.to_h { |b| [b["id"], b] }
+    (versions["data"] || []).each do |v|
+      name = v.dig("attributes", "versionString")
+      state = v.dig("attributes", "appStoreState") || v.dig("attributes", "appVersionState")
+      build_id = v.dig("relationships", "build", "data", "id")
+      build = builds[build_id]
+      marketing = nil
+      if build_id
+        _, pre = asc(:get, "v1/builds/#{build_id}/preReleaseVersion")
+        marketing = pre.dig("data", "attributes", "version")
+      end
+      UI.message("Version #{name}: #{state}; build #{build&.dig("attributes", "version") || "none"} (#{marketing || "-"})")
+      if marketing && marketing != name && state != "READY_FOR_SALE"
+        code, body = asc(:patch, "v1/appStoreVersions/#{v["id"]}", { data: { type: "appStoreVersions", id: v["id"], attributes: { versionString: marketing } } })
+        report("Version name #{name} -> #{marketing}", code, body)
+      end
+    end
+  end
+
   private_lane :sign_in_api do
     root = File.basename(Dir.pwd) == "fastlane" ? File.dirname(Dir.pwd) : Dir.pwd
     key = JSON.parse(File.read(File.join(root, API_KEY)))

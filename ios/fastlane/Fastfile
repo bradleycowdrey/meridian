@@ -3,6 +3,7 @@
 # the workflow from GitHub secrets) and the Apple Distribution certificate the workflow imports.
 require "net/http"
 require "json"
+require "time"
 
 default_platform(:ios)
 
@@ -13,6 +14,7 @@ platform :ios do
   # Signs with App Store provisioning profiles (fetched, or created, for the imported certificate)
   # and builds the .ipa.
   lane :build do |options|
+    prune_api_development_certificates
     TARGETS.each do |identifier, target|
       get_provisioning_profile(api_key_path: API_KEY, app_identifier: identifier, team_id: "2XV97FZ86G")
       update_code_signing_settings(
@@ -319,6 +321,30 @@ platform :ios do
       break unless (versions["data"] || []).any? { |v| %w[WAITING_FOR_REVIEW IN_REVIEW].include?(v.dig("attributes", "appStoreState")) }
       sleep 15
     end
+  end
+
+  # Apple allows only a few development certificates per account, and automated builds that let
+  # Xcode or fastlane create one ("Apple Development: Created via API") leave it behind with its
+  # private key gone, which blocks later signing. Revokes those, and only those: never a
+  # Developer ID or Apple Distribution certificate, and never one made in the last two hours (a
+  # build that is running now may be using it).
+  private_lane :prune_api_development_certificates do
+    sign_in_api
+    _, certs = asc(:get, "v1/certificates?limit=200")
+    cutoff = Time.now.utc - 2 * 3600
+    (certs["data"] || []).each do |c|
+      a = c["attributes"] || {}
+      type = a["certificateType"].to_s
+      name = "#{a["name"]} #{a["displayName"]}"
+      next unless %w[DEVELOPMENT IOS_DEVELOPMENT].include?(type) && name.include?("Created via API")
+      expires = Time.parse(a["expirationDate"].to_s) rescue nil
+      created = expires && expires - 365 * 86_400   # development certificates last a year
+      next if created.nil? || created > cutoff
+      code, body = asc(:delete, "v1/certificates/#{c["id"]}")
+      report("Revoked unused development certificate (#{a["serialNumber"]})", code, body)
+    end
+  rescue StandardError => e
+    UI.important("Certificate cleanup skipped: #{e.message}")
   end
 
   private_lane :sign_in_api do

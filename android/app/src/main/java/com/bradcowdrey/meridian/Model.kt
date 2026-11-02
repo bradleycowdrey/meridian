@@ -218,6 +218,8 @@ data class CityEntry(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val population: Int = 0,
+    /** A well-known city (a time zone's own, or a popular extra), ranked ahead of other matches. */
+    val curated: Boolean = false,
 ) {
     val id: String get() = "$name|$region|$zoneId"
 }
@@ -287,6 +289,7 @@ object CityDirectory {
         val merged = entries.map { it.copy(aliases = it.aliases + (airports[it.name] ?: emptyList())) }.toMutableList()
         // Every city of 15,000 people or more (Resources/Data/cities.tsv), so Boulder and Leeds are
         // there too; a city already listed above gains its country and place.
+        for (i in merged.indices) merged[i] = merged[i].copy(curated = true)
         val index = HashMap<String, Int>()
         merged.forEachIndexed { i, e -> index["${e.name.lowercase()}|${e.zoneId}"] = i }
         for (city in worldCities()) {
@@ -341,7 +344,7 @@ object CityDirectory {
                 e.region.lowercase().startsWith(lower) -> 3 to e
                 else -> null
             }
-        }.sortedWith(compareBy({ it.first }, { -it.second.population }, { it.second.name })).map { it.second }.toMutableList()
+        }.sortedWith(compareBy({ it.first }, { if (it.second.curated) 0 else 1 }, { -it.second.population }, { it.second.name })).map { it.second }.toMutableList()
         // Best match first; then the bigger city (Paris, France before Paris, Texas).
         val offset = offsetZone(q)
         if (offset == null) abbreviations[q.uppercase()]?.let { ranked.add(0, CityEntry(q.uppercase(), it, it)) }

@@ -11,6 +11,9 @@ struct CityEntry: Identifiable, Hashable {
     var latitude: Double? = nil
     var longitude: Double? = nil
     var population = 0
+    /// One of the well-known cities (a time zone's own city, or a popular extra like San
+    /// Francisco), ranked ahead of other matches of the same kind.
+    var curated = false
 
     var id: String { "\(name)|\(region)|\(timeZoneID)" }
 }
@@ -88,6 +91,7 @@ enum CityDirectory {
         }
         // Every city of 15,000 people or more (Resources/Data/cities.tsv), so Boulder and Leeds
         // are there too; a city already listed above gains its country and place.
+        for i in entries.indices { entries[i].curated = true }
         var index: [String: Int] = [:]
         for (i, e) in entries.enumerated() { index["\(e.name.lowercased())|\(e.timeZoneID)"] = i }
         for city in worldCities {
@@ -140,7 +144,10 @@ enum CityDirectory {
             }
         }
         // Best match first; then the bigger city (Paris, France before Paris, Texas).
-        var ranked = results.sorted { ($0.0, -$0.1.population, $0.1.name) < ($1.0, -$1.1.population, $1.1.name) }.map(\.1)
+        // Best match first; then the well-known city; then the bigger one (Paris, France before Paris, Texas).
+        var ranked = results.sorted {
+            ($0.0, $0.1.curated ? 0 : 1, -$0.1.population, $0.1.name) < ($1.0, $1.1.curated ? 0 : 1, -$1.1.population, $1.1.name)
+        }.map(\.1)
 
         // "PST", "CET", "IST"... (not offsets like "GMT+5", handled below, and not UTC/GMT,
         // which already have a city entry)

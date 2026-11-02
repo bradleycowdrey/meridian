@@ -27,4 +27,5 @@ The rules:
     - `2.1 submit` uploads and submits for App Review.
     - `status` reports what App Store Connect shows.
   - `versionName` in `android/app/build.gradle.kts` for Android.
+- **Submitting while an earlier version waits for review** withdraws it first (`2.1 submit` does this automatically), so the newer build replaces it.
 - **Every release gets notes:** `CHANGELOG.md`, the README's "What's new", and `ios/fastlane/metadata/en-US/release_notes.txt` for the App Store.

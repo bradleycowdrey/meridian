@@ -37,6 +37,9 @@ platform :ios do
 
   # Uploads the build, screenshots and listing; submits for review when submit is true.
   lane :upload do |options|
+    # Submitting while an earlier version waits for review: take that one out of review first, so
+    # this build, its screenshots and notes replace it (its version is then renamed to this one).
+    withdraw_pending_review if options[:submit].to_s == "true"
     ensure_review_detail
     prepare_app_store
     begin
@@ -289,6 +292,32 @@ platform :ios do
         code, body = asc(:patch, "v1/appStoreVersions/#{v["id"]}", { data: { type: "appStoreVersions", id: v["id"], attributes: { versionString: marketing } } })
         report("Version name #{name} -> #{marketing}", code, body)
       end
+    end
+  end
+
+  # Cancels any review submission that is waiting or in review, then waits (up to 10 minutes) for
+  # App Store Connect to make the version editable again.
+  private_lane :withdraw_pending_review do
+    sign_in_api
+    app = asc_app_id
+    waiting = %w[WAITING_FOR_REVIEW IN_REVIEW UNRESOLVED_ISSUES READY_FOR_REVIEW]
+    _, subs = asc(:get, "v1/reviewSubmissions?filter[app]=#{app}&filter[platform]=IOS&limit=20")
+    pending = (subs["data"] || []).select { |s| waiting.include?(s.dig("attributes", "state")) }
+    if pending.empty?
+      UI.message("No review submission to withdraw")
+      next
+    end
+    pending.each do |sub|
+      code, body = asc(:patch, "v1/reviewSubmissions/#{sub["id"]}",
+                       { data: { type: "reviewSubmissions", id: sub["id"], attributes: { canceled: true } } })
+      report("Withdraw review submission (#{sub.dig("attributes", "state")})", code, body)
+    end
+    40.times do
+      _, versions = asc(:get, "v1/apps/#{app}/appStoreVersions?filter[platform]=IOS&limit=5")
+      states = (versions["data"] || []).map { |v| "#{v.dig("attributes", "versionString")}: #{v.dig("attributes", "appStoreState")}" }
+      UI.message("Versions: #{states.join(", ")}")
+      break unless (versions["data"] || []).any? { |v| %w[WAITING_FOR_REVIEW IN_REVIEW].include?(v.dig("attributes", "appStoreState")) }
+      sleep 15
     end
   end
 

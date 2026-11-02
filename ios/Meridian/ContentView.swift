@@ -227,7 +227,7 @@ struct ContentView: View {
         } header: {
             // Pinned while the cities scroll underneath.
             MomentHeader(copied: copied, editing: editMode.isEditing)
-                .padding(.horizontal, Card.margin).padding(.top, 14).padding(.bottom, 12)
+                .padding(.horizontal, Card.margin).padding(.top, 6).padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.bg)
                 .listRowInsets(EdgeInsets())

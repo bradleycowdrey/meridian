@@ -62,15 +62,35 @@ struct FindTimeView: View {
                     }
                 }
             }
+            .padding(.horizontal, Card.margin)
         }
+        // Runs to the screen's edges, so a cut-off chip reads as "scroll for more".
+        .padding(.horizontal, -Card.margin)
         .padding(.top, 8)
     }
 
     private var lengthPicker: some View {
-        Picker("Length", selection: $length) {
-            ForEach(Self.lengths, id: \.self) { Text(Self.lengthLabel($0)).tag($0) }
+        // The same cream-on-tile form as every other choice on this screen.
+        HStack(spacing: 4) {
+            ForEach(Self.lengths, id: \.self) { minutes in
+                let on = length == minutes
+                Button { withAnimation(.snappy) { length = minutes } } label: {
+                    Text(Self.lengthLabel(minutes))
+                        .font(.footnote.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 32)
+                        .background(Capsule().fill(on ? Theme.cream : .clear))
+                        .foregroundStyle(on ? Theme.bg : Theme.secondary)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
         }
-        .pickerStyle(.segmented)
+        .padding(3)
+        .background(Capsule().fill(Theme.tile))
+        .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Length")
     }
 
     /// Who's in it: every card as a chip, and the groups as quick picks.
@@ -85,7 +105,9 @@ struct FindTimeView: View {
                             chip(group, on: chosen == ids) { chosen = ids }
                         }
                     }
+                    .padding(.horizontal, Card.margin)
                 }
+                .padding(.horizontal, -Card.margin)
             }
             FlowLayout(spacing: 8) {
                 ForEach(store.places) { place in
@@ -139,9 +161,9 @@ struct FindTimeView: View {
                 Button { slot = run[0] } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(run.count == 1 ? range(run[0].start, run[0].end) : "Start \(time(run[0].start))–\(time(run.last!.start))")
+                            Text(range(run[0].start, run.last!.end))
                                 .font(.headline).monospacedDigit().foregroundStyle(Theme.primary)
-                            Text(run.count == 1 ? "Your time" : "Your time · any start in this window")
+                            Text(run.count == 1 ? "Your time" : "Your time · start any time from \(time(run[0].start)) to \(time(run.last!.start))")
                                 .font(.caption).foregroundStyle(Theme.muted)
                         }
                         Spacer()

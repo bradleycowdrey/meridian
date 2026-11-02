@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -131,7 +132,7 @@ fun FindTimeScreen(store: Store, onDone: () -> Unit) {
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
             .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             // The day: today, tomorrow, then two weeks.
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState()),
+            Row(Modifier.padding(top = 8.dp).bleed(16.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 (0 until 14).forEach { i ->
                     val date = today.plusDays(i.toLong())
@@ -169,7 +170,7 @@ private fun Who(store: Store, chosen: Set<String>, set: (Set<String>) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val groups = store.groups
         if (groups.isNotEmpty()) {
-            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.bleed(16.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val everyone = store.places.map { it.id }.toSet()
                 PillChip("Everyone", chosen == everyone) { set(everyone) }
                 groups.forEach { group ->
@@ -221,10 +222,10 @@ private fun BestTimes(store: Store, slots: List<Slot>, count: Int, pick: (Slot) 
                 .border(0.5.dp, Palette.border, RoundedCornerShape(12.dp)).clickable { pick(first) }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(if (run.size == 1) "${time(first.start)}–${time(first.end)}" else "Start ${time(first.start)}–${time(run.last().start)}",
+                    Text("${time(first.start)}–${time(run.last().end)}",
                         fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary)
                     Spacer(Modifier.height(2.dp))
-                    Text(if (run.size == 1) "Your time" else "Your time · any start in this window", fontSize = 12.sp, color = Palette.muted)
+                    Text(if (run.size == 1) "Your time" else "Your time · start any time from ${time(first.start)} to ${time(run.last().start)}", fontSize = 12.sp, color = Palette.muted)
                 }
                 Icon(Icons.Filled.KeyboardArrowRight, contentDescription = null, tint = Palette.faint)
             }
@@ -394,3 +395,16 @@ private fun FindCard(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.tile)
         .border(0.5.dp, Palette.border, RoundedCornerShape(16.dp)), content = content)
 }
+
+/**
+ * Lets a horizontally scrolling row run to the screen's edges from inside padded content, so a
+ * cut-off chip at the edge reads as "scroll for more" (as on the iPhone).
+ */
+fun Modifier.bleed(horizontal: androidx.compose.ui.unit.Dp): Modifier = this.then(
+    androidx.compose.ui.Modifier.layout { measurable, constraints ->
+        val extra = horizontal.roundToPx() * 2
+        val placeable = measurable.measure(constraints.copy(
+            minWidth = (constraints.minWidth + extra).coerceAtLeast(0),
+            maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + extra else constraints.maxWidth))
+        layout(placeable.width - extra, placeable.height) { placeable.place(-extra / 2, 0) }
+    })

@@ -31,3 +31,35 @@ enum Card {
     static let gap: CGFloat = 12
     static let radius: CGFloat = 16
 }
+
+/// A quiet sky behind each card, as in Two Degrees but only a touch: a soft wash at the top for
+/// the sky where the city is at the moment shown (night, dawn or dusk, day), fading into the card's
+/// own colour by the bottom so text and the day bar read exactly as before.
+enum CardSky {
+    enum Phase: Equatable { case night, twilight, day }
+
+    /// Within an hour of sunrise or sunset is twilight.
+    static func phase(for place: Place, at date: Date) -> Phase {
+        switch Sun.phase(place, at: date) {
+        case .day(let sets)?: return sets.timeIntervalSince(date) < 3600 ? .twilight : .day
+        case .night(let rises)?: return rises.timeIntervalSince(date) < 3600 ? .twilight : .night
+        case .allDay?: return .day
+        case .allNight?: return .night
+        case nil:
+            let hour = place.calendar.component(.hour, from: date)
+            return (7..<19).contains(hour) ? .day : .night
+        }
+    }
+
+    static func top(_ phase: Phase) -> Color {
+        switch phase {
+        case .night: return Color(red: 0x1B / 255, green: 0x1F / 255, blue: 0x30 / 255)     // deep indigo
+        case .twilight: return Color(red: 0x3A / 255, green: 0x27 / 255, blue: 0x22 / 255)  // ember
+        case .day: return Color(red: 0x2C / 255, green: 0x35 / 255, blue: 0x40 / 255)       // slate sky
+        }
+    }
+
+    static func gradient(for place: Place, at date: Date) -> LinearGradient {
+        LinearGradient(colors: [top(phase(for: place, at: date)), Theme.tile], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.85))
+    }
+}

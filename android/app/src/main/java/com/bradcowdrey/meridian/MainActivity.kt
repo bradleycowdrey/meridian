@@ -303,7 +303,12 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                 // corners (Material 3's large shape) and a hairline edge. Touch and hold a card for
                 // its own actions (a tap does nothing, so scrolling never opens them by accident);
                 // dragging its day bar still moves every city's time.
-                Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Palette.tile)
+                // A quiet sky behind the card for where the city is now (night, dawn or dusk, day), as
+                // in Two Degrees but only a touch, fading into the card's own colour.
+                val sky by androidx.compose.animation.animateColorAsState(CardSky.top(place, store.moment), label = "sky")
+                Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(16.dp))
+                    .background(if (editing) androidx.compose.ui.graphics.SolidColor(Palette.tile)
+                        else androidx.compose.ui.graphics.Brush.verticalGradient(0f to sky, 0.85f to Palette.tile))
                     .border(0.5.dp, Palette.border, RoundedCornerShape(16.dp))) {
                     if (editing) EditRow(store, place)
                     else {
@@ -876,4 +881,21 @@ private fun ControlButton(icon: androidx.compose.ui.graphics.vector.ImageVector,
         Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp),
             tint = if (on) Palette.bg else if (enabled) Palette.secondary else Palette.faint)
     }
+}
+
+/** The sky colour at the top of a card: night, dawn or dusk (within an hour of sunrise or sunset), or day. */
+object CardSky {
+    fun top(place: Place, at: java.time.Instant): Color {
+        val twilight = 3600L
+        return when (val p = Sun.phase(place, at)) {
+            is Sun.Phase.Day -> if (p.sets.epochSecond - at.epochSecond < twilight) EMBER else DAY
+            is Sun.Phase.Night -> if (p.rises.epochSecond - at.epochSecond < twilight) EMBER else NIGHT
+            Sun.Phase.AllDay -> DAY
+            Sun.Phase.AllNight -> NIGHT
+            null -> if (at.atZone(place.zone).hour in 7..18) DAY else NIGHT
+        }
+    }
+    private val NIGHT = Color(0xFF1B1F30)
+    private val EMBER = Color(0xFF3A2722)
+    private val DAY = Color(0xFF2C3540)
 }

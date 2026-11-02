@@ -312,7 +312,8 @@ struct ContentView: View {
                                       bottom: Card.gap / 2 + Card.padding, trailing: Card.margin + Card.padding))
             .listRowBackground(
                 RoundedRectangle(cornerRadius: Card.radius, style: .continuous)
-                    .fill(Theme.tile)
+                    .fill(editMode.isEditing ? AnyShapeStyle(Theme.tile) : AnyShapeStyle(CardSky.gradient(for: place, at: store.moment)))
+                    .animation(.easeInOut(duration: 0.6), value: CardSky.phase(for: place, at: store.moment))
                     .overlay(RoundedRectangle(cornerRadius: Card.radius, style: .continuous).strokeBorder(Theme.border, lineWidth: 0.5))
                     .padding(.horizontal, Card.margin)
                     .padding(.vertical, Card.gap / 2)

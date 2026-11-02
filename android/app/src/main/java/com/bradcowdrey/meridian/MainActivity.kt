@@ -70,6 +70,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
@@ -299,12 +300,23 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                 var actions by remember { mutableStateOf(false) }
                 var work by remember { mutableStateOf(false) }
                 // Each city is a card: 16 dp from the screen edges, 12 dp between cards, 16 dp
-                // corners (Material 3's large shape) and a hairline edge. Tap or touch and hold a
-                // card for its own actions; dragging its day bar still moves every city's time.
+                // corners (Material 3's large shape) and a hairline edge. Touch and hold a card for
+                // its own actions (a tap does nothing, so scrolling never opens them by accident);
+                // dragging its day bar still moves every city's time.
                 Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(16.dp)).background(Palette.tile)
                     .border(0.5.dp, Palette.border, RoundedCornerShape(16.dp))) {
                     if (editing) EditRow(store, place)
-                    else CityRow(store, place, Modifier.combinedClickable(onClickLabel = "Actions for ${place.title}", onClick = { actions = true }, onLongClick = { actions = true }))
+                    else {
+                        val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+                        CityRow(store, place, Modifier
+                            .pointerInput(place.id) {
+                                detectTapGestures(onLongPress = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    actions = true
+                                })
+                            }
+                            .semantics { onLongClick(label = "Actions for ${place.title}") { actions = true; true } })
+                    }
                     DropdownMenu(expanded = actions, onDismissRequest = { actions = false }) {
                         DropdownMenuItem(text = { Text("Copy Time") }, onClick = {
                             actions = false

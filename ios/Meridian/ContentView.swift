@@ -302,11 +302,10 @@ struct ContentView: View {
         // Each city is a card: 16 pt from the screen edges, 16 pt inside, 12 pt between cards
         // (Apple's standard margins; continuous corners like the system's own cards), with a
         // hairline edge so cards stand apart on the dark background. Each card has its own
-        // actions: tap for them, or touch and hold for the menu. No swipe to remove: a sideways
+        // actions: touch and hold for the menu (a tap does nothing). No swipe to remove: a sideways
         // swipe drags the day bar, which moves the time for every city.
         CityRow(place: place, editing: editMode.isEditing)
             .contentShape(Rectangle())
-            .onTapGesture { if !editMode.isEditing { actionsFor = place } }
             .deleteDisabled(!editMode.isEditing)
             .moveDisabled(!editMode.isEditing)
             .listRowInsets(EdgeInsets(top: Card.gap / 2 + Card.padding, leading: Card.margin + Card.padding,

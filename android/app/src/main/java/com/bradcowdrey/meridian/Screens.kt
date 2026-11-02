@@ -143,7 +143,7 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
                 SwitchRow("Highlight Working Hours", store.showWorkHours) { store.updateShowWorkHours(it) }
                 SwitchRow("Public Holidays Are Days Off", store.countHolidays) { store.updateCountHolidays(it) }
                 if (store.showWorkHours) {
-                    Text("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, tap its card.",
+                    Text("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, touch and hold its card.",
                         fontSize = 13.sp, color = Palette.muted, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp))
                 }
             }

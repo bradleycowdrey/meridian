@@ -20,7 +20,7 @@ struct SettingsView: View {
                     Toggle("Public Holidays Are Days Off", isOn: $store.countHolidays)
                         .tint(Theme.crimson)
                 } header: { Text("Time") } footer: {
-                    Text("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, tap its card.")
+                    Text("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, touch and hold its card.")
                         .foregroundStyle(Theme.muted)
                 }
                 Section {

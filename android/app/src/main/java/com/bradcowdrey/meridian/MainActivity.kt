@@ -704,12 +704,20 @@ fun CitySearchField(query: String, focus: Boolean = true, onChange: (String) -> 
 /** Search results in place of the cards; tap one to add it. */
 @Composable
 fun SearchResults(store: Store, query: String, modifier: Modifier, added: () -> Unit) {
-    val results = remember(query) { CityDirectory.search(query) }
+    // Off the main thread: the first search reads the 34,000-city list, which takes a moment.
+    val searched by androidx.compose.runtime.produceState<Pair<String, List<CityEntry>>?>(null, query) {
+        value = query to kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { CityDirectory.search(query) }
+    }
+    val results = searched?.second.orEmpty()
+    val ready = searched?.first == query
     LazyColumn(modifier.fillMaxSize()) {
         if (!store.canAdd) item {
             Text("You can keep up to ${Store.MAX_PLACES} cities. Remove one to add another.", color = Palette.muted, modifier = Modifier.padding(16.dp))
         }
-        if (results.isEmpty()) item {
+        if (!ready && results.isEmpty()) item {
+            Text("Searching…", color = Palette.muted, modifier = Modifier.padding(16.dp))
+        }
+        if (ready && results.isEmpty()) item {
             Text("No places match \u201c$query\u201d. Try a city, an airport code like SFO, a time zone like PST, or UTC+5:30.",
                 color = Palette.muted, modifier = Modifier.padding(16.dp))
         }

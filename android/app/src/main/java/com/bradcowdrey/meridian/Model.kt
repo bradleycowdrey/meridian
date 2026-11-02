@@ -196,6 +196,12 @@ object DayColor {
     }
 
     /** Light enough that dark text reads on it. */
+    /** For widgets: no darker than just above the widget's background (#2E2A26). */
+    fun lifted(rgb: Int): Int {
+        val r = maxOf((rgb shr 16) and 0xFF, 0x2E); val g = maxOf((rgb shr 8) and 0xFF, 0x2A); val b = maxOf(rgb and 0xFF, 0x26)
+        return (rgb.toLong() and 0xFF000000L).toInt() or (r shl 16) or (g shl 8) or b
+    }
+
     fun isLight(argb: Int): Boolean {
         val r = (argb shr 16) and 0xFF; val g = (argb shr 8) and 0xFF; val b = argb and 0xFF
         return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55

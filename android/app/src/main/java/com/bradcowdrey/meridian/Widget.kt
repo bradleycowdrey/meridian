@@ -92,8 +92,14 @@ object MeridianWidgets {
         val hourStart = now.atZone(zone).withMinute(0).withSecond(0).withNano(0)
         listOf(R.id.tile0 to -1L, R.id.tile1 to 0L, R.id.tile2 to 1L).forEach { (id, k) ->
             val at = hourStart.plusHours(k)
-            val color = DayColor.at(at.hour + at.minute / 60.0)
-            v.setTextViewText(id, TimeMath.hourLabel(at.hour, use24h))
+            // Night tiles lifted just above the widget's background, so every hour reads as a tile.
+            val color = DayColor.lifted(DayColor.at(at.hour + at.minute / 60.0))
+            // "10 AM" with a smaller AM, as on the iPhone, so it fits its tile.
+            val label = TimeMath.hourLabel(at.hour, use24h)
+            val text = android.text.SpannableString(label)
+            val cut = label.indexOfFirst { it == 'A' || it == 'P' }
+            if (cut > 0) text.setSpan(android.text.style.RelativeSizeSpan(0.68f), cut, label.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            v.setTextViewText(id, text)
             v.setTextColor(id, if (DayColor.isLight(color)) 0xFF1A1816.toInt() else 0xFFE0D8D0.toInt())
             if (Build.VERSION.SDK_INT >= 31) v.setColorStateList(id, "setBackgroundTintList", ColorStateList.valueOf(tone(color, false)))
             else v.setInt(id, "setBackgroundColor", tone(color, false))

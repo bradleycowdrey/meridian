@@ -81,6 +81,30 @@ enum DayColor {
         (24, 0x161412),
     ]
 
+    /// On a widget, night tiles are lifted just above the widget's own background so every hour
+    /// reads as a tile (the darkest hours otherwise vanish into it).
+    static func style(at hour: Double, lifted: Bool) -> (fill: Color, text: Color) {
+        guard lifted else { return style(at: hour) }
+        var rgb = rgbAt(hour)
+        let floor = components(0x2E2A26)
+        rgb = (max(rgb.0, floor.0), max(rgb.1, floor.1), max(rgb.2, floor.2))
+        let luminance = 0.299 * rgb.0 + 0.587 * rgb.1 + 0.114 * rgb.2
+        return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), luminance > 0.55 ? WidgetTone.bg : WidgetTone.secondary)
+    }
+
+    private static func rgbAt(_ hour: Double) -> (Double, Double, Double) {
+        let h = hour.truncatingRemainder(dividingBy: 24)
+        var rgb = components(stops[0].1)
+        for i in 0..<(stops.count - 1) where h >= stops[i].0 && h <= stops[i + 1].0 {
+            let a = components(stops[i].1), b = components(stops[i + 1].1)
+            let span = stops[i + 1].0 - stops[i].0
+            let t = span == 0 ? 0 : (h - stops[i].0) / span
+            rgb = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t)
+            break
+        }
+        return rgb
+    }
+
     static func style(at hour: Double) -> (fill: Color, text: Color) {
         let h = hour.truncatingRemainder(dividingBy: 24)
         var rgb = components(stops[0].1)
@@ -165,7 +189,7 @@ struct WidgetClockView: View {
         switch family {
         case .systemSmall: return 1
         case .systemMedium: return 2
-        default: return 4
+        default: return 5   // large: five rows fill it (four left its bottom empty)
         }
     }
 
@@ -324,7 +348,7 @@ struct WidgetClockView: View {
         calendar.timeZone = zone
         let hour = calendar.component(.hour, from: moment)
         let minute = calendar.component(.minute, from: moment)
-        let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
+        let style = DayColor.style(at: Double(hour) + Double(minute) / 60, lifted: true)
         let newDay = !calendar.isDate(moment, inSameDayAs: moment.addingTimeInterval(-3600))
         let label: Text = {
             var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")

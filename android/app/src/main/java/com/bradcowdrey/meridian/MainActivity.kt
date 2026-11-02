@@ -271,7 +271,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
         if (adding) {
             if (query.isNotBlank()) SearchResults(store, query, Modifier.padding(padding)) { closeSearch() }
             else Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30.",
-                fontSize = 14.sp, color = Palette.muted, modifier = Modifier.padding(padding).padding(20.dp))
+                fontSize = 14.sp, color = Palette.muted, modifier = Modifier.padding(padding).padding(16.dp))
             return@Scaffold
         }
         // Everyone or one group, and clocks about to change, above the cards (not in Edit List,
@@ -426,10 +426,11 @@ fun TimeShifter(store: Store) {
                     }
                 } else {
                     val on = store.offsetMinutes == preset * 60
-                    Box(Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(50))
+                    Box(Modifier.weight(1f).heightIn(min = 34.dp).clip(RoundedCornerShape(50))
                         .background(if (on) Palette.secondary else Palette.tile)
                         .border(0.5.dp, if (on) Color.Transparent else Palette.border, RoundedCornerShape(50))
-                        .clickable { store.shift(preset * 60) },
+                        .clickable { store.shift(preset * 60) }
+                        .semantics { contentDescription = "${kotlin.math.abs(preset)} ${if (kotlin.math.abs(preset) == 1) "hour" else "hours"} ${if (preset > 0) "from now" else "ago"}" },
                         contentAlignment = Alignment.Center) {
                         Text("${if (preset > 0) "+" else "−"}${kotlin.math.abs(preset)} hr",
                             fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) Palette.bg else Palette.secondary)
@@ -535,8 +536,8 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
         .semantics(mergeDescendants = true) {
             contentDescription = listOfNotNull(place.title, place.person?.let { place.name }, TimeMath.time(moment, place.zone, store.use24h), detail, dayNote, work, sun?.let { "sun ${it.lowercase()}" }).joinToString(", ")
         }) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Column(Modifier.weight(1f)) {
+        Row {
+            Column(Modifier.weight(1f).alignBy(androidx.compose.ui.layout.LastBaseline)) {
                 Text(detail, fontSize = 13.sp, color = Palette.muted, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(place.title, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
@@ -549,7 +550,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
                 }
             }
             Spacer(Modifier.width(8.dp))
-            Row(verticalAlignment = Alignment.Bottom) {
+            Row(Modifier.alignBy(androidx.compose.ui.layout.LastBaseline), verticalAlignment = Alignment.Bottom) {
                 Text(clock, fontSize = 40.sp, fontWeight = FontWeight.Light, lineHeight = 40.sp, maxLines = 1, softWrap = false, modifier = Modifier.alignByBaseline())
                 if (suffix != null) {
                     Spacer(Modifier.width(4.dp))
@@ -559,7 +560,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
         }
         // One status line on every card, always there (so every card is the same height) and apart
         // from the time (so it never squeezes or moves it): the day, work, the sun.
-        Row(Modifier.padding(top = 8.dp).heightIn(min = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = 10.dp).heightIn(min = 20.dp), verticalAlignment = Alignment.CenterVertically) {
             if (shift != 0) {
                 Text(if (shift > 0) "+$shift d" else "−${-shift} d", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Palette.cream,
                     maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.border).padding(horizontal = 6.dp, vertical = 1.dp))
@@ -571,7 +572,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
             }
             if (sun != null) StatusNote(sun, if (sunUp) R.drawable.ic_sun else R.drawable.ic_sunrise, Palette.muted)
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(5.dp))
         DayBar(store, place)
     }
 }
@@ -624,7 +625,7 @@ fun DayBar(store: Store, place: Place) {
             }
             Box(Modifier.size(16.dp).shadow(2.dp, CircleShape).clip(CircleShape).background(Palette.cream).border(3.dp, Palette.bg, CircleShape))
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(1.dp))
         Layout(content = {
             marks.forEach {
                 Text(it.label, fontSize = 11.sp, fontWeight = if (it.midnight) FontWeight.SemiBold else FontWeight.Normal,
@@ -730,7 +731,7 @@ fun SearchResults(store: Store, query: String, modifier: Modifier, added: () -> 
             val have = store.contains(entry)
             val zone = runCatching { java.time.ZoneId.of(entry.zoneId) }.getOrNull()
             Row(Modifier.fillMaxWidth().clickable(enabled = !have && store.canAdd) { store.add(entry); added() }
-                .padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(entry.name, fontWeight = FontWeight.SemiBold)
                     // "Colorado, United States" for a city from the world list; else the zone's country.
@@ -745,7 +746,7 @@ fun SearchResults(store: Store, query: String, modifier: Modifier, added: () -> 
                 Icon(if (have) Icons.Filled.Check else Icons.Filled.Add, contentDescription = if (have) "Already added" else "Add",
                     tint = if (have) Palette.faint else Palette.cream)
             }
-            HorizontalDivider(Modifier.padding(horizontal = 20.dp), color = Palette.border, thickness = 0.5.dp)
+            HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = Palette.border, thickness = 0.5.dp)
         }
     }
 }
@@ -777,7 +778,7 @@ fun StatusNote(text: String, icon: Int, color: androidx.compose.ui.graphics.Colo
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(androidx.compose.ui.res.painterResource(icon), contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
         Spacer(Modifier.width(4.dp))
-        Text(text, fontSize = 12.sp, color = color, maxLines = 1, softWrap = false)
+        Text(text, fontSize = 12.sp, color = color, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
 }
 

@@ -117,6 +117,7 @@ struct ContentView: View {
             .navigationTitle("Meridian")
             .navigationBarTitleDisplayMode(.inline)
             .environment(\.editMode, $editMode)
+            .environment(\.defaultMinListHeaderHeight, 0)
             .toolbarBackground(Theme.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
     }
@@ -196,6 +197,7 @@ struct ContentView: View {
                 SearchResultRow(entry: entry, added: added)
             }
             .disabled(added || !store.canAdd)
+            .listRowInsets(EdgeInsets(top: 10, leading: Card.margin, bottom: 10, trailing: Card.margin))
             .listRowBackground(Theme.bg)
             .listRowSeparatorTint(Theme.border)
             .accessibilityHint(added ? "Already added" : "Adds \(entry.name)")
@@ -227,7 +229,7 @@ struct ContentView: View {
         } header: {
             // Pinned while the cities scroll underneath.
             MomentHeader(copied: copied, editing: editMode.isEditing)
-                .padding(.horizontal, Card.margin).padding(.top, 6).padding(.bottom, 12)
+                .padding(.horizontal, Card.margin).padding(.top, editMode.isEditing ? 0 : 6).padding(.bottom, editMode.isEditing ? 0 : 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.bg)
                 .listRowInsets(EdgeInsets())
@@ -255,7 +257,7 @@ struct ContentView: View {
         Button(action: action) {
             Text(title)
                 .font(.footnote.weight(.semibold))
-                .padding(.horizontal, 14).frame(minHeight: 32)
+                .padding(.horizontal, 14).frame(minHeight: 34)
                 .background(Capsule().fill(on ? Theme.cream : Theme.tile))
                 .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
                 .foregroundStyle(on ? Theme.bg : Theme.secondary)
@@ -281,7 +283,7 @@ struct ContentView: View {
             Spacer(minLength: 0)
             Button { withAnimation(.snappy) { store.dismiss(change) } } label: {
                 Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(Theme.faint)
-                    .frame(width: 28, height: 28).contentShape(Rectangle())
+                    .frame(width: 44, height: 44).contentShape(Rectangle()).padding(-8)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Close")
@@ -566,6 +568,8 @@ struct TimeShifter: View {
                 .background(Capsule().fill(on ? Theme.secondary : Theme.tile))
                 .overlay(Capsule().strokeBorder(Theme.border, lineWidth: on ? 0 : 0.5).allowsHitTesting(false))
                 .foregroundStyle(on ? Theme.bg : Theme.secondary)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(abs(preset)) \(abs(preset) == 1 ? "hour" : "hours") \(preset > 0 ? "from now" : "ago")")
@@ -1071,8 +1075,9 @@ private struct SearchResultRow: View {
                         .font(.footnote).foregroundStyle(Theme.muted)
                 }
             }
-            Image(systemName: added ? "checkmark" : "plus.circle.fill")
+            Image(systemName: added ? "checkmark.circle.fill" : "plus.circle.fill")
                 .foregroundStyle(added ? Theme.faint : Theme.cream)
+                .frame(width: 24)
         }
         .contentShape(Rectangle())
     }

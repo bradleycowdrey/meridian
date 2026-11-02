@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.FrameLayout
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
@@ -326,7 +327,7 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
     Screen("Go to a Time", onDone) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // The answer: the chosen time, large, with its day and how far away it is.
                 Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(TimeMath.time(moment, zone, store.use24h), fontSize = 44.sp, fontWeight = FontWeight.Light)
@@ -398,12 +399,12 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
 
 @Composable
 private fun DateCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.tile), content = content)
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.tile).border(0.5.dp, Palette.border, RoundedCornerShape(16.dp)), content = content)
 }
 
 @Composable
 private fun QuickChip(title: String, modifier: Modifier, onClick: () -> Unit) {
-    Box(modifier.height(36.dp).clip(RoundedCornerShape(50)).background(Palette.tile).clickable(onClick = onClick),
+    Box(modifier.height(36.dp).clip(RoundedCornerShape(50)).background(Palette.tile).border(0.5.dp, Palette.border, RoundedCornerShape(50)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center) {
         Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Palette.secondary, maxLines = 1)
     }

@@ -77,7 +77,7 @@ struct FindTimeView: View {
                 Button { withAnimation(.snappy) { length = minutes } } label: {
                     Text(Self.lengthLabel(minutes))
                         .font(.footnote.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 32)
+                        .frame(maxWidth: .infinity, minHeight: 28)
                         .background(Capsule().fill(on ? Theme.cream : .clear))
                         .foregroundStyle(on ? Theme.bg : Theme.secondary)
                         .contentShape(Capsule())
@@ -118,7 +118,7 @@ struct FindTimeView: View {
                         Label(place.title, systemImage: on ? "checkmark" : "plus")
                             .font(.footnote.weight(.semibold))
                             .labelStyle(StatusLabelStyle())
-                            .padding(.horizontal, 12).frame(minHeight: 32)
+                            .padding(.horizontal, 12).frame(minHeight: 34)
                             .background(Capsule().fill(on ? Theme.cream.opacity(0.14) : Theme.tile))
                             .overlay(Capsule().strokeBorder(on ? Theme.cream.opacity(0.5) : Theme.border, lineWidth: 0.5))
                             .foregroundStyle(on ? Theme.primary : Theme.muted)
@@ -317,7 +317,7 @@ private struct SlotView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(TimeMath.time(start, in: .current, use24h: store.use24h))–\(TimeMath.time(end, in: .current, use24h: store.use24h))")
-                            .font(.system(size: 34, weight: .light)).monospacedDigit().foregroundStyle(Theme.primary)
+                            .font(.system(.largeTitle, weight: .light)).monospacedDigit().foregroundStyle(Theme.primary)
                         Text("\(TimeMath.fullDay(start, in: .current)) · your time · \(FindTimeView.lengthLabel(length))")
                             .font(.subheadline).foregroundStyle(Theme.muted)
                     }

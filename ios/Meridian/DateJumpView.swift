@@ -5,6 +5,7 @@ import SwiftUI
 struct DateJumpView: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .largeTitle) private var answerSize: CGFloat = 44
     /// The chosen day (any time on it) and the time on it, in quarter-hours.
     @State private var day = Date()
     @State private var hour = 9
@@ -72,7 +73,7 @@ struct DateJumpView: View {
     private var answer: some View {
         VStack(spacing: 4) {
             Text(TimeMath.time(moment, in: .current, use24h: store.use24h))
-                .font(.system(size: 44, weight: .light))
+                .font(.system(size: answerSize, weight: .light))
                 .monospacedDigit()
                 .foregroundStyle(Theme.primary)
                 .contentTransition(.numericText())

@@ -315,7 +315,7 @@ private fun SlotScreen(store: Store, slot: Slot, length: Int, places: List<Place
 
     Screen("Meeting Time", onClose) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             FindCard {
                 Column(Modifier.padding(16.dp)) {
                     Text("${TimeMath.time(start, home, store.use24h)}–${TimeMath.time(end, home, store.use24h)}",

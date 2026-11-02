@@ -89,7 +89,7 @@ enum DayColor {
         let floor = components(0x2E2A26)
         rgb = (max(rgb.0, floor.0), max(rgb.1, floor.1), max(rgb.2, floor.2))
         let luminance = 0.299 * rgb.0 + 0.587 * rgb.1 + 0.114 * rgb.2
-        return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), luminance > 0.55 ? WidgetTone.bg : WidgetTone.secondary)
+        return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), luminance > 0.45 ? WidgetTone.bg : WidgetTone.secondary)
     }
 
     private static func rgbAt(_ hour: Double) -> (Double, Double, Double) {

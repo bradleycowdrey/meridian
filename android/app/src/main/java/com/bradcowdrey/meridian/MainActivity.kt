@@ -118,7 +118,8 @@ object Palette {
     val cardBorder = Color(0x1FFFFFFF)
     val chipOff = Color(0x1FFFFFFF)
     /** The Two Degrees bottom bar. */
-    val barBg = Color(0x99101216)
+    // Nearly opaque: Android has no blur behind a bar, so cards must not show through the ruler.
+    val barBg = Color(0xF20B0C0F)
     /** The Two Degrees search field. */
     val searchBg = Color(0xFF1E1E22)
     val sun = Color(0xFFF4B860)

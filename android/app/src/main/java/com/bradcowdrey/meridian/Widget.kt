@@ -10,18 +10,19 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Build
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import java.time.Instant
 import java.time.ZoneId
 
 /**
- * Home screen widgets: small (one city), medium (two) and large (four), each city with its time
+ * Home screen widgets: small (one city), medium (two) and large (five), each city with its time
  * (a live TextClock in the city's zone, so it never goes stale) and the hour before, now and the
  * hour after as day-and-night tiles. The tiles refresh on the hour and when the time or zone changes.
  */
 object MeridianWidgets {
-    enum class Size(val cities: Int) { SMALL(1), MEDIUM(2), LARGE(4) }
+    enum class Size(val cities: Int) { SMALL(1), MEDIUM(2), LARGE(5) }
 
     private val providers = mapOf(
         Size.SMALL to SmallWidget::class.java,
@@ -45,13 +46,23 @@ object MeridianWidgets {
         val root = RemoteViews(context.packageName, if (size == Size.LARGE) R.layout.widget_root_large else R.layout.widget_root)
         root.removeAllViews(R.id.content)
         val cities = places.take(size.cities)
+        if (size == Size.LARGE) {
+            // The header and the Now column's outline only over cities.
+            val shown = if (cities.isEmpty()) View.GONE else View.VISIBLE
+            root.setViewVisibility(R.id.header, shown)
+            root.setViewVisibility(R.id.now_overlay, shown)
+        }
         if (cities.isEmpty()) {
             root.addView(R.id.content, RemoteViews(context.packageName, R.layout.widget_empty))
         } else if (size == Size.LARGE) {
-            root.addView(R.id.content, RemoteViews(context.packageName, R.layout.widget_large_header))
-            cities.forEach { root.addView(R.id.content, cell(context, R.layout.widget_row, it, use24h, now, home, live)) }
+            cities.forEach { root.addView(R.id.content, cell(context, R.layout.widget_row, it, use24h, now, home, live, 22f)) }
         } else {
-            cities.forEach { root.addView(R.id.content, cell(context, R.layout.widget_cell, it, use24h, now, home, live)) }
+            // Medium: two cities with a hairline between them.
+            val clockSize = if (size == Size.SMALL) 40f else 34f
+            cities.forEachIndexed { i, place ->
+                if (i > 0) root.addView(R.id.content, RemoteViews(context.packageName, R.layout.widget_divider))
+                root.addView(R.id.content, cell(context, R.layout.widget_cell, place, use24h, now, home, live, clockSize))
+            }
         }
         val open = PendingIntent.getActivity(context, 0, Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -59,10 +70,13 @@ object MeridianWidgets {
         return root
     }
 
-    private fun cell(context: Context, layout: Int, place: Place, use24h: Boolean, now: Instant, home: ZoneId, live: Boolean): RemoteViews {
+    private fun cell(context: Context, layout: Int, place: Place, use24h: Boolean, now: Instant, home: ZoneId, live: Boolean, clockSize: Float): RemoteViews {
         val v = RemoteViews(context.packageName, layout)
         val zone = place.zone
         v.setTextViewText(R.id.name, place.name)
+        // The time, with AM/PM at 0.42 of its size, as in the app.
+        listOf(R.id.clock, R.id.clock_static).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, clockSize) }
+        listOf(R.id.ampm, R.id.ampm_static).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, clockSize * 0.42f) }
         val (clock, suffix) = TimeMath.clock(now, zone, use24h)
         if (live) {
             v.setViewVisibility(R.id.clock_static, View.GONE)
@@ -82,11 +96,18 @@ object MeridianWidgets {
             v.setTextViewText(R.id.ampm_static, suffix ?: "")
             v.setViewVisibility(R.id.ampm_static, if (suffix == null) View.GONE else View.VISIBLE)
         }
+        // "+8 hr" or "Your time"; with the day first when it's another day there: "Tomorrow · +8 hr"
+        // (small and medium) or "+1 d · +8 hr" (large).
         val shift = TimeMath.dayShift(now, zone, home)
-        v.setTextViewText(R.id.badge, if (shift > 0) "+$shift d" else if (shift < 0) "−${-shift} d" else "")
-        v.setViewVisibility(R.id.badge, if (shift == 0) View.GONE else View.VISIBLE)
+        val relative = TimeMath.relative(now, zone, home) ?: if (zone.id == home.id) "Your time" else "Same time"
+        val days = if (shift > 0) "+$shift d" else "−${-shift} d"
         if (layout == R.layout.widget_cell) {
-            v.setTextViewText(R.id.caption, TimeMath.relative(now, zone, home) ?: if (zone.id == home.id) "Your time" else "Same time")
+            val day = when (shift) { 0 -> null; 1 -> "Tomorrow"; -1 -> "Yesterday"; else -> days }
+            v.setTextViewText(R.id.caption, if (day == null) relative else "$day · $relative")
+            v.setViewVisibility(R.id.badge, View.GONE)
+        } else {
+            v.setTextViewText(R.id.badge, if (shift == 0) relative else "$days · $relative")
+            v.setViewVisibility(R.id.badge, View.VISIBLE)
         }
         // The hour before, now and the hour after, on the city's own clock.
         val hourStart = now.atZone(zone).withMinute(0).withSecond(0).withNano(0)

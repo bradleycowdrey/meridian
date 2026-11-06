@@ -22,7 +22,7 @@ struct FindTimeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 10) {
                     days
                     lengthPicker
                     who
@@ -31,11 +31,13 @@ struct FindTimeView: View {
                 }
                 .padding(.horizontal, Card.margin)
                 .padding(.bottom, 32)
+                .frame(maxWidth: 600)
+                .frame(maxWidth: .infinity)
             }
             .background(Theme.bg)
             .navigationTitle("Find a Time")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(item: $slot) { slot in
                 SlotView(slot: slot, length: length, places: people).environmentObject(store)
             }
@@ -46,7 +48,7 @@ struct FindTimeView: View {
                 if calendar.component(.hour, from: store.now) >= 17 { day = calendar.date(byAdding: .day, value: 1, to: day) ?? day }
             }
         }
-        .tint(Theme.cream)
+        .tint(.white)
         .preferredColorScheme(.dark)
     }
 
@@ -57,7 +59,8 @@ struct FindTimeView: View {
             HStack(spacing: 8) {
                 ForEach(0..<14, id: \.self) { i in
                     let date = calendar.date(byAdding: .day, value: i, to: calendar.startOfDay(for: store.now)) ?? store.now
-                    chip(i == 0 ? "Today" : i == 1 ? "Tomorrow" : Self.dayChip.string(from: date), on: calendar.isDate(date, inSameDayAs: day)) {
+                    PillChip(title: i == 0 ? "Today" : i == 1 ? "Tomorrow" : Self.dayChip.string(from: date),
+                             isOn: calendar.isDate(date, inSameDayAs: day)) {
                         day = date
                     }
                 }
@@ -66,68 +69,48 @@ struct FindTimeView: View {
         }
         // Runs to the screen's edges, so a cut-off chip reads as "scroll for more".
         .padding(.horizontal, -Card.margin)
-        .padding(.top, 8)
+        .padding(.top, 4)
     }
 
     private var lengthPicker: some View {
-        // The same cream-on-tile form as every other choice on this screen.
-        HStack(spacing: 4) {
+        Picker("Length", selection: $length) {
             ForEach(Self.lengths, id: \.self) { minutes in
-                let on = length == minutes
-                Button { withAnimation(.snappy) { length = minutes } } label: {
-                    Text(Self.lengthLabel(minutes))
-                        .font(.footnote.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 28)
-                        .background(Capsule().fill(on ? Theme.cream : .clear))
-                        .foregroundStyle(on ? Theme.bg : Theme.secondary)
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(on ? .isSelected : [])
+                Text(Self.lengthLabel(minutes)).tag(minutes)
             }
         }
-        .padding(3)
-        .background(Capsule().fill(Theme.tile))
-        .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Length")
+        .pickerStyle(.segmented)
+        .padding(.vertical, 4)
     }
 
     /// Who's in it: every card as a chip, and the groups as quick picks.
     private var who: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
+            CardCaption("Who", "person.2")
             if !store.groups.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        chip("Everyone", on: chosen == Set(store.places.map(\.id))) { chosen = Set(store.places.map(\.id)) }
+                        PillChip(title: "Everyone", isOn: chosen == Set(store.places.map(\.id))) { chosen = Set(store.places.map(\.id)) }
                         ForEach(store.groups, id: \.self) { group in
                             let ids = Set(store.places.filter { $0.groups?.contains(group) == true }.map(\.id))
-                            chip(group, on: chosen == ids) { chosen = ids }
+                            PillChip(title: group, isOn: chosen == ids) { chosen = ids }
                         }
                     }
-                    .padding(.horizontal, Card.margin)
+                    .padding(.horizontal, Card.padding)
                 }
-                .padding(.horizontal, -Card.margin)
+                // To the card's edges.
+                .padding(.horizontal, -Card.padding)
             }
-            FlowLayout(spacing: 8) {
+            // The chips' 44 pt touch areas overlap a little, so the visible rows sit 8 pt apart.
+            FlowLayout(spacing: 8, lineSpacing: -4) {
                 ForEach(store.places) { place in
                     let on = chosen.contains(place.id)
-                    Button {
+                    PillChip(title: place.title, systemImage: on ? "checkmark" : "plus", isOn: on) {
                         if on { chosen.remove(place.id) } else { chosen.insert(place.id) }
-                    } label: {
-                        Label(place.title, systemImage: on ? "checkmark" : "plus")
-                            .font(.footnote.weight(.semibold))
-                            .labelStyle(StatusLabelStyle())
-                            .padding(.horizontal, 12).frame(minHeight: 34)
-                            .background(Capsule().fill(on ? Theme.cream.opacity(0.14) : Theme.tile))
-                            .overlay(Capsule().strokeBorder(on ? Theme.cream.opacity(0.5) : Theme.border, lineWidth: 0.5))
-                            .foregroundStyle(on ? Theme.primary : Theme.muted)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(on ? .isSelected : [])
                 }
             }
         }
+        .glassCard()
     }
 
     // MARK: Answers
@@ -142,102 +125,134 @@ struct FindTimeView: View {
         }
     }
 
+    /// The most people working at any time still to come on the day.
+    private func mostWorking(_ all: [Slot]) -> Int {
+        all.filter { $0.start >= Self.quarter(store.now) }.map(\.working).max() ?? 0
+    }
+
     /// The best times: the longest runs where the most people are working, soonest first.
     private var best: some View {
         let all = slots.filter { $0.start >= Self.quarter(store.now) }
-        let top = all.map(\.working).max() ?? 0
+        let top = mostWorking(all)
         var runs: [[Slot]] = []
         for s in all where s.working == top && top > 0 {
             if let last = runs.last?.last, s.start.timeIntervalSince(last.start) == 1800 { runs[runs.count - 1].append(s) } else { runs.append([s]) }
         }
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(people.isEmpty ? "Choose who's in it" : top == people.count ? "Everyone's working" : top == 0 ? "No one's working then" : "Best: \(top) of \(people.count) working")
-                .font(.footnote.weight(.semibold)).foregroundStyle(Theme.muted).textCase(.uppercase)
+        let shown = Array(runs.prefix(3).enumerated())
+        return VStack(alignment: .leading, spacing: 10) {
+            CardCaption(people.isEmpty ? "Choose who's in it" : top == people.count ? "Everyone's working" : top == 0 ? "No one's working then" : "Best: \(top) of \(people.count) working",
+                        "checkmark.circle")
             if runs.isEmpty {
                 Text(people.isEmpty ? "Tap the cities and people above." : "Try another day, or fewer people.")
-                    .font(.subheadline).foregroundStyle(Theme.muted)
+                    .font(.system(size: 15)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
-            ForEach(Array(runs.prefix(3).enumerated()), id: \.offset) { _, run in
-                Button { slot = run[0] } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(range(run[0].start, run.last!.end))
-                                .font(.headline).monospacedDigit().foregroundStyle(Theme.primary)
-                            Text(run.count == 1 ? "Your time" : "Your time · start any time from \(time(run[0].start)) to \(time(run.last!.start))")
-                                .font(.caption).foregroundStyle(Theme.muted)
+            VStack(spacing: 0) {
+                ForEach(shown, id: \.offset) { index, run in
+                    if index > 0 { Divider().overlay(Color.white.opacity(0.2)) }
+                    Button { slot = run[0] } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(range(run[0].start, run.last!.end))
+                                    .font(.system(size: 20)).monospacedDigit().foregroundStyle(.white)
+                                Text(run.count == 1 ? "Your time" : "Your time · start any time from \(time(run[0].start)) to \(time(run.last!.start))")
+                                    .font(.system(size: 13)).foregroundStyle(Color.white.opacity(Theme.Op.sub))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Color.white.opacity(0.5))
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Theme.faint)
+                        .frame(minHeight: 48)
+                        .contentShape(Rectangle())
                     }
-                    .padding(14)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.tile))
-                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.border, lineWidth: 0.5))
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
+        .glassCard()
     }
 
     /// The day hour by hour (your time): a cell per person, bright while they're working, dim
-    /// when they're off, dark at night where they are.
+    /// when they're off, dark at night where they are; the best run outlined.
     private var grid: some View {
         let hourly = slots.enumerated().filter { $0.offset % 2 == 0 }.map(\.element)
-        return VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Text("You").frame(width: 62, alignment: .leading)
-                ForEach(people) { p in Text(Self.tag(p)).frame(maxWidth: .infinity) }
-                Text("").frame(width: 30)
-            }
-            .font(.caption2.weight(.semibold)).foregroundStyle(Theme.muted)
-            ForEach(hourly) { s in
-                Button { slot = s } label: {
-                    HStack(spacing: 4) {
-                        Text(Self.hourLabel(s.start, use24h: store.use24h))
-                            .font(.caption).monospacedDigit()
-                            .foregroundStyle(s.working == people.count && !people.isEmpty ? Theme.primary : Theme.muted)
-                            .frame(width: 62, alignment: .leading)
-                        ForEach(Array(s.states.enumerated()), id: \.offset) { _, state in
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(state.color)
-                                .frame(maxWidth: .infinity).frame(height: 24)
-                        }
-                        Text("\(s.working)/\(people.count)")
-                            .font(.caption2).monospacedDigit().foregroundStyle(Theme.faint)
-                            .frame(width: 30, alignment: .trailing)
-                    }
-                    .opacity(s.end <= store.now ? 0.35 : 1)
-                    .contentShape(Rectangle())
+        let run = bestRun(in: hourly)
+        return VStack(alignment: .leading, spacing: 10) {
+            CardCaption("Every hour", "tablecells")
+            VStack(spacing: 4) {
+                HStack(spacing: 2) {
+                    Text("You").frame(width: 62, alignment: .leading)
+                    ForEach(people) { p in Text(Self.tag(p)).frame(maxWidth: .infinity) }
+                    Text("").frame(width: 30)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(Self.hourLabel(s.start, use24h: store.use24h)), \(s.working) of \(people.count) working")
+                .font(.system(size: 11, weight: .medium)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                VStack(spacing: 2) {
+                    ForEach(hourly) { s in
+                        Button { slot = s } label: {
+                            HStack(spacing: 2) {
+                                Text(Self.hourLabel(s.start, use24h: store.use24h))
+                                    .font(.system(size: 13)).monospacedDigit()
+                                    .foregroundStyle(Color.white.opacity(s.working == people.count && !people.isEmpty ? 1 : Theme.Op.caption))
+                                    .frame(width: 62, alignment: .leading)
+                                ForEach(Array(s.states.enumerated()), id: \.offset) { _, state in
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(state.color)
+                                        .frame(maxWidth: .infinity)
+                                }
+                                Text("\(s.working)/\(people.count)")
+                                    .font(.system(size: 11)).monospacedDigit().foregroundStyle(Color.white.opacity(0.5))
+                                    .frame(width: 30, alignment: .trailing)
+                            }
+                            .frame(height: Self.cell)
+                            .opacity(s.end <= store.now ? 0.35 : 1)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(Self.hourLabel(s.start, use24h: store.use24h)), \(s.working) of \(people.count) working")
+                    }
+                }
+                // The best hours, outlined (rows are a fixed pitch, so its place is exact).
+                .overlay(alignment: .top) {
+                    if let run {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(Color.white, lineWidth: 1.5)
+                            .frame(height: CGFloat(run.count) * Self.cell + CGFloat(run.count - 1) * 2 + 4)
+                            .padding(.horizontal, -2)
+                            .offset(y: CGFloat(run.lowerBound) * (Self.cell + 2) - 2)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
+                }
             }
             HStack(spacing: 14) {
                 legend(Slot.State.working.color, "Working")
                 legend(Slot.State.off.color, "Off")
                 legend(Slot.State.night.color, "Night")
             }
-            .padding(.top, 6)
+            .padding(.top, 2)
         }
+        .glassCard()
+    }
+
+    private static let cell: CGFloat = 22
+
+    /// The first run of hours, still to come, where the most people are working.
+    private func bestRun(in hourly: [Slot]) -> Range<Int>? {
+        guard !people.isEmpty else { return nil }
+        let top = mostWorking(hourly)
+        guard top > 0 else { return nil }
+        let soonest = Self.quarter(store.now)
+        guard let first = hourly.firstIndex(where: { $0.start >= soonest && $0.working == top }) else { return nil }
+        var end = first + 1
+        while end < hourly.count, hourly[end].working == top { end += 1 }
+        return first..<end
     }
 
     private func legend(_ color: Color, _ text: String) -> some View {
         HStack(spacing: 5) {
-            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 12, height: 12)
-            Text(text).font(.caption).foregroundStyle(Theme.muted)
+            RoundedRectangle(cornerRadius: 3, style: .continuous).fill(color).frame(width: 11, height: 11)
+            Text(text).font(.system(size: 12)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
         }
-    }
-
-    private func chip(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.footnote.weight(.semibold))
-                .padding(.horizontal, 14).frame(minHeight: 34)
-                .background(Capsule().fill(on ? Theme.cream : Theme.tile))
-                .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
-                .foregroundStyle(on ? Theme.bg : Theme.secondary)
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(on ? .isSelected : [])
     }
 
     private func time(_ date: Date) -> String { TimeMath.time(date, in: .current, use24h: store.use24h) }
@@ -268,9 +283,9 @@ struct Slot: Identifiable {
         case working, off, night
         var color: Color {
             switch self {
-            case .working: return Theme.cream.opacity(0.85)
-            case .off: return Theme.border
-            case .night: return Theme.tile
+            case .working: return Color.white.opacity(0.85)
+            case .off: return Color.white.opacity(0.3)
+            case .night: return Color.white.opacity(0.08)
             }
         }
     }
@@ -317,31 +332,32 @@ private struct SlotView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(TimeMath.time(start, in: .current, use24h: store.use24h))–\(TimeMath.time(end, in: .current, use24h: store.use24h))")
-                            .font(.system(.largeTitle, weight: .light)).monospacedDigit().foregroundStyle(Theme.primary)
+                            .font(.system(size: 44, weight: .thin)).monospacedDigit().foregroundStyle(.white)
+                            .lineLimit(1).minimumScaleFactor(0.5)
                         Text("\(TimeMath.fullDay(start, in: .current)) · your time · \(FindTimeView.lengthLabel(length))")
-                            .font(.subheadline).foregroundStyle(Theme.muted)
+                            .font(.system(size: 15)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
                     }
                     .padding(.vertical, 6)
                     Stepper("Start", onIncrement: { start = start.addingTimeInterval(900) }, onDecrement: { start = start.addingTimeInterval(-900) })
-                        .foregroundStyle(Theme.secondary)
+                        .foregroundStyle(.white)
                 }
-                .listRowBackground(Theme.tile)
+                .meridianSection()
                 Section {
                     ForEach(places) { place in
                         HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(place.title).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
-                                Text(status(place)).font(.caption).foregroundStyle(store.isWorking(place, at: start) ? Theme.secondary : Theme.muted)
+                                Text(place.title).font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                                Text(status(place)).font(.system(size: 13)).foregroundStyle(Color.white.opacity(Theme.Op.sub))
                             }
                             .lineLimit(1)
                             Spacer(minLength: 8)
                             Text("\(TimeMath.time(start, in: place.timeZone, use24h: store.use24h))–\(TimeMath.time(end, in: place.timeZone, use24h: store.use24h))")
-                                .font(.callout).monospacedDigit().foregroundStyle(Theme.primary).fixedSize()
+                                .font(.system(size: 15)).monospacedDigit().foregroundStyle(.white).fixedSize()
                         }
                         .accessibilityElement(children: .combine)
                     }
                 }
-                .listRowBackground(Theme.tile)
+                .meridianSection()
                 Section {
                     Button { addingEvent = true } label: { Label("Add to Calendar", systemImage: "calendar.badge.plus") }
                     ShareLink(item: invite, subject: Text("Meeting, \(TimeMath.fullDay(start, in: .current))")) {
@@ -353,10 +369,12 @@ private struct SlotView: View {
                         dismiss()
                     } label: { Label("Go to This Time", systemImage: "clock.arrow.circlepath") }
                 }
-                .listRowBackground(Theme.tile)
+                .font(.system(size: 17))
+                .foregroundStyle(.white)
+                .meridianSection()
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
+            .listStyle(.insetGrouped)
+            .meridianForm()
             .navigationTitle("Meeting Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
@@ -427,13 +445,15 @@ struct EventEditor: UIViewControllerRepresentable {
 /// Chips that wrap onto as many lines as they need.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
+    /// Between lines; the same as `spacing` unless set.
+    var lineSpacing: CGFloat? = nil
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? .infinity
         var x: CGFloat = 0, y: CGFloat = 0, line: CGFloat = 0, widest: CGFloat = 0
         for view in subviews {
             let size = view.sizeThatFits(.unspecified)
-            if x > 0, x + size.width > width { x = 0; y += line + spacing; line = 0 }
+            if x > 0, x + size.width > width { x = 0; y += line + (lineSpacing ?? spacing); line = 0 }
             x += size.width + spacing
             widest = max(widest, x - spacing)
             line = max(line, size.height)
@@ -445,7 +465,7 @@ struct FlowLayout: Layout {
         var x = bounds.minX, y = bounds.minY, line: CGFloat = 0
         for view in subviews {
             let size = view.sizeThatFits(.unspecified)
-            if x > bounds.minX, x + size.width > bounds.maxX { x = bounds.minX; y += line + spacing; line = 0 }
+            if x > bounds.minX, x + size.width > bounds.maxX { x = bounds.minX; y += line + (lineSpacing ?? spacing); line = 0 }
             view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
             x += size.width + spacing
             line = max(line, size.height)

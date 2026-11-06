@@ -41,10 +41,7 @@ enum Screenshots {
                                 in: family == .accessoryCircular ? AnyShape(Circle()) : AnyShape(Rectangle()))
                     .background(Color.black))
             default:
-                view = AnyView(WidgetClockView(snapshot: snapshot, date: store.now, family: family)
-                    .frame(width: size.width, height: size.height)
-                    .background(WidgetTone.bg)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous)))
+                view = AnyView(WidgetFacePreview(snapshot: snapshot, date: store.now, family: family, size: size))
             }
             let renderer = ImageRenderer(content: view.environment(\.colorScheme, .dark))
             renderer.scale = 3
@@ -69,12 +66,12 @@ struct WidgetShowcase: View {
         VStack(spacing: 22) {
             VStack(spacing: 8) {
                 Text("Widgets for your Home Screen and Lock Screen")
-                    .font(.title2.weight(.medium))
+                    .font(.system(size: 22, weight: .medium))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Theme.cream)
+                    .foregroundStyle(.white)
                 Text("Your cities, in the order you set.")
                     .font(.subheadline)
-                    .foregroundStyle(Theme.muted)
+                    .foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
             .padding(.horizontal, 24)
             face(.systemLarge, CGSize(width: 364, height: 382))
@@ -93,10 +90,7 @@ struct WidgetShowcase: View {
     }
 
     private func face(_ family: WidgetFamily, _ size: CGSize) -> some View {
-        WidgetClockView(snapshot: snapshot, date: store.now, family: family)
-            .frame(width: size.width, height: size.height)
-            .background(WidgetTone.bg)
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        WidgetFacePreview(snapshot: snapshot, date: store.now, family: family, size: size)
             .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Theme.border, lineWidth: 0.5))
     }
 

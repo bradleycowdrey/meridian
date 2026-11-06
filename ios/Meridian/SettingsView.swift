@@ -14,46 +14,59 @@ struct SettingsView: View {
             Form {
                 Section {
                     Toggle("24-Hour Time", isOn: $store.use24h)
-                        .tint(Theme.crimson)
+                        .tint(Theme.switchOn)
                     Toggle("Highlight Working Hours", isOn: $store.showWorkHours)
-                        .tint(Theme.crimson)
+                        .tint(Theme.switchOn)
                     Toggle("Public Holidays Are Days Off", isOn: $store.countHolidays)
-                        .tint(Theme.crimson)
-                } header: { Text("Time") } footer: {
-                    Text("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, touch and hold its card.")
-                        .foregroundStyle(Theme.muted)
+                        .tint(Theme.switchOn)
+                } header: { header("Time", "clock") } footer: {
+                    footer("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, touch and hold its card.")
                 }
+                .meridianSection()
                 Section {
                     Toggle("Show My Location", isOn: $store.useMyLocation)
-                        .tint(Theme.crimson)
-                } header: { Text("Cities") } footer: {
-                    Text("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone.")
-                        .foregroundStyle(Theme.muted)
+                        .tint(Theme.switchOn)
+                } header: { header("Cities", "location") } footer: {
+                    footer("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone.")
                 }
+                .meridianSection()
                 Section {
                     Text("Touch and hold your Home Screen, tap Edit, then Add Widget and choose Meridian. For the Lock Screen, touch and hold it, tap Customize, then add Meridian to the widget area.")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.muted)
-                } header: { Text("Widgets") }
-                Section("About") {
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                } header: { header("Widgets", "square.grid.2x2") }
+                .meridianSection()
+                Section {
                     LabeledContent("Version", value: version)
                     Link("bradcowdrey.com/meridian", destination: Theme.appPage)
                     Link("Source code on GitHub", destination: Theme.source)
                     Link("Terms & Privacy", destination: Theme.legal)
-                }
+                } header: { header("About", "info.circle") }
+                .meridianSection()
                 Section {
                     Text("Made by Bradley Cowdrey. Free. Forever.")
-                        .font(.footnote).foregroundStyle(Theme.muted)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                        .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
+            .meridianForm()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
-        .tint(Theme.cream)
+        .tint(.white)
         .preferredColorScheme(.dark)
+    }
+
+    private func header(_ title: String, _ symbol: String) -> some View {
+        CardCaption(title, symbol).textCase(nil)
+    }
+
+    private func footer(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13))
+            .foregroundStyle(Color.white.opacity(Theme.Op.caption))
     }
 }

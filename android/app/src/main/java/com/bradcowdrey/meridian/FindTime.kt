@@ -3,6 +3,7 @@ package com.bradcowdrey.meridian
 import android.content.Intent
 import android.provider.CalendarContract
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,10 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -25,6 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -33,6 +41,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,9 +59,9 @@ class Slot(val start: Instant, val end: Instant, val states: List<Slot.State>) {
 
         val color: Color
             get() = when (this) {
-                WORKING -> Palette.cream.copy(alpha = 0.85f)
-                OFF -> Palette.border
-                NIGHT -> Palette.tile
+                WORKING -> white(0.85f)
+                OFF -> white(0.3f)
+                NIGHT -> white(0.08f)
             }
     }
 
@@ -130,7 +139,7 @@ fun FindTimeScreen(store: Store, onDone: () -> Unit) {
         SlotScreen(store, picked, length, people, onClose = { slot = null }, onGo = { slot = null; onDone() })
     } else Screen("Find a Time", onDone) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // The day: today, tomorrow, then two weeks.
             Row(Modifier.padding(top = 8.dp).bleed(16.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -148,16 +157,22 @@ fun FindTimeScreen(store: Store, onDone: () -> Unit) {
 }
 
 /** 30 min · 1 hr · 1½ hr · 2 hr, as one segmented control. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LengthPicker(length: Int, set: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(50)).background(Palette.tile)
-        .border(0.5.dp, Palette.border, RoundedCornerShape(50)).padding(2.dp)) {
-        FindTime.lengths.forEach { minutes ->
-            val on = minutes == length
-            Box(Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(50)).background(if (on) Palette.cream else Color.Transparent)
-                .clickable { set(minutes) }.semantics { selected = on }, contentAlignment = Alignment.Center) {
-                Text(FindTime.lengthLabel(minutes), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (on) Palette.bg else Palette.secondary, maxLines = 1)
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        FindTime.lengths.forEachIndexed { i, minutes ->
+            SegmentedButton(
+                selected = minutes == length,
+                onClick = { set(minutes) },
+                shape = SegmentedButtonDefaults.itemShape(index = i, count = FindTime.lengths.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = Color.White, activeContentColor = Color.Black, activeBorderColor = white(0.2f),
+                    inactiveContainerColor = Color.Transparent, inactiveContentColor = Color.White, inactiveBorderColor = white(0.2f),
+                ),
+                icon = {},
+            ) {
+                Text(FindTime.lengthLabel(minutes), fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1)
             }
         }
     }
@@ -167,10 +182,10 @@ private fun LengthPicker(length: Int, set: (Int) -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Who(store: Store, chosen: Set<String>, set: (Set<String>) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    GlassCard("Who", Icons.Filled.Person) {
         val groups = store.groups
         if (groups.isNotEmpty()) {
-            Row(Modifier.bleed(16.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.bleed(14.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val everyone = store.places.map { it.id }.toSet()
                 PillChip("Everyone", chosen == everyone) { set(everyone) }
                 groups.forEach { group ->
@@ -182,16 +197,8 @@ private fun Who(store: Store, chosen: Set<String>, set: (Set<String>) -> Unit) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             store.places.forEach { place ->
                 val on = place.id in chosen
-                Row(Modifier.heightIn(min = 32.dp).clip(RoundedCornerShape(50))
-                    .background(if (on) Palette.cream.copy(alpha = 0.14f) else Palette.tile)
-                    .border(0.5.dp, if (on) Palette.cream.copy(alpha = 0.5f) else Palette.border, RoundedCornerShape(50))
-                    .clickable { set(if (on) chosen - place.id else chosen + place.id) }
-                    .semantics { selected = on }
-                    .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(if (on) Icons.Filled.Check else Icons.Filled.Add, contentDescription = null,
-                        tint = if (on) Palette.primary else Palette.muted, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(place.title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) Palette.primary else Palette.muted, maxLines = 1)
+                PillChip(place.title, on, icon = if (on) Icons.Filled.Check else Icons.Filled.Add) {
+                    set(if (on) chosen - place.id else chosen + place.id)
                 }
             }
         }
@@ -210,24 +217,24 @@ private fun BestTimes(store: Store, slots: List<Slot>, count: Int, pick: (Slot) 
         if (last != null && s.start.epochSecond - last.start.epochSecond == 1800L) runs.last().add(s) else runs.add(mutableListOf(s))
     }
     fun time(at: Instant) = TimeMath.time(at, store.home, store.use24h)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text((if (count == 0) "Choose who's in it" else if (top == count) "Everyone's working" else if (top == 0) "No one's working then"
-            else "Best: $top of $count working").uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Palette.muted)
+    GlassCard(if (count == 0) "Choose who's in it" else if (top == count) "Everyone's working" else if (top == 0) "No one's working then"
+        else "Best: $top of $count working", Icons.Filled.CheckCircle, spacing = 0.dp) {
         if (runs.isEmpty()) {
-            Text(if (count == 0) "Tap the cities and people above." else "Try another day, or fewer people.", fontSize = 14.sp, color = Palette.muted)
+            Text(if (count == 0) "Tap the cities and people above." else "Try another day, or fewer people.", fontSize = 15.sp,
+                color = white(0.6f), modifier = Modifier.padding(top = 10.dp))
         }
-        runs.take(3).forEach { run ->
+        runs.take(3).forEachIndexed { i, run ->
             val first = run.first()
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.tile)
-                .border(0.5.dp, Palette.border, RoundedCornerShape(12.dp)).clickable { pick(first) }.padding(14.dp),
+            if (i > 0) HorizontalDivider(color = white(0.2f))
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { pick(first) }.padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("${time(first.start)}–${time(run.last().end)}",
-                        fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary)
+                    Text("${time(first.start)}–${time(run.last().end)}", style = tnum, fontSize = 20.sp, color = Palette.primary)
                     Spacer(Modifier.height(2.dp))
-                    Text(if (run.size == 1) "Your time" else "Your time · start any time from ${time(first.start)} to ${time(run.last().start)}", fontSize = 12.sp, color = Palette.muted)
+                    Text(if (run.size == 1) "Your time" else "Your time · start any time from ${time(first.start)} to ${time(run.last().start)}",
+                        fontSize = 13.sp, color = white(0.7f))
                 }
-                Icon(Icons.Filled.KeyboardArrowRight, contentDescription = null, tint = Palette.faint)
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.5f))
             }
         }
     }
@@ -240,29 +247,55 @@ private fun BestTimes(store: Store, slots: List<Slot>, count: Int, pick: (Slot) 
 @Composable
 private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick: (Slot) -> Unit) {
     val hourly = slots.filterIndexed { i, _ -> i % 2 == 0 }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("You", Modifier.width(62.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Palette.muted)
-            people.forEach {
-                Text(FindTime.tag(it), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Palette.muted,
-                    textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Clip)
+    // The best run: the longest stretch of hours still ahead with the most people working (the first, if tied).
+    val ahead = hourly.indices.filter { hourly[it].end > store.now }
+    val most = ahead.maxOfOrNull { hourly[it].working } ?: 0
+    var best = IntRange.EMPTY
+    if (most > 0) {
+        var runStart = -1
+        for (i in hourly.indices) {
+            val hit = hourly[i].end > store.now && hourly[i].working == most
+            if (hit && runStart < 0) runStart = i
+            if (runStart >= 0 && (!hit || i == hourly.lastIndex)) {
+                val run = runStart..(if (hit) i else i - 1)
+                if (run.count() > best.count()) best = run
+                runStart = -1
             }
-            Spacer(Modifier.width(30.dp))
         }
-        hourly.forEach { s ->
-            val label = FindTime.hourLabel(s.start.atZone(store.home).hour, store.use24h)
-            val all = s.working == people.size && people.isNotEmpty()
-            Row(Modifier.fillMaxWidth().alpha(if (s.end <= store.now) 0.35f else 1f).clickable { pick(s) }
-                .semantics(mergeDescendants = true) { contentDescription = "$label, ${s.working} of ${people.size} working" },
-                horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(label, Modifier.width(62.dp), fontSize = 12.sp, color = if (all) Palette.primary else Palette.muted, maxLines = 1)
-                s.states.forEach { state ->
-                    Box(Modifier.weight(1f).height(24.dp).clip(RoundedCornerShape(4.dp)).background(state.color))
+    }
+    GlassCard("Every hour", Icons.Filled.DateRange) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(Modifier.padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("You", Modifier.width(62.dp), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = white(0.6f))
+                people.forEach {
+                    Text(FindTime.tag(it), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = white(0.6f),
+                        textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Clip)
                 }
-                Text("${s.working}/${people.size}", Modifier.width(30.dp), fontSize = 11.sp, color = Palette.faint, textAlign = TextAlign.End, maxLines = 1)
+                Spacer(Modifier.width(30.dp))
+            }
+            var i = 0
+            while (i < hourly.size) {
+                if (i == best.first && !best.isEmpty()) {
+                    // The best run, outlined in white just outside its rows.
+                    val run = best
+                    Column(Modifier.drawWithContent {
+                        drawContent()
+                        val out = 2.dp.toPx()
+                        val line = 1.5.dp.toPx()
+                        drawRoundRect(Color.White, topLeft = Offset(-out + line / 2, -out + line / 2),
+                            size = Size(size.width + 2 * out - line, size.height + 2 * out - line),
+                            cornerRadius = CornerRadius(8.dp.toPx()), style = Stroke(width = line))
+                    }, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        for (k in run) HourRow(store, hourly[k], people, pick)
+                    }
+                    i = run.last + 1
+                } else {
+                    HourRow(store, hourly[i], people, pick)
+                    i++
+                }
             }
         }
-        Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Legend(Slot.State.WORKING.color, "Working")
             Legend(Slot.State.OFF.color, "Off")
             Legend(Slot.State.NIGHT.color, "Night")
@@ -270,22 +303,28 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
     }
 }
 
+/** One hour of the grid: your hour, a cell per person, and how many are working. */
 @Composable
-private fun Legend(color: Color, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(12.dp).clip(RoundedCornerShape(2.dp)).background(color).border(0.5.dp, Palette.border, RoundedCornerShape(2.dp)))
-        Spacer(Modifier.width(5.dp))
-        Text(text, fontSize = 12.sp, color = Palette.muted)
+private fun HourRow(store: Store, s: Slot, people: List<Place>, pick: (Slot) -> Unit) {
+    val label = FindTime.hourLabel(s.start.atZone(store.home).hour, store.use24h)
+    val all = s.working == people.size && people.isNotEmpty()
+    Row(Modifier.fillMaxWidth().alpha(if (s.end <= store.now) 0.35f else 1f).clickable { pick(s) }
+        .semantics(mergeDescendants = true) { contentDescription = "$label, ${s.working} of ${people.size} working" },
+        horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.width(62.dp), style = tnum, fontSize = 13.sp, color = if (all) Palette.primary else white(0.6f), maxLines = 1)
+        s.states.forEach { state ->
+            Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(state.color))
+        }
+        Text("${s.working}/${people.size}", Modifier.width(30.dp), fontSize = 11.sp, color = white(0.5f), textAlign = TextAlign.End, maxLines = 1)
     }
 }
 
-/** A capsule chip, cream when it's the one chosen (the days, the groups). */
 @Composable
-fun PillChip(title: String, on: Boolean, onClick: () -> Unit) {
-    Box(Modifier.heightIn(min = 34.dp).clip(RoundedCornerShape(50)).background(if (on) Palette.cream else Palette.tile)
-        .border(0.5.dp, Palette.border, RoundedCornerShape(50)).clickable(onClick = onClick).semantics { selected = on }
-        .padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-        Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) Palette.bg else Palette.secondary, maxLines = 1)
+private fun Legend(color: Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(11.dp).clip(RoundedCornerShape(3.dp)).background(color))
+        Spacer(Modifier.width(5.dp))
+        Text(text, fontSize = 12.sp, color = white(0.6f))
     }
 }
 
@@ -313,46 +352,53 @@ private fun SlotScreen(store: Store, slot: Slot, length: Int, places: List<Place
         return city + work + (if (shift == 0) "" else " · ${TimeMath.weekday(start, place.zone)}")
     }
 
-    Screen("Meeting Time", onClose) { padding ->
+    // "9:00 AM–10:00 AM" with small raised AM and PM, so the range fits large; it may wrap only after the dash.
+    val (startClock, startSuffix) = TimeMath.clock(start, home, store.use24h)
+    val (endClock, endSuffix) = TimeMath.clock(end, home, store.use24h)
+    // The thin space before AM/PM is a break point, so a word joiner holds each time together;
+    // the zero-width space after the dash is the one place the range may wrap.
+    val range = buildAnnotatedString {
+        append(clockText(startClock, startSuffix?.let { "\u2060" + it })); append("–\u200B"); append(clockText(endClock, endSuffix?.let { "\u2060" + it }))
+    }
+
+    Screen("Meeting Time", onClose, back = true) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            FindCard {
-                Column(Modifier.padding(16.dp)) {
-                    Text("${TimeMath.time(start, home, store.use24h)}–${TimeMath.time(end, home, store.use24h)}",
-                        fontSize = 34.sp, fontWeight = FontWeight.Light, color = Palette.primary, maxLines = 1)
-                    Spacer(Modifier.height(4.dp))
-                    Text("${TimeMath.fullDay(start, home)} · your time · ${FindTime.lengthLabel(length)}", fontSize = 14.sp, color = Palette.muted)
-                    Spacer(Modifier.height(12.dp))
-                    // Start 15 minutes earlier or later.
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Start", Modifier.weight(1f), color = Palette.secondary)
-                        OutlinedButton(onClick = { start = start.minusSeconds(900) }, contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier.size(width = 44.dp, height = 34.dp)) { Text("−") }
-                        Spacer(Modifier.width(8.dp))
-                        OutlinedButton(onClick = { start = start.plusSeconds(900) }, contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier.size(width = 44.dp, height = 34.dp)) { Text("+") }
-                    }
+            .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            GlassCard(null, null, spacing = 4.dp) {
+                Text(range, fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.Thin, color = Palette.primary,
+                    modifier = Modifier.semantics { contentDescription = "${TimeMath.time(start, home, store.use24h)} to ${TimeMath.time(end, home, store.use24h)}" })
+                Text("${TimeMath.fullDay(start, home)} · your time · ${FindTime.lengthLabel(length)}", fontSize = 15.sp, color = white(0.6f))
+                Spacer(Modifier.height(6.dp))
+                // Start 15 minutes earlier or later.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Start", Modifier.weight(1f), color = white(0.85f))
+                    OutlinedButton(onClick = { start = start.minusSeconds(900) }, contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(width = 44.dp, height = 34.dp), border = BorderStroke(1.dp, white(0.3f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.primary)) { Text("−") }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { start = start.plusSeconds(900) }, contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier.size(width = 44.dp, height = 34.dp), border = BorderStroke(1.dp, white(0.3f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.primary)) { Text("+") }
                 }
             }
-            if (places.isNotEmpty()) FindCard {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+            if (places.isNotEmpty()) GlassCard(null, null, padding = 0.dp, spacing = 0.dp) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
                     places.forEachIndexed { i, place ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 10.dp).semantics(mergeDescendants = true) {},
                             verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(place.title, fontWeight = FontWeight.SemiBold, color = Palette.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(status(place), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                    color = if (store.isWorking(place, start)) Palette.secondary else Palette.muted)
+                                Text(place.title, fontSize = 17.sp, fontWeight = FontWeight.Medium, color = Palette.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(status(place), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = white(0.7f))
                             }
                             Spacer(Modifier.width(8.dp))
                             Text("${TimeMath.time(start, place.zone, store.use24h)}–${TimeMath.time(end, place.zone, store.use24h)}",
-                                fontSize = 15.sp, color = Palette.primary, maxLines = 1, softWrap = false)
+                                style = tnum, fontSize = 15.sp, color = Palette.primary, maxLines = 1, softWrap = false)
                         }
-                        if (i < places.size - 1) HorizontalDivider(color = Palette.border, thickness = 0.5.dp)
+                        if (i < places.size - 1) HorizontalDivider(color = white(0.2f))
                     }
                 }
             }
-            FindCard {
+            GlassCard(null, null, padding = 0.dp, spacing = 0.dp) {
                 ActionRow(Icons.Filled.DateRange, "Add to Calendar") {
                     // The calendar app's own new-event screen, filled in: no calendar permission needed.
                     val intent = Intent(Intent.ACTION_INSERT).setData(CalendarContract.Events.CONTENT_URI)
@@ -364,16 +410,16 @@ private fun SlotScreen(store: Store, slot: Slot, length: Int, places: List<Place
                         android.widget.Toast.makeText(context, "No calendar app to add it to", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
-                HorizontalDivider(Modifier.padding(start = 52.dp), color = Palette.border, thickness = 0.5.dp)
+                HorizontalDivider(Modifier.padding(start = 52.dp), color = white(0.2f))
                 ActionRow(Icons.Filled.Share, "Share Invite…") {
                     context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain")
                         .putExtra(Intent.EXTRA_SUBJECT, "Meeting, ${TimeMath.fullDay(start, home)}").putExtra(Intent.EXTRA_TEXT, invite), "Share Invite"))
                 }
-                HorizontalDivider(Modifier.padding(start = 52.dp), color = Palette.border, thickness = 0.5.dp)
+                HorizontalDivider(Modifier.padding(start = 52.dp), color = white(0.2f))
                 ActionRow(Icons.Filled.Check, if (copied) "Copied" else "Copy Invite") {
                     clipboard.setText(AnnotatedString(invite)); copied = true
                 }
-                HorizontalDivider(Modifier.padding(start = 52.dp), color = Palette.border, thickness = 0.5.dp)
+                HorizontalDivider(Modifier.padding(start = 52.dp), color = white(0.2f))
                 ActionRow(Icons.Filled.Refresh, "Go to This Time") { store.jump(start); onGo() }
             }
         }
@@ -384,16 +430,10 @@ private fun SlotScreen(store: Store, slot: Slot, length: Int, places: List<Place
 private fun ActionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = Palette.cream, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = Palette.primary, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(16.dp))
-        Text(label, color = Palette.cream)
+        Text(label, fontSize = 17.sp, color = Palette.primary)
     }
-}
-
-@Composable
-private fun FindCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.tile)
-        .border(0.5.dp, Palette.border, RoundedCornerShape(16.dp)), content = content)
 }
 
 /**

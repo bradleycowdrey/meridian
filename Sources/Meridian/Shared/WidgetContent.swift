@@ -142,46 +142,107 @@ enum WidgetTone {
     }
 }
 
+/// The widget's background: warm near-black with the crimson rule, which steps aside in tinted and
+/// clear modes (as Two Degrees does). The system's content margins keep the face clear of it.
+struct MeridianWidgetBackground: View {
+    @Environment(\.widgetRenderingMode) var renderingMode
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            WidgetTone.bg
+            if renderingMode == .fullColor { WidgetTone.crimson.frame(height: 3) }
+        }
+    }
+}
+
+/// In-app renders of a widget (screenshots, the Mac self-test), which have no system margins or
+/// container background, so this adds both.
+struct WidgetFacePreview: View {
+    let snapshot: WidgetSnapshot
+    let date: Date
+    let family: WidgetFamily
+    let size: CGSize
+
+    var body: some View {
+        WidgetClockView(snapshot: snapshot, date: date, family: family, isPreview: true)
+            .padding(16)
+            .frame(width: size.width, height: size.height)
+            .background { MeridianWidgetBackground() }
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .environment(\.colorScheme, .dark)
+    }
+}
+
+/// A widget time: the digits, then AM/PM smaller and raised (Two Degrees' reading style).
+enum WidgetClockText {
+    static func text(_ digits: String, suffix: String?, size: CGFloat) -> Text {
+        let main = Text(digits)
+            .font(.system(size: size, weight: .semibold))
+            .monospacedDigit()
+            .tracking(-size * 0.03)
+        guard let suffix else { return main }
+        return main + Text("\u{2009}" + suffix)
+            .font(.system(size: size * 0.42, weight: .medium))
+            .baselineOffset(size * 0.36)
+    }
+}
+
 /// The widget face for each size: small shows one city, medium two side by side (each with its
-/// hour before and after), large four with the hour before, now and the hour after.
+/// hour before and after), large five with the hour before, now and the hour after.
 struct WidgetClockView: View {
     let snapshot: WidgetSnapshot
     let date: Date
     let family: WidgetFamily
+    /// Set by in-app renders (WidgetFacePreview), which always draw in full colour.
+    var isPreview = false
+
+    @Environment(\.widgetRenderingMode) var renderingMode
+    @Environment(\.showsWidgetContainerBackground) var showsBackground
+
+    /// Accented, vibrant (Lock Screen, tinted Home Screen) or clear (StandBy): no opaque blocks,
+    /// no brand colours; shapes and text in the system's primary colour.
+    private var tinted: Bool {
+        renderingMode != .fullColor || (!showsBackground && !isPreview)
+    }
+
+    /// The hairline between the two medium cells and under the large header.
+    private static let ruleTone = Color(red: 58.0 / 255, green: 53.0 / 255, blue: 48.0 / 255)   // #3A3530
+    private var rule: Color { tinted ? Color.primary.opacity(0.3) : Self.ruleTone }
+    /// "Now" labels and outlines: cream in full colour.
+    private var nowTone: Color { tinted ? Color.primary : WidgetTone.cream }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // The bradcowdrey.com crimson rule, full bleed across the top.
-            WidgetTone.crimson.frame(height: 3)
-            Group {
-                if cities.isEmpty {
-                    VStack(spacing: 6) {
-                        Text("No cities yet")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Add cities in Meridian")
-                            .font(.system(size: 12))
-                            .foregroundStyle(WidgetTone.muted)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
+        Group {
+            if cities.isEmpty {
+                VStack(spacing: 4) {
+                    Text("No cities yet")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Add cities in Meridian")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(WidgetTone.muted)
+                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
                 switch family {
-                case .systemLarge: strip
+                case .systemLarge:
+                    strip
                 case .systemMedium:
-                    HStack(alignment: .top, spacing: 18) {
-                        ForEach(Array(cities.enumerated()), id: \.offset) { _, city in
-                            cityCell(city, timeSize: 32).frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(alignment: .top, spacing: 14) {
+                        cityCell(cities[0], timeSize: 34).frame(maxWidth: .infinity, alignment: .leading)
+                        if cities.count > 1 {
+                            Rectangle().fill(rule).frame(width: 0.5)
+                            cityCell(cities[1], timeSize: 34).frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
                         }
-                        if cities.count == 1 { Color.clear.frame(maxWidth: .infinity, maxHeight: 1) }
                     }
                 default:
-                    cityCell(cities[0], timeSize: 36)
-                }
+                    cityCell(cities[0], timeSize: 40)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .foregroundStyle(WidgetTone.primary)
     }
 
@@ -201,43 +262,37 @@ struct WidgetClockView: View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
         let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
-        return VStack(alignment: .leading, spacing: 2) {
+        return VStack(alignment: .leading, spacing: 0) {
             Text(city.name)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(WidgetTone.secondary)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(WidgetTone.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(clock)
-                    .font(.system(size: timeSize, weight: .medium))
-                    .monospacedDigit()
-                if let suffix {
-                    Text(suffix)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(WidgetTone.muted)
-                }
-                dayBadge(zone)
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-            Text(relative(zone))
-                .font(.system(size: 11))
-                .foregroundStyle(WidgetTone.faint)
+            WidgetClockText.text(clock, suffix: suffix, size: timeSize)
+                .widgetAccentable()
                 .lineLimit(1)
-            Spacer(minLength: 6)
+                .minimumScaleFactor(0.7)
+            Text(caption(zone))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(WidgetTone.muted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 4)
             // The hour before, now (outlined) and the hour after, each labelled.
             HStack(spacing: 4) {
                 ForEach(-1...1, id: \.self) { k in
                     VStack(spacing: 3) {
                         Text(k == 0 ? "Now" : (k > 0 ? "+1 hr" : "−1 hr"))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(k == 0 ? WidgetTone.cream : WidgetTone.faint)
+                            .font(.system(size: 10, weight: k == 0 ? .semibold : .medium))
+                            .foregroundStyle(k == 0 ? nowTone : WidgetTone.muted)
                             .lineLimit(1)
                         tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
-                            .frame(height: 24)
+                            .frame(height: 22)
                             .overlay {
                                 if k == 0 {
-                                    RoundedRectangle(cornerRadius: 7, style: .continuous).strokeBorder(WidgetTone.cream, lineWidth: 1.5)
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .strokeBorder(nowTone, lineWidth: 1.5)
+                                        .widgetAccentable()
                                 }
                             }
                     }
@@ -246,8 +301,22 @@ struct WidgetClockView: View {
         }
     }
 
-    /// "−5 hr", "+5:30 hr" or "Your time" under the city name (another day is the "+1 d" by the
-    /// time, as in the app).
+    /// "Tomorrow", "Yesterday", "+2 d" or nil on the same day as here (as Apple's Clock does).
+    private func dayWord(_ zone: TimeZone, short: Bool) -> String? {
+        let shift = Self.dayShift(date, zone: zone)
+        if shift == 0 { return nil }
+        if !short && shift == 1 { return "Tomorrow" }
+        if !short && shift == -1 { return "Yesterday" }
+        return shift > 0 ? "+\(shift) d" : "−\(-shift) d"
+    }
+
+    /// Under the time: "Tomorrow · +8 hr" on another day, otherwise "+8 hr" or "Your time".
+    private func caption(_ zone: TimeZone, short: Bool = false) -> String {
+        if let day = dayWord(zone, short: short) { return "\(day) · \(relative(zone))" }
+        return relative(zone)
+    }
+
+    /// "−5 hr", "+5:30 hr" or "Your time".
     private func relative(_ zone: TimeZone) -> String {
         let diff = zone.secondsFromGMT(for: date) - TimeZone.current.secondsFromGMT(for: date)
         if diff == 0 { return zone.identifier == TimeZone.current.identifier ? "Your time" : "Same time" }
@@ -255,15 +324,6 @@ struct WidgetClockView: View {
         let hours = abs(diff) / 3600
         let minutes = (abs(diff) % 3600) / 60
         return "\(sign)\(hours)\(minutes == 0 ? "" : ":\(String(format: "%02d", minutes))") hr"
-    }
-
-    @ViewBuilder private func dayBadge(_ zone: TimeZone) -> some View {
-        let shift = Self.dayShift(date, zone: zone)
-        if shift != 0 {
-            Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(WidgetTone.muted)
-        }
     }
 
     // MARK: Large: day/night tiles
@@ -284,42 +344,44 @@ struct WidgetClockView: View {
 
             VStack(alignment: .leading, spacing: gap) {
                 HStack(spacing: 0) {
-                    Text("Meridian")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(WidgetTone.faint)
-                        .frame(width: labelWidth, alignment: .leading)
+                    Color.clear.frame(width: labelWidth, height: 1)
                     ForEach(-half...half, id: \.self) { k in
                         Text(k == 0 ? "Now" : (k > 0 ? "+\(k) hr" : "−\(-k) hr"))
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(k == 0 ? WidgetTone.cream : WidgetTone.faint)
+                            .font(.system(size: 10, weight: k == 0 ? .semibold : .medium))
+                            .foregroundStyle(k == 0 ? nowTone : WidgetTone.muted)
                             .monospacedDigit()
+                            .lineLimit(1)
                             .frame(width: pitch)
                     }
                 }
-                .frame(height: headerHeight)
+                .frame(height: headerHeight, alignment: .top)
+                // The rule under the header, inside its height so the row geometry is unchanged.
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(rule).frame(height: 0.5)
+                }
 
                 ForEach(Array(cities.enumerated()), id: \.offset) { _, city in
                     let zone = TimeZone(identifier: city.timeZoneID) ?? .current
+                    let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
                     HStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(city.name)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(WidgetTone.secondary)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(WidgetTone.primary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
-                                Text(clock)
-                                    .font(.system(size: 24, weight: .medium))
-                                    .monospacedDigit()
-                                if let suffix {
-                                    Text(suffix)
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundStyle(WidgetTone.muted)
-                                }
-                                dayBadge(zone)
+                                WidgetClockText.text(clock, suffix: suffix, size: 22)
+                                    .widgetAccentable()
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                                    .layoutPriority(1)
+                                Text(caption(zone, short: true))
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(WidgetTone.muted)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
                             }
-                            .lineLimit(1)
                         }
                         .frame(width: labelWidth - 6, alignment: .leading)
                         .padding(.trailing, 6)
@@ -335,8 +397,9 @@ struct WidgetClockView: View {
             }
             // The "now" column outline, through every row.
             .overlay(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(WidgetTone.cream, lineWidth: 1.5)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(tinted ? Color.primary.opacity(0.6) : WidgetTone.cream, lineWidth: 1.5)
+                    .widgetAccentable()
                     .frame(width: pitch, height: CGFloat(cities.count) * (rowHeight + gap))
                     .offset(x: labelWidth + CGFloat(half) * pitch, y: headerHeight + gap / 2)
             }
@@ -350,6 +413,7 @@ struct WidgetClockView: View {
         let minute = calendar.component(.minute, from: moment)
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60, lifted: true)
         let newDay = !calendar.isDate(moment, inSameDayAs: moment.addingTimeInterval(-3600))
+        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         let label: Text = {
             var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
             // Half-hour and 45-minute zones: "05:30" reads "05" + small ":30".
@@ -358,17 +422,25 @@ struct WidgetClockView: View {
             return text
         }()
         return label
-            .font(.system(size: 13, weight: .medium))
+            .font(.system(size: 12, weight: .medium))
             .monospacedDigit()
             .lineLimit(1)
             .minimumScaleFactor(0.6)
-            .foregroundStyle(style.text)
+            .foregroundStyle(tinted ? Color.primary : style.text)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(style.fill))
+            .background {
+                // Tinted modes: an outline, not an opaque block.
+                if tinted {
+                    shape.strokeBorder(Color.primary.opacity(0.35), lineWidth: 1)
+                } else {
+                    shape.fill(style.fill)
+                }
+            }
             .overlay(alignment: .leading) {
                 // A new day starts at midnight.
                 if newDay {
-                    Capsule().fill(WidgetTone.crimson).frame(width: 2).padding(.vertical, 6).offset(x: -3)
+                    Capsule().fill(tinted ? Color.primary : WidgetTone.crimson)
+                        .frame(width: 2).padding(.vertical, 6).offset(x: -3)
                 }
             }
     }
@@ -439,10 +511,16 @@ struct AccessoryClockView: View {
                 .prefix(2).map { "\(tag($0)) \(time($0))" }.joined(separator: " · "))
         case .accessoryCircular:
             if let city = featured {
-                VStack(spacing: 0) {
-                    Text(tag(city)).font(.system(size: 11, weight: .semibold))
-                    Text(time(city)).font(.system(size: 15, weight: .semibold)).monospacedDigit()
-                        .minimumScaleFactor(0.6).lineLimit(1)
+                VStack(spacing: -1) {
+                    Text(tag(city))
+                        .font(.system(size: 11, weight: .medium))
+                        .opacity(0.75)
+                    Text(time(city))
+                        .font(.system(size: 20, weight: .semibold))
+                        .monospacedDigit()
+                        .widgetAccentable()
+                        .minimumScaleFactor(0.6)
+                        .lineLimit(1)
                 }
                 .padding(4)
             } else {
@@ -452,12 +530,20 @@ struct AccessoryClockView: View {
             // Rectangular: three cities, one per line.
             VStack(alignment: .leading, spacing: 1) {
                 ForEach(Array(snapshot.cities.prefix(3).enumerated()), id: \.offset) { _, city in
-                    HStack(spacing: 4) {
-                        Text(city.name).lineLimit(1)
+                    let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(city.name)
+                            .font(.system(size: 13, weight: .medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                         Spacer(minLength: 2)
-                        Text(time(city) + shift(city)).monospacedDigit().fontWeight(.semibold)
+                        // Another day stays visible ("+1 d"), as before.
+                        (WidgetClockText.text(clock, suffix: suffix, size: 15)
+                            + Text(shift(city)).font(.system(size: 11, weight: .medium)))
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                            .widgetAccentable()
                     }
-                    .font(.system(size: 13))
                 }
                 if snapshot.cities.isEmpty { Text("Add cities in Meridian").font(.system(size: 13)) }
             }

@@ -31,10 +31,10 @@ struct WorkHoursEditor: View {
                             commit()
                         } label: {
                             Text(Self.initials[day - 1])
-                                .font(.callout.weight(.semibold))
+                                .font(.system(size: 15, weight: .medium))
                                 .frame(maxWidth: .infinity, minHeight: 36)
-                                .background(Capsule().fill(on ? Color.primary.opacity(0.85) : Color.primary.opacity(0.08)))
-                                .foregroundStyle(on ? Color(white: 0.1) : .primary)
+                                .background(Capsule().fill(on ? Color.primary.opacity(0.9) : Color.primary.opacity(0.1)))
+                                .foregroundStyle(on ? AnyShapeStyle(.background) : AnyShapeStyle(.primary))
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(Calendar(identifier: .gregorian).weekdaySymbols[day - 1])

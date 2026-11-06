@@ -14,6 +14,7 @@ enum Terms {
 struct TermsView: View {
     let onAgree: () -> Void
 
+    /// As Two Degrees' terms screen: the mark, a large title, the summary, and a cream I Agree.
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -23,27 +24,39 @@ struct TermsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .accessibilityHidden(true)
             Text(Terms.changed ? "The Terms of Use and Privacy have changed" : "Terms of Use and Privacy")
-                .font(.title2.weight(.semibold))
+                .font(.system(size: 28, weight: .semibold))
+                .tracking(-0.4)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(.white)
+                .fixedSize(horizontal: false, vertical: true)
             Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your iPhone. If you allow it, your location is used only to name the city you're in.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.")
-                .font(.body)
+                .font(.system(size: 17))
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
             Button(action: onAgree) {
-                Text("I Agree").font(.headline).frame(maxWidth: .infinity).frame(height: 50)
+                Text("I Agree")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .foregroundStyle(Theme.bg)
+                    .background(Capsule().fill(Theme.cream))
+                    .contentShape(Capsule())
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.cream)
-            .foregroundStyle(Theme.bg)
-            Link("Read the Terms", destination: Theme.legal)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.cream)
+            .buttonStyle(.plain)
+            Link(destination: Theme.legal) {
+                Text("Read the Terms")
+                    .font(.system(size: 17, weight: .medium))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .foregroundStyle(.white)
+            }
         }
-        .padding(28)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 12)
+        .frame(maxWidth: 520)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg)
+        .background(Theme.bg.ignoresSafeArea())
+        .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
     }
 }

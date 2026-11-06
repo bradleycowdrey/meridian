@@ -130,10 +130,8 @@ enum SelfTest {
             .init(name: "Adelaide", timeZoneID: "Australia/Adelaide"),
         ], use24h: false)
         for (name, family, size) in faces + faces.map({ ("\($0.0)-stress", $0.1, $0.2) }) {
-            let face = WidgetClockView(snapshot: name.hasSuffix("stress") ? stress : snapshot, date: store.now, family: family)
-                .frame(width: size.width, height: size.height)
-                .background(WidgetTone.bg)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            let face = WidgetFacePreview(snapshot: name.hasSuffix("stress") ? stress : snapshot, date: store.now,
+                                         family: family, size: size)
             let renderer = ImageRenderer(content: face)
             renderer.scale = 2
             if let tiff = renderer.nsImage?.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),

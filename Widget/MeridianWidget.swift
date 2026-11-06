@@ -46,7 +46,6 @@ struct MeridianClocksWidget: Widget {
         .configurationDisplayName("Meridian")
         .description("Your cities and their times. Edit the widget to choose its own cities.")
         .supportedFamilies(Self.families)
-        .contentMarginsDisabled()
     }
 }
 
@@ -55,24 +54,28 @@ struct ClockEntryView: View {
     let entry: ClockEntry
 
     var body: some View {
-        #if os(iOS)
-        switch family {
-        case .accessoryInline, .accessoryCircular, .accessoryRectangular:
-            AccessoryClockView(snapshot: entry.snapshot, date: entry.date, family: family)
-                .containerBackground(for: .widget) {
-                    if family == .accessoryCircular { AccessoryWidgetBackground() }
-                }
-        default:
+        Group {
+            #if os(iOS)
+            switch family {
+            case .accessoryInline, .accessoryCircular, .accessoryRectangular:
+                AccessoryClockView(snapshot: entry.snapshot, date: entry.date, family: family)
+                    .containerBackground(for: .widget) {
+                        if family == .accessoryCircular { AccessoryWidgetBackground() }
+                    }
+            default:
+                clock
+            }
+            #else
             clock
+            #endif
         }
-        #else
-        clock
-        #endif
+        .environment(\.colorScheme, .dark)
     }
 
+    /// The system's content margins keep the face clear of the edges and the crimson rule.
     private var clock: some View {
         WidgetClockView(snapshot: entry.snapshot, date: entry.date, family: family)
-            .containerBackground(WidgetTone.bg, for: .widget)
+            .containerBackground(for: .widget) { MeridianWidgetBackground() }
     }
 }
 

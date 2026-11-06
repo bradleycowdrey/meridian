@@ -5,7 +5,7 @@ import SwiftUI
 struct DateJumpView: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dismiss) private var dismiss
-    @ScaledMetric(relativeTo: .largeTitle) private var answerSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .largeTitle) private var answerSize: CGFloat = 72
     /// The chosen day (any time on it) and the time on it, in quarter-hours.
     @State private var day = Date()
     @State private var hour = 9
@@ -25,19 +25,37 @@ struct DateJumpView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 10) {
                     answer
                     quickPicks
-                    card { DatePicker("Day", selection: $day, displayedComponents: .date).datePickerStyle(.graphical).labelsHidden() }
-                    card { timePicker }
-                    if !store.places.isEmpty { card { cities } }
+                    VStack(alignment: .leading, spacing: 10) {
+                        CardCaption("Date", "calendar")
+                        DatePicker("Day", selection: $day, displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .labelsHidden()
+                            // Not white: the selected day's number is drawn in white on this.
+                            .tint(Theme.pickerAccent)
+                    }
+                    .glassCard()
+                    VStack(alignment: .leading, spacing: 10) {
+                        CardCaption("Time", "clock")
+                        timePicker
+                    }
+                    .glassCard()
+                    if !store.places.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            CardCaption("In your cities", "globe")
+                            cities
+                        }
+                        .glassCard()
+                    }
                 }
                 .padding(.horizontal, Card.margin)
-                .padding(.bottom, 96)
+                .padding(.bottom, 16)
             }
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
-            .safeAreaInset(edge: .bottom) { goButton }
+            .safeAreaInset(edge: .bottom, spacing: 0) { goButton }
             .navigationTitle("Go to a Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
@@ -63,7 +81,7 @@ struct DateJumpView: View {
                 Text("Try +3, -1.5 or -2:30.")
             }
         }
-        .tint(Theme.cream)
+        .tint(.white)
         .preferredColorScheme(.dark)
     }
 
@@ -71,18 +89,21 @@ struct DateJumpView: View {
 
     /// The chosen time, large, with its day and how far away it is.
     private var answer: some View {
-        VStack(spacing: 4) {
-            Text(TimeMath.time(moment, in: .current, use24h: store.use24h))
-                .font(.system(size: answerSize, weight: .light))
-                .monospacedDigit()
-                .foregroundStyle(Theme.primary)
+        let parts = ClockText.parts(hour: calendar.component(.hour, from: moment), minute: calendar.component(.minute, from: moment), use24h: store.use24h)
+        return VStack(spacing: 4) {
+            ClockText.text(parts.digits, suffix: parts.suffix, size: answerSize, weight: .thin)
+                .tracking(-2)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
                 .contentTransition(.numericText())
             Text("\(Self.day.string(from: moment)) · \(Self.relative(from: store.now, to: moment))")
-                .font(.subheadline)
-                .foregroundStyle(Theme.muted)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Color.white.opacity(Theme.Op.body))
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 8)
+        .padding(.top, 24)
+        .padding(.bottom, 16)
         .animation(.snappy, value: moment)
         .accessibilityElement(children: .combine)
     }
@@ -90,17 +111,21 @@ struct DateJumpView: View {
     private var nine: String { store.use24h ? "09:00" : "9\u{2009}AM" }
 
     private var quickPicks: some View {
-        HStack(spacing: 8) {
-            chip("Tomorrow \(nine)") { at(daysFromToday: 1, hour: 9) }
-            chip("Monday \(nine)") {
-                let next = calendar.nextDate(after: store.now, matching: DateComponents(weekday: 2), matchingPolicy: .nextTime) ?? store.now
-                set(calendar.date(bySettingHour: 9, minute: 0, second: 0, of: next) ?? next)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                PillChip(title: "Tomorrow \(nine)", isOn: false) { at(daysFromToday: 1, hour: 9) }
+                PillChip(title: "Monday \(nine)", isOn: false) {
+                    let next = calendar.nextDate(after: store.now, matching: DateComponents(weekday: 2), matchingPolicy: .nextTime) ?? store.now
+                    set(calendar.date(bySettingHour: 9, minute: 0, second: 0, of: next) ?? next)
+                }
+                PillChip(title: "In a Week", isOn: false) { set(store.now.addingTimeInterval(7 * 86_400)) }
+                PillChip(title: "123", systemImage: "number", isOn: false) { typed = ""; invalid = false; typing = true }
+                    .accessibilityLabel("Type hours from now")
             }
-            chip("In a Week") { set(store.now.addingTimeInterval(7 * 86_400)) }
-            chip("123") { typed = ""; invalid = false; typing = true }
-                .frame(maxWidth: 56)
-                .accessibilityLabel("Type hours from now")
+            .padding(.horizontal, Card.margin)
         }
+        // Runs to the screen's edges, so a cut-off chip reads as "scroll for more".
+        .padding(.horizontal, -Card.margin)
     }
 
     /// Hour, quarter-hour, and AM or PM (or 24-hour), as wheels.
@@ -132,29 +157,36 @@ struct DateJumpView: View {
             ForEach(store.places) { place in
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(place.name).font(.body.weight(.semibold)).foregroundStyle(Theme.primary)
+                        Text(place.name).font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
                         if let off = store.showWorkHours ? WorkWeek.offLabel(place, at: moment, start: store.workStart, end: store.workEnd) : nil {
-                            Label(off, systemImage: "moon.zzz.fill").font(.caption).foregroundStyle(Theme.muted)
+                            Label {
+                                Text(off)
+                            } icon: {
+                                Image(systemName: "moon.zzz.fill").foregroundStyle(Theme.moon)
+                            }
+                            .labelStyle(StatusLabelStyle())
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                         }
                     }
                     .lineLimit(1)
                     Spacer(minLength: 8)
-                    HStack(spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
-                            .font(.title3.weight(.light)).monospacedDigit().foregroundStyle(Theme.primary)
+                            .font(.system(size: 20, weight: .light)).monospacedDigit().foregroundStyle(.white)
                         let shift = TimeMath.dayShift(moment, zone: place.timeZone)
                         if shift != 0 {
                             Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
-                                .font(.caption2.weight(.semibold))
-                                .padding(.horizontal, 5).padding(.vertical, 1)
-                                .background(Capsule().fill(Theme.border))
-                                .foregroundStyle(Theme.cream)
+                                .font(.system(size: 13, weight: .medium))
+                                .monospacedDigit()
+                                .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                         }
                     }
                     .fixedSize()
                 }
-                .padding(.vertical, 10)
-                if place.id != store.places.last?.id { Divider().overlay(Theme.border) }
+                .frame(minHeight: 44)
+                .padding(.vertical, 4)
+                if place.id != store.places.last?.id { Divider().overlay(Color.white.opacity(0.2)) }
             }
         }
     }
@@ -165,37 +197,18 @@ struct DateJumpView: View {
             dismiss()
         } label: {
             Text("Go to This Time")
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Capsule().fill(Theme.cream))
-                .foregroundStyle(Theme.bg)
+                .font(.system(size: 17, weight: .medium))
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .background(Capsule().fill(Color.white))
+                .foregroundStyle(Color.black)
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .padding(.horizontal, Card.margin)
-        .padding(.top, 8)
-        .background(Theme.bg.opacity(0.95))
-    }
-
-    private func card<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        content()
-            .padding(12)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: Card.radius, style: .continuous).fill(Theme.tile))
-            .overlay(RoundedRectangle(cornerRadius: Card.radius, style: .continuous).strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
-    }
-
-    private func chip(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.footnote.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity, minHeight: 34)
-                .background(Capsule().fill(Theme.tile))
-                .overlay(Capsule().strokeBorder(Theme.border, lineWidth: 0.5).allowsHitTesting(false))
-                .foregroundStyle(Theme.secondary)
-        }
-        .buttonStyle(.plain)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, ignoresSafeAreaEdges: .bottom)
+        .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
+        .environment(\.colorScheme, .dark)
     }
 
     // MARK: Time

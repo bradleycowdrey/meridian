@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Between the medium widget's two cities: a hairline with 7 dp either side (14 dp apart). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0.5dp"
+    android:layout_height="match_parent"
+    android:layout_marginStart="7dp"
+    android:layout_marginEnd="7dp"
+    android:background="#3A3530" />

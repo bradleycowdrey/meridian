@@ -10,8 +10,9 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">center</item>
-        <item name="android:textColor">#807870</item>
+        <item name="android:textColor">#B0A898</item>
         <item name="android:textSize">10sp</item>
+        <item name="android:maxLines">1</item>
     </style>
     <style name="WidgetTileFrame">
         <item name="android:layout_width">0dp</item>
@@ -27,6 +28,8 @@
         <item name="android:background">@drawable/tile</item>
         <item name="android:gravity">center</item>
         <item name="android:textSize">12sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:fontFeatureSettings">tnum</item>
         <item name="android:maxLines">1</item>
         <!-- Narrow small widgets: shrink "10 AM" rather than cut it off. -->
         <item name="android:autoSizeTextType">uniform</item>

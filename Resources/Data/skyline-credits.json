@@ -1,0 +1,22 @@
+[
+ {
+  "key": "sanfrancisco",
+  "commons": "https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_from_Coit_Tower.jpg",
+  "license": "to verify before App Store release"
+ },
+ {
+  "key": "newyork",
+  "commons": "https://commons.wikimedia.org/wiki/File:Manhattan_from_Weehawken,_NJ.jpg",
+  "license": "to verify before App Store release"
+ },
+ {
+  "key": "london",
+  "commons": "https://commons.wikimedia.org/wiki/File:London_Skyline_(125508655).jpeg",
+  "license": "to verify before App Store release"
+ },
+ {
+  "key": "tokyo",
+  "commons": "https://commons.wikimedia.org/wiki/File:Skyscrapers_of_Shinjuku_2009_January.jpg",
+  "license": "to verify before App Store release"
+ }
+]

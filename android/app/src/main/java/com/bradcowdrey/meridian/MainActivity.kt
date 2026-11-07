@@ -116,6 +116,10 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -941,12 +945,14 @@ object Skyline {
     }
 
     /** Where each photo is cropped: a little above centre, so the tops of the towers stay in a short banner. */
-    fun align(id: Int): Alignment = BiasAlignment(0f, when (id) {
+    fun align(id: Int): Alignment = BiasAlignment(0f, biasY(id))
+
+    private fun biasY(id: Int): Float = when (id) {
         R.drawable.skyline_sanfrancisco -> -0.35f
         R.drawable.skyline_london -> -0.45f
         R.drawable.skyline_newyork -> -0.2f
         else -> -0.1f
-    })
+    }
 
     private val bitmaps = HashMap<Int, ImageBitmap>()
 
@@ -954,16 +960,94 @@ object Skyline {
         bitmaps.getOrPut(id) { android.graphics.BitmapFactory.decodeResource(context.resources, id).asImageBitmap() }
     }
 
-    private fun scale(r: Float, g: Float, b: Float) = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
-        r, 0f, 0f, 0f, 0f,
-        0f, g, 0f, 0f, 0f,
-        0f, 0f, b, 0f, 0f,
+    private fun scale(m: FloatArray) = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
+        m[0], 0f, 0f, 0f, 0f,
+        0f, m[1], 0f, 0f, 0f,
+        0f, 0f, m[2], 0f, 0f,
         0f, 0f, 0f, 1f, 0f,
     )))
 
     /** Night: darker (about 45%) and a little cooler; dawn and dusk: a little warmer, about 15% darker; day as taken. */
-    private val night = scale(0.40f, 0.44f, 0.54f)
-    private val twilight = scale(0.93f, 0.84f, 0.72f)
+    private val nightGain = floatArrayOf(0.40f, 0.44f, 0.54f)
+    private val twilightGain = floatArrayOf(0.93f, 0.84f, 0.72f)
+    private val dayGain = floatArrayOf(1f, 1f, 1f)
+    private val night = scale(nightGain)
+    private val twilight = scale(twilightGain)
+
+    private fun gain(phase: Sky.Phase): FloatArray = when (phase) {
+        Sky.Phase.NIGHT -> nightGain
+        Sky.Phase.TWILIGHT -> twilightGain
+        Sky.Phase.DAY -> dayGain
+    }
+
+    /** Whether the banner is bright behind the time, keyed by photo, phase and banner shape (in steps of 0.05). */
+    private val brightness = HashMap<String, Boolean>()
+
+    /**
+     * Whether a photo banner is bright (relative luminance over 0.40) behind the time: the bottom-left
+     * 55% x 50% of the banner, as the photo is cropped and aligned there, after the time-of-day shading.
+     */
+    fun photoIsBright(id: Int, bitmap: ImageBitmap, phase: Sky.Phase, width: Int, height: Int): Boolean {
+        if (width <= 0 || height <= 0) return false
+        val step = (width.toFloat() / height * 20f).roundToInt().coerceAtLeast(1)
+        val key = "$id/${phase.name}/$step"
+        synchronized(brightness) { brightness[key]?.let { return it } }
+        val bright = try {
+            regionLuminance(bitmap.asAndroidBitmap(), biasY(id), gain(phase), step / 20f) > 0.40f
+        } catch (e: Exception) {
+            false
+        }
+        synchronized(brightness) { brightness[key] = bright }
+        return bright
+    }
+
+    /**
+     * The drawn skyline: the bottom-left of the banner, behind the time, is mostly its (dark) buildings,
+     * not its sky, so weigh the lower sky against the ink by how much the buildings cover. The near
+     * buildings (opaque, 18-60% of the height, overlapping) cover ~85% of the bottom half and the far ones
+     * add more, so even by day (#A9CBEA sky over #22324A ink) this comes to ~0.11: dark in every phase.
+     */
+    fun drawnIsBright(phase: Sky.Phase): Boolean {
+        val (_, sky, ink) = drawnColors(phase)
+        val coverage = 0.85f
+        return sky.luminance() * (1f - coverage) + ink.luminance() * coverage > 0.40f
+    }
+
+    private fun linear(c: Float): Double =
+        if (c <= 0.04045f) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
+
+    /** The mean relative luminance of the photo behind the time, for a banner `aspect` wide by 1 high. */
+    private fun regionLuminance(src: android.graphics.Bitmap, biasY: Float, gain: FloatArray, aspect: Float): Float {
+        val iw = src.width.toFloat()
+        val ih = src.height.toFloat()
+        if (iw < 2f || ih < 2f) return 0f
+        // ContentScale.Crop, then BiasAlignment(0, biasY), as the Image draws it.
+        val bw = aspect
+        val bh = 1f
+        val s = maxOf(bw / iw, bh / ih)
+        val offX = (bw - iw * s) / 2f
+        val offY = (bh - ih * s) / 2f * (1f + biasY)
+        val left = ((0f - offX) / s).coerceIn(0f, iw - 1f).toInt()
+        val right = ((0.55f * bw - offX) / s).coerceIn(left + 1f, iw).toInt()
+        val top = ((0.5f * bh - offY) / s).coerceIn(0f, ih - 1f).toInt()
+        val bottom = ((bh - offY) / s).coerceIn(top + 1f, ih).toInt()
+        val w = (right - left).coerceIn(1, src.width - left)
+        val h = (bottom - top).coerceIn(1, src.height - top)
+        val crop = android.graphics.Bitmap.createBitmap(src, left, top, w, h)
+        val small = android.graphics.Bitmap.createScaledBitmap(crop, 24, 12, true)
+        val px = IntArray(24 * 12)
+        small.getPixels(px, 0, 24, 0, 0, 24, 12)
+        if (small !== src && small !== crop) small.recycle()
+        if (crop !== src) crop.recycle()
+        var sum = 0.0
+        for (c in px) {
+            val r = (((c shr 16) and 0xFF) / 255f * gain[0]).coerceIn(0f, 1f)
+            val g = (((c shr 8) and 0xFF) / 255f * gain[1]).coerceIn(0f, 1f)
+            val b = ((c and 0xFF) / 255f * gain[2]).coerceIn(0f, 1f)
+            sum += 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+        }
+        return (sum / px.size).toFloat()
+    }
 
     fun shade(phase: Sky.Phase): ColorFilter? = when (phase) {
         Sky.Phase.NIGHT -> night
@@ -1035,7 +1119,9 @@ private fun DrawnSkyline(city: String, phase: Sky.Phase, modifier: Modifier) {
 
 /**
  * The banner across the top of a card: the city's skyline (its photo, shaded for the time of day
- * there, or one drawn for it), with the time there at the bottom left in white over a soft scrim.
+ * there, or one drawn for it), with the time there at the bottom left over a soft scrim: white numbers on a
+ * dark banner, dark ones on a bright banner (adaptive ink, measured behind the time after the shading). A drawn
+ * skyline's buildings fill most of the space behind the time, so it keeps white numbers in every phase.
  */
 @Composable
 fun SkylineBanner(store: Store, place: Place, compact: Boolean, modifier: Modifier) {
@@ -1044,50 +1130,83 @@ fun SkylineBanner(store: Store, place: Place, compact: Boolean, modifier: Modifi
     val phase = Sky.phase(place, moment)
     val photo = Skyline.photo(city)
     val context = LocalContext.current
-    Box(modifier.clipToBounds().clearAndSetSemantics {}) {
+    BoxWithConstraints(modifier.clipToBounds().clearAndSetSemantics {}) {
+        val widthPx = if (constraints.hasBoundedWidth) constraints.maxWidth else 0
+        val heightPx = if (constraints.hasBoundedHeight) constraints.maxHeight else 0
+        // Adaptive ink: dark numbers on a bright banner, white ones on a dark one (measured after the shading).
+        val bright: Boolean
         if (photo != null) {
             val bitmap = remember(photo) { Skyline.bitmap(context, photo) }
+            bright = remember(photo, phase, widthPx, heightPx) { Skyline.photoIsBright(photo, bitmap, phase, widthPx, heightPx) }
             Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, alignment = Skyline.align(photo),
                 colorFilter = Skyline.shade(phase), modifier = Modifier.matchParentSize())
-        } else DrawnSkyline(city, phase, Modifier.matchParentSize())
-        // The scrim: black at the bottom-left corner, under the time, fading out three quarters of the way along
-        // an ellipse 120% of the banner wide and 110% high (the mockup's radial-gradient(120% 110% at 0% 100%)).
+        } else {
+            bright = Skyline.drawnIsBright(phase)
+            DrawnSkyline(city, phase, Modifier.matchParentSize())
+        }
+        // The scrim: black (white on a bright banner) at the bottom-left corner, under the time, fading out three
+        // quarters of the way along an ellipse 120% of the banner wide and 110% high (the mockup's
+        // radial-gradient(120% 110% at 0% 100%)).
+        val scrim = if (bright) Color.White else Color.Black
+        val (scrimNear, scrimMid) = if (bright) 0.45f to 0.20f else 0.55f to 0.25f
         Box(Modifier.matchParentSize().drawBehind {
             if (size.width <= 0f || size.height <= 0f) return@drawBehind
             val rx = size.width * 1.2f
             val ry = size.height * 1.1f
             scale(scaleX = 1f, scaleY = ry / rx, pivot = Offset(0f, size.height)) {
-                drawRect(Brush.radialGradient(0f to Color.Black.copy(alpha = 0.55f), 0.45f to Color.Black.copy(alpha = 0.25f),
-                    0.75f to Color.Transparent, center = Offset(0f, size.height), radius = rx),
+                drawRect(Brush.radialGradient(0f to scrim.copy(alpha = scrimNear), 0.45f to scrim.copy(alpha = scrimMid),
+                    0.75f to scrim.copy(alpha = 0f), center = Offset(0f, size.height), radius = rx),
                     topLeft = Offset(0f, size.height - rx), size = Size(size.width, rx))
             }
         })
         val (digits, suffix) = TimeMath.clock(moment, place.zone, store.use24h)
-        BannerTime(digits, suffix, compact, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 5.dp))
+        BannerTime(digits, suffix, compact, bright, Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 5.dp))
     }
 }
 
-/** The time on a banner: white, semibold, tabular, a small AM/PM; a soft shadow (no outline). Grows a little with large text. */
+/**
+ * The time on a banner: semibold, tabular, a small AM/PM, with a thin outline and a soft shadow. On a dark
+ * banner, white with a dark outline and shadow; on a bright one, near-black with a white outline and glow.
+ * Grows a little with large text.
+ */
+// drawStyle on text is stable in current Compose; the opt-in only covers older releases that marked it experimental.
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
 @Composable
-private fun BannerTime(digits: String, suffix: String?, compact: Boolean, modifier: Modifier) {
+private fun BannerTime(digits: String, suffix: String?, compact: Boolean, bright: Boolean, modifier: Modifier) {
     val density = LocalDensity.current
     val fontScale = density.fontScale
     val grow = (1f + (fontScale - 1f) * 0.35f).coerceIn(1f, 1.2f)
     val size = ((if (compact) 24f else 36f) * grow / fontScale).sp
-    val text = buildAnnotatedString {
+    val ink = if (bright) Color(0xFF141210) else Color.White
+    val outline = if (bright) Color.White.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.60f)
+    // The outline shows about 1 dp at 24, 1.5 dp at 36: the stroke straddles the glyph's edge and the fill
+    // covers its inner half, so it is drawn twice as wide. The AM/PM gets one in proportion to its size.
+    val outlineDp = (if (compact) 1f else 1.5f) * grow
+    val strokePx = with(density) { (outlineDp * 2f).dp.toPx() }
+    val stroke = Stroke(width = strokePx, join = StrokeJoin.Round)
+    val suffixStroke = Stroke(width = strokePx * 0.6f, join = StrokeJoin.Round)
+    fun text(suffixDraw: DrawStyle) = buildAnnotatedString {
         append(digits)
-        if (suffix != null) withStyle(SpanStyle(fontSize = 0.45.em, fontWeight = FontWeight.Medium, letterSpacing = 0.em)) {
+        if (suffix != null) withStyle(SpanStyle(fontSize = 0.45.em, fontWeight = FontWeight.Medium, letterSpacing = 0.em,
+            drawStyle = suffixDraw)) {
             append(TimeMath.THIN + suffix)
         }
     }
-    val base = TextStyle(color = Color.White, fontSize = size, lineHeight = size, fontWeight = FontWeight.SemiBold,
+    val fillText = text(androidx.compose.ui.graphics.drawscope.Fill)
+    val strokeText = text(suffixStroke)
+    val base = TextStyle(color = ink, fontSize = size, lineHeight = size, fontWeight = FontWeight.SemiBold,
         letterSpacing = (-0.02).em, fontFeatureSettings = "tnum")
-    val near = with(density) { Shadow(Color.Black.copy(alpha = 0.25f), Offset(0f, 1.dp.toPx()), 2.dp.toPx()) }
-    val wide = with(density) { Shadow(Color.Black.copy(alpha = 0.35f), Offset.Zero, 8.dp.toPx()) }
-    // Two shadows, as on the iPhone: the same text twice, each with one.
+    val shade = if (bright) Color.White else Color.Black
+    val near = with(density) {
+        if (bright) Shadow(shade.copy(alpha = 0.35f), Offset.Zero, 2.dp.toPx())
+        else Shadow(shade.copy(alpha = 0.25f), Offset(0f, 1.dp.toPx()), 2.dp.toPx())
+    }
+    val wide = with(density) { Shadow(shade.copy(alpha = if (bright) 0.45f else 0.35f), Offset.Zero, 8.dp.toPx()) }
+    // The outline (with the wide shadow) under the fill (with the near one): the same text twice, as on the iPhone.
     Box(modifier) {
-        Text(text, style = base.copy(shadow = near), maxLines = 1, softWrap = false)
-        Text(text, style = base.copy(shadow = wide), maxLines = 1, softWrap = false)
+        Text(strokeText, style = base.copy(color = outline, shadow = wide, drawStyle = stroke), maxLines = 1, softWrap = false)
+        Text(fillText, style = base.copy(shadow = near, drawStyle = androidx.compose.ui.graphics.drawscope.Fill),
+            maxLines = 1, softWrap = false)
     }
 }
 

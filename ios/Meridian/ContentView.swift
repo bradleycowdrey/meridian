@@ -904,12 +904,18 @@ struct CityRow: View {
         let status = workStatus(moment, detail: tall)
         // The banner time grows only a little with the reader's text size.
         let clockSize = (tall ? 36 : 24) * min(max(scale, 0.9), 1.15)
+        let phase = SkylineArt.phase(for: place, at: moment)
+        // Dark digits on a bright corner of the banner, white ones on a dark corner (the card's
+        // width is the content's plus its insets).
+        let bright = BannerInk.isBright(place: place, phase: phase,
+                                        size: CGSize(width: width + 2 * Strip.inset, height: banner))
         return VStack(spacing: 0) {
-            SkylineBanner(place: place, phase: SkylineArt.phase(for: place, at: moment))
+            SkylineBanner(place: place, phase: phase)
                 .frame(height: banner)
-                .overlay { BannerScrim() }
+                .overlay { BannerScrim(bright: bright) }
                 .overlay(alignment: .bottomLeading) {
-                    BannerClock(moment: moment, zone: place.timeZone, use24h: store.use24h, size: clockSize)
+                    BannerClock(moment: moment, zone: place.timeZone, use24h: store.use24h, size: clockSize,
+                                bright: bright)
                         .padding(.horizontal, 12)
                         .padding(.bottom, tall ? 6 : 3)
                 }

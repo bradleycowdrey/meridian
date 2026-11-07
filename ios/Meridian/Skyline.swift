@@ -186,98 +186,300 @@ struct DrawnSkyline: View {
                                             width: glowRadius * 2, height: glowRadius * 2)),
                      with: .color(glowColor))
 
-        var random = SeededRandom(seed)
         // Windows draw from their own generator so the buildings never change with the phase.
         var lights = SeededRandom(seed + "|windows")
         let ink = SkylineArt.ink(phase)
         let windowChance: CGFloat = phase == .night ? 0.35 : (phase == .twilight ? 0.18 : 0)
+        let layout = Self.layout(seed: seed, size: size)
 
         // The front row of buildings, and their lit windows.
         var front = Path()
         var windows = Path()
-        var x: CGFloat = 0
-        while x < w {
-            let bw = 8 + random.next() * 18
-            let bh = h * (0.18 + random.next() * 0.42)
-            front.addRect(CGRect(x: x, y: h - bh, width: bw, height: bh))
+        for rect in layout.front {
+            front.addRect(rect)
             if windowChance > 0 {
-                var y = h - bh + 4
+                var y = rect.minY + 4
                 while y < h - 3 {
-                    var wx = x + 2
-                    while wx < x + bw - 2 {
+                    var wx = rect.minX + 2
+                    while wx < rect.maxX - 2 {
                         if lights.next() < windowChance { windows.addRect(CGRect(x: wx, y: y, width: 1.6, height: 2)) }
                         wx += 4
                     }
                     y += 5
                 }
             }
-            x += 6 + random.next() * 14
         }
 
         // A paler row behind.
         var back = Path()
-        let backCount = max(12, Int(w / 12))
-        for _ in 0..<backCount {
-            let bx = random.next() * w
-            let bw = 10 + random.next() * 22
-            let bh = h * (0.25 + random.next() * 0.35)
-            back.addRect(CGRect(x: bx, y: h - bh, width: bw, height: bh))
-        }
+        for rect in layout.back { back.addRect(rect) }
 
         context.fill(back, with: .color(ink.opacity(0.55)))
         context.fill(front, with: .color(ink))
         context.fill(windows, with: .color(Theme.rgb(0xFFD98A).opacity(0.8)))
     }
+
+    /// The buildings for a city's seed at a size: the front row left to right, and the paler row
+    /// behind. The same every time for the same seed and size.
+    static func layout(seed: String, size: CGSize) -> (front: [CGRect], back: [CGRect]) {
+        let w = size.width, h = size.height
+        var random = SeededRandom(seed)
+        var front: [CGRect] = []
+        var x: CGFloat = 0
+        while x < w {
+            let bw = 8 + random.next() * 18
+            let bh = h * (0.18 + random.next() * 0.42)
+            front.append(CGRect(x: x, y: h - bh, width: bw, height: bh))
+            x += 6 + random.next() * 14
+        }
+        var back: [CGRect] = []
+        let backCount = max(12, Int(w / 12))
+        for _ in 0..<backCount {
+            let bx = random.next() * w
+            let bw = 10 + random.next() * 22
+            let bh = h * (0.25 + random.next() * 0.35)
+            back.append(CGRect(x: bx, y: h - bh, width: bw, height: bh))
+        }
+        return (front, back)
+    }
 }
 
-/// A soft dark gradient in the banner's bottom-left corner, under the time, so the white digits
-/// read on bright skies as well as night ones.
+/// Whether the banner is bright or dark behind the time (its bottom-left corner, about 55% of its
+/// width and half its height), as shaded for the time of day there: dark digits outlined in white
+/// go on a bright corner, white digits outlined in black on a dark one.
+enum BannerInk {
+    /// Brighter than this (relative luminance, 0 to 1) takes dark digits.
+    static let threshold: Double = 0.40
+
+    /// Recent answers, by photo (or drawn city and size) and phase, so scrubbing stays fast.
+    private static var cache: [String: Bool] = [:]
+
+    static func isBright(place: Place, phase: Sky.Phase, size: CGSize) -> Bool {
+        guard size.width > 1, size.height > 1 else { return false }
+        let photoKey = SkylineArt.key(for: place.name)
+        let key: String
+        if let photoKey {
+            // A photo's crop depends only on the banner's shape; a step of a quarter is close enough.
+            let aspect = (size.width / size.height * 4).rounded() / 4
+            key = "photo|\(photoKey)|\(phase)|\(aspect)"
+        } else {
+            key = "drawn|\(place.name)|\(phase)|\(Int(size.width.rounded()))x\(Int(size.height.rounded()))"
+        }
+        if let hit = cache[key] { return hit }
+        if cache.count > 200 { cache.removeAll() }
+
+        let luminance: Double?
+        if photoKey != nil, let photo = SkylineArt.photo(for: place.name) {
+            luminance = photoLuminance(photo, phase: phase, size: size)
+        } else {
+            luminance = drawnLuminance(seed: place.name, phase: phase, size: size)
+        }
+        let bright = (luminance ?? 0) > threshold
+        cache[key] = bright
+        return bright
+    }
+
+    // MARK: Colour
+
+    /// sRGB (0...1) to linear light.
+    private static func linear(_ c: Double) -> Double {
+        c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+
+    /// Relative luminance of an sRGB colour (0...1 components).
+    private static func luminance(_ r: Double, _ g: Double, _ b: Double) -> Double {
+        0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+    }
+
+    private static func components(_ color: Color) -> (r: Double, g: Double, b: Double, a: Double) {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return (Double(r), Double(g), Double(b), Double(a))
+    }
+
+    // MARK: Photos
+
+    /// The photo's corner behind the time, as the banner crops it (filling it, centred), drawn into a
+    /// small bitmap, then saturated and tinted as the banner shades it, and averaged.
+    private static func photoLuminance(_ photo: UIImage, phase: Sky.Phase, size: CGSize) -> Double? {
+        guard let cg = photo.cgImage else { return nil }
+        let iw = CGFloat(cg.width), ih = CGFloat(cg.height)
+        guard iw > 0, ih > 0 else { return nil }
+        let aspect = size.width / size.height
+        var visible = CGRect(x: 0, y: 0, width: iw, height: ih)
+        if iw / ih > aspect {
+            let vw = ih * aspect
+            visible = CGRect(x: (iw - vw) / 2, y: 0, width: vw, height: ih)
+        } else {
+            let vh = iw / aspect
+            visible = CGRect(x: 0, y: (ih - vh) / 2, width: iw, height: vh)
+        }
+        // Bottom-left: 55% of the width, the lower half (image rows run top to bottom).
+        let region = CGRect(x: visible.minX, y: visible.minY + visible.height * 0.5,
+                            width: visible.width * 0.55, height: visible.height * 0.5).integral
+            .intersection(CGRect(x: 0, y: 0, width: iw, height: ih))
+        guard !region.isEmpty, let crop = cg.cropping(to: region) else { return nil }
+
+        let w = 24, h = 12
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                  space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        ctx.interpolationQuality = .medium
+        ctx.draw(crop, in: CGRect(x: 0, y: 0, width: w, height: h))
+        guard let data = ctx.data else { return nil }
+        let px = data.bindMemory(to: UInt8.self, capacity: w * h * 4)
+
+        let saturation = SkylineArt.saturation(phase)
+        let tint = components(SkylineArt.shade(phase))
+        var total = 0.0
+        for i in 0..<(w * h) {
+            let a = Double(px[i * 4 + 3]) / 255
+            guard a > 0 else { continue }
+            var r = Double(px[i * 4]) / 255 / a
+            var g = Double(px[i * 4 + 1]) / 255 / a
+            var b = Double(px[i * 4 + 2]) / 255 / a
+            // .saturation: towards (or away from) the pixel's grey.
+            let grey = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            r = min(max(grey + (r - grey) * saturation, 0), 1)
+            g = min(max(grey + (g - grey) * saturation, 0), 1)
+            b = min(max(grey + (b - grey) * saturation, 0), 1)
+            // .colorMultiply: the time of day's tint.
+            total += luminance(r * tint.r, g * tint.g, b * tint.b)
+        }
+        return total / Double(w * h)
+    }
+
+    // MARK: Drawn skylines
+
+    /// The drawn skyline's corner behind the time, sampled on a small grid: its buildings in their
+    /// ink, the paler row behind at 55% over the sky, and the sky's gradient elsewhere.
+    private static func drawnLuminance(seed: String, phase: Sky.Phase, size: CGSize) -> Double {
+        let layout = DrawnSkyline.layout(seed: seed, size: size)
+        let sky = SkylineArt.sky(phase).map { components($0) }
+        let ink = components(SkylineArt.ink(phase))
+        let top = sky.first ?? (r: 0, g: 0, b: 0, a: 1)
+        let bottom = sky.last ?? top
+        let cols = 24, rows = 12
+        var total = 0.0
+        for row in 0..<rows {
+            let t = 0.5 + 0.5 * (Double(row) + 0.5) / Double(rows)
+            let y = size.height * CGFloat(t)
+            let sr = top.r + (bottom.r - top.r) * t
+            let sg = top.g + (bottom.g - top.g) * t
+            let sb = top.b + (bottom.b - top.b) * t
+            for col in 0..<cols {
+                let x = size.width * 0.55 * CGFloat((Double(col) + 0.5) / Double(cols))
+                let p = CGPoint(x: x, y: y)
+                if layout.front.contains(where: { $0.contains(p) }) {
+                    total += luminance(ink.r, ink.g, ink.b)
+                } else if layout.back.contains(where: { $0.contains(p) }) {
+                    total += luminance(sr + (ink.r - sr) * 0.55, sg + (ink.g - sg) * 0.55, sb + (ink.b - sb) * 0.55)
+                } else {
+                    total += luminance(sr, sg, sb)
+                }
+            }
+        }
+        return total / Double(cols * rows)
+    }
+}
+
+/// A soft gradient in the banner's bottom-left corner, under the time, so it reads on any sky:
+/// dark under white digits, light under dark ones.
 struct BannerScrim: View {
+    var bright = false
+
     var body: some View {
+        let tone = bright ? Color.white : Color.black
+        let corner: Double = bright ? 0.45 : 0.55
+        let middle: Double = bright ? 0.2 : 0.25
         EllipticalGradient(
             stops: [
-                .init(color: Color.black.opacity(0.55), location: 0),
-                .init(color: Color.black.opacity(0.25), location: 0.375),
-                .init(color: Color.black.opacity(0), location: 0.625),
+                Gradient.Stop(color: tone.opacity(corner), location: 0),
+                Gradient.Stop(color: tone.opacity(middle), location: 0.375),
+                Gradient.Stop(color: tone.opacity(0), location: 0.625),
             ],
             center: .bottomLeading,
             startRadiusFraction: 0,
             endRadiusFraction: 1.2
         )
+        .animation(.easeInOut(duration: 0.6), value: bright)
         .allowsHitTesting(false)
     }
 }
 
-/// The city's time on its banner: white semibold digits with AM or PM small after them, on the
-/// scrim, with a soft shadow.
+/// The city's time on its banner: semibold digits with AM or PM small after them, on the scrim,
+/// with a thin outline and a soft shadow. White outlined in black on a dark corner; on a bright
+/// one, near-black outlined in white with a soft white glow.
 struct BannerClock: View {
     let moment: Date
     let zone: TimeZone
     let use24h: Bool
     let size: CGFloat
+    var bright = false
+
+    /// The eight directions the outline's copies sit in, around the fill.
+    private static let directions: [CGSize] = {
+        let d = CGFloat(0.5.squareRoot())
+        return [CGSize(width: -1, height: 0), CGSize(width: 1, height: 0),
+                CGSize(width: 0, height: -1), CGSize(width: 0, height: 1),
+                CGSize(width: -d, height: -d), CGSize(width: d, height: -d),
+                CGSize(width: -d, height: d), CGSize(width: d, height: d)]
+    }()
+
+    private var fillColor: Color { bright ? Theme.rgb(0x141210) : .white }
 
     var body: some View {
-        clock
-            .foregroundStyle(.white)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .contentTransition(.numericText())
-            .shadow(color: Color.black.opacity(0.35), radius: 4, x: 0, y: 0)
-            .shadow(color: Color.black.opacity(0.25), radius: 1, x: 0, y: 1)
+        let parts = clockParts
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            // The digits' outline is 1 pt at 24 pt, 1.5 pt at 36 pt; AM/PM's is scaled to its own size.
+            outlined(digitsText(parts.digits), width: size / 24)
+            if let suffix = parts.suffix {
+                outlined(suffixText(suffix), width: size * 0.45 / 24)
+            }
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .contentTransition(.numericText())
+        .compositingGroup()
+        .shadow(color: (bright ? Color.white : Color.black).opacity(bright ? 0.45 : 0.35), radius: 4, x: 0, y: 0)
+        .shadow(color: (bright ? Color.white : Color.black).opacity(bright ? 0.3 : 0.25), radius: 1, x: 0, y: bright ? 0 : 1)
+        .animation(.easeInOut(duration: 0.6), value: bright)
     }
 
-    private var clock: Text {
+    /// The text with an outline under its fill: copies nudged out on every side, drawn opaque
+    /// and flattened, so the outline's opacity is applied once rather than stacking up.
+    private func outlined(_ t: Text, width: CGFloat) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            ZStack(alignment: .bottomLeading) {
+                ForEach(0..<Self.directions.count, id: \.self) { i in
+                    t.offset(x: Self.directions[i].width * width, y: Self.directions[i].height * width)
+                }
+            }
+            .foregroundStyle(bright ? Color.white : Color.black)
+            .compositingGroup()
+            .opacity(bright ? 0.85 : 0.6)
+            .accessibilityHidden(true)
+            t.foregroundStyle(fillColor)
+        }
+    }
+
+    private var clockParts: (digits: String, suffix: String?) {
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = zone
         let p = cal.dateComponents([.hour, .minute], from: moment)
-        let parts = ClockText.parts(hour: p.hour ?? 0, minute: p.minute ?? 0, use24h: use24h)
-        let digits = Text(parts.digits)
+        return ClockText.parts(hour: p.hour ?? 0, minute: p.minute ?? 0, use24h: use24h)
+    }
+
+    private func digitsText(_ digits: String) -> Text {
+        Text(digits)
             .font(.system(size: size, weight: .semibold))
             .monospacedDigit()
             .tracking(-0.02 * size)
-        guard let suffix = parts.suffix else { return digits }
-        let small = Text("\u{2009}" + suffix).font(.system(size: size * 0.45, weight: .medium))
-        return digits + small
+    }
+
+    private func suffixText(_ suffix: String) -> Text {
+        Text("\u{2009}" + suffix).font(.system(size: size * 0.45, weight: .medium))
     }
 }
 

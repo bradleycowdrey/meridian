@@ -29,6 +29,7 @@ targets:
       - path: ../Sources/Meridian/Model/WorkWeek.swift
       - path: ../Sources/Meridian/Model/Sun.swift
       - path: ../Sources/Meridian/Model/Holidays.swift
+      - path: ../Sources/Meridian/Model/Continent.swift
       - path: ../Resources/Data/cities.tsv
         buildPhase: resources
       - path: ../Resources/Data/holidays.tsv

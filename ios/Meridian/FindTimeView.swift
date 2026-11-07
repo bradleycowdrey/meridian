@@ -91,7 +91,7 @@ struct FindTimeView: View {
                     HStack(spacing: 8) {
                         PillChip(title: "Everyone", isOn: chosen == Set(store.places.map(\.id))) { chosen = Set(store.places.map(\.id)) }
                         ForEach(store.groups, id: \.self) { group in
-                            let ids = Set(store.places.filter { $0.groups?.contains(group) == true }.map(\.id))
+                            let ids = Set(store.places.filter { store.groups(of: $0).contains(group) }.map(\.id))
                             PillChip(title: group, isOn: chosen == ids) { chosen = ids }
                         }
                     }

@@ -26,8 +26,10 @@ struct SettingsView: View {
                 Section {
                     Toggle("Show My Location", isOn: $store.useMyLocation)
                         .tint(Theme.switchOn)
+                    Toggle("Group by Continent", isOn: $store.continentGroups)
+                        .tint(Theme.switchOn)
                 } header: { header("Cities", "location") } footer: {
-                    footer("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone.")
+                    footer("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone. Cities are grouped by continent automatically, for the chips above your cards and Find a Time.")
                 }
                 .meridianSection()
                 Section {

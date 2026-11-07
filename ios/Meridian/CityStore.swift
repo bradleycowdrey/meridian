@@ -14,6 +14,14 @@ final class CityStore: ObservableObject {
     @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
     /// Count public holidays as days off (Settings).
     @Published var countHolidays = Holidays.counted { didSet { Holidays.counted = countHolidays } }
+    /// Group cities by continent automatically (Settings).
+    @Published var continentGroups = Continent.autoGroups {
+        didSet {
+            Continent.autoGroups = continentGroups
+            // A continent filter that no longer exists goes back to everyone (as setGroups does).
+            if let filter = groupFilter, !groups.contains(filter) { groupFilter = nil }
+        }
+    }
     /// The group the list shows ("Design team"); nil shows everyone.
     @Published var groupFilter: String? = UserDefaults.standard.string(forKey: "groupFilter") {
         didSet { defaults.set(groupFilter, forKey: "groupFilter") }
@@ -173,6 +181,7 @@ final class CityStore: ObservableObject {
         places.remove(atOffsets: offsets)
         // Deleting the card standing in for My Location brings the My Location card back.
         if removesMyLocation { useMyLocation = false } else if removesHost { updateMyLocation(locate: false) }
+        if let filter = groupFilter, !groups.contains(filter) { groupFilter = nil }
     }
     func remove(_ place: Place) {
         guard let i = places.firstIndex(where: { $0.id == place.id }) else { return }

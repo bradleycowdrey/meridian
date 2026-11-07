@@ -17,15 +17,29 @@ extension CityStore {
 
     // MARK: Groups
 
-    /// Every group on the list, A to Z.
-    var groups: [String] {
+    /// The groups made by hand on the list, A to Z.
+    var customGroups: [String] {
         Array(Set(places.flatMap { $0.groups ?? [] })).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    /// Every group on the list: the continents its cities are on (when grouping by continent),
+    /// in a fixed order, then the custom groups A to Z. A custom group named like a continent merges.
+    var groups: [String] {
+        let continents: Set<String> = continentGroups ? Set(places.compactMap { Continent.name(for: $0) }) : []
+        return Continent.ordered.filter { continents.contains($0) } + customGroups.filter { !continents.contains($0) }
+    }
+
+    /// The groups a card is in: its own, and its continent (when grouping by continent).
+    func groups(of place: Place) -> [String] {
+        var all = place.groups ?? []
+        if continentGroups, let continent = Continent.name(for: place), !all.contains(continent) { all.append(continent) }
+        return all
     }
 
     /// The cards the list shows: everyone, or one group.
     var visiblePlaces: [Place] {
         guard let group = groupFilter, groups.contains(group) else { return places }
-        return places.filter { $0.groups?.contains(group) == true }
+        return places.filter { groups(of: $0).contains(group) }
     }
 
     func setGroups(_ groups: [String], for place: Place) {

@@ -89,6 +89,9 @@ class Store(private val context: Context, val demo: Boolean = false) {
     /** Count public holidays as days off (Settings). */
     var countHolidays by mutableStateOf(Holidays.counted)
         private set
+    /** Group cards by continent automatically ("Europe", "Asia"), as well as their own groups (Settings; on unless turned off). */
+    var continentGroups by mutableStateOf(prefs.getBoolean("continentGroups", true))
+        private set
     /** The group the list shows ("Design team"); null shows everyone. */
     var groupFilter by mutableStateOf(if (demo) null else prefs.getString("groupFilter", null))
         private set
@@ -309,16 +312,30 @@ class Store(private val context: Context, val demo: Boolean = false) {
 
     // MARK: Groups
 
-    /** Every group on the list, A to Z. */
-    val groups: List<String>
+    /** The groups the user made ("Design team"), A to Z. */
+    val customGroups: List<String>
         get() = places.flatMap { it.groups ?: emptyList() }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+
+    /** A card's groups: its own, and its continent (when Group by Continent is on). Derived, never saved. */
+    fun groupsOf(place: Place): List<String> {
+        val own = place.groups ?: emptyList()
+        val continent = if (continentGroups) Continent.of(place) else null
+        return if (continent == null || continent in own) own else own + continent
+    }
+
+    /** Every group on the list: the continents on it (North America first), then the user's own, A to Z. */
+    val groups: List<String>
+        get() {
+            val continents = if (continentGroups) places.mapNotNull { Continent.of(it) }.toSet() else emptySet()
+            return Continent.ordered.filter { it in continents } + customGroups.filter { it !in continents }
+        }
 
     /** The cards the list shows: everyone, or one group. */
     val visiblePlaces: List<Place>
         get() {
             val group = groupFilter ?: return places
             if (group !in groups) return places
-            return places.filter { it.groups?.contains(group) == true }
+            return places.filter { group in groupsOf(it) }
         }
 
     fun setGroups(groups: List<String>, place: Place) {
@@ -393,6 +410,11 @@ class Store(private val context: Context, val demo: Boolean = false) {
 
     fun updateUse24h(on: Boolean) { use24h = on; prefs.edit().putBoolean("use24h", on).apply(); syncWidgets() }
     fun updateCountHolidays(on: Boolean) { countHolidays = on; Holidays.counted = on; prefs.edit().putBoolean("countHolidays", on).apply() }
+    fun updateContinentGroups(on: Boolean) {
+        continentGroups = on
+        prefs.edit().putBoolean("continentGroups", on).apply()
+        groupFilter?.let { if (it !in groups) updateGroupFilter(null) }
+    }
     fun updateShowWorkHours(on: Boolean) { showWorkHours = on; prefs.edit().putBoolean("showWorkHours", on).apply() }
     fun updateWorkStart(hour: Int) { workStart = hour.coerceIn(0, 23); prefs.edit().putInt("workStart", workStart).apply() }
     fun updateWorkEnd(hour: Int) { workEnd = hour.coerceIn(1, 24); prefs.edit().putInt("workEnd", workEnd).apply() }

@@ -189,7 +189,7 @@ private fun Who(store: Store, chosen: Set<String>, set: (Set<String>) -> Unit) {
                 val everyone = store.places.map { it.id }.toSet()
                 PillChip("Everyone", chosen == everyone) { set(everyone) }
                 groups.forEach { group ->
-                    val ids = store.places.filter { it.groups?.contains(group) == true }.map { it.id }.toSet()
+                    val ids = store.places.filter { group in store.groupsOf(it) }.map { it.id }.toSet()
                     PillChip(group, chosen == ids) { set(ids) }
                 }
             }

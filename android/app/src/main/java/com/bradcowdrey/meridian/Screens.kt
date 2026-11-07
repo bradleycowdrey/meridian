@@ -106,7 +106,7 @@ fun AddPersonDialog(city: String, onDone: (String?) -> Unit) {
 fun GroupsDialog(store: Store, place: Place, onDone: () -> Unit) {
     var chosen by remember { mutableStateOf(place.groups?.toSet() ?: emptySet()) }
     var newGroup by remember { mutableStateOf("") }
-    val all = (store.groups + chosen).distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+    val all = (store.customGroups + chosen).distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
     fun addNew() {
         val name = newGroup.trim()
         if (name.isEmpty()) return
@@ -138,7 +138,7 @@ fun GroupsDialog(store: Store, place: Place, onDone: () -> Unit) {
                     TextButton(onClick = { addNew() }, enabled = newGroup.isNotBlank()) { Text("Add") }
                 }
                 Spacer(Modifier.height(8.dp))
-                Text("Show one group at a time on your list, and pick a group in Find a Time.", fontSize = 13.sp, color = white(0.6f))
+                Text("Show one group at a time on your list, and pick a group in Find a Time. Continents are added automatically.", fontSize = 13.sp, color = white(0.6f))
             }
         },
         confirmButton = { TextButton(onClick = { store.setGroups(chosen.toList(), place); onDone() }) { Text("Done") } },
@@ -165,6 +165,8 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
             GlassCard("Cities", Icons.Filled.LocationOn) {
                 SwitchRow("Show My Location", store.useMyLocation) { store.updateUseMyLocation(it) }
                 Note("Keeps the city you're in on your list, and updates it when you travel. Location is used only to name the city, and only on your phone.")
+                SwitchRow("Group by Continent", store.continentGroups) { store.updateContinentGroups(it) }
+                Note("Cities are grouped by continent automatically, for the chips above your cards and Find a Time.")
             }
             GlassCard("Widgets", Icons.Filled.Settings) {
                 Note("Touch and hold your home screen, tap Widgets, then find Meridian. Widgets show your cities in the same order as here.")

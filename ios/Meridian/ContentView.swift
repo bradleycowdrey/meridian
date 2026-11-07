@@ -1149,7 +1149,7 @@ struct GroupsView: View {
                         Button("Add", action: addNew).disabled(newGroup.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 } footer: {
-                    Text("Show one group at a time on your list, and pick a group in Find a Time.")
+                    Text("Show one group at a time on your list, and pick a group in Find a Time. Continents are added automatically.")
                         .font(.system(size: 13))
                         .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 }
@@ -1171,7 +1171,8 @@ struct GroupsView: View {
         .preferredColorScheme(.dark)
     }
 
-    private var allGroups: [String] { Array(Set(store.groups).union(chosen)).sorted() }
+    /// Custom groups only: continents are added automatically.
+    private var allGroups: [String] { Array(Set(store.customGroups).union(chosen)).sorted() }
 
     private func addNew() {
         let name = newGroup.trimmingCharacters(in: .whitespacesAndNewlines)

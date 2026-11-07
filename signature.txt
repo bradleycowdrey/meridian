@@ -1,0 +1,30 @@
+== Payload/Meridian.app
+Identifier=com.bradcowdrey.meridian
+Authority=Apple Distribution: Bradley Cowdrey (2XV97FZ86G)
+Authority=Apple Worldwide Developer Relations Certification Authority
+Authority=Apple Root CA
+TeamIdentifier=2XV97FZ86G
+{
+  "application-identifier" => "2XV97FZ86G.com.bradcowdrey.meridian"
+  "beta-reports-active" => 1
+  "com.apple.developer.team-identifier" => "2XV97FZ86G"
+  "com.apple.security.application-groups" => [
+    0 => "group.com.bradcowdrey.meridian"
+  ]
+  "get-task-allow" => 0
+}
+== Payload/Meridian.app/PlugIns/MeridianWidget.appex
+Identifier=com.bradcowdrey.meridian.widget
+Authority=Apple Distribution: Bradley Cowdrey (2XV97FZ86G)
+Authority=Apple Worldwide Developer Relations Certification Authority
+Authority=Apple Root CA
+TeamIdentifier=2XV97FZ86G
+{
+  "application-identifier" => "2XV97FZ86G.com.bradcowdrey.meridian.widget"
+  "beta-reports-active" => 1
+  "com.apple.developer.team-identifier" => "2XV97FZ86G"
+  "com.apple.security.application-groups" => [
+    0 => "group.com.bradcowdrey.meridian"
+  ]
+  "get-task-allow" => 0
+}

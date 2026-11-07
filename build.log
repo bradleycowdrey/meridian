@@ -1,0 +1,316 @@
+[01:29:35]: [33mGet started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile[0m
+[01:29:35]: fastlane 2.241.2 (Ruby 4.0.9, homebrew)
+[01:29:36]: Sending anonymous analytics information
+[01:29:36]: Learn more at https://docs.fastlane.tools/#metrics
+[01:29:36]: No personal or sensitive data is sent.
+[01:29:36]: You can disable this by adding `opt_out_usage` at the top of your Fastfile
+[01:29:36]: [32m------------------------------[0m
+[01:29:36]: [32m--- Step: default_platform ---[0m
+[01:29:36]: [32m------------------------------[0m
+[01:29:36]: [32mDriving the lane 'ios build' 🚀[0m
+[01:29:36]: [32m-------------------------------------------------------------------[0m
+[01:29:36]: [32m--- Step: Switch to ios prune_api_development_certificates lane ---[0m
+[01:29:36]: [32m-------------------------------------------------------------------[0m
+[01:29:36]: Cruising over to lane 'ios prune_api_development_certificates' 🚖
+[01:29:36]: [32m--------------------------------------------[0m
+[01:29:36]: [32m--- Step: Switch to ios sign_in_api lane ---[0m
+[01:29:36]: [32m--------------------------------------------[0m
+[01:29:36]: Cruising over to lane 'ios sign_in_api' 🚖
+[01:29:36]: [32m---------------------------------------[0m
+[01:29:36]: [32m--- Step: app_store_connect_api_key ---[0m
+[01:29:36]: [32m---------------------------------------[0m
+[01:29:36]: Cruising back to lane 'ios prune_api_development_certificates' 🚘
+[01:29:37]: Cruising back to lane 'ios build' 🚘
+[01:29:37]: [32m--------------------------------------[0m
+[01:29:37]: [32m--- Step: get_provisioning_profile ---[0m
+[01:29:37]: [32m--------------------------------------[0m
+
++----------------------------------------------------------------+
+|                    [32mSummary for sigh 2.241.2[0m                    |
++-------------------------------------+--------------------------+
+| api_key_path                        | fastlane/api_key.json    |
+| app_identifier                      | com.bradcowdrey.meridian |
+| team_id                             | 2XV97FZ86G               |
+| adhoc                               | false                    |
+| developer_id                        | false                    |
+| development                         | false                    |
+| skip_install                        | false                    |
+| force                               | false                    |
+| include_mac_in_profiles             | false                    |
+| offline_profile                     | false                    |
+| ignore_profiles_with_different_name | false                    |
+| skip_fetch_profiles                 | false                    |
+| include_all_certificates            | false                    |
+| skip_certificate_verification       | false                    |
+| platform                            | ios                      |
+| readonly                            | false                    |
+| fail_on_name_taken                  | false                    |
++-------------------------------------+--------------------------+
+
+[01:29:37]: Creating authorization token for App Store Connect API
+[01:29:37]: Fetching profiles...
+[01:29:37]: Verifying certificates...
+[01:29:39]: [32mFound 1 matching profile(s)[0m
+[01:29:39]: [33mDownloading provisioning profile...[0m
+[01:29:39]: [32mSuccessfully downloaded provisioning profile...[0m
+[01:29:39]: Installing provisioning profile...
+[32m/Users/runner/work/meridian/meridian/ios/AppStore_com.bradcowdrey.meridian.mobileprovision[0m
+[01:29:39]: Setting Provisioning Profile type to 'app-store'
+[01:29:39]: [32m------------------------------------------[0m
+[01:29:39]: [32m--- Step: update_code_signing_settings ---[0m
+[01:29:39]: [32m------------------------------------------[0m
+
++-----------------------------------------------------------+
+|             [32mSummary for code signing settings[0m             |
++-----------------------+-----------------------------------+
+| path                  | Meridian.xcodeproj                |
+| use_automatic_signing | false                             |
+| targets               | ["Meridian"]                      |
+| team_id               | 2XV97FZ86G                        |
+| code_sign_identity    | Apple Distribution                |
+| profile_name          | com.bradcowdrey.meridian AppStore |
++-----------------------+-----------------------------------+
+
+[01:29:39]: Updating the Automatic Codesigning flag to disabled for the given project '/Users/runner/work/meridian/meridian/ios/Meridian.xcodeproj/project.pbxproj'
+[01:29:39]: [33mSet Team id to: 2XV97FZ86G for target: Meridian for build configuration: Debug[0m
+[01:29:39]: [33mSet Code Sign identity to: Apple Distribution for target: Meridian for build configuration: Debug[0m
+[01:29:39]: [33mSet Provisioning Profile name to: com.bradcowdrey.meridian AppStore for target: Meridian for build configuration: Debug[0m
+[01:29:39]: [33mSet Team id to: 2XV97FZ86G for target: Meridian for build configuration: Release[0m
+[01:29:39]: [33mSet Code Sign identity to: Apple Distribution for target: Meridian for build configuration: Release[0m
+[01:29:39]: [33mSet Provisioning Profile name to: com.bradcowdrey.meridian AppStore for target: Meridian for build configuration: Release[0m
+[01:29:39]: [33mSkipping MeridianWidget not selected (Meridian)[0m
+[01:29:39]: [32mSuccessfully updated project settings to use Code Sign Style = 'Manual'[0m
+[01:29:39]: [32mModified Targets:[0m
+[01:29:39]: [32m	 * Meridian[0m
+[01:29:39]: [32mModified Build Configurations:[0m
+[01:29:39]: [32m	 * Debug[0m
+[01:29:39]: [32m	 * Release[0m
+[01:29:39]: [32m--------------------------------------[0m
+[01:29:39]: [32m--- Step: get_provisioning_profile ---[0m
+[01:29:39]: [32m--------------------------------------[0m
+
++-----------------------------------------------------------------------+
+|                       [32mSummary for sigh 2.241.2[0m                        |
++-------------------------------------+---------------------------------+
+| api_key_path                        | fastlane/api_key.json           |
+| app_identifier                      | com.bradcowdrey.meridian.widget |
+| team_id                             | 2XV97FZ86G                      |
+| adhoc                               | false                           |
+| developer_id                        | false                           |
+| development                         | false                           |
+| skip_install                        | false                           |
+| force                               | false                           |
+| include_mac_in_profiles             | false                           |
+| offline_profile                     | false                           |
+| ignore_profiles_with_different_name | false                           |
+| skip_fetch_profiles                 | false                           |
+| include_all_certificates            | false                           |
+| skip_certificate_verification       | false                           |
+| platform                            | ios                             |
+| readonly                            | false                           |
+| fail_on_name_taken                  | false                           |
++-------------------------------------+---------------------------------+
+
+[01:29:39]: Creating authorization token for App Store Connect API
+[01:29:39]: Fetching profiles...
+[01:29:39]: Verifying certificates...
+[01:29:39]: [32mFound 1 matching profile(s)[0m
+[01:29:39]: [33mDownloading provisioning profile...[0m
+[01:29:39]: [32mSuccessfully downloaded provisioning profile...[0m
+[01:29:39]: Installing provisioning profile...
+[32m/Users/runner/work/meridian/meridian/ios/AppStore_com.bradcowdrey.meridian.widget.mobileprovision[0m
+[01:29:39]: Setting Provisioning Profile type to 'app-store'
+[01:29:39]: [32m------------------------------------------[0m
+[01:29:39]: [32m--- Step: update_code_signing_settings ---[0m
+[01:29:39]: [32m------------------------------------------[0m
+
++------------------------------------------------------------------+
+|                [32mSummary for code signing settings[0m                 |
++-----------------------+------------------------------------------+
+| path                  | Meridian.xcodeproj                       |
+| use_automatic_signing | false                                    |
+| targets               | ["MeridianWidget"]                       |
+| team_id               | 2XV97FZ86G                               |
+| code_sign_identity    | Apple Distribution                       |
+| profile_name          | com.bradcowdrey.meridian.widget AppStore |
++-----------------------+------------------------------------------+
+
+[01:29:39]: Updating the Automatic Codesigning flag to disabled for the given project '/Users/runner/work/meridian/meridian/ios/Meridian.xcodeproj/project.pbxproj'
+[01:29:39]: [33mSkipping Meridian not selected (MeridianWidget)[0m
+[01:29:39]: [33mSet Team id to: 2XV97FZ86G for target: MeridianWidget for build configuration: Debug[0m
+[01:29:39]: [33mSet Code Sign identity to: Apple Distribution for target: MeridianWidget for build configuration: Debug[0m
+[01:29:39]: [33mSet Provisioning Profile name to: com.bradcowdrey.meridian.widget AppStore for target: MeridianWidget for build configuration: Debug[0m
+[01:29:39]: [33mSet Team id to: 2XV97FZ86G for target: MeridianWidget for build configuration: Release[0m
+[01:29:39]: [33mSet Code Sign identity to: Apple Distribution for target: MeridianWidget for build configuration: Release[0m
+[01:29:39]: [33mSet Provisioning Profile name to: com.bradcowdrey.meridian.widget AppStore for target: MeridianWidget for build configuration: Release[0m
+[01:29:39]: [32mSuccessfully updated project settings to use Code Sign Style = 'Manual'[0m
+[01:29:39]: [32mModified Targets:[0m
+[01:29:39]: [32m	 * MeridianWidget[0m
+[01:29:39]: [32mModified Build Configurations:[0m
+[01:29:39]: [32m	 * Debug[0m
+[01:29:39]: [32m	 * Release[0m
+[01:29:39]: [32m-----------------------[0m
+[01:29:39]: [32m--- Step: build_app ---[0m
+[01:29:39]: [32m-----------------------[0m
+[01:29:40]: [33mResolving Swift Package Manager dependencies...[0m
+[01:29:40]: [36m$ xcodebuild -resolvePackageDependencies -scheme Meridian -project Meridian.xcodeproj -configuration Release[0m
+[01:29:42]: ▸ [35mCommand line invocation:[0m
+[01:29:42]: ▸ [35m    /Applications/Xcode_26.3.app/Contents/Developer/usr/bin/xcodebuild -resolvePackageDependencies -scheme Meridian -project Meridian.xcodeproj -configuration Release[0m
+[01:29:44]: ▸ [35mresolved source packages: [0m
+[01:29:44]: [36m$ xcodebuild -showBuildSettings -scheme Meridian -project Meridian.xcodeproj -configuration Release 2>&1[0m
+[01:29:47]: [33mCommand timed out after 3 seconds on try 1 of 4, trying again with a 6 second timeout...[0m
+[01:29:51]: Detected provisioning profile mapping: {"com.bradcowdrey.meridian": "com.bradcowdrey.meridian AppStore", "com.bradcowdrey.meridian.widget": "com.bradcowdrey.meridian.widget AppStore"}
+
++---------------------------------------------------------------------------------------------------------------------------------+
+|                                                     [32mSummary for gym 2.241.2[0m                                                     |
++---------------------------------------------------------------------+-----------------------------------------------------------+
+| project                                                             | Meridian.xcodeproj                                        |
+| scheme                                                              | Meridian                                                  |
+| configuration                                                       | Release                                                   |
+| export_method                                                       | app-store                                                 |
+| output_directory                                                    | /Users/runner/work/_temp/export                           |
+| output_name                                                         | Meridian                                                  |
+| xcargs                                                              | MARKETING_VERSION=2.0 CURRENT_PROJECT_VERSION=214         |
+| export_options.provisioningProfiles.com.bradcowdrey.meridian        | com.bradcowdrey.meridian AppStore                         |
+| export_options.provisioningProfiles.com.bradcowdrey.meridian.widget | com.bradcowdrey.meridian.widget AppStore                  |
+| clean                                                               | false                                                     |
+| silent                                                              | false                                                     |
+| skip_package_ipa                                                    | false                                                     |
+| skip_package_pkg                                                    | false                                                     |
+| build_path                                                          | /Users/runner/Library/Developer/Xcode/Archives/2026-11-07 |
+| result_bundle                                                       | false                                                     |
+| buildlog_path                                                       | ~/Library/Logs/gym                                        |
+| destination                                                         | generic/platform=iOS                                      |
+| xcodebuild_formatter                                                | xcbeautify                                                |
+| build_timing_summary                                                | false                                                     |
+| skip_profile_detection                                              | false                                                     |
+| xcodebuild_command                                                  | xcodebuild                                                |
+| skip_package_dependencies_resolution                                | false                                                     |
+| disallow_xcodebuild_settings_lookup                                 | false                                                     |
+| disable_package_automatic_updates                                   | false                                                     |
+| skip_package_repository_fetches                                     | false                                                     |
+| use_system_scm                                                      | false                                                     |
+| generate_appstore_info                                              | false                                                     |
+| xcode_path                                                          | /Applications/Xcode_26.3.0.app                            |
++---------------------------------------------------------------------+-----------------------------------------------------------+
+
+[01:29:51]: [36m$ set -o pipefail && xcodebuild -scheme Meridian -project Meridian.xcodeproj -configuration Release -destination generic/platform\=iOS -archivePath /Users/runner/Library/Developer/Xcode/Archives/2026-11-07/Meridian\ 2026-11-07\ 01.29.51.xcarchive MARKETING_VERSION=2.0 CURRENT_PROJECT_VERSION=214 archive | tee /Users/runner/Library/Logs/gym/Meridian-Meridian.log | xcbeautify[0m
+[01:29:51]: ▸ [35m----- xcbeautify -----[0m
+[01:29:51]: ▸ [35mVersion: 3.2.1[0m
+[01:29:51]: ▸ [35m----------------------[0m
+[01:29:54]: ▸ [35m[36;1mnote: [0mBuilding targets in dependency order[0m
+[01:29:54]: ▸ [35m[36;1mnote: [0mTarget dependency graph (2 targets)[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget_const_extract_protocols.json[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget.SwiftFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget.SwiftConstValuesFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget.LinkFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget-OutputFileMap.json[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget.DependencyStaticMetadataFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget.DependencyMetadataFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget-project-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget-own-target-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget-generated-files.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget-all-target-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m MeridianWidget-all-non-framework-target-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mWrite Auxiliary File[0m Entitlements.plist[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian_const_extract_protocols.json[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian.SwiftFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian.SwiftConstValuesFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian.LinkFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian-OutputFileMap.json[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian.DependencyStaticMetadataFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian.DependencyMetadataFileList[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian-project-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian-own-target-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian-generated-files.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian-all-target-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Meridian-all-non-framework-target-headers.hmap[0m
+[01:30:02]: ▸ [35m[[36mMeridian[0m] [1mWrite Auxiliary File[0m Entitlements.plist[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mProcessing[0m Info.plist[0m
+[01:30:02]: ▸ [35m[[36mMeridianWidget[0m] [1mCopying[0m PrivacyInfo.xcprivacy[0m
+[01:30:26]: ▸ [35m[[36mMeridianWidget[0m] [1mCopy[0m arm64-apple-ios.swiftdoc -> MeridianWidget.swiftdoc[0m
+[01:30:26]: ▸ [35m[[36mMeridianWidget[0m] [1mCopy[0m arm64-apple-ios.swiftmodule -> MeridianWidget.swiftmodule[0m
+[01:30:26]: ▸ [35m[[36mMeridianWidget[0m] [1mCopy[0m arm64-apple-ios.abi.json -> MeridianWidget.abi.json[0m
+[01:30:26]: ▸ [35m[[36mMeridianWidget[0m] [1mLinking[0m MeridianWidget[0m
+[01:30:29]: ▸ [35m[[36mMeridian[0m] [1mGenerate Asset Symbols[0m Assets.xcassets[0m
+[01:30:51]: ▸ [35m[[36mMeridianWidget[0m] [1mGenerating[0m MeridianWidget.appex.dSYM[0m
+[01:30:51]: ▸ [35m[[36mMeridianWidget[0m] [1mExtract App Intents Metadata[0m
+[01:30:51]: ▸ [35m[1mSigning[0m MeridianWidget.appex (in target 'MeridianWidget' from project 'Meridian')[0m
+[01:30:51]: ▸ [35m[[36mMeridianWidget[0m] [1mRegisterExecutionPolicyException[0m MeridianWidget.appex[0m
+[01:30:51]: ▸ [35m[[36mMeridianWidget[0m] [1mTouching[0m MeridianWidget.appex[0m
+[01:30:51]: ▸ [35m[[36mMeridian[0m] [1mCopying[0m holidays.tsv[0m
+[01:30:51]: ▸ [35m[[36mMeridian[0m] [1mCopying[0m cities.tsv[0m
+[01:30:51]: ▸ [35m[[36mMeridian[0m] [1mCopying[0m PrivacyInfo.xcprivacy[0m
+[01:31:17]: ▸ [35m[36;1mnote: [0mEmplaced /Users/runner/Library/Developer/Xcode/DerivedData/Meridian-gphwbfkhripxbzcwquzsdyjmnvac/Build/Intermediates.noindex/ArchiveIntermediates/Meridian/InstallationBuildProductsLocation/Applications/Meridian.app/AppIcon60x60@2x.png (in target 'Meridian' from project 'Meridian')[0m
+[01:31:17]: ▸ [35m[36;1mnote: [0mEmplaced /Users/runner/Library/Developer/Xcode/DerivedData/Meridian-gphwbfkhripxbzcwquzsdyjmnvac/Build/Intermediates.noindex/ArchiveIntermediates/Meridian/InstallationBuildProductsLocation/Applications/Meridian.app/Assets.car (in target 'Meridian' from project 'Meridian')[0m
+[01:31:17]: ▸ [35m[36;1mnote: [0mEmplaced /Users/runner/Library/Developer/Xcode/DerivedData/Meridian-gphwbfkhripxbzcwquzsdyjmnvac/Build/Intermediates.noindex/ArchiveIntermediates/Meridian/InstallationBuildProductsLocation/Applications/Meridian.app/AppIcon76x76@2x~ipad.png (in target 'Meridian' from project 'Meridian')[0m
+[01:31:17]: ▸ [35m[[36mMeridian[0m] [1mCopy[0m arm64-apple-ios.swiftmodule -> Meridian.swiftmodule[0m
+[01:31:17]: ▸ [35m[[36mMeridian[0m] [1mCopy[0m arm64-apple-ios.swiftdoc -> Meridian.swiftdoc[0m
+[01:31:17]: ▸ [35m[[36mMeridian[0m] [1mCopy[0m arm64-apple-ios.abi.json -> Meridian.abi.json[0m
+[01:31:17]: ▸ [35m[[36mMeridian[0m] [1mLinking[0m Meridian[0m
+[01:31:18]: ▸ [35m[[36mMeridian[0m] [1mCopy[0m MeridianWidget.appex -> MeridianWidget.appex[0m
+[01:31:18]: ▸ [35m[[36mMeridian[0m] [1mProcessing[0m Info.plist[0m
+[01:31:18]: ▸ [35m[[36mMeridian[0m] [1mExtract App Intents Metadata[0m
+[01:31:19]: ▸ [35m[[36mMeridian[0m] [1mGenerating[0m Meridian.app.dSYM[0m
+[01:31:19]: ▸ [35m[1mSigning[0m Meridian.app (in target 'Meridian' from project 'Meridian')[0m
+[01:31:19]: ▸ [35m[[36mMeridian[0m] [1mValidate Embedded Binary[0m MeridianWidget.appex[0m
+[01:31:23]: ▸ [35m[[36mMeridian[0m] [1mRegisterExecutionPolicyException[0m Meridian.app[0m
+[01:31:23]: ▸ [35m[[36mMeridian[0m] [1mValidate[0m Meridian.app[0m
+[01:31:23]: ▸ [35m[[36mMeridian[0m] [1mTouching[0m Meridian.app[0m
+[01:31:23]: ▸ [35m[32;1mArchive Succeeded[0m
+[01:31:23]: [33mGenerated plist file with the following values:[0m
+[01:31:23]: ▸ [35m-----------------------------------------[0m
+[01:31:23]: ▸ [35m{[0m
+[01:31:23]: ▸ [35m  "provisioningProfiles": {[0m
+[01:31:23]: ▸ [35m    "com.bradcowdrey.meridian": "com.bradcowdrey.meridian AppStore",[0m
+[01:31:23]: ▸ [35m    "com.bradcowdrey.meridian.widget": "com.bradcowdrey.meridian.widget AppStore"[0m
+[01:31:23]: ▸ [35m  },[0m
+[01:31:23]: ▸ [35m  "method": "app-store",[0m
+[01:31:23]: ▸ [35m  "signingStyle": "manual"[0m
+[01:31:23]: ▸ [35m}[0m
+[01:31:23]: ▸ [35m-----------------------------------------[0m
+[01:31:23]: [36m$ /usr/bin/xcrun /opt/homebrew/Cellar/fastlane/2.241.2/libexec/gems/fastlane-2.241.2/gym/lib/assets/wrap_xcodebuild/xcbuild-safe.sh -exportArchive -exportOptionsPlist /var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gym_config20261107-12470-96vgqn.plist -archivePath /Users/runner/Library/Developer/Xcode/Archives/2026-11-07/Meridian\ 2026-11-07\ 01.29.51.xcarchive -exportPath /var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/gym_output20261107-12470-vokvt4 MARKETING_VERSION=2.0 CURRENT_PROJECT_VERSION=214 [0m
+[01:31:26]: Compressing 2 dSYM(s)
+[01:31:26]: [36m$ cd /Users/runner/Library/Developer/Xcode/Archives/2026-11-07/Meridian\ 2026-11-07\ 01.29.51.xcarchive/dSYMs && zip -r /Users/runner/work/_temp/export/Meridian.app.dSYM.zip *.dSYM[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/Resources/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/Resources/Relocations/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/Resources/Relocations/aarch64/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/Resources/Relocations/aarch64/Meridian.yml (deflated 88%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/Resources/DWARF/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/Resources/DWARF/Meridian (deflated 76%)[0m
+[01:31:26]: ▸ [35m  adding: Meridian.app.dSYM/Contents/Info.plist (deflated 52%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/Resources/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/Resources/Relocations/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/Resources/Relocations/aarch64/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/Resources/Relocations/aarch64/MeridianWidget.yml (deflated 86%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/Resources/DWARF/ (stored 0%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/Resources/DWARF/MeridianWidget (deflated 67%)[0m
+[01:31:26]: ▸ [35m  adding: MeridianWidget.appex.dSYM/Contents/Info.plist (deflated 52%)[0m
+
+[01:31:26]: [32mSuccessfully exported and compressed dSYM file[0m
+[01:31:26]: [32mSuccessfully exported and signed the ipa file:[0m
+[01:31:26]: /Users/runner/work/_temp/export/Meridian.ipa
+
++----------------------------------------------------------------------------+
+|                              [32mfastlane summary[0m                              |
++------+-------------------------------------------------------+-------------+
+| Step | Action                                                | Time (in s) |
++------+-------------------------------------------------------+-------------+
+| 1    | default_platform                                      | 0           |
+| 2    | Switch to ios prune_api_development_certificates lane | 0           |
+| 3    | Switch to ios sign_in_api lane                        | 0           |
+| 4    | app_store_connect_api_key                             | 0           |
+| 5    | get_provisioning_profile                              | 2           |
+| 6    | update_code_signing_settings                          | 0           |
+| 7    | get_provisioning_profile                              | 0           |
+| 8    | update_code_signing_settings                          | 0           |
+| 9    | build_app                                             | 106         |
++------+-------------------------------------------------------+-------------+
+
+[01:31:26]: [32mfastlane.tools finished successfully 🎉[0m

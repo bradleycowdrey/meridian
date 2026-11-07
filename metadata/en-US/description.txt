@@ -1,0 +1,21 @@
+Every time zone at a glance.
+
+Each city is a card: its time, large, and whether it's working there right now. The status line under each name says Working, Off hours, Weekend, Day off or the holiday's name, and when the sun sets or rises there. A soft sky at the top of each card follows the time of day.
+
+Move through time: swipe the ruler and every city moves with you, in quarter-hours of the clock. Tap +1 hr or −2 hr, or Now to come back. Go to any day and time, or type hours from now.
+
+Find a Time: pick a day, a length and who's in it, and see when everyone is working, with the best times first. Add it to your calendar or share an invite with every city's time.
+
+Working weeks for every country: Sunday to Thursday in Riyadh, Monday to Friday in Denver, Ramadan and summer hours where they apply, and national public holidays. Change any city's days and hours.
+
+People and groups: add a card for a colleague in their city, put cards in groups, and show one group at a time.
+
+Clock changes in the next two weeks show above your cities, with how far each city will be from you afterwards.
+
+Search 34,000 cities offline, or an airport code (SFO, LHR), an abbreviation (PST, CET) or an offset (UTC+5:30). My Location adds the city you're in and follows you when you travel.
+
+Widgets for the Home Screen in small, medium and large, and for the Lock Screen. They follow your cities and order.
+
+No account. No ads. No tracking. Your cities stay on your iPhone.
+
+Free. Forever. Also on the Mac and Android.

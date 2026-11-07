@@ -1,0 +1,52 @@
+[01:31:28]: [33mGet started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile[0m
+[01:31:28]: fastlane 2.241.2 (Ruby 4.0.9, homebrew)
+[01:31:29]: [32m------------------------------[0m
+[01:31:29]: [32m--- Step: default_platform ---[0m
+[01:31:29]: [32m------------------------------[0m
+[01:31:29]: [32mDriving the lane 'ios beta' 🚀[0m
+[01:31:29]: [32m--------------------------------------------[0m
+[01:31:29]: [32m--- Step: Switch to ios sign_in_api lane ---[0m
+[01:31:29]: [32m--------------------------------------------[0m
+[01:31:29]: Cruising over to lane 'ios sign_in_api' 🚖
+[01:31:29]: [32m---------------------------------------[0m
+[01:31:29]: [32m--- Step: app_store_connect_api_key ---[0m
+[01:31:29]: [32m---------------------------------------[0m
+[01:31:29]: Cruising back to lane 'ios beta' 🚘
+[01:31:30]: Testing groups: Cowdrey
+[01:31:31]: [32m----------------------------------[0m
+[01:31:31]: [32m--- Step: upload_to_testflight ---[0m
+[01:31:31]: [32m----------------------------------[0m
+[01:31:31]: Creating authorization token for App Store Connect API
+[01:31:31]: [32mReady to upload new build to TestFlight (App: 6826713540)...[0m
+[01:31:31]: Going to upload updated app to App Store Connect
+[01:31:31]: [32mThis might take a few minutes. Please don't interrupt the script.[0m
+[01:32:12]: [32m--------------------------------------------------------------------[0m
+[01:32:12]: [32mSuccessfully uploaded package to App Store Connect. It might take a few minutes until it's visible online.[0m
+[01:32:12]: [32m--------------------------------------------------------------------[0m
+[01:32:12]: [32mSuccessfully uploaded the new binary to App Store Connect[0m
+[01:32:12]: Waiting for processing on... app_id: 6826713540, app_version: 2.0, build_version: 214, platform: IOS
+[01:32:13]: [33mRead more information on why this build isn't showing up yet - https://github.com/fastlane/fastlane/issues/14997[0m
+[01:34:16]: [32mSuccessfully finished processing the build 2.0 - 214 for IOS[0m
+[01:34:16]: [32mSuccessfully set the changelog for build[0m
+[01:34:17]: Distributing new build to testers: 2.0 - 214
+[01:34:17]: [32mSuccessfully distributed build to Internal testers 🚀[0m
+[01:34:17]: [32m----------------------------------------------[0m
+[01:34:17]: [32m--- Step: Switch to ios attach_builds lane ---[0m
+[01:34:17]: [32m----------------------------------------------[0m
+[01:34:17]: Cruising over to lane 'ios attach_builds' 🚖
+[01:34:19]: [33mBuilds 214, 210 to group Cowdrey (internal): 422 Cannot add internal group to a build.[0m
+[01:34:19]: Cruising back to lane 'ios beta' 🚘
+
++-------------------------------------------------------+
+|                   [32mfastlane summary[0m                    |
++------+----------------------------------+-------------+
+| Step | Action                           | Time (in s) |
++------+----------------------------------+-------------+
+| 1    | default_platform                 | 0           |
+| 2    | Switch to ios sign_in_api lane   | 0           |
+| 3    | app_store_connect_api_key        | 0           |
+| 4    | upload_to_testflight             | 166         |
+| 5    | Switch to ios attach_builds lane | 0           |
++------+----------------------------------+-------------+
+
+[01:34:19]: [32mfastlane.tools finished successfully 🎉[0m

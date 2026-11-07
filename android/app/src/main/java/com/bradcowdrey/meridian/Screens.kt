@@ -435,6 +435,7 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
                 LinkRow("bradcowdrey.com/meridian") { open(Palette.APP_PAGE) }
                 LinkRow("Source code on GitHub") { open(Palette.SOURCE) }
                 LinkRow("Terms & Privacy") { open(Palette.LEGAL) }
+                PhotoCredits { open(it) }
             }
             Text("Made by Bradley Cowdrey. Free. Forever.", fontSize = 13.sp, color = white(0.6f), textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 24.dp))
@@ -468,6 +469,40 @@ private fun StepperRow(label: String, down: () -> Unit, up: () -> Unit) {
         Spacer(Modifier.width(8.dp))
         OutlinedButton(onClick = up, contentPadding = PaddingValues(0.dp), modifier = Modifier.size(width = 44.dp, height = 34.dp),
             border = BorderStroke(1.dp, white(0.3f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.primary)) { Text("+") }
+    }
+}
+
+/** The skyline photos on the city cards, from Wikimedia Commons (Resources/Data/skyline-credits.json). */
+private val skylineCredits = listOf(
+    "San Francisco" to "https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_from_Coit_Tower.jpg",
+    "New York" to "https://commons.wikimedia.org/wiki/File:Manhattan_from_Weehawken,_NJ.jpg",
+    "London" to "https://commons.wikimedia.org/wiki/File:London_Skyline_(125508655).jpeg",
+    "Tokyo" to "https://commons.wikimedia.org/wiki/File:Skyscrapers_of_Shinjuku_2009_January.jpg",
+)
+
+/** Photo Credits: tap to show the four skyline photos, each opening its page on Wikimedia Commons. */
+@Composable
+private fun PhotoCredits(open: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClickLabel = if (expanded) "Hide" else "Show") { expanded = !expanded },
+        verticalAlignment = Alignment.CenterVertically) {
+        Text("Photo Credits", Modifier.weight(1f), color = Palette.primary)
+        Icon(if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = white(0.6f))
+    }
+    if (expanded) {
+        Text("City skyline photos from Wikimedia Commons.", fontSize = 13.sp, color = white(0.6f),
+            modifier = Modifier.padding(bottom = 4.dp))
+        skylineCredits.forEach { (city, url) ->
+            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClickLabel = "Open on Wikimedia Commons") { open(url) },
+                verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(city, color = Palette.primary)
+                    Text(url.removePrefix("https://commons.wikimedia.org/wiki/").replace('_', ' '), fontSize = 12.sp,
+                        color = white(0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.6f))
+            }
+        }
     }
 }
 

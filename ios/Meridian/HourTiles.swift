@@ -51,7 +51,7 @@ enum Strip {
 
     /// The name column's width for a row `content` wide (the tiles take the rest).
     static func labelWidth(_ content: CGFloat) -> CGFloat {
-        min(150, max(100, (content * 0.32).rounded(.down)))
+        min(150, max(100, (content * 0.40).rounded(.down)))
     }
 
     /// One tile and its gap, in a row `content` wide.
@@ -77,39 +77,6 @@ struct PanelSegment: View {
             .padding(.top, first ? Strip.lead : 0)
             .padding(.bottom, last ? Strip.lead : 0)
             .padding(.horizontal, Strip.margin)
-    }
-}
-
-/// The white lens around the hour holding the selected moment, as on the Mac: one outline down
-/// the whole panel. Each row draws its own part (the top row the top, the last row the bottom),
-/// so the parts meet in one straight column. `topPad` and `bottomPad` are the row's padding
-/// around its content; the tiles sit centred in what's left.
-struct LensSegment: View {
-    let first: Bool
-    let last: Bool
-    let topPad: CGFloat
-    let bottomPad: CGFloat
-
-    var body: some View {
-        GeometryReader { geo in
-            let o = TileGrid.lensOutset
-            let pitch = Strip.pitch(geo.size.width)
-            let x = Strip.labelWidth(geo.size.width) + Strip.labelGap + 2 * pitch - o
-            let content = geo.size.height - topPad - bottomPad
-            let tileTop = topPad + (content - TileGrid.height) / 2
-            // Past the row's edges (and clipped there) where the lens carries on into the next row.
-            let beyond: CGFloat = 40
-            let y0 = first ? tileTop - o : -beyond
-            let y1 = last ? tileTop + TileGrid.height + o : geo.size.height + beyond
-            let shape = RoundedRectangle(cornerRadius: TileGrid.lensRadius, style: .continuous)
-            shape.fill(Color.white.opacity(0.06))
-                .overlay(shape.strokeBorder(Color.white, lineWidth: TileGrid.lensStroke))
-                .frame(width: pitch - TileGrid.gap + 2 * o, height: max(0, y1 - y0))
-                .offset(x: x, y: y0)
-        }
-        .clipped()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 }
 
@@ -143,11 +110,15 @@ struct Scrub: ViewModifier {
 /// A city's hours as five day-and-night tiles, as in Meridian for Mac: each tile the colour of
 /// the day at that hour there (warm black at night, greys at dawn and dusk, cream by day), dimmed
 /// outside working hours, with the weekday and a crimson mark where a new day starts, and the outer
-/// tiles fading into the panel. The row draws the lens (`LensSegment`) over the middle column.
+/// tiles fading into the panel. With `lens`, the white lens marks the middle column.
 /// Tap a tile to go to that hour; drag to scrub.
 struct HourTiles: View {
     @EnvironmentObject private var store: CityStore
     let place: Place
+    /// The tiles' height (taller under a city card's banner).
+    var height: CGFloat = TileGrid.height
+    /// Draw the white lens around the middle tile here (each city card has its own).
+    var lens = false
     @State private var width: CGFloat = 228
 
     /// One column and its gap.
@@ -161,8 +132,11 @@ struct HourTiles: View {
                     .frame(maxWidth: .infinity)
             }
         }
-        .frame(height: TileGrid.height)
+        .frame(height: height)
         .mask { TileGrid.edgeFade }
+        .overlay(alignment: .topLeading) {
+            if lens { lensOutline }
+        }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .contentShape(Rectangle())
         .onTapGesture { location in
@@ -182,6 +156,18 @@ struct HourTiles: View {
             @unknown default: break
             }
         }
+    }
+
+    /// The white lens around the hour holding the selected moment, centred in the gutter around it.
+    private var lensOutline: some View {
+        let o = TileGrid.lensOutset
+        let shape = RoundedRectangle(cornerRadius: TileGrid.lensRadius, style: .continuous)
+        return shape.fill(Color.white.opacity(0.06))
+            .overlay(shape.strokeBorder(Color.white, lineWidth: TileGrid.lensStroke))
+            .frame(width: max(0, pitch - TileGrid.gap + 2 * o), height: height + 2 * o)
+            .offset(x: 2 * pitch - o, y: -o)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     private var accessibilityValue: String {

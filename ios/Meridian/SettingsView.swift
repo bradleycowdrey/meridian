@@ -53,6 +53,16 @@ struct SettingsView: View {
                     Link("bradcowdrey.com/meridian", destination: Theme.appPage)
                     Link("Source code on GitHub", destination: Theme.source)
                     Link("Terms & Privacy", destination: Theme.legal)
+                    NavigationLink {
+                        PhotoCreditsView()
+                    } label: {
+                        HStack {
+                            Text("Photo Credits")
+                            Spacer()
+                            Text("Wikimedia Commons")
+                                .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                        }
+                    }
                 } header: { header("About", "info.circle") }
                 .meridianSection()
                 Section {

@@ -898,7 +898,7 @@ fun CityRow(store: Store, place: Place, first: Boolean, last: Boolean, modifier:
                         Spacer(Modifier.width(6.dp))
                         // Shrinks to fit before it would cut, so "UTC+5:30" shows whole (as on the Mac).
                         var offShrink by remember(utc) { mutableFloatStateOf(1f) }
-                        Text(utc, style = tnum, fontSize = (13f * offShrink).sp, lineHeight = 17.sp, color = Palette.muted,
+                        Text(utc, style = tnum, fontSize = ((if (utc.contains(':')) 11f else 13f) * offShrink).sp, lineHeight = 17.sp, color = Palette.muted,
                             maxLines = 1, softWrap = false,
                             onTextLayout = { if (it.didOverflowWidth && offShrink > 0.75f) offShrink = (offShrink - 0.05f).coerceAtLeast(0.75f) })
                     }
@@ -1001,15 +1001,16 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val scale = shrink / cap
     val label = buildAnnotatedString {
         append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
-        if (minute != 0) withStyle(SpanStyle(fontSize = (11 * scale).sp)) { append(":%02d".format(minute)) }
+        if (minute != 0) withStyle(SpanStyle(fontSize = (10 * scale).sp)) { append(":%02d".format(minute)) }
         // A thin space before AM/PM, set small, so "12:30AM" stays on one line.
-        if (!use24h) withStyle(SpanStyle(fontSize = ((if (minute != 0) 8 else 9) * scale).sp)) {
+        if (!use24h) withStyle(SpanStyle(fontSize = ((if (minute != 0) 7 else 9) * scale).sp)) {
             append(" " + if (hour < 12) "AM" else "PM")
         }
     }
     Box(modifier.clip(shape).background(fillColor.copy(alpha = if (dim) 0.72f else 1f)), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, style = tnum, fontSize = (16 * scale).sp, lineHeight = (19 * scale).sp,
+            // Half-hour zones ("10:30 PM") set a size smaller, so the whole label fits the tile.
+            Text(label, style = tnum, fontSize = ((if (minute != 0 && !use24h) 13 else 16) * scale).sp, lineHeight = (19 * scale).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
                 color = textColor, maxLines = 1, softWrap = false,
                 onTextLayout = { if (it.didOverflowWidth && shrink > 0.6f) shrink = (shrink - 0.1f).coerceAtLeast(0.6f) })

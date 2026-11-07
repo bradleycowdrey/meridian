@@ -1,18 +1,115 @@
 import SwiftUI
 
-/// The five hour columns every card shares (two hours back, the hour holding the selected moment,
+/// The five hour columns every row shares (two hours back, the hour holding the selected moment,
 /// two ahead), as in Meridian for Mac. Column 0 always holds the moment.
 enum TileGrid {
+    /// One even gutter between tiles and between rows, as on the Mac.
     static let gap: CGFloat = 6
     static let height: CGFloat = 44
-    static let radius: CGFloat = 8
-    static let lensOutset: CGFloat = 3
+    static let radius: CGFloat = 9
+    static let lensStroke: CGFloat = 2
+    /// The lens's stroke sits centred in the gutter around the tile, as on the Mac.
+    static let lensOutset: CGFloat = gap / 2 + lensStroke / 2
+    /// Concentric with the tiles' corners.
+    static let lensRadius: CGFloat = radius + lensOutset
     static let columns = [-2, -1, 0, 1, 2]
 
     /// Each column's start: whole hours on your clock around the moment.
     static func starts(_ moment: Date) -> [Date] {
         let anchor = TimeMath.hourAnchor(moment)
         return columns.map { anchor.addingTimeInterval(Double($0) * 3600) }
+    }
+
+    /// The Mac's edge fade: the outer tiles fade softly into the panel.
+    static var edgeFade: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: .clear, location: 0),
+                .init(color: .black, location: 0.11),
+                .init(color: .black, location: 0.89),
+                .init(color: .clear, location: 1),
+            ],
+            startPoint: .leading, endPoint: .trailing
+        )
+    }
+}
+
+/// The cities as rows in one rounded panel, as in Meridian for Mac: the name and time on the
+/// left, five hour tiles on the right. The column labels at the top line up with the tiles.
+enum Strip {
+    /// Screen edge to panel.
+    static let margin: CGFloat = 12
+    /// Panel edge to its rows.
+    static let inset: CGFloat = 10
+    /// Space above and below the panel.
+    static let lead: CGFloat = 8
+    static let radius: CGFloat = 20
+    /// Between the city's name and its tiles.
+    static let labelGap: CGFloat = 8
+    /// Screen edge to a row's content.
+    static let edge: CGFloat = margin + inset
+
+    /// The name column's width for a row `content` wide (the tiles take the rest).
+    static func labelWidth(_ content: CGFloat) -> CGFloat {
+        min(150, max(100, (content * 0.32).rounded(.down)))
+    }
+
+    /// One tile and its gap, in a row `content` wide.
+    static func pitch(_ content: CGFloat) -> CGFloat {
+        let tiles = content - labelWidth(content) - labelGap
+        return max(1, (tiles + TileGrid.gap) / CGFloat(TileGrid.columns.count))
+    }
+}
+
+/// One row's share of the panel behind the cities: the top row rounds the top corners, the last
+/// row the bottom ones, so the rows read as one panel.
+struct PanelSegment: View {
+    let first: Bool
+    let last: Bool
+
+    var body: some View {
+        UnevenRoundedRectangle(topLeadingRadius: first ? Strip.radius : 0,
+                               bottomLeadingRadius: last ? Strip.radius : 0,
+                               bottomTrailingRadius: last ? Strip.radius : 0,
+                               topTrailingRadius: first ? Strip.radius : 0,
+                               style: .continuous)
+            .fill(Theme.tile)
+            .padding(.top, first ? Strip.lead : 0)
+            .padding(.bottom, last ? Strip.lead : 0)
+            .padding(.horizontal, Strip.margin)
+    }
+}
+
+/// The white lens around the hour holding the selected moment, as on the Mac: one outline down
+/// the whole panel. Each row draws its own part (the top row the top, the last row the bottom),
+/// so the parts meet in one straight column. `topPad` and `bottomPad` are the row's padding
+/// around its content; the tiles sit centred in what's left.
+struct LensSegment: View {
+    let first: Bool
+    let last: Bool
+    let topPad: CGFloat
+    let bottomPad: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            let o = TileGrid.lensOutset
+            let pitch = Strip.pitch(geo.size.width)
+            let x = Strip.labelWidth(geo.size.width) + Strip.labelGap + 2 * pitch - o
+            let content = geo.size.height - topPad - bottomPad
+            let tileTop = topPad + (content - TileGrid.height) / 2
+            // Past the row's edges (and clipped there) where the lens carries on into the next row.
+            let beyond: CGFloat = 40
+            let y0 = first ? tileTop - o : -beyond
+            let y1 = last ? tileTop + TileGrid.height + o : geo.size.height + beyond
+            let shape = RoundedRectangle(cornerRadius: TileGrid.lensRadius, style: .continuous)
+            shape.fill(Color.white.opacity(0.06))
+                .overlay(shape.strokeBorder(Color.white, lineWidth: TileGrid.lensStroke))
+                .frame(width: pitch - TileGrid.gap + 2 * o, height: max(0, y1 - y0))
+                .offset(x: x, y: y0)
+        }
+        .clipped()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -44,13 +141,14 @@ struct Scrub: ViewModifier {
 }
 
 /// A city's hours as five day-and-night tiles, as in Meridian for Mac: each tile the colour of
-/// the sky at that hour there (warm black at night, greys at dawn and dusk, cream by day), dimmed
-/// outside working hours, with the weekday and a white mark where a new day starts. The white lens
-/// marks the hour holding the selected moment. Tap a tile to go to that hour; drag to scrub.
+/// the day at that hour there (warm black at night, greys at dawn and dusk, cream by day), dimmed
+/// outside working hours, with the weekday and a crimson mark where a new day starts, and the outer
+/// tiles fading into the panel. The row draws the lens (`LensSegment`) over the middle column.
+/// Tap a tile to go to that hour; drag to scrub.
 struct HourTiles: View {
     @EnvironmentObject private var store: CityStore
     let place: Place
-    @State private var width: CGFloat = 333
+    @State private var width: CGFloat = 228
 
     /// One column and its gap.
     private var pitch: CGFloat { max(1, (width + TileGrid.gap) / CGFloat(TileGrid.columns.count)) }
@@ -64,7 +162,7 @@ struct HourTiles: View {
             }
         }
         .frame(height: TileGrid.height)
-        .padding(.vertical, TileGrid.lensOutset)
+        .mask { TileGrid.edgeFade }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .contentShape(Rectangle())
         .onTapGesture { location in
@@ -97,21 +195,20 @@ struct HourTiles: View {
         let cal = place.calendar
         let parts = cal.dateComponents([.hour, .minute], from: start)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        // One flat colour per tile: the sky there at the tile's start, as on the Mac.
-        let style = DayColor.style(at: Double(hour) + Double(minute) / 60, lifted: true)
+        // One flat colour per tile: the day there at the tile's start, as on the Mac.
+        let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
         // A new day starts in this tile (usually 00:00, but some clock changes skip midnight).
         let newDay = !cal.isDate(start, inSameDayAs: start.addingTimeInterval(-3600))
         let dim = store.showWorkHours && !store.isWorking(place, at: start.addingTimeInterval(1800))
-        let shape = RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
         return VStack(spacing: 1) {
             label(hour: hour, minute: minute, center: k == 0)
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
                 .contentTransition(.numericText())
             if newDay {
                 Text(TimeMath.weekday(start, in: place.timeZone))
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 9, weight: .medium))
                     .tracking(0.5)
                     .textCase(.uppercase)
                     .lineLimit(1)
@@ -120,31 +217,16 @@ struct HourTiles: View {
         .foregroundStyle(style.text)
         .padding(.horizontal, 2)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            ZStack {
-                shape.fill(style.fill)
-                // Outside working hours: darker, not see-through, so the sky doesn't tint it.
-                if dim { shape.fill(Color.black.opacity(0.35)) }
-            }
-        }
-        .overlay { shape.strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5) }
+        // Outside working hours the tile lets a little of the panel through, as on the Mac.
+        .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous).fill(style.fill.opacity(dim ? 0.72 : 1)))
         .overlay(alignment: .leading) {
-            // Midnight: a white mark centred in the gap before the new day.
+            // Midnight: a crimson mark centred in the gap before the new day, as on the Mac.
             if newDay {
                 Capsule()
-                    .fill(Color.white.opacity(0.9))
-                    .frame(width: 2, height: 28)
+                    .fill(Theme.crimson)
+                    .frame(width: 2)
+                    .padding(.vertical, 8)
                     .offset(x: -(TileGrid.gap / 2 + 1))
-                    .allowsHitTesting(false)
-            }
-        }
-        .overlay {
-            // The lens: the hour holding the selected moment, on every card.
-            if k == 0 {
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
-                    .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Color.white, lineWidth: 2))
-                    .padding(-TileGrid.lensOutset)
                     .allowsHitTesting(false)
             }
         }
@@ -154,7 +236,7 @@ struct HourTiles: View {
     private func label(hour: Int, minute: Int, center: Bool) -> Text {
         let use24h = store.use24h
         var text = Text(use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)")
-            .font(.system(size: 17, weight: center ? .semibold : .medium))
+            .font(.system(size: 16, weight: center ? .semibold : .medium))
         if minute != 0 {
             text = text + Text(":" + String(format: "%02d", minute)).font(.system(size: 11, weight: .medium))
         }
@@ -165,11 +247,13 @@ struct HourTiles: View {
     }
 }
 
-/// The column labels, drawn once over every card's tiles in the bar under the title: "Now" (or
+/// The column labels, drawn once over every row's tiles in the bar under the title: "Now" (or
 /// the selected time) in the middle, and −2/−1/+1/+2 hr as small buttons either side. A short white
 /// line under a column says everyone on the list is working then.
 struct ColumnHeader: View {
     @EnvironmentObject private var store: CityStore
+    /// The bar's width, so the labels line up with the rows' tiles.
+    @State private var width: CGFloat = 390
 
     var body: some View {
         let starts = TileGrid.starts(store.moment)
@@ -179,8 +263,12 @@ struct ColumnHeader: View {
                 column(k, start: starts[k + 2], nowAnchor: nowAnchor)
             }
         }
-        .padding(.horizontal, Card.margin + Card.padding)
+        // Over the tiles: past the name column, to the panel's inner edge.
+        .padding(.leading, Strip.edge + Strip.labelWidth(max(0, width - 2 * Strip.edge)) + Strip.labelGap)
+        .padding(.trailing, Strip.edge)
         .frame(height: 44)
+        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
@@ -197,7 +285,7 @@ struct ColumnHeader: View {
                     .font(.system(size: 13, weight: plain ? .semibold : .medium))
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.6)
                     .foregroundStyle(Color.white.opacity(readsNow ? 0.9 : 1))
                     .contentTransition(.numericText())
                     .padding(.horizontal, 2)

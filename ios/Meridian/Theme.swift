@@ -57,7 +57,7 @@ enum Theme {
     static let messageToSend = "\(shareMessage)\n\nGet it for iPhone, Mac or Android: \(appPage.absoluteString)"
 }
 
-/// City cards on the main screen, and the cards on the sheets.
+/// Cards on the sheets and the clock-change notices (the cities are rows in one panel: `Strip`).
 enum Card {
     static let radius: CGFloat = 16
     static let padding: CGFloat = 14
@@ -65,7 +65,7 @@ enum Card {
     static let margin: CGFloat = 16
 }
 
-/// The sky behind each card, as in Two Degrees: a full-height gradient for the sky where the city
+/// A Two Degrees sky (no longer behind the city rows): a full-height gradient for the sky where the city
 /// is at the moment shown (night, dawn or dusk, day).
 enum Sky {
     enum Phase: Hashable { case night, twilight, day }

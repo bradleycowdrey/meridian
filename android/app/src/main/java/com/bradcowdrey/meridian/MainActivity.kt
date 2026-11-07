@@ -47,6 +47,9 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -114,9 +117,9 @@ object Palette {
     val secondary = Color(0xFFE0D8D0)
     val muted = Color(0xFFB0A898)
     val faint = Color(0xFF807870)
-    /** Widgets, the app icon and the Terms button only. */
+    /** Widgets, the app icon, the Terms button and the "+1 d" badge (as on the Mac). */
     val cream = Color(0xFFFFF1E5)
-    /** Widgets and the app icon only: never inside the app. */
+    /** Widgets, the app icon and the midnight mark between hour tiles (as on the Mac). */
     val crimson = Color(0xFF990F3D)
     val black = Color.Black
     val notice = Color(0xFFF2A65A)
@@ -351,7 +354,8 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
     val customFilter = store.groupFilter?.takeIf { it in store.chipGroups && !store.isContinent(it) }
 
     Scaffold(
-        containerColor = Palette.black,
+        // The list sits on Meridian's own warm dark, as on the Mac.
+        containerColor = Palette.bg,
         topBar = {
             Column(Modifier.fillMaxWidth().background(Palette.black).statusBarsPadding()) {
                 Box(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 4.dp)) {
@@ -468,28 +472,31 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                             }
                         }
                     }
-                    items(if (editing) store.places else store.visiblePlaces, key = { it.id }) { place ->
+                    val rows = if (editing) store.places else store.visiblePlaces
+                    itemsIndexed(rows, key = { _, place -> place.id }) { i, place ->
                         var actions by remember { mutableStateOf(false) }
-                        // Touch and hold anywhere on the card, the hour tiles included (once, however it's held).
+                        // Touch and hold anywhere on the row, the hour tiles included (once, however it's held).
                         val openActions: () -> Unit = {
                             if (!actions) { haptics.performHapticFeedback(HapticFeedbackType.LongPress); actions = true }
                         }
                         var work by remember { mutableStateOf(false) }
-                        // Each city is a card on its own sky (Two Degrees' sky for day, twilight or night
-                        // there), top to bottom: 16 dp from the screen edges, 10 dp between cards, 16 dp
-                        // corners. Touch and hold a card for its own actions (a tap does nothing, so
-                        // scrolling never opens them by accident); dragging its hour tiles still moves every
-                        // city's time.
-                        val (skyTop, skyBottom) = Sky.colors(Sky.phase(place, store.moment))
-                        val top by animateColorAsState(skyTop, tween(600), label = "sky top")
-                        val bottom by animateColorAsState(skyBottom, tween(600), label = "sky bottom")
-                        val shape = RoundedCornerShape(16.dp)
-                        Box(Modifier.padding(horizontal = 16.dp, vertical = 5.dp).fillMaxWidth().clip(shape)
-                            .background(Brush.verticalGradient(listOf(top, bottom)))
-                            .then(if (store.isHere(place)) Modifier.border(1.5.dp, white(0.5f), shape) else Modifier)) {
+                        // Every city is a row in one rounded panel, as on the Mac: its name and time on the
+                        // left, its five hour tiles on the right. Each row draws its slice of the panel (the
+                        // first rounds the top, the last the bottom) so the rows sit together with no seams
+                        // and the Now lens runs down them all. Touch and hold a row for its own actions (a
+                        // tap does nothing, so scrolling never opens them by accident); dragging its hour
+                        // tiles still moves every city's time.
+                        val first = i == 0
+                        val last = i == rows.lastIndex
+                        val top = if (first) Strip.panelRadius else 0.dp
+                        val bottom = if (last) Strip.panelRadius else 0.dp
+                        val shape = RoundedCornerShape(topStart = top, topEnd = top, bottomStart = bottom, bottomEnd = bottom)
+                        Box(Modifier.padding(start = Strip.margin, end = Strip.margin, top = if (first) 8.dp else 0.dp, bottom = if (last) 8.dp else 0.dp)
+                            .fillMaxWidth().clip(shape).background(Palette.tile)
+                            .padding(top = if (first) Strip.panelPadTop else 0.dp, bottom = if (last) Strip.panelPadTop else 0.dp)) {
                             if (editing) EditRow(store, place)
                             else {
-                                CityRow(store, place, Modifier
+                                CityRow(store, place, first = first, last = last, modifier = Modifier
                                     .pointerInput(place.id) {
                                         detectTapGestures(onLongPress = { openActions() })
                                     }
@@ -667,7 +674,7 @@ private fun GroupChip(
 }
 
 /**
- * The hour columns, once, over every card's tiles: "Now" (or the time you went to) in the middle,
+ * The hour columns, once, over every row's tiles: "Now" (or the time you went to) in the middle,
  * ±1 and ±2 hr either side as small pills, and a white mark under an hour when everyone is working.
  */
 @Composable
@@ -676,7 +683,13 @@ fun ColumnHeader(store: Store) {
     val nowAnchor = TimeMath.hourAnchor(store.now, store.home)
     val visible = store.visiblePlaces
     val cap = maxOf(1f, LocalDensity.current.fontScale / 1.3f)
-    Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 30.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+    // Lined up over the rows' tiles: the same insets and name column as a row, then the five columns.
+    BoxWithConstraints(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Horizontal))
+        .height(44.dp).padding(horizontal = Strip.inset)) {
+    val labelWidth = Strip.labelWidth(maxWidth)
+    Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+    Spacer(Modifier.width(labelWidth + Strip.labelGap))
+    Row(Modifier.weight(1f).fillMaxHeight(), horizontalArrangement = Arrangement.spacedBy(Strip.gap),
         verticalAlignment = Alignment.CenterVertically) {
         (-2..2).forEach { k ->
             val start = anchor.plusSeconds(k * 3600L)
@@ -712,13 +725,15 @@ fun ColumnHeader(store: Store) {
                     Text(label, style = tnum, fontSize = (13f / cap * shrink).sp, maxLines = 1, softWrap = false,
                         fontWeight = if (k == 0 || readsNow) FontWeight.SemiBold else FontWeight.Medium,
                         color = if (readsNow) white(0.9f) else Palette.primary,
-                        onTextLayout = { if (it.didOverflowWidth && shrink > 0.7f) shrink = (shrink - 0.1f).coerceAtLeast(0.7f) })
+                        onTextLayout = { if (it.didOverflowWidth && shrink > 0.6f) shrink = (shrink - 0.1f).coerceAtLeast(0.6f) })
                 }
                 Spacer(Modifier.height(3.dp))
                 Box(Modifier.size(width = 16.dp, height = 3.dp).clip(RoundedCornerShape(50))
                     .background(if (overlap) Palette.primary else Color.Transparent))
             }
         }
+    }
+    }
     }
 }
 
@@ -783,116 +798,135 @@ fun NowButton(store: Store) {
     }
 }
 
-/** "Today", "Tomorrow", "Yesterday" or "Tue 9 Jun": the city's day at the moment shown, against your today. */
-private fun dayLine(store: Store, place: Place, moment: Instant): String {
-    val there = moment.atZone(place.zone).toLocalDate()
-    val n = there.toEpochDay() - store.now.atZone(store.home).toLocalDate().toEpochDay()
-    return when (n) {
-        0L -> "Today"
-        1L -> "Tomorrow"
-        -1L -> "Yesterday"
-        else -> there.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))
-    }
+/**
+ * The city list's geometry, as the Mac panel's strip: shared by the column labels at the top and every
+ * row, so the labels sit exactly over the tile columns. One even gutter between tiles both ways; the
+ * Now lens's 2 dp stroke sits centred in that gutter, its corners concentric with the tiles'.
+ */
+object Strip {
+    /** Screen edge to the panel. */
+    val margin = 12.dp
+    /** Panel edge to the names and the tiles. */
+    val pad = 10.dp
+    /** Screen edge to the names and the tiles (the column labels use the same). */
+    val inset = margin + pad
+    val panelRadius = 20.dp
+    /** Above the first row and below the last, inside the panel (with the row's own half gutter, the panel's inset). */
+    val panelPadTop = 7.dp
+    /** Between tiles, across and down. */
+    val gap = 6.dp
+    val tileHeight = 44.dp
+    val tileRadius = 9.dp
+    val lensStroke = 2.dp
+    val lensOutset = gap / 2 + lensStroke / 2
+    val lensRadius = tileRadius + lensOutset
+
+    /** Between the name column and the tiles. */
+    val labelGap = 8.dp
+
+    /** The name column, from the width inside the insets: about a third, as on the Mac; the tiles take the rest. */
+    fun labelWidth(inner: Dp): Dp = (inner * 0.32f).coerceIn(100.dp, 150.dp)
 }
 
 /**
- * One city, as a Two Degrees card: its name and how it relates to you on the left, its time large and
- * light on the right; then its hour tiles (−2 to +2 hr, as on the Mac); then work and the sun.
+ * One city, as a row of the Mac panel: its name, and under it its time with "+1 d" when it is on
+ * another day (or its UTC offset), on the left; its five hour tiles (−2 to +2 hr) on the right.
+ * A person's row names the person, with their city before the time.
  */
 @Composable
-fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier, onLongPress: () -> Unit = {}) {
+fun CityRow(store: Store, place: Place, first: Boolean, last: Boolean, modifier: Modifier = Modifier, onLongPress: () -> Unit = {}) {
     val moment = store.moment
-    val (clock, suffix) = TimeMath.clock(moment, place.zone, store.use24h)
+    val time = TimeMath.time(moment, place.zone, store.use24h)
     val shift = TimeMath.dayShift(moment, place.zone, store.home)
     val utc = TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, moment))
-    // "Off hours", "Weekend" or "Day off" when the city isn't at work.
-    val off = if (store.showWorkHours) WorkWeek.offLabel(place, moment, store.workStart, store.workEnd) else null
-    // "My Location" on the card for where you are; with the city you're in when this card is
-    // another city in the same time zone ("My Location · Boulder" on Denver).
-    val here = if (!store.isHere(place)) null
-        else store.hereCity?.takeIf { !place.isMyLocation && place.person == null && it != place.name }?.let { "My Location · $it" } ?: "My Location"
-    // Your own city on another day (a date you went to) shows that date instead of "Your time".
-    val otherDay = place.zone.id == store.home.id && moment.atZone(store.home).toLocalDate() != store.now.atZone(store.home).toLocalDate()
+    val here = store.isHere(place)
+    // Said by TalkBack: how it relates to you, the day, and work (when that setting is on).
     val relation = TimeMath.relative(moment, place.zone, store.home)
-        ?: if (otherDay) moment.atZone(store.home).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))
-        else if (place.zone.id == store.home.id) "Your time" else "Same time"
-    // "My Location · UTC−7" on the card for where you are.
-    // A person's card names their city first: "Lisbon · +8 hr · UTC+1".
-    val city = if (place.person != null) "${place.name} · " else ""
-    val detail = city + (here?.let { if (relation == "Your time" || relation == "Same time") it else "$it · $relation" } ?: relation) + " · " + utc
-    // Another day there leads the line: "Tomorrow · +8 hr · UTC+1".
-    val day = dayLine(store, place, moment)
-    val detailWithDay = if (day != "Today" && !otherDay) "$day · $detail" else detail
-    // "Working", or "Off hours" / "Weekend" / "Day off" (when that setting is on).
-    val work = if (store.showWorkHours) off ?: "Working" else null
-    // "Sets 4:59 PM" while the sun is up there, "Rises 6:27 AM" while it's down.
-    // At the city itself when the card knows where it is, else its time zone's city.
-    val phase = Sun.phase(place, moment)
-    val sun = when (val p = phase) {
-        is Sun.Phase.Day -> "Sets ${TimeMath.time(p.sets, place.zone, store.use24h)}"
-        is Sun.Phase.Night -> "Rises ${TimeMath.time(p.rises, place.zone, store.use24h)}"
-        Sun.Phase.AllDay -> "Sun all day"
-        Sun.Phase.AllNight -> "Polar night"
-        null -> null
-    }
-    val sunUp = phase is Sun.Phase.Day || phase == Sun.Phase.AllDay
+        ?: if (place.zone.id == store.home.id) "Your time" else "Same time"
     val dayNote = when (shift) { 0 -> null; 1 -> "tomorrow there"; -1 -> "yesterday there"; else -> "${kotlin.math.abs(shift)} days ${if (shift > 0) "ahead" else "behind"}" }
-    Column(modifier.fillMaxWidth().padding(14.dp)
+    val work = if (store.showWorkHours) WorkWeek.offLabel(place, moment, store.workStart, store.workEnd) ?: "Working" else null
+    BoxWithConstraints(modifier.fillMaxWidth().padding(horizontal = Strip.pad)
         .semantics(mergeDescendants = true) {
-            contentDescription = listOfNotNull(place.title, place.person?.let { place.name }, TimeMath.time(moment, place.zone, store.use24h), detail, dayNote, work, sun?.let { "sun ${it.lowercase()}" }).joinToString(", ")
+            contentDescription = listOfNotNull(place.title, place.person?.let { place.name }, if (here) "My Location" else null,
+                time, relation, utc, dayNote, work).joinToString(", ")
         }) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Where you are, on this card rather than a second card for the same place.
-                    if (here != null) {
-                        Icon(Icons.Filled.LocationOn, contentDescription = null, tint = Palette.primary, modifier = Modifier.size(14.dp))
-                        Spacer(Modifier.width(6.dp))
-                    }
-                    Text(place.title, fontSize = 20.sp, lineHeight = 25.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+        val labelWidth = Strip.labelWidth(maxWidth)
+        Row(Modifier.fillMaxWidth().heightIn(min = Strip.tileHeight + Strip.gap)
+            .drawWithContent {
+                drawContent()
+                // The lens: the selected hour, one outline down every row (each row draws its part;
+                // the first rounds the top, the last the bottom).
+                val tilesLeft = (labelWidth + Strip.labelGap).toPx()
+                val gapPx = Strip.gap.toPx()
+                val pitch = (size.width - tilesLeft + gapPx) / 5
+                val outset = Strip.lensOutset.toPx()
+                val stroke = Strip.lensStroke.toPx()
+                val tileTop = (size.height - Strip.tileHeight.toPx()) / 2
+                val top = if (first) tileTop - outset else -size.height
+                val bottom = if (last) size.height - tileTop + outset else size.height * 2
+                val left = tilesLeft + 2 * pitch - outset
+                val width = pitch - gapPx + 2 * outset
+                val radius = CornerRadius(Strip.lensRadius.toPx())
+                clipRect(left = 0f, top = if (first) top - stroke else 0f, right = size.width,
+                    bottom = if (last) bottom + stroke else size.height) {
+                    drawRoundRect(white(0.06f), topLeft = Offset(left, top), size = Size(width, bottom - top), cornerRadius = radius)
+                    drawRoundRect(Palette.primary, topLeft = Offset(left + stroke / 2, top + stroke / 2),
+                        size = Size(width - stroke, bottom - top - stroke),
+                        cornerRadius = CornerRadius(radius.x - stroke / 2), style = Stroke(stroke))
                 }
-                Text(detailWithDay, style = tnum, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = white(0.85f),
+            },
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.width(labelWidth).padding(vertical = 3.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(place.title, fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    // Where you are: a small pin after the name, as on the Mac.
+                    if (here) Icon(Icons.Filled.LocationOn, contentDescription = null, tint = Palette.muted,
+                        modifier = Modifier.padding(start = 4.dp).size(12.dp))
+                }
+                // A person's city, under their name.
+                if (place.person != null) Text(place.name, fontSize = 12.sp, lineHeight = 15.sp, color = Palette.muted,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(time, style = tnum, fontSize = 13.sp, lineHeight = 17.sp, color = Palette.secondary, maxLines = 1, softWrap = false)
+                    if (shift != 0) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(if (shift > 0) "+$shift d" else "−${-shift} d", fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium,
+                            color = Palette.cream, maxLines = 1, softWrap = false,
+                            modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.border).padding(horizontal = 6.dp, vertical = 1.dp))
+                    } else {
+                        Spacer(Modifier.width(6.dp))
+                        // Shrinks to fit before it would cut, so "UTC+5:30" shows whole (as on the Mac).
+                        var offShrink by remember(utc) { mutableFloatStateOf(1f) }
+                        Text(utc, style = tnum, fontSize = (13f * offShrink).sp, lineHeight = 17.sp, color = Palette.muted,
+                            maxLines = 1, softWrap = false,
+                            onTextLayout = { if (it.didOverflowWidth && offShrink > 0.75f) offShrink = (offShrink - 0.05f).coerceAtLeast(0.75f) })
+                    }
+                }
             }
-            Spacer(Modifier.width(8.dp))
-            // The time never truncates: it is measured first, and the name gives way.
-            Text(clockText(clock, suffix), fontSize = 34.sp, lineHeight = 38.sp, fontWeight = FontWeight.Light,
-                color = Palette.primary, maxLines = 1, softWrap = false)
-        }
-        Spacer(Modifier.height(10.dp))
-        HourTiles(store, place, onLongPress)
-        Spacer(Modifier.height(8.dp))
-        // Work on the left, the sun on the right; always there, so every card is the same height.
-        Row(Modifier.fillMaxWidth().heightIn(min = 18.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween) {
-            if (work != null) {
-                StatusNote(work, if (off == null) R.drawable.ic_briefcase else R.drawable.ic_moon,
-                    if (off == null) white(0.85f) else Palette.moon, Modifier.weight(1f, fill = false), fontSize = 13.sp)
-                Spacer(Modifier.width(8.dp))
-            } else Spacer(Modifier.width(0.dp))
-            if (sun != null) StatusNote(sun, if (sunUp) R.drawable.ic_sun else R.drawable.ic_sunrise, Palette.sun, fontSize = 13.sp)
+            Spacer(Modifier.width(Strip.labelGap))
+            HourTiles(store, place, Modifier.weight(1f), onLongPress)
         }
     }
 }
 
 /**
  * A city's hours as five tiles, two before the selected hour and two after, as on the Mac panel:
- * each tile the colour of the sky there at that hour (warm black at night, greys at dawn and dusk,
- * cream by day), dimmed outside working hours, the day's name and a white mark where a new day
- * starts, and a white lens on the selected hour. Tap a tile to go to that hour; drag to move
- * through time in quarter-hours.
+ * each tile the colour of the day there at that hour (warm black at night, greys at dawn and dusk,
+ * cream by day), dimmed outside working hours, the day's name and a mark where a new day starts,
+ * the outer tiles fading softly at the edges. The lens on the selected hour is drawn by the row.
+ * Tap a tile to go to that hour; drag to move through time in quarter-hours.
  */
 @Composable
-fun HourTiles(store: Store, place: Place, onLongPress: () -> Unit) {
+fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () -> Unit) {
     val anchor = TimeMath.hourAnchor(store.moment, store.home)
     val starts = (-2..2).map { anchor.plusSeconds(it * 3600L) }
     fun newDay(start: Instant) = start.atZone(place.zone).toLocalDate() != start.minusSeconds(3600).atZone(place.zone).toLocalDate()
     val off = if (store.showWorkHours) WorkWeek.offLabel(place, store.moment, store.workStart, store.workEnd) else null
     val state = TimeMath.time(store.moment, place.zone, store.use24h) + if (store.showWorkHours) ", ${(off ?: "working").lowercase()}" else ""
-    val gapPx = with(LocalDensity.current) { 6.dp.toPx() }
+    val gapPx = with(LocalDensity.current) { Strip.gap.toPx() }
     var widthPx by remember { mutableFloatStateOf(1f) }
-    BoxWithConstraints(Modifier.fillMaxWidth().height(50.dp)
+    Box(modifier.fillMaxWidth().height(Strip.tileHeight)
         .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
         .pointerInput(place.id) {
             detectTapGestures(onLongPress = { onLongPress() }, onTap = { o ->
@@ -920,62 +954,67 @@ fun HourTiles(store: Store, place: Place, onLongPress: () -> Unit) {
                 CustomAccessibilityAction("Previous hour") { store.travel(-1); true },
             )
         }) {
-        val pitch = (maxWidth + 6.dp) / 5
-        Row(Modifier.fillMaxSize().padding(vertical = 3.dp).clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            starts.forEachIndexed { i, start ->
-                HourTile(store, place, start, center = i == 2, newDay = newDay(start), modifier = Modifier.weight(1f).fillMaxHeight())
+        // The Mac's edge fade: the outer tiles soften to nothing at the panel's sides.
+        Box(Modifier.matchParentSize().clearAndSetSemantics {}
+            .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+            .drawWithContent {
+                drawContent()
+                drawRect(Brush.horizontalGradient(0f to Color.Transparent, 0.11f to Color.Black, 0.89f to Color.Black, 1f to Color.Transparent),
+                    blendMode = BlendMode.DstIn)
+            }) {
+            Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.spacedBy(Strip.gap)) {
+                starts.forEachIndexed { i, start ->
+                    HourTile(store, place, start, center = i == 2, newDay = newDay(start), modifier = Modifier.weight(1f).fillMaxHeight())
+                }
+            }
+            // Midnight: a crimson mark in the gap before the tile where a new day starts, as on the Mac.
+            Canvas(Modifier.matchParentSize()) {
+                val pitchPx = (size.width + Strip.gap.toPx()) / 5
+                val inset = 8.dp.toPx()
+                for (i in 1..4) {
+                    if (!newDay(starts[i])) continue
+                    drawRoundRect(Palette.crimson, topLeft = Offset(i * pitchPx - Strip.gap.toPx() / 2 - 1.dp.toPx(), inset),
+                        size = Size(2.dp.toPx(), size.height - 2 * inset), cornerRadius = CornerRadius(1.dp.toPx()))
+                }
             }
         }
-        // Midnight: a white mark in the gap before the tile where a new day starts.
-        Canvas(Modifier.matchParentSize()) {
-            val pitchPx = (size.width + 6.dp.toPx()) / 5
-            val h = 28.dp.toPx()
-            for (i in 1..4) {
-                if (!newDay(starts[i])) continue
-                drawRoundRect(white(0.9f), topLeft = Offset(i * pitchPx - 3.dp.toPx() - 1.dp.toPx(), (size.height - h) / 2),
-                    size = Size(2.dp.toPx(), h), cornerRadius = CornerRadius(1.dp.toPx()))
-            }
-        }
-        // The lens: the selected hour, the same column on every card.
-        Box(Modifier.offset(x = pitch * 2 - 3.dp).size(width = pitch, height = 50.dp)
-            .background(white(0.06f), RoundedCornerShape(11.dp)).border(2.dp, Palette.primary, RoundedCornerShape(11.dp)))
     }
 }
 
-/** One hour tile: the sky's colour there at that hour, flat, with the hour in a colour that reads on it. */
+/** One hour tile, as on the Mac: the day's colour there at that hour, flat, with the hour in a colour that reads on it. */
 @Composable
 private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, modifier: Modifier) {
     val z = start.atZone(place.zone)
     val hour = z.hour
     val minute = z.minute
-    val fill = DayColor.lifted(DayColor.at(hour + minute / 60.0))
+    val fill = DayColor.at(hour + minute / 60.0)
     val text = if (DayColor.isLight(fill)) Palette.bg else Palette.secondary
     val fillColor by animateColorAsState(Color(fill), tween(250), label = "tile")
     val textColor by animateColorAsState(text, tween(250), label = "tile text")
+    // Outside working hours, as on the Mac: the tile a little quieter.
     val dim = store.showWorkHours && !store.isWorking(place, start.plusSeconds(1800))
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(Strip.tileRadius)
     val use24h = store.use24h
-    // Large text is capped, then shrinks to fit the tile (to 70%), as on the iPhone.
+    // Large text is capped, then shrinks to fit the tile (to 60%), as on the Mac.
     val cap = maxOf(1f, LocalDensity.current.fontScale / 1.15f)
     var shrink by remember(hour, minute, use24h) { mutableFloatStateOf(1f) }
     val scale = shrink / cap
     val label = buildAnnotatedString {
         append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
         if (minute != 0) withStyle(SpanStyle(fontSize = (11 * scale).sp)) { append(":%02d".format(minute)) }
+        // A thin space before AM/PM, set small, so "12:30AM" stays on one line.
         if (!use24h) withStyle(SpanStyle(fontSize = ((if (minute != 0) 8 else 9) * scale).sp)) {
             append(" " + if (hour < 12) "AM" else "PM")
         }
     }
-    Box(modifier.clip(shape).background(fillColor)
-        .then(if (dim) Modifier.background(Color.Black.copy(alpha = 0.35f)) else Modifier)
-        .border(0.5.dp, white(0.12f), shape), contentAlignment = Alignment.Center) {
+    Box(modifier.clip(shape).background(fillColor.copy(alpha = if (dim) 0.72f else 1f)), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, style = tnum, fontSize = (17 * scale).sp, lineHeight = (20 * scale).sp,
+            Text(label, style = tnum, fontSize = (16 * scale).sp, lineHeight = (19 * scale).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
                 color = textColor, maxLines = 1, softWrap = false,
-                onTextLayout = { if (it.didOverflowWidth && shrink > 0.7f) shrink = (shrink - 0.1f).coerceAtLeast(0.7f) })
+                onTextLayout = { if (it.didOverflowWidth && shrink > 0.6f) shrink = (shrink - 0.1f).coerceAtLeast(0.6f) })
             if (newDay) Text(TimeMath.weekday(start, place.zone).uppercase(), fontSize = (9 / cap).sp, lineHeight = (11 / cap).sp,
-                fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false)
+                fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false)
         }
     }
 }

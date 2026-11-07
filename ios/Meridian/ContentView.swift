@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The whole app on one screen: one card per city (its time, large, over a row of five hour tiles
-/// shaded for day and night), with the column labels pinned above and the time ruler below. Drag
-/// any row of tiles sideways to move through time in quarter-hours; tap a tile to go to that hour.
+/// The whole app on one screen: one row per city in one panel, as in Meridian for Mac (its name
+/// and time, then five hour tiles shaded for day and night), with the column labels pinned above
+/// and the time ruler below. Drag any row of tiles sideways to move through time in quarter-hours;
+/// tap a tile to go to that hour.
 struct ContentView: View {
     @EnvironmentObject private var store: CityStore
     /// Search to add a city, right above the cards (as in Apple's Weather and Two Degrees).
@@ -16,6 +17,8 @@ struct ContentView: View {
     @State private var showingDate = false
     @State private var copied = false
     @State private var renaming: Place?
+    /// The list's width, for the touch-and-hold preview of a row.
+    @State private var listWidth: CGFloat = 390
     /// The card tapped: its actions show in a dialog.
     @State private var actionsFor: Place?
     /// The city whose working days and hours are being edited.
@@ -113,13 +116,15 @@ struct ContentView: View {
 
     private var styledList: some View {
         cityList
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { listWidth = $0 }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Color.black.ignoresSafeArea())
+            // Meridian's warm near-black, as on the Mac.
+            .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Meridian")
             // The title sits small in the bar, between Share and the + and pencil; never large.
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(Theme.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .environment(\.editMode, $editMode)
             // The groups and the column labels pinned at the top, over the tiles they label.
@@ -286,11 +291,12 @@ struct ContentView: View {
                 emptyGroup(f)
             }
         }
-        // In Edit List every card shows, so removing and moving follow the full list.
-        ForEach(editMode.isEditing ? store.places : store.visiblePlaces) { place in
-            row(place)
+        // In Edit List every city shows, so removing and moving follow the full list.
+        let shown = editMode.isEditing ? store.places : store.visiblePlaces
+        ForEach(shown) { place in
+            row(place, first: place.id == shown.first?.id, last: place.id == shown.last?.id)
         }
-        // Remove and reorder in Edit List only: a sideways swipe on a card drags its hour tiles.
+        // Remove and reorder in Edit List only: a sideways swipe on a row drags its hour tiles.
         .onDelete { store.remove(at: $0) }
         .onMove { store.move(from: $0, to: $1) }
         // The last row, not a section footer: a plain list pins footers to the bottom of the screen.
@@ -368,28 +374,18 @@ struct ContentView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func row(_ place: Place) -> some View {
-        // Each city is a card on its own sky, as in Two Degrees: 16 pt from the screen edges, 14 pt
-        // inside, 10 pt between cards, continuous corners. Each card has its own actions: touch and
-        // hold for the menu (a tap does nothing). No swipe to remove: a sideways swipe drags the hour
-        // tiles, which moves the time for every city.
-        let shape = RoundedRectangle(cornerRadius: Card.radius, style: .continuous)
-        return CityRow(place: place, editing: editMode.isEditing)
-            .padding(Card.padding)
-            .background { SkyView(phase: Sky.phase(for: place, at: store.moment)) }
-            .clipShape(shape)
-            .overlay {
-                // Where you are, as Two Degrees outlines its chosen city.
-                if store.isHere(place) {
-                    shape.strokeBorder(Color.white.opacity(0.5), lineWidth: 1.5).allowsHitTesting(false)
-                }
-            }
-            .contentShape(shape)
-            .contentShape(.contextMenuPreview, shape)
+    private func row(_ place: Place, first: Bool, last: Bool) -> some View {
+        // Each city is a row in one panel, as in Meridian for Mac: the panel is drawn row by row
+        // behind them (rounded at the top of the first and the bottom of the last). Each row has
+        // its own actions: touch and hold for the menu (a tap on a tile goes to that hour). No swipe
+        // to remove: a sideways swipe drags the hour tiles, which moves the time for every city.
+        CityRow(place: place, editing: editMode.isEditing, first: first, last: last)
+            .contentShape(Rectangle())
             .deleteDisabled(!editMode.isEditing)
             .moveDisabled(!editMode.isEditing)
-            .listRowInsets(EdgeInsets(top: Card.gap / 2, leading: Card.margin, bottom: Card.gap / 2, trailing: Card.margin))
-            .listRowBackground(Color.clear)
+            // The row brings its own top and bottom space, so the panel and the lens run unbroken.
+            .listRowInsets(EdgeInsets(top: 0, leading: Strip.edge, bottom: 0, trailing: Strip.edge))
+            .listRowBackground(PanelSegment(first: first, last: last))
             .listRowSeparator(.hidden)
             .contextMenu {
                 Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
@@ -403,6 +399,14 @@ struct ContentView: View {
                 Button(role: .destructive) {
                     store.remove(place)
                 } label: { Label("Remove", systemImage: "trash") }
+            } preview: {
+                // The row on its own piece of the panel: the row's content is clear (the panel is the
+                // list row's background), so the preview brings the panel colour and a closed lens.
+                CityRow(place: place, first: true, last: true)
+                    .padding(.horizontal, Strip.inset)
+                    .frame(width: max(280, listWidth - 2 * Strip.margin))
+                    .background(Theme.tile)
+                    .environmentObject(store)
             }
             .accessibilityAction(named: "Copy Time") { copy(place) }
             .accessibilityAction(named: "Rename") { if !place.isMyLocation || place.person != nil { newName = place.title; renaming = place } }
@@ -783,51 +787,41 @@ struct StatusLabelStyle: LabelStyle {
     }
 }
 
-/// One city, in the manner of Apple's Clock: its name and how it relates to you on the left, its
-/// time large and light on the right; then its hours as five day-and-night tiles, and a status line.
+/// One city, as a row in Meridian for Mac: its name (and, for a person, their city) with its time
+/// and the "+1 d" badge or its offset on the left; its hours as five day-and-night tiles on the
+/// right, under the lens that marks the selected hour down the whole panel.
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .title2) private var nameSize: CGFloat = 20
-    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 34
-    /// The rest of the card's type, scaled with the reader's text size.
+    /// The row's type, scaled with the reader's text size.
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     let place: Place
     /// In Edit List: a compact row (name, offset, time) so the delete button and handle fit.
     var editing = false
+    /// The top and last rows of the panel, which bring the panel's inner margin.
+    var first = false
+    var last = false
+    /// The row's width, for the name column (the tiles take the rest).
+    @State private var width: CGFloat = 346
 
-    /// "My Location" on the card for where you are; with the city you're in when this card is
-    /// another city in the same time zone ("My Location · Boulder" on Denver).
+    /// "My Location" for where you are; with the city you're in when this is another city in the
+    /// same time zone ("My Location · Boulder" on Denver).
     private var hereLabel: String? {
         guard store.isHere(place) else { return nil }
         if !place.isMyLocation, place.person == nil, let city = store.hereCity, city != place.name { return "My Location · \(city)" }
         return "My Location"
     }
 
-    /// "Off hours", "Weekend" or "Day off" when the city isn't at work (and that setting is on).
-    private var offLabel: String? {
-        store.showWorkHours ? WorkWeek.offLabel(place, at: store.moment, start: store.workStart, end: store.workEnd) : nil
-    }
-
-    /// "Working" with a briefcase, or "Off hours", "Weekend", "Day off" with a moon (when that
-    /// setting is on).
-    private var workStatus: (text: String, icon: String, working: Bool)? {
+    /// "Working", or "Off hours", "Weekend", "Day off" (when that setting is on), for VoiceOver.
+    private var workStatus: String? {
         guard store.showWorkHours else { return nil }
-        if let off = offLabel { return (off, "moon.zzz.fill", false) }
-        return ("Working", "briefcase.fill", true)
+        return WorkWeek.offLabel(place, at: store.moment, start: store.workStart, end: store.workEnd) ?? "Working"
     }
 
-    /// "Sets 4:59 PM" while the sun is up there, "Rises 6:27 AM" while it's down.
-    private var sunStatus: (text: String, icon: String)? {
-        let time = { (date: Date) in TimeMath.time(date, in: place.timeZone, use24h: store.use24h) }
-        switch Sun.phase(zoneID: place.timeZoneID, at: store.moment) {
-        case .day(let sets)?: return ("Sets \(time(sets))", "sun.max.fill")
-        case .night(let rises)?: return ("Rises \(time(rises))", "sunrise.fill")
-        case .allDay?: return ("Sun all day", "sun.max.fill")
-        case .allNight?: return ("Polar night", "moon.stars.fill")
-        case nil: return nil
-        }
-    }
+    /// Space above and below the content: the panel's margin on the first and last rows, half the
+    /// gutter between the others (so rows sit one gutter apart, as the tiles do).
+    private var topPad: CGFloat { first ? Strip.lead + Strip.inset : TileGrid.gap / 2 }
+    private var bottomPad: CGFloat { last ? Strip.lead + Strip.inset : TileGrid.gap / 2 }
 
     var body: some View {
         if editing { compactRow } else { fullRow }
@@ -846,7 +840,7 @@ struct CityRow: View {
                     }
                     Text(place.title).font(scaled(17, .semibold))
                 }
-                Text(detail(store.moment)).font(scaled(13)).foregroundStyle(Color.white.opacity(Theme.Op.sub))
+                Text(detail(store.moment)).font(scaled(13)).foregroundStyle(Theme.muted)
             }
             .lineLimit(1)
             Spacer(minLength: 8)
@@ -854,113 +848,79 @@ struct CityRow: View {
                 .font(scaled(17)).monospacedDigit()
         }
         .foregroundStyle(.white)
-        .frame(minHeight: 64 - 2 * Card.padding)
+        .frame(minHeight: 36)
+        .padding(.top, first ? Strip.lead + Strip.inset : 8)
+        .padding(.bottom, last ? Strip.lead + Strip.inset : 8)
         .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder private var fullRow: some View {
+    private var fullRow: some View {
         let moment = store.moment
-        let cal = place.calendar
-        let hour = cal.component(.hour, from: moment), minute = cal.component(.minute, from: moment)
-        let large = typeSize.isAccessibilitySize
-        // Side by side normally; stacked at accessibility text sizes so nothing is cut off.
-        let layout = large ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-                           : AnyLayout(HStackLayout(alignment: .center, spacing: 0))
-        VStack(alignment: .leading, spacing: 0) {
-            layout {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        // Where you are, on this card rather than a second card for the same place.
-                        if hereLabel != nil {
-                            Image(systemName: "location.fill")
-                                .font(scaled(13))
-                                .accessibilityHidden(true)
-                        }
-                        Text(place.title)
-                            .font(.system(size: nameSize, weight: .semibold))
-                            .minimumScaleFactor(0.7)
-                    }
-                    Text(detailWithDay(moment))
-                        .font(scaled(13, .medium))
-                        .foregroundStyle(Color.white.opacity(Theme.Op.body))
-                        .monospacedDigit()
-                }
-                .lineLimit(large ? 2 : 1)
-                if !large { Spacer(minLength: 8) }
-                // The time is never cut short: the name gives way first.
-                clock(hour: hour, minute: minute)
-                    .fixedSize()
-                    .layoutPriority(1)
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel([place.title, place.person != nil ? place.name : nil, hereLabel, TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
-                                 detail(moment), dayNote(moment), workStatus?.text, sunStatus.map { "sun \($0.text.lowercased())" }]
-                                 .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+        return HStack(alignment: .center, spacing: Strip.labelGap) {
+            label(moment)
+                .frame(width: Strip.labelWidth(width), alignment: .leading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel([place.title, place.person != nil ? place.name : nil, hereLabel,
+                                     TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
+                                     detail(moment), dayNote(moment), workStatus]
+                                     .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
             // The city's hours: two before, the one holding the moment, two after.
             HourTiles(place: place)
-                .padding(.top, 10)
-            // One status line on every card, always there (so every card is the same height):
-            // work on the left, the sun on the right. VoiceOver reads it with the name above.
-            statusRow(large: large)
-                .padding(.top, 8)
-                .accessibilityHidden(true)
         }
+        .padding(.top, topPad)
+        .padding(.bottom, bottomPad)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .overlay { LensSegment(first: first, last: last, topPad: topPad, bottomPad: bottomPad) }
         .foregroundStyle(.white)
         .accessibilityElement(children: .contain)
     }
 
-    /// The detail line, with the day in front when it isn't today there ("Tomorrow · +8 hr · UTC+1").
-    private func detailWithDay(_ moment: Date) -> String {
-        let day = dayLine(moment)
-        return day == "Today" ? detail(moment) : "\(day) · \(detail(moment))"
-    }
-
-    private func statusRow(large: Bool) -> some View {
-        let statusLayout = large ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-                                 : AnyLayout(HStackLayout(spacing: 8))
-        return statusLayout {
-            if let work = workStatus {
-                Label {
-                    Text(work.text)
-                } icon: {
-                    Image(systemName: work.icon)
-                        .foregroundStyle(work.working ? Color.white.opacity(Theme.Op.body) : Theme.moon)
+    /// The name (semibold), a person's city under it, then the time with "+1 d" when it's another
+    /// day there, or the offset, as on the Mac.
+    private func label(_ moment: Date) -> some View {
+        let shift = TimeMath.dayShift(moment, zone: place.timeZone)
+        let large = typeSize.isAccessibilitySize
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Text(place.title)
+                    .font(scaled(16, .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(large ? 2 : 1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.8)
+                if store.isHere(place) {
+                    Image(systemName: "location.fill")
+                        .font(scaled(9, .medium))
+                        .foregroundStyle(Theme.muted)
                 }
             }
-            if !large { Spacer(minLength: 0) }
-            if let sun = sunStatus {
-                Label {
-                    Text(sun.text).monospacedDigit()
-                } icon: {
-                    sunIcon(sun.icon)
+            if place.person != nil {
+                Text(place.name)
+                    .font(scaled(12))
+                    .foregroundStyle(Theme.muted)
+                    .lineLimit(1)
+            }
+            HStack(spacing: 6) {
+                Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
+                    .foregroundStyle(Theme.secondary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                if shift != 0 {
+                    Text(shift > 0 ? "+\(shift) d" : "\u{2212}\(-shift) d")
+                        .font(scaled(11, .medium))
+                        .foregroundStyle(Theme.cream)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(Theme.border))
+                } else {
+                    Text(place.offsetLabel(at: moment))
+                        .foregroundStyle(Theme.muted)
                 }
             }
-        }
-        .font(scaled(13, .medium))
-        .foregroundStyle(Color.white.opacity(Theme.Op.body))
-        .labelStyle(StatusLabelStyle())
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
-        .frame(minHeight: 18 * scale)
-    }
-
-    @ViewBuilder private func sunIcon(_ name: String) -> some View {
-        switch name {
-        case "sunrise.fill":
-            Image(systemName: name).symbolRenderingMode(.palette).foregroundStyle(Theme.sun, Color.white)
-        case "moon.stars.fill":
-            Image(systemName: name).symbolRenderingMode(.palette).foregroundStyle(Theme.moon, Color.white)
-        default:
-            Image(systemName: name).foregroundStyle(Theme.sun)
-        }
-    }
-
-    private func clock(hour: Int, minute: Int) -> some View {
-        let parts = ClockText.parts(hour: hour, minute: minute, use24h: store.use24h)
-        return ClockText.text(parts.digits, suffix: parts.suffix, size: clockSize, weight: .light)
-            .foregroundStyle(.white)
+            .font(scaled(13))
             .lineLimit(1)
-            .contentTransition(.numericText())
+            .minimumScaleFactor(0.7)
+        }
     }
 
     /// "Tue 9 Jun", as everywhere else in the app.
@@ -970,22 +930,6 @@ struct CityRow: View {
         f.dateFormat = "EEE d MMM"
         return f
     }()
-
-    /// The day it is there at the moment shown, against today on your own clock: "Today",
-    /// "Tomorrow", "Yesterday", or the date ("Tue 9 Jun").
-    private func dayLine(_ moment: Date) -> String {
-        let there = place.calendar.dateComponents([.year, .month, .day], from: moment)
-        let today = Calendar.current.dateComponents([.year, .month, .day], from: store.now)
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
-        guard let a = utc.date(from: there), let b = utc.date(from: today) else { return TimeMath.fullDay(moment, in: place.timeZone) }
-        switch Int((a.timeIntervalSince(b) / 86_400).rounded()) {
-        case 0: return "Today"
-        case 1: return "Tomorrow"
-        case -1: return "Yesterday"
-        default: return TimeMath.fullDay(moment, in: place.timeZone)
-        }
-    }
 
     /// ", tomorrow there" for VoiceOver.
     private func dayNote(_ moment: Date) -> String {

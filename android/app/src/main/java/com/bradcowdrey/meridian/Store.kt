@@ -18,6 +18,12 @@ import kotlin.math.roundToInt
 class Store(private val context: Context, val demo: Boolean = false) {
     companion object {
         const val MAX_PLACES = 24
+        /** The most groups the user can make. */
+        const val MAX_GROUPS = 24
+
+        /** A group's name, tidied: single spaces, trimmed, at most 30 characters. */
+        fun normalizedGroupName(raw: String): String =
+            raw.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString(" ").take(30)
         /** Demo moment: Tuesday 9 June 2026, 9:41 AM in San Francisco. */
         val DEMO_DATE: Instant = Instant.ofEpochSecond(1_781_023_260)
 
@@ -95,6 +101,14 @@ class Store(private val context: Context, val demo: Boolean = false) {
     /** The group the list shows ("Design team"); null shows everyone. */
     var groupFilter by mutableStateOf(if (demo) null else prefs.getString("groupFilter", null))
         private set
+    /** The user's own groups, in the order they set (chips, Find a Time, the Groups screen). */
+    var groupOrder by mutableStateOf(loadGroupOrder())
+        private set
+    /** Counts the times the filter went back to All by itself (a group emptied or deleted), for TalkBack. */
+    var filterResets by mutableIntStateOf(0)
+        private set
+    /** Set once the store is set up, so the filter resets made at launch aren't announced. */
+    private var ready = false
     /** Clock changes the user has closed the notice for ("Europe/London|1793000000"). */
     var dismissedClockChanges by mutableStateOf<Set<String>>(if (demo) emptySet() else prefs.getStringSet("dismissedClockChanges", null)?.toSet() ?: emptySet())
         private set
@@ -119,6 +133,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
             updateMyLocation()
             syncWidgets()
         }
+        ready = true
     }
 
     private fun starterPlaces(): List<Place> {
@@ -242,12 +257,15 @@ class Store(private val context: Context, val demo: Boolean = false) {
     val canAdd get() = places.size < MAX_PLACES
     fun contains(entry: CityEntry) = places.any { it.person == null && it.name == entry.name && it.zoneId == entry.zoneId }
 
-    fun add(entry: CityEntry) {
-        if (!canAdd || contains(entry)) return
-        update(places + Place(entry.name, entry.zoneId, countryCode = entry.countryCode,
-            latitude = entry.latitude, longitude = entry.longitude))
+    /** Adds a city; returns its card's id (null when it wasn't added, or folded into another card). */
+    fun add(entry: CityEntry): String? {
+        if (!canAdd || contains(entry)) return null
+        val place = Place(entry.name, entry.zoneId, countryCode = entry.countryCode,
+            latitude = entry.latitude, longitude = entry.longitude)
+        update(places + place)
         // A city in your own time zone becomes My Location, rather than showing twice.
         updateMyLocation()
+        return place.id.takeIf { id -> places.any { it.id == id } }
     }
 
     fun remove(place: Place) {
@@ -257,6 +275,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         update(places.filter { it.id != place.id })
         // Deleting the card standing in for My Location brings the My Location card back.
         if (place.isMyLocation) updateUseMyLocation(false) else if (wasHost) updateMyLocation()
+        validateFilter()
     }
 
     /** The card is where you are: the My Location card, or the one standing in for it. */
@@ -272,6 +291,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         val list = if (on) MyLocation.apply(places, prefs) else MyLocation.remove(places, prefs)
         if (list != places) update(list)
         myLocationHost = if (on) MyLocation.hostId(prefs) else null
+        validateFilter()
     }
 
     /** Looks up the city name (if allowed), then updates the row. */
@@ -312,9 +332,47 @@ class Store(private val context: Context, val demo: Boolean = false) {
 
     // MARK: Groups
 
-    /** The groups the user made ("Design team"), A to Z. */
-    val customGroups: List<String>
-        get() = places.flatMap { it.groups ?: emptyList() }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+    private fun loadGroupOrder(): List<String> {
+        if (demo) return emptyList()
+        val saved = prefs.getString("groupOrder", null)?.let { json ->
+            runCatching { JSONArray(json).let { a -> (0 until a.length()).map { a.getString(it) } } }.getOrNull()
+        }
+        val onCards = places.flatMap { it.groups ?: emptyList() }
+        val order = (saved ?: onCards.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)).distinct().toMutableList()
+        onCards.forEach { if (it !in order) order += it }
+        if (saved != order) saveGroupOrder(order)
+        return order
+    }
+
+    private fun saveGroupOrder(list: List<String>) {
+        if (!demo) prefs.edit().putString("groupOrder", JSONArray(list).toString()).apply()
+    }
+
+    private fun setGroupOrder(list: List<String>) {
+        groupOrder = list
+        saveGroupOrder(list)
+    }
+
+    /** The groups the user made ("Design team"), in their order. */
+    val customGroups: List<String> get() = groupOrder
+
+    /** An automatic continent group (not one of the user's own with the same name). */
+    fun isContinent(group: String): Boolean = group in Continent.ordered && group !in groupOrder
+
+    /** How many continents the list spans (0 when Group by Continent is off). */
+    val continentChipCount: Int
+        get() = if (continentGroups) places.mapNotNull { Continent.of(it) }.distinct().size else 0
+
+    /** The chips: the user's groups in their order, then the continents (when the list spans two or more). */
+    val chipGroups: List<String>
+        get() {
+            if (continentChipCount < 2) return groupOrder
+            val present = places.mapNotNull { Continent.of(it) }.toSet()
+            return groupOrder + Continent.ordered.filter { it in present && it !in groupOrder }
+        }
+
+    /** Every group on the list (same as the chips). */
+    val groups: List<String> get() = chipGroups
 
     /** A card's groups: its own, and its continent (when Group by Continent is on). Derived, never saved. */
     fun groupsOf(place: Place): List<String> {
@@ -323,25 +381,105 @@ class Store(private val context: Context, val demo: Boolean = false) {
         return if (continent == null || continent in own) own else own + continent
     }
 
-    /** Every group on the list: the continents on it (North America first), then the user's own, A to Z. */
-    val groups: List<String>
-        get() {
-            val continents = if (continentGroups) places.mapNotNull { Continent.of(it) }.toSet() else emptySet()
-            return Continent.ordered.filter { it in continents } + customGroups.filter { it !in continents }
-        }
+    /** How many cards are in a group. */
+    fun groupCount(group: String): Int = places.count { group in groupsOf(it) }
 
-    /** The cards the list shows: everyone, or one group. */
+    /** The cards the list shows: everyone, or one group (which may be empty). */
     val visiblePlaces: List<Place>
         get() {
             val group = groupFilter ?: return places
-            if (group !in groups) return places
+            if (group !in chipGroups) return places
             return places.filter { group in groupsOf(it) }
         }
 
+    /** Why a name can't be used for a group, or null when it can. */
+    fun groupNameProblem(raw: String, renaming: String? = null): String? {
+        val name = normalizedGroupName(raw)
+        if (name.isEmpty()) return "Enter a name."
+        if (renaming != null && name == renaming) return null
+        if (name.equals("all", ignoreCase = true) || name.equals("everyone", ignoreCase = true)) return "\u201CAll\u201D already means every city."
+        if (Continent.ordered.any { it.equals(name, ignoreCase = true) }) return "Continents are grouped automatically."
+        groupOrder.firstOrNull { it != renaming && it.equals(name, ignoreCase = true) }?.let { return "There\u2019s already a group called $it." }
+        if (renaming == null && groupOrder.size >= MAX_GROUPS) return "You can have up to $MAX_GROUPS groups."
+        return null
+    }
+
+    /** Makes an empty group; returns its name, or null when the name can't be used. */
+    fun createGroup(raw: String): String? {
+        if (groupNameProblem(raw) != null) return null
+        val name = normalizedGroupName(raw)
+        setGroupOrder(groupOrder + name)
+        return name
+    }
+
+    /** Renames a group on every card, in the order and in the filter. */
+    fun renameGroup(old: String, raw: String): Boolean {
+        val name = normalizedGroupName(raw)
+        if (name == old) return true
+        if (groupNameProblem(raw, old) != null) return false
+        if (places.any { old in (it.groups ?: emptyList()) }) {
+            update(places.map { p ->
+                val own = p.groups
+                if (own == null || old !in own) p else p.copy(groups = own.map { if (it == old) name else it }.distinct().sorted())
+            })
+        }
+        setGroupOrder(if (old in groupOrder) groupOrder.map { if (it == old) name else it } else groupOrder + name)
+        if (groupFilter == old) updateGroupFilter(name)
+        return true
+    }
+
+    /** Deletes a group; its cities stay on the list. */
+    fun deleteGroup(group: String) {
+        if (places.any { group in (it.groups ?: emptyList()) }) {
+            update(places.map { p ->
+                val own = p.groups
+                if (own == null || group !in own) p else p.copy(groups = own.filter { it != group }.ifEmpty { null })
+            })
+        }
+        setGroupOrder(groupOrder.filter { it != group })
+        validateFilter()
+    }
+
+    /** Moves a group up (-1) or down (+1) in the order. */
+    fun moveGroup(group: String, by: Int) {
+        val i = groupOrder.indexOf(group)
+        val j = i + by
+        if (i < 0 || j !in groupOrder.indices) return
+        setGroupOrder(groupOrder.toMutableList().also { it.add(j, it.removeAt(i)) })
+    }
+
+    /** Puts exactly these cards in a group (and takes the rest out). */
+    fun setMembers(ids: Set<String>, group: String) {
+        val list = places.map { p ->
+            val own = p.groups ?: emptyList()
+            val has = group in own
+            val want = p.id in ids
+            when {
+                want && !has -> p.copy(groups = (own + group).distinct().sorted())
+                !want && has -> p.copy(groups = own.filter { it != group }.ifEmpty { null })
+                else -> p
+            }
+        }
+        if (list != places) update(list)
+        if (group !in groupOrder) setGroupOrder(groupOrder + group)
+        validateFilter()
+    }
+
+    /** A card's own groups (names not yet in the order are added to its end). */
     fun setGroups(groups: List<String>, place: Place) {
-        val clean = groups.map { it.trim() }.filter { it.isNotEmpty() }.distinct().sorted()
+        val clean = groups.map { normalizedGroupName(it) }.filter { it.isNotEmpty() }.distinct().sorted()
         update(places.map { if (it.id == place.id) it.copy(groups = clean.ifEmpty { null }) else it })
-        groupFilter?.let { if (it !in this.groups) updateGroupFilter(null) }
+        val missing = clean.filter { it !in groupOrder }
+        if (missing.isNotEmpty()) setGroupOrder(groupOrder + missing)
+        validateFilter()
+    }
+
+    /** A filter that no longer names a chip goes back to All (announced, after launch). */
+    fun validateFilter() {
+        val group = groupFilter ?: return
+        if (group in chipGroups) return
+        updateGroupFilter(null)
+        if (ready) filterResets++
     }
 
     fun updateGroupFilter(group: String?) {
@@ -413,7 +551,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
     fun updateContinentGroups(on: Boolean) {
         continentGroups = on
         prefs.edit().putBoolean("continentGroups", on).apply()
-        groupFilter?.let { if (it !in groups) updateGroupFilter(null) }
+        validateFilter()
     }
     fun updateShowWorkHours(on: Boolean) { showWorkHours = on; prefs.edit().putBoolean("showWorkHours", on).apply() }
     fun updateWorkStart(hour: Int) { workStart = hour.coerceIn(0, 23); prefs.edit().putInt("workStart", workStart).apply() }

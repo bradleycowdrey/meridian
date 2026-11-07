@@ -20,6 +20,22 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
@@ -101,54 +117,288 @@ fun AddPersonDialog(city: String, onDone: (String?) -> Unit) {
     )
 }
 
-/** The groups a card is in ("Design team", "Family"): tick existing ones or make a new one. */
+private val checkColors: CheckboxColors @Composable get() =
+    CheckboxDefaults.colors(checkedColor = Palette.primary, checkmarkColor = Palette.black, uncheckedColor = white(0.6f))
+
+/**
+ * A card's groups ("Design team", "Family"), from its actions: tick to add or remove (saved as you
+ * go), or make a new group with this card in it. Its continent is shown, as it's automatic.
+ */
 @Composable
-fun GroupsDialog(store: Store, place: Place, onDone: () -> Unit) {
-    var chosen by remember { mutableStateOf(place.groups?.toSet() ?: emptySet()) }
-    var newGroup by remember { mutableStateOf("") }
-    val all = (store.customGroups + chosen).distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
-    fun addNew() {
-        val name = newGroup.trim()
-        if (name.isEmpty()) return
-        chosen = chosen + name.take(30)
-        newGroup = ""
+fun GroupPickerDialog(store: Store, placeId: String, onDone: () -> Unit) {
+    val place = store.places.firstOrNull { it.id == placeId }
+    if (place == null) {
+        LaunchedEffect(placeId) { onDone() }
+        return
     }
+    var naming by remember { mutableStateOf(false) }
+    val own = place.groups ?: emptyList()
+    val continent = if (store.continentGroups) Continent.of(place) else null
     AlertDialog(
         onDismissRequest = onDone,
         containerColor = Palette.tile,
         shape = RoundedCornerShape(16.dp),
-        title = { Text(place.title) },
+        title = { Text(place.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                all.forEach { group ->
-                    val on = group in chosen
-                    Row(Modifier.fillMaxWidth().clickable { chosen = if (on) chosen - group else chosen + group }.padding(vertical = 2.dp),
+                if (store.customGroups.isEmpty()) {
+                    Text("No groups yet.", fontSize = 15.sp, color = white(0.6f), modifier = Modifier.padding(vertical = 8.dp))
+                }
+                store.customGroups.forEach { group ->
+                    val on = group in own
+                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        .toggleable(value = on, role = Role.Checkbox) { store.setGroups(if (it) own + group else own.filter { g -> g != group }, place) },
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text(group, Modifier.weight(1f), color = Palette.primary)
-                        Checkbox(checked = on, onCheckedChange = { chosen = if (it) chosen + group else chosen - group },
-                            colors = CheckboxDefaults.colors(checkedColor = Palette.primary, checkmarkColor = Palette.black, uncheckedColor = white(0.6f)))
+                        Text(group, Modifier.weight(1f), color = Palette.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Checkbox(checked = on, onCheckedChange = null, colors = checkColors)
                     }
                 }
-                if (all.isNotEmpty()) Spacer(Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(newGroup, { newGroup = it }, singleLine = true, modifier = Modifier.weight(1f),
-                        placeholder = { Text("New group, like Design Team") },
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { addNew() }))
-                    TextButton(onClick = { addNew() }, enabled = newGroup.isNotBlank()) { Text("Add") }
+                TextButton(onClick = { naming = true }, enabled = store.customGroups.size < Store.MAX_GROUPS,
+                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp)) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("New Group…")
                 }
-                Spacer(Modifier.height(8.dp))
-                Text("Show one group at a time on your list, and pick a group in Find a Time. Continents are added automatically.", fontSize = 13.sp, color = white(0.6f))
+                if (continent != null) {
+                    Text("$continent · automatic", fontSize = 15.sp, color = white(0.5f), modifier = Modifier.padding(vertical = 8.dp))
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(if (store.customGroups.size >= Store.MAX_GROUPS) "You can have up to ${Store.MAX_GROUPS} groups."
+                    else "Add this card to as many groups as you like.", fontSize = 13.sp, color = white(0.6f))
             }
         },
-        confirmButton = { TextButton(onClick = { store.setGroups(chosen.toList(), place); onDone() }) { Text("Done") } },
-        dismissButton = { TextButton(onClick = onDone) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onDone) { Text("Done") } },
+    )
+    if (naming) GroupNameDialog(store, "New Group", confirm = "Create") { name ->
+        naming = false
+        if (name != null) store.createGroup(name)?.let { group ->
+            store.places.firstOrNull { it.id == placeId }?.let { p -> store.setGroups((p.groups ?: emptyList()) + group, p) }
+        }
+    }
+}
+
+/** Name a new group, or rename one: the problem with the name shows as you type, and confirm waits for a good one. */
+@Composable
+fun GroupNameDialog(
+    store: Store,
+    title: String,
+    initial: String = "",
+    renaming: String? = null,
+    confirm: String,
+    onDone: (String?) -> Unit,
+) {
+    var text by remember { mutableStateOf(initial) }
+    val problem = if (text.isBlank()) null else store.groupNameProblem(text, renaming)
+    val ok = store.groupNameProblem(text, renaming) == null
+    AlertDialog(
+        onDismissRequest = { onDone(null) },
+        containerColor = Palette.tile,
+        shape = RoundedCornerShape(16.dp),
+        title = { Text(title) },
+        text = {
+            val focus = remember { FocusRequester() }
+            LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+            OutlinedTextField(text, { text = it }, singleLine = true, isError = problem != null,
+                placeholder = { Text("Design Team") },
+                supportingText = { Text(problem ?: "Name a group of cities, like your team or family.") },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (ok) onDone(text) }),
+                modifier = Modifier.focusRequester(focus))
+        },
+        confirmButton = { TextButton(onClick = { onDone(text) }, enabled = ok) { Text(confirm) } },
+        dismissButton = { TextButton(onClick = { onDone(null) }) { Text("Cancel") } },
     )
 }
 
+/** "Delete “Design team”?" The cities stay. */
+@Composable
+fun DeleteGroupDialog(group: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Palette.tile,
+        shape = RoundedCornerShape(16.dp),
+        title = { Text("Delete “$group”?") },
+        text = { Text("The cities stay on your list.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Delete", color = Palette.destructive) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+/**
+ * Groups: your groups in your order (open one to choose its cities, rename it or delete it; move
+ * them up and down), a new group, and the automatic continent groups. Opened on a group ([open]),
+ * or straight to naming a new one ([create]), it shows just that group and closes when done.
+ */
+@Composable
+fun GroupsScreen(store: Store, open: String?, create: Boolean = false, onDone: () -> Unit) {
+    var detail by remember { mutableStateOf(open) }
+    var naming by remember { mutableStateOf(create) }
+    var created by remember { mutableStateOf<String?>(null) }
+    var deleting by remember { mutableStateOf<String?>(null) }
+    // Opened on one group (or a new one): that group is the whole screen.
+    val direct = open != null || create
+    fun finish() {
+        // A new group from the bar is shown once it has cities.
+        created?.let { group -> if (store.groupCount(group) > 0 && group in store.chipGroups) store.updateGroupFilter(group) }
+        onDone()
+    }
+    fun back() { if (detail != null && !direct) detail = null else finish() }
+    // Declared here, so it comes before the app's own Back.
+    BackHandler { back() }
+
+    val current = detail
+    Screen(current ?: "Groups", onBack = { back() }, back = current != null && !direct) { padding ->
+        if (current != null) {
+            GroupDetail(store, current, Modifier.padding(padding),
+                onRenamed = { detail = it; if (created != null) created = it },
+                onDeleted = { if (created == current) created = null; if (direct) finish() else detail = null })
+        } else if (!create) {
+            val custom = store.customGroups
+            val atCap = custom.size >= Store.MAX_GROUPS
+            Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                GlassCard("Your Groups", Icons.Filled.Person, spacing = 0.dp) {
+                    if (custom.isEmpty()) Text("No groups yet.", fontSize = 15.sp, color = white(0.6f), modifier = Modifier.padding(vertical = 10.dp))
+                    custom.forEachIndexed { i, group ->
+                        key(group) {
+                            var menu by remember { mutableStateOf(false) }
+                            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClickLabel = "Edit") { detail = group },
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Text(group, Modifier.weight(1f), color = Palette.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(cityCount(store.groupCount(group)), fontSize = 15.sp, color = white(0.6f), maxLines = 1)
+                                Box {
+                                    IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More for $group", tint = white(0.6f)) }
+                                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                        DropdownMenuItem(text = { Text("Move Up") }, enabled = i > 0,
+                                            leadingIcon = { Icon(Icons.Filled.KeyboardArrowUp, null) },
+                                            onClick = { menu = false; store.moveGroup(group, -1) })
+                                        DropdownMenuItem(text = { Text("Move Down") }, enabled = i < custom.size - 1,
+                                            leadingIcon = { Icon(Icons.Filled.KeyboardArrowDown, null) },
+                                            onClick = { menu = false; store.moveGroup(group, 1) })
+                                        DropdownMenuItem(text = { Text("Delete…", color = Palette.destructive) },
+                                            onClick = { menu = false; deleting = group })
+                                    }
+                                }
+                            }
+                            HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(enabled = !atCap) { naming = true },
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Add, contentDescription = null, tint = if (atCap) white(0.35f) else Palette.primary, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Text("New Group…", color = if (atCap) white(0.35f) else Palette.primary)
+                    }
+                }
+                Note(if (atCap) "You can have up to ${Store.MAX_GROUPS} groups."
+                    else "Show one group at a time on your list, and pick a group in Find a Time.")
+                GlassCard("Continents", Icons.Filled.LocationOn, spacing = 0.dp) {
+                    SwitchRow("Group by Continent", store.continentGroups) { store.updateContinentGroups(it) }
+                    if (store.continentGroups) {
+                        val present = store.places.mapNotNull { Continent.of(it) }.toSet()
+                        Continent.ordered.filter { it in present }.forEach { continent ->
+                            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(continent, Modifier.weight(1f), color = white(0.85f))
+                                Text(cityCount(store.places.count { Continent.of(it) == continent }), fontSize = 15.sp, color = white(0.6f))
+                            }
+                        }
+                    }
+                }
+                Note("Cities are grouped by continent automatically. Continent chips show when your list spans two or more.")
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+    if (naming) GroupNameDialog(store, "New Group", confirm = "Create") { name ->
+        naming = false
+        val group = name?.let { store.createGroup(it) }
+        if (group != null) {
+            if (create) created = group
+            detail = group
+        } else if (create && detail == null) onDone()
+    }
+    deleting?.let { group ->
+        DeleteGroupDialog(group, onConfirm = { deleting = null; store.deleteGroup(group) }, onDismiss = { deleting = null })
+    }
+}
+
+/** One group: its name (tap to rename), its cities as a checklist (saved as you go), and Delete. */
+@Composable
+private fun GroupDetail(store: Store, name: String, modifier: Modifier, onRenamed: (String) -> Unit, onDeleted: () -> Unit) {
+    // Deleted elsewhere (or never there): close.
+    if (name !in store.customGroups) {
+        LaunchedEffect(name) { onDeleted() }
+        return
+    }
+    var renaming by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val members = store.places.filter { name in (it.groups ?: emptyList()) }.map { it.id }.toSet()
+    val allIn = store.places.isNotEmpty() && members.size == store.places.size
+    val q = query.trim()
+    val shown = if (q.isEmpty()) store.places else store.places.filter { it.title.contains(q, ignoreCase = true) || it.name.contains(q, ignoreCase = true) }
+    Column(modifier.verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        GlassCard("Name", null, spacing = 0.dp) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClickLabel = "Rename") { renaming = true },
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(name, Modifier.weight(1f), color = Palette.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Icon(Icons.Filled.Edit, contentDescription = "Rename", tint = white(0.6f), modifier = Modifier.size(18.dp))
+            }
+        }
+        GlassCard("Cities", Icons.Filled.LocationOn, spacing = 0.dp) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("${cityCount(members.size).replaceFirstChar { it.uppercase() }} in this group", Modifier.weight(1f),
+                    fontSize = 13.sp, color = white(0.6f))
+                TextButton(onClick = { store.setMembers(if (allIn) emptySet() else store.places.map { it.id }.toSet(), name) },
+                    enabled = store.places.isNotEmpty()) { Text(if (allIn) "Select None" else "Select All") }
+            }
+            if (store.places.size > 10) {
+                OutlinedTextField(query, { query = it }, singleLine = true, placeholder = { Text("Search cities") },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = white(0.6f)) },
+                    shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp))
+            }
+            if (store.places.isEmpty()) Text("Add cities with + on the main screen.", fontSize = 15.sp, color = white(0.6f),
+                modifier = Modifier.padding(vertical = 10.dp))
+            else if (shown.isEmpty()) Text("No cities match “$q”.", fontSize = 15.sp, color = white(0.6f),
+                modifier = Modifier.padding(vertical = 10.dp))
+            shown.forEach { p ->
+                key(p.id) {
+                    val member = p.id in members
+                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        .toggleable(value = member, role = Role.Checkbox) { on ->
+                            store.setMembers(if (on) members + p.id else members - p.id, name)
+                        }
+                        .semantics { selected = member },
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(p.title, color = Palette.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (p.person != null) Text(p.name, fontSize = 13.sp, color = white(0.6f), maxLines = 1)
+                        }
+                        Text(TimeMath.time(store.now, p.zone, store.use24h), style = tnum, fontSize = 15.sp, color = white(0.6f), maxLines = 1)
+                        Spacer(Modifier.width(10.dp))
+                        Icon(Icons.Filled.Check, contentDescription = null, tint = if (member) Palette.primary else Color.Transparent,
+                            modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+        }
+        Note("Changes save as you go.")
+        TextButton(onClick = { confirmDelete = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text("Delete Group", color = Palette.destructive)
+        }
+        Spacer(Modifier.height(24.dp))
+    }
+    if (renaming) GroupNameDialog(store, "Rename Group", initial = name, renaming = name, confirm = "Rename") { new ->
+        renaming = false
+        if (new != null && store.renameGroup(name, new)) onRenamed(Store.normalizedGroupName(new))
+    }
+    if (confirmDelete) DeleteGroupDialog(name, onConfirm = { confirmDelete = false; store.deleteGroup(name); onDeleted() },
+        onDismiss = { confirmDelete = false })
+}
 
 @Composable
-fun SettingsScreen(store: Store, onDone: () -> Unit) {
+fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
     val context = LocalContext.current
     fun open(url: String) = context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     Screen("Settings", onDone, back = true) { padding ->
@@ -166,7 +416,12 @@ fun SettingsScreen(store: Store, onDone: () -> Unit) {
                 SwitchRow("Show My Location", store.useMyLocation) { store.updateUseMyLocation(it) }
                 Note("Keeps the city you're in on your list, and updates it when you travel. Location is used only to name the city, and only on your phone.")
                 SwitchRow("Group by Continent", store.continentGroups) { store.updateContinentGroups(it) }
-                Note("Cities are grouped by continent automatically, for the chips above your cards and Find a Time.")
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClick = openGroups), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Groups", Modifier.weight(1f), color = Palette.primary)
+                    Text("${store.customGroups.size}", color = white(0.6f))
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.6f))
+                }
+                Note("Cities are grouped by continent automatically when your list spans two or more.")
             }
             GlassCard("Widgets", Icons.Filled.Settings) {
                 Note("Touch and hold your home screen, tap Widgets, then find Meridian. Widgets show your cities in the same order as here.")

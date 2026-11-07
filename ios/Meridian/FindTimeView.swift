@@ -42,7 +42,11 @@ struct FindTimeView: View {
                 SlotView(slot: slot, length: length, places: people).environmentObject(store)
             }
             .onAppear {
-                if chosen.isEmpty { chosen = Set(store.visiblePlaces.map(\.id)) }
+                // The group showing on the list (every city when it has none yet).
+                if chosen.isEmpty {
+                    let visible = store.visiblePlaces
+                    chosen = Set((visible.isEmpty ? store.places : visible).map(\.id))
+                }
                 // Today on the app's clock; after work, tomorrow.
                 day = calendar.startOfDay(for: store.now)
                 if calendar.component(.hour, from: store.now) >= 17 { day = calendar.date(byAdding: .day, value: 1, to: day) ?? day }
@@ -86,11 +90,13 @@ struct FindTimeView: View {
     private var who: some View {
         VStack(alignment: .leading, spacing: 10) {
             CardCaption("Who", "person.2")
-            if !store.groups.isEmpty {
+            // Groups with cities in them, in the chips' order.
+            let groups = store.chipGroups.filter { store.groupCount($0) > 0 }
+            if !groups.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         PillChip(title: "Everyone", isOn: chosen == Set(store.places.map(\.id))) { chosen = Set(store.places.map(\.id)) }
-                        ForEach(store.groups, id: \.self) { group in
+                        ForEach(groups, id: \.self) { group in
                             let ids = Set(store.places.filter { store.groups(of: $0).contains(group) }.map(\.id))
                             PillChip(title: group, isOn: chosen == ids) { chosen = ids }
                         }

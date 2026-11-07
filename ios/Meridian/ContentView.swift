@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The whole app on one screen: the moment you're looking at, one row per city (its time, large,
-/// over a slim day-and-night bar of its hours). Drag any bar sideways to move through time in
-/// quarter-hours; tap the date to jump to any day.
+/// The whole app on one screen: one card per city (its time, large, over a row of five hour tiles
+/// shaded for day and night), with the column labels pinned above and the time ruler below. Drag
+/// any row of tiles sideways to move through time in quarter-hours; tap a tile to go to that hour.
 struct ContentView: View {
     @EnvironmentObject private var store: CityStore
     /// Search to add a city, right above the cards (as in Apple's Weather and Two Degrees).
@@ -26,7 +26,9 @@ struct ContentView: View {
     @State private var personFor: Place?
     @State private var personName = ""
     /// The card whose groups are being chosen.
-    @State private var groupsFor: Place?
+    @State private var groupPickerFor: Place?
+    /// Groups: the list, one group, or a new one.
+    @State private var groupsRoute: GroupsRoute?
 
     var body: some View {
         NavigationStack {
@@ -44,7 +46,8 @@ struct ContentView: View {
             .sheet(isPresented: $showingSettings) { SettingsView() }
             .sheet(isPresented: $showingDate) { DateJumpView() }
             .sheet(isPresented: $showingFind) { FindTimeView() }
-            .sheet(item: $groupsFor) { place in GroupsView(place: place) }
+            .sheet(item: $groupPickerFor) { place in GroupPicker(placeID: place.id) }
+            .sheet(item: $groupsRoute) { route in GroupsSheet(route: route) }
             .alert("Add a Person in \(personFor?.isMyLocation == true ? (store.hereCity ?? "My Location") : personFor?.name ?? "")", isPresented: isAddingPerson) {
                 TextField("Name", text: $personName).textInputAutocapitalization(.words)
                 Button("Cancel", role: .cancel) { personFor = nil }
@@ -67,7 +70,7 @@ struct ContentView: View {
                 if store.canAdd {
                     Button("Add a Person Here") { later { personName = ""; personFor = place } }
                 }
-                Button(place.groups == nil ? "Add to a Group" : "Groups") { later { groupsFor = place } }
+                Button("Groups\u{2026}") { later { groupPickerFor = place } }
                 if !place.isMyLocation || place.person != nil {
                     Button("Rename") {
                         newName = place.title
@@ -114,14 +117,40 @@ struct ContentView: View {
             .scrollContentBackground(.hidden)
             .background(Color.black.ignoresSafeArea())
             .navigationTitle("Meridian")
-            .navigationBarTitleDisplayMode(.large)
+            // The title sits small in the bar, between Share and the + and pencil; never large.
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .environment(\.editMode, $editMode)
-            // The time ruler and hour buttons on a frosted bar at the bottom, as Two Degrees' bar.
+            // The groups and the column labels pinned at the top, over the tiles they label.
+            .safeAreaInset(edge: .top, spacing: 0) { topBar }
+            // The time ruler and Now on a frosted bar at the bottom, in thumb reach, as Two Degrees' bar.
             .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
     }
 
-    /// The ruler and the hour buttons, while the cards show; "Copied" floats just above.
+    /// The bars, while the cards show (not while adding a city or editing the list).
     private var showBar: Bool { !adding && !editMode.isEditing && !store.places.isEmpty }
+    /// The group chips: once there's a group to pick (a custom one, or two continents).
+    private var showGroupBar: Bool { showBar && (!store.customGroups.isEmpty || store.continentChipCount >= 2) }
+    /// The column labels: while there are cards under them.
+    private var showHeader: Bool { showBar && !store.visiblePlaces.isEmpty }
+
+    @ViewBuilder private var topBar: some View {
+        if showGroupBar || showHeader {
+            VStack(spacing: 0) {
+                if showGroupBar {
+                    GroupBar(open: { groupsRoute = $0 }, openSettings: { showingSettings = true })
+                }
+                if showHeader { ColumnHeader() }
+            }
+            .frame(maxWidth: .infinity)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.white.opacity(Theme.Op.track)).frame(height: 0.5)
+            }
+            .environment(\.colorScheme, .dark)
+        }
+    }
 
     private var bottomBar: some View {
         VStack(spacing: 8) {
@@ -131,9 +160,9 @@ struct ContentView: View {
                     .transition(AnyTransition.opacity.combined(with: .scale(scale: 0.9)))
             }
             if showBar {
-                TimeShifter()
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
+                TimeShifter(goToTime: { showingDate = true })
+                    .padding(.top, 6)
+                    .padding(.bottom, 2)
                     .frame(maxWidth: .infinity)
                     .background(.ultraThinMaterial, ignoresSafeAreaEdges: .bottom)
                     .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
@@ -182,15 +211,30 @@ struct ContentView: View {
     }
 
     private var searchHint: some View {
-        Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30.")
+        Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30." + addingTo)
             .font(.system(size: 15))
             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
     }
 
+    /// " Adding to Design Team." while a custom group is showing.
+    private var addingTo: String {
+        guard let f = store.groupFilter, store.customGroups.contains(f) else { return "" }
+        return " Adding to \(f)."
+    }
+
     private func add(_ entry: CityEntry) {
-        store.add(entry)
+        let id = store.add(entry)
+        // While a group shows, a new city joins it (a custom group); or, if it's on another
+        // continent, the list goes back to every city so the new card doesn't vanish.
+        if let id, let f = store.groupFilter, let p = store.places.first(where: { $0.id == id }) {
+            if !store.isContinent(f) {
+                store.setGroups((p.groups ?? []) + [f], for: p)
+            } else if !store.groups(of: p).contains(f) {
+                withAnimation(.snappy) { store.groupFilter = nil }
+            }
+        }
         closeSearch()
     }
 
@@ -237,14 +281,16 @@ struct ContentView: View {
             emptyState
         }
         if !editMode.isEditing {
-            if !store.groups.isEmpty { groupFilter }
             ForEach(store.clockChanges) { change in clockNotice(change) }
+            if !store.places.isEmpty && store.visiblePlaces.isEmpty, let f = store.groupFilter {
+                emptyGroup(f)
+            }
         }
         // In Edit List every card shows, so removing and moving follow the full list.
         ForEach(editMode.isEditing ? store.places : store.visiblePlaces) { place in
             row(place)
         }
-        // Remove and reorder in Edit List only: a sideways swipe on a card drags its day bar.
+        // Remove and reorder in Edit List only: a sideways swipe on a card drags its hour tiles.
         .onDelete { store.remove(at: $0) }
         .onMove { store.move(from: $0, to: $1) }
         // The last row, not a section footer: a plain list pins footers to the bottom of the screen.
@@ -254,18 +300,36 @@ struct ContentView: View {
             .listRowSeparator(.hidden)
     }
 
-    /// Everyone, or one group: chips above the cards.
-    private var groupFilter: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                PillChip(title: "Everyone", isOn: store.groupFilter == nil) { store.groupFilter = nil }
-                ForEach(store.groups, id: \.self) { group in
-                    PillChip(title: group, isOn: store.groupFilter == group) { store.groupFilter = group }
+    /// The group showing has no cities yet: add some, or show every city.
+    private func emptyGroup(_ group: String) -> some View {
+        VStack(spacing: 14) {
+            Text("No cities in \(group) yet.")
+                .font(.system(size: 15))
+                .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                .multilineTextAlignment(.center)
+            HStack(spacing: 10) {
+                Button { groupsRoute = .detail(group) } label: {
+                    Text("Add Cities")
+                        .font(.system(size: 15, weight: .medium))
+                        .padding(.horizontal, 16).frame(height: 34)
+                        .background(Capsule().fill(Color.white))
+                        .foregroundStyle(Color.black)
+                        .frame(minHeight: 44).contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                Button { withAnimation(.snappy) { store.groupFilter = nil } } label: {
+                    Text("Show All")
+                        .font(.system(size: 15, weight: .medium))
+                        .padding(.horizontal, 16).frame(height: 34)
+                        .background(Capsule().fill(Color.white.opacity(Theme.Op.fill)))
+                        .foregroundStyle(Color.white)
+                        .frame(minHeight: 44).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, Card.margin)
         }
-        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
     }
@@ -307,8 +371,8 @@ struct ContentView: View {
     private func row(_ place: Place) -> some View {
         // Each city is a card on its own sky, as in Two Degrees: 16 pt from the screen edges, 14 pt
         // inside, 10 pt between cards, continuous corners. Each card has its own actions: touch and
-        // hold for the menu (a tap does nothing). No swipe to remove: a sideways swipe drags the day
-        // bar, which moves the time for every city.
+        // hold for the menu (a tap does nothing). No swipe to remove: a sideways swipe drags the hour
+        // tiles, which moves the time for every city.
         let shape = RoundedRectangle(cornerRadius: Card.radius, style: .continuous)
         return CityRow(place: place, editing: editMode.isEditing)
             .padding(Card.padding)
@@ -332,7 +396,7 @@ struct ContentView: View {
                 Button { workFor = place } label: { Label("Working Days & Hours", systemImage: "briefcase") }
                 Button { personName = ""; personFor = place } label: { Label("Add a Person Here", systemImage: "person.badge.plus") }
                     .disabled(!store.canAdd)
-                Button { groupsFor = place } label: { Label("Groups", systemImage: "person.3") }
+                Button { groupPickerFor = place } label: { Label("Groups\u{2026}", systemImage: "square.stack") }
                 if !place.isMyLocation || place.person != nil {
                     Button { newName = place.title; renaming = place } label: { Label("Rename", systemImage: "pencil") }
                 }
@@ -347,12 +411,19 @@ struct ContentView: View {
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) { shareMenu }
+        ToolbarItem(placement: .principal) {
+            Text("Meridian")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.white)
+                .accessibilityAddTraits(.isHeader)
+        }
         ToolbarItemGroup(placement: .topBarTrailing) {
             listControls
             Menu {
                 Button { showingFind = true } label: { Label("Find a Time…", systemImage: "person.2.badge.gearshape") }
                     .disabled(store.places.isEmpty)
                 Button { showingDate = true } label: { Label("Go to a Time…", systemImage: "calendar") }
+                Button { groupsRoute = .manage } label: { Label("Groups\u{2026}", systemImage: "square.stack") }
                 Button { copyMoment() } label: { Label("Copy This Moment", systemImage: "doc.on.doc") }
                     .disabled(store.places.isEmpty)
                 Divider()
@@ -512,56 +583,57 @@ private struct CopiedPill: View {
     }
 }
 
-/// Moves every city through time from the bottom bar: a ruler from two days back to two ahead (in
-/// quarter-hours, under a fixed line), and one-tap −2/−1/Now/+1/+2 hours. Go to a Time goes further
-/// (and its 123 types an offset: "+3", "-1.5", "-2:30"); the day bars still drag.
+/// Moves every city through time from the bottom bar, in one row within thumb reach: Go to a Time
+/// (the calendar), a ruler from two days back to two ahead (in quarter-hours, under a fixed line),
+/// and Now. The column labels above the cards jump an hour at a time; the tiles drag.
 struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
-
-    private static let presets = [-2, -1, 0, 1, 2]
+    let goToTime: () -> Void
 
     var body: some View {
-        VStack(spacing: 8) {
-            TimeRuler()
-            // −2 · −1 · Now · +1 · +2: Now in the middle and wider. Whichever you're on is white.
-            HStack(alignment: .center, spacing: 8) {
-                ForEach(Self.presets, id: \.self) { preset in
-                    if preset == 0 { nowButton } else { hourButton(preset) }
-                }
+        VStack(spacing: 4) {
+            if !store.hasScrubbed {
+                Text("Drag the hours or the ruler to change the time.")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 16)
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             }
-            .padding(.horizontal, Card.margin)
+            HStack(spacing: 8) {
+                Button(action: goToTime) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Go to a Time")
+                TimeRuler()
+                    .frame(maxWidth: .infinity)
+                nowButton
+            }
+            .padding(.horizontal, 12)
         }
-    }
-
-    private func pill(_ title: String, on: Bool) -> some View {
-        Text(title)
-            .font(.system(size: 15, weight: .medium))
-            .monospacedDigit()
-            .lineLimit(1)
-            .frame(maxWidth: .infinity)
-            .frame(height: 34)
-            .background(Capsule().fill(on ? Color.white : Color.white.opacity(Theme.Op.fill)))
-            .foregroundStyle(on ? Color.black : Color.white)
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
     }
 
     private var nowButton: some View {
-        Button { withAnimation(.snappy) { store.backToNow() } } label: {
-            pill("Now", on: store.isNow)
+        Button { store.backToNow() } label: {
+            Text("Now")
+                .font(.system(size: 15, weight: .medium))
+                .lineLimit(1)
+                .frame(width: 64, height: 32)
+                .background(Capsule().fill(store.isNow ? Color.white.opacity(Theme.Op.fill) : Color.white))
+                .foregroundStyle(store.isNow ? Color.white.opacity(Theme.Op.faint) : Color.black)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .frame(minWidth: 88)
+        .disabled(store.isNow)
         .accessibilityLabel(store.isNow ? "Now" : "Back to now")
-    }
-
-    private func hourButton(_ preset: Int) -> some View {
-        let on = store.offsetMinutes == preset * 60
-        return Button { withAnimation(.snappy) { store.shift(minutes: preset * 60) } } label: {
-            pill("\(preset > 0 ? "+" : "−")\(abs(preset)) hr", on: on)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(abs(preset)) \(abs(preset) == 1 ? "hour" : "hours") \(preset > 0 ? "from now" : "ago")")
     }
 
     /// "+3", "3", "-1.5", "−2:30", "+0:45 hr" -> minutes from now (up to a week either way).
@@ -621,7 +693,7 @@ private struct TimeRuler: View {
                 LazyHStack(spacing: 0) {
                     ForEach((center - Self.span)...(center + Self.span), id: \.self) { i in
                         RulerTick(date: Self.date(i), isNow: i == center, use24h: store.use24h)
-                            .frame(width: Self.tick, height: 48)
+                            .frame(width: Self.tick, height: 40)
                             .contentShape(Rectangle())
                             .onTapGesture { withAnimation(.snappy) { position = i } }
                     }
@@ -632,14 +704,14 @@ private struct TimeRuler: View {
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $position, anchor: .center)
         }
-        .frame(height: 48)
+        .frame(height: 40)
         // The fixed line: where you are in time.
         .overlay {
             VStack(spacing: 0) {
-                Capsule().fill(Color.white).frame(width: 3, height: 30)
+                Capsule().fill(Color.white).frame(width: 2, height: 24)
                 Spacer(minLength: 0)
             }
-            .padding(.top, 16)
+            .padding(.top, 14)
             .allowsHitTesting(false)
         }
         .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12),
@@ -674,7 +746,7 @@ private struct RulerTick: View {
     var body: some View {
         let parts = Calendar.current.dateComponents([.hour, .minute, .weekday], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
-        VStack(spacing: 4) {
+        VStack(spacing: 3) {
             Group {
                 if minute == 0 {
                     Text(label(hour: hour, weekday: parts.weekday ?? 1))
@@ -686,13 +758,12 @@ private struct RulerTick: View {
                     Text(" ").font(.system(size: 11))
                 }
             }
-            .frame(height: 14)
+            .frame(height: 12)
             Capsule()
                 .fill(Color.white.opacity(minute == 0 ? Theme.Op.caption : (minute == 30 ? Theme.Op.faint : 0.25)))
-                .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 18 : (minute == 30 ? 12 : 7))
+                .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))
             Spacer(minLength: 0)
         }
-        .padding(.top, 2)
     }
 
     private func label(hour: Int, weekday: Int) -> String {
@@ -702,8 +773,6 @@ private struct RulerTick: View {
     }
 }
 
-/// One city, in the manner of Apple's Clock: how it relates to you and its name on the left, its
-/// time large and light on the right; then a slim day-and-night bar of its hours.
 /// A status: a small icon and its words, close together.
 struct StatusLabelStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -714,11 +783,13 @@ struct StatusLabelStyle: LabelStyle {
     }
 }
 
+/// One city, in the manner of Apple's Clock: its name and how it relates to you on the left, its
+/// time large and light on the right; then its hours as five day-and-night tiles, and a status line.
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .title2) private var nameSize: CGFloat = 22
-    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .title2) private var nameSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 34
     /// The rest of the card's type, scaled with the reader's text size.
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     let place: Place
@@ -794,7 +865,7 @@ struct CityRow: View {
         let large = typeSize.isAccessibilitySize
         // Side by side normally; stacked at accessibility text sizes so nothing is cut off.
         let layout = large ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-                           : AnyLayout(HStackLayout(alignment: .top, spacing: 0))
+                           : AnyLayout(HStackLayout(alignment: .center, spacing: 0))
         VStack(alignment: .leading, spacing: 0) {
             layout {
                 VStack(alignment: .leading, spacing: 2) {
@@ -802,42 +873,46 @@ struct CityRow: View {
                         // Where you are, on this card rather than a second card for the same place.
                         if hereLabel != nil {
                             Image(systemName: "location.fill")
-                                .font(scaled(14))
+                                .font(scaled(13))
                                 .accessibilityHidden(true)
                         }
                         Text(place.title)
                             .font(.system(size: nameSize, weight: .semibold))
                             .minimumScaleFactor(0.7)
                     }
-                    Text(detail(moment))
-                        .font(scaled(14, .medium))
+                    Text(detailWithDay(moment))
+                        .font(scaled(13, .medium))
                         .foregroundStyle(Color.white.opacity(Theme.Op.body))
                         .monospacedDigit()
                 }
                 .lineLimit(large ? 2 : 1)
                 if !large { Spacer(minLength: 8) }
                 // The time is never cut short: the name gives way first.
-                VStack(alignment: large ? .leading : .trailing, spacing: 0) {
-                    clock(hour: hour, minute: minute)
-                    Text(dayLine(moment))
-                        .font(scaled(15, .medium))
-                        .foregroundStyle(Color.white.opacity(Theme.Op.label))
-                }
-                .fixedSize()
-                .layoutPriority(1)
+                clock(hour: hour, minute: minute)
+                    .fixedSize()
+                    .layoutPriority(1)
             }
-            Spacer(minLength: 8)
-            // One status line on every card, always there (so every card is the same height):
-            // work on the left, the sun on the right.
-            statusRow(large: large)
-            DayBar(place: place)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel([place.title, place.person != nil ? place.name : nil, hereLabel, TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
+                                 detail(moment), dayNote(moment), workStatus?.text, sunStatus.map { "sun \($0.text.lowercased())" }]
+                                 .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+            // The city's hours: two before, the one holding the moment, two after.
+            HourTiles(place: place)
                 .padding(.top, 10)
+            // One status line on every card, always there (so every card is the same height):
+            // work on the left, the sun on the right. VoiceOver reads it with the name above.
+            statusRow(large: large)
+                .padding(.top, 8)
+                .accessibilityHidden(true)
         }
         .foregroundStyle(.white)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel([place.title, place.person != nil ? place.name : nil, hereLabel, TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
-                             detail(moment), dayNote(moment), workStatus?.text, sunStatus.map { "sun \($0.text.lowercased())" }]
-                             .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+        .accessibilityElement(children: .contain)
+    }
+
+    /// The detail line, with the day in front when it isn't today there ("Tomorrow · +8 hr · UTC+1").
+    private func detailWithDay(_ moment: Date) -> String {
+        let day = dayLine(moment)
+        return day == "Today" ? detail(moment) : "\(day) · \(detail(moment))"
     }
 
     private func statusRow(large: Bool) -> some View {
@@ -861,12 +936,12 @@ struct CityRow: View {
                 }
             }
         }
-        .font(scaled(14, .medium))
+        .font(scaled(13, .medium))
         .foregroundStyle(Color.white.opacity(Theme.Op.body))
         .labelStyle(StatusLabelStyle())
         .lineLimit(1)
         .minimumScaleFactor(0.8)
-        .frame(minHeight: 20 * scale)
+        .frame(minHeight: 18 * scale)
     }
 
     @ViewBuilder private func sunIcon(_ name: String) -> some View {
@@ -946,143 +1021,6 @@ struct CityRow: View {
     }
 }
 
-/// Twelve hours of a city's sky in one slim bar: six before the selected moment and six after,
-/// brighter by day and darker by night, dimmer outside working hours, with a white tick at
-/// midnight. A white knob marks the selected moment; the city's hours are labelled underneath.
-/// Drag it to move through time; tap to go to that hour.
-struct DayBar: View {
-    static let hoursShown: Double = 12
-    private static let barHeight: CGFloat = 6
-    @EnvironmentObject private var store: CityStore
-    @Environment(\.displayScale) private var displayScale
-    @State private var width: CGFloat = 340
-    let place: Place
-
-    private var pointsPerHour: CGFloat { max(1, width / CGFloat(Self.hoursShown)) }
-
-    var body: some View {
-        let moment = store.moment
-        let cal = place.calendar
-        let start = moment.addingTimeInterval(-Self.hoursShown / 2 * 3600)
-        let midnights = marks(from: start, cal: cal).filter(\.isMidnight)
-        let pixel = max(1, displayScale)
-        VStack(spacing: 6) {
-            Canvas { context, size in
-                let slices = Int(Self.hoursShown * 4)
-                let env = EnvironmentValues()
-                for i in 0..<slices {
-                    let at = start.addingTimeInterval(Double(i) * 900 + 450)
-                    let parts = cal.dateComponents([.hour, .minute], from: at)
-                    let hour = Double(parts.hour ?? 0) + Double(parts.minute ?? 0) / 60
-                    let dim = store.showWorkHours && !store.isWorking(place, at: at)
-                    // White, brighter as the sky there is lighter.
-                    let c = DayColor.style(at: hour).fill.resolve(in: env)
-                    let lum = min(max(0.2126 * Double(c.red) + 0.7152 * Double(c.green) + 0.0722 * Double(c.blue), 0), 1)
-                    let alpha = (0.15 + 0.7 * lum) * (dim ? 0.5 : 1)
-                    // Edges on whole pixels and no overlap, so translucent slices show no seams.
-                    let x0 = (CGFloat(i) * size.width / CGFloat(slices) * pixel).rounded() / pixel
-                    let x1 = (CGFloat(i + 1) * size.width / CGFloat(slices) * pixel).rounded() / pixel
-                    context.fill(Path(CGRect(x: x0, y: 0, width: x1 - x0, height: size.height)),
-                                 with: .color(Color.white.opacity(alpha)),
-                                 style: FillStyle(antialiased: false))
-                }
-            }
-            .frame(height: Self.barHeight)
-            .clipShape(Capsule())
-            // Midnight: taller than the bar, so it's drawn over it rather than clipped to it.
-            .overlay {
-                ZStack {
-                    ForEach(midnights, id: \.date) { midnight in
-                        Rectangle()
-                            .fill(Color.white.opacity(Theme.Op.strong))
-                            .frame(width: 1.5, height: 12)
-                            .position(x: CGFloat(midnight.date.timeIntervalSince(start) / 3600) * pointsPerHour, y: Self.barHeight / 2)
-                    }
-                }
-                .allowsHitTesting(false)
-            }
-            .overlay {
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 14, height: 14)
-                    .overlay(Circle().strokeBorder(Color.black.opacity(0.35), lineWidth: 1.5))
-                    .allowsHitTesting(false)
-            }
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-
-            // The city's hours every three hours, and the weekday at midnight.
-            ZStack(alignment: .leading) {
-                ForEach(marks(from: start, cal: cal), id: \.date) { mark in
-                    Text(mark.label)
-                        .font(.system(.caption2, weight: mark.isMidnight ? .semibold : .medium))
-                        .foregroundStyle(Color.white.opacity(mark.isMidnight ? 1 : Theme.Op.caption))
-                        .monospacedDigit()
-                        .fixedSize()
-                        .position(x: CGFloat(mark.date.timeIntervalSince(start) / 3600) * pointsPerHour, y: 6)
-                }
-            }
-            .frame(height: 12)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { location in
-            let tapped = start.addingTimeInterval(Double(location.x / pointsPerHour) * 3600)
-            store.jump(to: cal.dateInterval(of: .hour, for: tapped)?.start ?? tapped)
-        }
-        .modifier(Scrub(pointsPerHour: pointsPerHour))
-        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-        .accessibilityHidden(true)
-    }
-
-    private struct Mark { let date: Date; let label: String; let isMidnight: Bool }
-
-    /// Local hours divisible by three inside the bar (not at its very ends), and midnights.
-    private func marks(from start: Date, cal: Calendar) -> [Mark] {
-        guard let first = cal.dateInterval(of: .hour, for: start)?.end else { return [] }
-        var marks: [Mark] = []
-        var at = first
-        let end = start.addingTimeInterval(Self.hoursShown * 3600)
-        while at < end {
-            let hour = cal.component(.hour, from: at)
-            let edge = at.timeIntervalSince(start) < 1800 || end.timeIntervalSince(at) < 1800
-            if !edge && (hour % 3 == 0) {
-                let label = hour == 0 ? TimeMath.weekday(at, in: place.timeZone).uppercased()
-                    : store.use24h ? String(format: "%02d", hour)
-                    : "\(hour % 12 == 0 ? 12 : hour % 12)\u{2009}\(hour < 12 ? "AM" : "PM")"
-                marks.append(Mark(date: at, label: label, isMidnight: hour == 0))
-            }
-            at = at.addingTimeInterval(3600)
-        }
-        return marks
-    }
-}
-
-/// Sideways drag to scrub through time in quarter-hours. Locks to the first direction moved, so
-/// vertical drags still scroll the list.
-private struct Scrub: ViewModifier {
-    @EnvironmentObject private var store: CityStore
-    let pointsPerHour: CGFloat
-    @State private var base: Int?
-    @State private var horizontal: Bool?
-
-    func body(content: Content) -> some View {
-        content.simultaneousGesture(
-            DragGesture(minimumDistance: 8)
-                .onChanged { drag in
-                    if horizontal == nil { horizontal = abs(drag.translation.width) > abs(drag.translation.height) }
-                    guard horizontal == true else { return }
-                    let start = base ?? store.offsetMinutes
-                    base = start
-                    let minutes = -Double(drag.translation.width) / Double(pointsPerHour) * 60
-                    store.scrub(toQuarterNear: Double(start) + minutes)
-                }
-                .onEnded { _ in
-                    base = nil
-                    horizontal = nil
-                }
-        )
-    }
-}
-
 /// One search result: the city and its region; its time and offset; added or not.
 private struct SearchResultRow: View {
     @EnvironmentObject private var store: CityStore
@@ -1111,73 +1049,5 @@ private struct SearchResultRow: View {
             }
         }
         .contentShape(Rectangle())
-    }
-}
-
-/// The groups a card is in ("Design team", "Family"): tick existing ones or make a new one.
-struct GroupsView: View {
-    @EnvironmentObject private var store: CityStore
-    @Environment(\.dismiss) private var dismiss
-    let place: Place
-    @State private var chosen: Set<String> = []
-    @State private var newGroup = ""
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                if !allGroups.isEmpty {
-                    Section {
-                        ForEach(allGroups, id: \.self) { group in
-                            Button {
-                                if chosen.contains(group) { chosen.remove(group) } else { chosen.insert(group) }
-                            } label: {
-                                HStack {
-                                    Text(group).foregroundStyle(.white)
-                                    Spacer()
-                                    if chosen.contains(group) { Image(systemName: "checkmark").foregroundStyle(.white) }
-                                }
-                            }
-                        }
-                    }
-                    .meridianSection()
-                }
-                Section {
-                    HStack {
-                        TextField("New group, like Design Team", text: $newGroup)
-                            .textInputAutocapitalization(.words)
-                            .onSubmit(addNew)
-                        Button("Add", action: addNew).disabled(newGroup.trimmingCharacters(in: .whitespaces).isEmpty)
-                    }
-                } footer: {
-                    Text("Show one group at a time on your list, and pick a group in Find a Time. Continents are added automatically.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.white.opacity(Theme.Op.caption))
-                }
-                .meridianSection()
-            }
-            .meridianForm()
-            .navigationTitle(place.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { store.setGroups(Array(chosen), for: place); dismiss() }
-                }
-            }
-            .onAppear { chosen = Set(place.groups ?? []) }
-        }
-        .tint(.white)
-        .presentationDetents([.medium, .large])
-        .preferredColorScheme(.dark)
-    }
-
-    /// Custom groups only: continents are added automatically.
-    private var allGroups: [String] { Array(Set(store.customGroups).union(chosen)).sorted() }
-
-    private func addNew() {
-        let name = newGroup.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        chosen.insert(String(name.prefix(30)))
-        newGroup = ""
     }
 }

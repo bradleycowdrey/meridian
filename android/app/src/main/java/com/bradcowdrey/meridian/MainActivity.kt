@@ -15,6 +15,19 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
@@ -50,8 +63,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -65,11 +76,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -87,7 +96,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -267,14 +275,19 @@ fun App(store: Store, initial: String) {
             shape = RoundedCornerShape(16.dp),
         )
     }
-    BackHandler(enabled = route != "main") { route = "main" }
-    when (route) {
-        "add" -> MainScreen(store, initialQuery = "san") { route = it }
-        "edit" -> MainScreen(store, initialEditing = true) { route = it }
-        "settings" -> SettingsScreen(store) { route = "main" }
-        "date" -> DateJumpScreen(store) { route = "main" }
-        "find" -> FindTimeScreen(store) { route = "main" }
-        "widgets" -> WidgetShowcase(store)
+    // Groups opened from Settings go back to Settings; everything else back to the cards.
+    BackHandler(enabled = route != "main") { route = if (route == "settings/groups") "settings" else "main" }
+    when {
+        route == "groups" -> GroupsScreen(store, null) { route = "main" }
+        route == "settings/groups" -> GroupsScreen(store, null) { route = "settings" }
+        route == "newgroup" -> GroupsScreen(store, null, create = true) { route = "main" }
+        route.startsWith("group:") -> GroupsScreen(store, route.removePrefix("group:")) { route = "main" }
+        route == "add" -> MainScreen(store, initialQuery = "san") { route = it }
+        route == "edit" -> MainScreen(store, initialEditing = true) { route = it }
+        route == "settings" -> SettingsScreen(store, openGroups = { route = "settings/groups" }) { route = "main" }
+        route == "date" -> DateJumpScreen(store) { route = "main" }
+        route == "find" -> FindTimeScreen(store) { route = "main" }
+        route == "widgets" -> WidgetShowcase(store)
         else -> MainScreen(store) { route = it }
     }
 }
@@ -294,7 +307,12 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
     var copied by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Place?>(null) }
     var personFor by remember { mutableStateOf<Place?>(null) }
-    var groupsFor by remember { mutableStateOf<Place?>(null) }
+    // The card whose groups are being picked (by id, so it follows edits).
+    var groupPickerFor by remember { mutableStateOf<String?>(null) }
+    // Said by TalkBack when the list goes back to All by itself.
+    var announce by remember { mutableStateOf("") }
+    // Cleared first so a second or later reset is a new announcement, not the same text again.
+    LaunchedEffect(store.filterResets) { if (store.filterResets > 0) { announce = ""; delay(100); announce = "Showing all cities" } }
 
     LaunchedEffect(store.userMoves) {
         if (store.userMoves > 0) haptics.performHapticFeedback(
@@ -306,26 +324,39 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
     val searched by produceState<Pair<String, List<CityEntry>>?>(null, query) {
         if (query.isNotBlank()) value = query to kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { CityDirectory.search(query) }
     }
+    // A city added while one group is showing: it joins that group (one of yours), or the list goes
+    // back to All (a continent it isn't on), so the new card never vanishes.
+    fun afterAdd(id: String?) {
+        val filter = store.groupFilter ?: return
+        if (filter !in store.chipGroups) return
+        val place = store.places.firstOrNull { it.id == id } ?: return
+        if (!store.isContinent(filter)) store.setGroups((place.groups ?: emptyList()) + filter, place)
+        else if (filter !in store.groupsOf(place)) store.updateGroupFilter(null)
+    }
     // Search on the keyboard: add the first result not already on the list.
     fun submit() {
         val found = searched ?: return
         if (found.first != query || !store.canAdd) return
-        found.second.firstOrNull { !store.contains(it) }?.let { store.add(it); closeSearch() }
+        found.second.firstOrNull { !store.contains(it) }?.let { afterAdd(store.add(it)); closeSearch() }
     }
 
     fun share(title: String, subject: String, text: String) = context.startActivity(Intent.createChooser(
         Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_SUBJECT, subject).putExtra(Intent.EXTRA_TEXT, text), title))
     var shareMenu by remember { mutableStateOf(false) }
-    // The ruler and the hour buttons, in a bar at the bottom as in Two Degrees.
+    // The ruler and Now, in a bar at the bottom as in Two Degrees; the groups and the hour columns
+    // pinned at the top, over the tiles they label (as on the Mac).
     val showBar = !adding && !editing && store.places.isNotEmpty()
+    val showGroupBar = showBar && (store.customGroups.isNotEmpty() || store.continentChipCount >= 2)
+    val showHeader = showBar && store.visiblePlaces.isNotEmpty()
+    val customFilter = store.groupFilter?.takeIf { it in store.chipGroups && !store.isContinent(it) }
 
     Scaffold(
         containerColor = Palette.black,
         topBar = {
             Column(Modifier.fillMaxWidth().background(Palette.black).statusBarsPadding()) {
-                Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 4.dp)) {
                     // Share, as in Cowdrey.MD: Meridian or this moment, or copy a link or a ready-to-send message.
-                    Box {
+                    Box(Modifier.align(Alignment.CenterStart)) {
                         IconButton(onClick = { shareMenu = true }) { Icon(Icons.Filled.Share, contentDescription = "Share", tint = Palette.primary) }
                         DropdownMenu(expanded = shareMenu, onDismissRequest = { shareMenu = false }) {
                             DropdownMenuItem(text = { Text("Share Meridian…") }, onClick = {
@@ -343,7 +374,12 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                             })
                         }
                     }
-                    Spacer(Modifier.weight(1f))
+                    // The title, small and centred between Share and the controls (never large).
+                    // Kept clear of Share (48 dp) and the +/pencil capsule and More (≈131 dp) at any font size.
+                    Text("Meridian", fontSize = (17f / maxOf(1f, LocalDensity.current.fontScale / 1.15f)).sp, fontWeight = FontWeight.SemiBold,
+                        color = Palette.primary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.align(Alignment.Center).padding(horizontal = 132.dp).semantics { heading() })
+                    Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
                     ListControls(adding = adding, editing = editing, canAdd = store.canAdd, canEdit = store.places.isNotEmpty(),
                         onAdd = { if (adding) closeSearch() else { editing = false; adding = true } },
                         onEdit = { if (adding) closeSearch(); editing = !editing })
@@ -355,6 +391,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                             })
                             DropdownMenuItem(text = { Text("Find a Time…") }, enabled = store.places.isNotEmpty(), onClick = { menu = false; open("find") })
                             DropdownMenuItem(text = { Text("Go to a Time…") }, onClick = { menu = false; open("date") })
+                            DropdownMenuItem(text = { Text("Groups…") }, onClick = { menu = false; open("groups") })
                             DropdownMenuItem(text = { Text("Copy This Moment") }, enabled = store.places.isNotEmpty(), onClick = {
                                 menu = false; clipboard.setText(AnnotatedString(store.momentText)); copied = true
                             })
@@ -375,37 +412,39 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                             })
                         }
                     }
+                    }
                 }
-                Text("Meridian", fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary, maxLines = 1,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp).semantics { heading() })
                 if (adding) CitySearchField(query, focus = !store.demo, onSearch = { submit() }) { query = it }
-                else Spacer(Modifier.height(4.dp))
+                else if (showGroupBar || showHeader) {
+                    Column(Modifier.fillMaxWidth().background(Palette.barBg)) {
+                        if (showGroupBar) GroupBar(store, open)
+                        if (showHeader) ColumnHeader(store)
+                        HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))
+                    }
+                }
             }
         },
         bottomBar = {
             if (showBar) {
                 Column(Modifier.fillMaxWidth().background(Palette.barBg).navigationBarsPadding()) {
                     HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))
-                    Box(Modifier.padding(top = 8.dp, bottom = 4.dp)) { TimeShifter(store) }
+                    TimeShifter(store) { open("date") }
                 }
             }
         },
     ) { padding ->
         Box(Modifier.fillMaxSize()) {
             if (adding) {
-                if (query.isNotBlank()) SearchResults(store, query, searched, Modifier.padding(padding)) { closeSearch() }
-                else Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30.",
+                if (query.isNotBlank()) SearchResults(store, query, searched, Modifier.padding(padding)) { afterAdd(it); closeSearch() }
+                else Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30." +
+                    (customFilter?.let { " Adding to $it." } ?: ""),
                     fontSize = 15.sp, color = white(0.6f), modifier = Modifier.padding(padding).padding(16.dp))
             } else {
-                // Everyone or one group, and clocks about to change, above the cards (not in Edit List,
-                // which shows every card so removing and moving follow the full list).
-                val groups = store.groups
+                // Clocks about to change above the cards. Edit List shows every card (not one group),
+                // so removing and moving follow the full list.
                 val changes = if (editing) emptyList() else store.clockChanges
                 // The cards scroll under the translucent bottom bar, as in Two Degrees.
                 LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
-                    if (!editing && groups.isNotEmpty()) item(key = "group-filter") {
-                        GroupFilter(store, groups)
-                    }
                     items(changes, key = { "clock-" + it.key }) { change ->
                         ClockNotice(change, store.use24h) { store.dismiss(change) }
                     }
@@ -417,13 +456,29 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                                 fontSize = 15.sp, color = white(0.6f), textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
                         }
                     }
+                    // A group with no cities: say so, with a way to fill it or to see everyone.
+                    if (!editing && store.places.isNotEmpty() && store.visiblePlaces.isEmpty()) item(key = "empty-group") {
+                        val group = store.groupFilter ?: ""
+                        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("No cities in $group yet.", fontSize = 15.sp, color = white(0.6f), textAlign = TextAlign.Center)
+                            Spacer(Modifier.height(14.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (!store.isContinent(group)) CapsuleButton("Add Cities", filled = true) { open("group:$group") }
+                                CapsuleButton("Show All", filled = false) { store.updateGroupFilter(null) }
+                            }
+                        }
+                    }
                     items(if (editing) store.places else store.visiblePlaces, key = { it.id }) { place ->
                         var actions by remember { mutableStateOf(false) }
+                        // Touch and hold anywhere on the card, the hour tiles included (once, however it's held).
+                        val openActions: () -> Unit = {
+                            if (!actions) { haptics.performHapticFeedback(HapticFeedbackType.LongPress); actions = true }
+                        }
                         var work by remember { mutableStateOf(false) }
                         // Each city is a card on its own sky (Two Degrees' sky for day, twilight or night
                         // there), top to bottom: 16 dp from the screen edges, 10 dp between cards, 16 dp
                         // corners. Touch and hold a card for its own actions (a tap does nothing, so
-                        // scrolling never opens them by accident); dragging its day bar still moves every
+                        // scrolling never opens them by accident); dragging its hour tiles still moves every
                         // city's time.
                         val (skyTop, skyBottom) = Sky.colors(Sky.phase(place, store.moment))
                         val top by animateColorAsState(skyTop, tween(600), label = "sky top")
@@ -436,12 +491,10 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                             else {
                                 CityRow(store, place, Modifier
                                     .pointerInput(place.id) {
-                                        detectTapGestures(onLongPress = {
-                                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            actions = true
-                                        })
+                                        detectTapGestures(onLongPress = { openActions() })
                                     }
-                                    .semantics { onLongClick(label = "Actions for ${place.title}") { actions = true; true } })
+                                    .semantics { onLongClick(label = "Actions for ${place.title}") { actions = true; true } },
+                                    onLongPress = { openActions() })
                             }
                             DropdownMenu(expanded = actions, onDismissRequest = { actions = false }) {
                                 DropdownMenuItem(text = { Text("Copy Time") }, onClick = {
@@ -451,7 +504,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                                 })
                                 DropdownMenuItem(text = { Text("Working Days & Hours") }, onClick = { actions = false; work = true })
                                 DropdownMenuItem(text = { Text("Add a Person Here") }, enabled = store.canAdd, onClick = { actions = false; personFor = place })
-                                DropdownMenuItem(text = { Text("Groups") }, onClick = { actions = false; groupsFor = place })
+                                DropdownMenuItem(text = { Text("Groups…") }, onClick = { actions = false; groupPickerFor = place.id })
                                 if (!place.isMyLocation || place.person != null) DropdownMenuItem(text = { Text("Rename") }, onClick = { actions = false; renaming = place })
                                 DropdownMenuItem(text = { Text("Remove", color = Palette.destructive) }, onClick = { actions = false; store.remove(place) })
                             }
@@ -463,6 +516,8 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
             }
             // "Copied": 8 dp above the bottom bar, or at the bottom when the bar is hidden.
             if (copied) CopiedPill(Modifier.align(Alignment.BottomCenter).padding(bottom = padding.calculateBottomPadding() + 8.dp))
+            // Polite announcements for TalkBack ("Showing all cities").
+            Box(Modifier.size(1.dp).semantics { liveRegion = LiveRegionMode.Polite; contentDescription = announce })
         }
     }
     renaming?.let { place -> RenameDialog(place, onDone = { name -> if (name != null) store.rename(place, name); renaming = null }) }
@@ -470,7 +525,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
         val city = if (place.isMyLocation) store.hereCity ?: "My Location" else place.name
         AddPersonDialog(city) { name -> if (name != null) store.addPerson(name, place); personFor = null }
     }
-    groupsFor?.let { place -> GroupsDialog(store, place) { groupsFor = null } }
+    groupPickerFor?.let { id -> GroupPickerDialog(store, id) { groupPickerFor = null } }
 }
 
 /** "✓ Copied", briefly, after copying. */
@@ -484,13 +539,186 @@ private fun CopiedPill(modifier: Modifier) {
     }
 }
 
-/** Everyone, or one group: chips above the cards. */
+/** "no cities", "1 city", "5 cities". */
+fun cityCount(n: Int): String = when (n) { 0 -> "no cities"; 1 -> "1 city"; else -> "$n cities" }
+
+/** A small capsule button: white with black text, or faint white. */
 @Composable
-fun GroupFilter(store: Store, groups: List<String>) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PillChip("Everyone", store.groupFilter == null) { store.updateGroupFilter(null) }
-        groups.forEach { group -> PillChip(group, store.groupFilter == group) { store.updateGroupFilter(group) } }
+fun CapsuleButton(title: String, filled: Boolean, onClick: () -> Unit) {
+    Box(Modifier.minimumInteractiveComponentSize().heightIn(min = 36.dp).clip(RoundedCornerShape(50))
+        .background(if (filled) Palette.primary else white(0.12f)).clickable(onClick = onClick).padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center) {
+        Text(title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (filled) Palette.black else Palette.primary,
+            maxLines = 1, softWrap = false)
+    }
+}
+
+/**
+ * The groups, pinned above the cards: All, your groups in your order, the continents (when the list
+ * spans two or more), then New Group (none yet) or Edit Groups. Touch and hold a chip for its actions.
+ */
+@Composable
+fun GroupBar(store: Store, open: (String) -> Unit) {
+    val custom = store.customGroups
+    val continents = store.chipGroups.filter { store.isContinent(it) }
+    val divider = custom.isNotEmpty() && continents.isNotEmpty()
+    val state = rememberLazyListState()
+    val haptics = LocalHapticFeedback.current
+    var deleting by remember { mutableStateOf<String?>(null) }
+    val filter = store.groupFilter
+    val selected = when {
+        filter == null -> 0
+        filter in custom -> 1 + custom.indexOf(filter)
+        filter in continents -> 1 + custom.size + (if (divider) 1 else 0) + continents.indexOf(filter)
+        else -> 0
+    }
+    // Keep the chosen chip in view, centred where the row allows.
+    LaunchedEffect(filter, selected) {
+        val info = state.layoutInfo
+        val item = info.visibleItemsInfo.firstOrNull { it.index == selected }
+        if (item != null) {
+            val center = (info.viewportStartOffset + info.viewportEndOffset) / 2
+            state.animateScrollBy((item.offset + item.size / 2 - center).toFloat())
+        } else state.animateScrollToItem(selected)
+    }
+    fun select(group: String?) {
+        if (group == store.groupFilter) return
+        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        store.updateGroupFilter(group)
+    }
+    LazyRow(state = state, contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().selectableGroup().semantics { contentDescription = "Groups" }) {
+        item(key = "__all") {
+            GroupChip("All", filter == null, "All, ${cityCount(store.places.size)}", emptyList(), onClick = { select(null) }) { _ -> }
+        }
+        items(custom, key = { "c:$it" }) { group ->
+            GroupChip(group, filter == group, "$group, ${cityCount(store.groupCount(group))}",
+                listOf(
+                    CustomAccessibilityAction("Edit Group") { open("group:$group"); true },
+                    CustomAccessibilityAction("Delete Group") { deleting = group; true },
+                ),
+                onClick = { select(group) }) { close ->
+                DropdownMenuItem(text = { Text("Edit Group…") }, onClick = { close(); open("group:$group") })
+                DropdownMenuItem(text = { Text("Delete Group…", color = Palette.destructive) }, onClick = { close(); deleting = group })
+            }
+        }
+        if (divider) item(key = "__divider") { Box(Modifier.size(width = 0.5.dp, height = 20.dp).background(white(0.2f))) }
+        items(continents, key = { "k:$it" }) { group ->
+            GroupChip(group, filter == group, "$group, ${cityCount(store.groupCount(group))}",
+                listOf(CustomAccessibilityAction("Turn Off Continent Groups") { open("settings"); true }),
+                onClick = { select(group) }) { close ->
+                DropdownMenuItem(text = { Text("Turn Off Continent Groups") }, onClick = { close(); open("settings") })
+            }
+        }
+        item(key = "__edit") {
+            val none = custom.isEmpty()
+            Row(Modifier.minimumInteractiveComponentSize().heightIn(min = 32.dp).clip(RoundedCornerShape(50))
+                .clickable { open(if (none) "newgroup" else "groups") }.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Icon(if (none) Icons.Filled.Add else Icons.Filled.Edit, contentDescription = null, tint = white(0.7f), modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(if (none) "New Group" else "Edit Groups", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = white(0.7f),
+                    maxLines = 1, softWrap = false)
+            }
+        }
+    }
+    deleting?.let { group ->
+        DeleteGroupDialog(group, onConfirm = { deleting = null; store.deleteGroup(group) }, onDismiss = { deleting = null })
+    }
+}
+
+/** A group chip (as PillChip): tap to show that group, touch and hold for its menu. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun GroupChip(
+    title: String,
+    on: Boolean,
+    description: String,
+    actions: List<CustomAccessibilityAction>,
+    onClick: () -> Unit,
+    menuItems: @Composable ColumnScope.(close: () -> Unit) -> Unit,
+) {
+    var menu by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    val fg = if (on) Palette.black else Palette.primary
+    val longClick: (() -> Unit)? = if (actions.isEmpty()) null else fun() {
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        menu = true
+    }
+    Box {
+        Row(Modifier.minimumInteractiveComponentSize().heightIn(min = 32.dp).clip(RoundedCornerShape(50))
+            .background(if (on) Palette.primary else Palette.chipOff)
+            .combinedClickable(onClick = onClick, onLongClick = longClick)
+            .semantics {
+                role = Role.Tab
+                selected = on
+                contentDescription = description
+                if (actions.isNotEmpty()) customActions = actions
+            }
+            .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = fg, maxLines = 1, softWrap = false)
+        }
+        if (actions.isNotEmpty()) DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            menuItems { menu = false }
+        }
+    }
+}
+
+/**
+ * The hour columns, once, over every card's tiles: "Now" (or the time you went to) in the middle,
+ * ±1 and ±2 hr either side as small pills, and a white mark under an hour when everyone is working.
+ */
+@Composable
+fun ColumnHeader(store: Store) {
+    val anchor = TimeMath.hourAnchor(store.moment, store.home)
+    val nowAnchor = TimeMath.hourAnchor(store.now, store.home)
+    val visible = store.visiblePlaces
+    val cap = maxOf(1f, LocalDensity.current.fontScale / 1.3f)
+    Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 30.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        (-2..2).forEach { k ->
+            val start = anchor.plusSeconds(k * 3600L)
+            val readsNow = k != 0 && !store.isNow && start == nowAnchor
+            val label = when {
+                k == 0 -> if (store.isNow) "Now" else TimeMath.time(store.moment, store.home, store.use24h)
+                readsNow -> "Now"
+                k > 0 -> "+$k hr"
+                else -> "−${-k} hr"
+            }
+            val overlap = store.showWorkHours && visible.size >= 2 && visible.all { store.isWorking(it, start.plusSeconds(1800)) }
+            val hours = if (kotlin.math.abs(k) == 1) "hour" else "hours"
+            val description = when {
+                k == 0 -> if (store.isNow) "Now" else "Back to now"
+                readsNow -> "Back to now"
+                store.isNow -> "${kotlin.math.abs(k)} $hours ${if (k > 0) "from now" else "ago"}"
+                else -> "${kotlin.math.abs(k)} $hours ${if (k > 0) "later" else "earlier"}, ${TimeMath.time(start, store.home, store.use24h)}"
+            } + if (overlap) ", everyone working" else ""
+            Column(Modifier.weight(1f).fillMaxHeight()
+                .clickable(enabled = k != 0 || !store.isNow) {
+                    when {
+                        k == 0 || readsNow -> store.backToNow()
+                        store.isNow -> store.shift(k * 60)
+                        else -> store.jump(start)
+                    }
+                }
+                .semantics { contentDescription = description; if (k == 0) selected = store.isNow },
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                var shrink by remember(label) { mutableFloatStateOf(1f) }
+                Box(Modifier.fillMaxWidth().height(28.dp).clearAndSetSemantics {}
+                    .then(if (k == 0 || readsNow) Modifier else Modifier.clip(RoundedCornerShape(50)).background(white(0.08f))),
+                    contentAlignment = Alignment.Center) {
+                    Text(label, style = tnum, fontSize = (13f / cap * shrink).sp, maxLines = 1, softWrap = false,
+                        fontWeight = if (k == 0 || readsNow) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (readsNow) white(0.9f) else Palette.primary,
+                        onTextLayout = { if (it.didOverflowWidth && shrink > 0.7f) shrink = (shrink - 0.1f).coerceAtLeast(0.7f) })
+                }
+                Spacer(Modifier.height(3.dp))
+                Box(Modifier.size(width = 16.dp, height = 3.dp).clip(RoundedCornerShape(50))
+                    .background(if (overlap) Palette.primary else Color.Transparent))
+            }
+        }
     }
 }
 
@@ -521,42 +749,39 @@ fun ClockNotice(change: ClockChange, use24h: Boolean, onClose: () -> Unit) {
 }
 
 /**
- * Moves every city through time from the bottom bar: the ruler (quarter-hours, two days either way)
- * and one-tap −2/−1/Now/+1/+2 hours. The date picker goes further; the day bars still drag.
+ * Moves every city through time from the bottom bar, in thumb reach as in Two Degrees: Go to a Time,
+ * the ruler (quarter-hours, two days either way) and Now. The hour columns at the top jump an hour;
+ * the tiles on every card drag.
  */
 @Composable
-fun TimeShifter(store: Store) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TimeRuler(store)
-        // −2 · −1 · Now · +1 · +2: Now in the middle, wider. Exactly one is white: where you are.
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            listOf(-2, -1, 0, 1, 2).forEach { preset ->
-                val on = if (preset == 0) store.isNow else store.offsetMinutes == preset * 60
-                // A 34 dp capsule in a 44 dp row; the touch target reaches past the capsule.
-                Box(Modifier.weight(if (preset == 0) 1.6f else 1f).height(44.dp), contentAlignment = Alignment.Center) {
-                    val pill = Modifier.fillMaxWidth().heightIn(min = 34.dp).clip(RoundedCornerShape(50))
-                        .background(if (on) Palette.primary else Palette.chipOff)
-                    if (preset == 0) {
-                        Box(pill.clickable(onClickLabel = "Back to now") { store.backToNow() }, contentAlignment = Alignment.Center) {
-                            Text("Now", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (on) Palette.black else Palette.primary,
-                                maxLines = 1, softWrap = false)
-                        }
-                    } else {
-                        Box(pill.clickable { store.shift(preset * 60) }
-                            .semantics { contentDescription = "${kotlin.math.abs(preset)} ${if (kotlin.math.abs(preset) == 1) "hour" else "hours"} ${if (preset > 0) "from now" else "ago"}" },
-                            contentAlignment = Alignment.Center) {
-                            Text("${if (preset > 0) "+" else "−"}${kotlin.math.abs(preset)} hr", style = tnum,
-                                fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (on) Palette.black else Palette.primary,
-                                maxLines = 1, softWrap = false)
-                        }
-                    }
-                }
-            }
+fun TimeShifter(store: Store, goToTime: () -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        if (!store.hasScrubbed) {
+            Text("Drag the hours or the ruler to change the time.", fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium,
+                color = white(0.6f), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 16.dp, end = 16.dp).height(16.dp))
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 2.dp).height(44.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconButton(onClick = goToTime) { Icon(Icons.Filled.DateRange, contentDescription = "Go to a Time", tint = Palette.primary) }
+            Box(Modifier.weight(1f)) { TimeRuler(store) }
+            NowButton(store)
         }
     }
 }
 
+/** Now: white when you've moved through time, quiet (and off) when you're at now. */
+@Composable
+fun NowButton(store: Store) {
+    Box(Modifier.minimumInteractiveComponentSize().size(64.dp, 32.dp).clip(RoundedCornerShape(50))
+        .background(if (store.isNow) white(0.12f) else Palette.primary)
+        .clickable(enabled = !store.isNow, onClickLabel = "Back to now") { store.backToNow() }
+        .semantics { contentDescription = if (store.isNow) "Now" else "Back to now" },
+        contentAlignment = Alignment.Center) {
+        Text("Now", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (store.isNow) white(0.35f) else Palette.black,
+            maxLines = 1, softWrap = false)
+    }
+}
 
 /** "Today", "Tomorrow", "Yesterday" or "Tue 9 Jun": the city's day at the moment shown, against your today. */
 private fun dayLine(store: Store, place: Place, moment: Instant): String {
@@ -572,10 +797,10 @@ private fun dayLine(store: Store, place: Place, moment: Instant): String {
 
 /**
  * One city, as a Two Degrees card: its name and how it relates to you on the left, its time large and
- * light on the right with its day beneath; work and the sun; then its day bar.
+ * light on the right; then its hour tiles (−2 to +2 hr, as on the Mac); then work and the sun.
  */
 @Composable
-fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
+fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier, onLongPress: () -> Unit = {}) {
     val moment = store.moment
     val (clock, suffix) = TimeMath.clock(moment, place.zone, store.use24h)
     val shift = TimeMath.dayShift(moment, place.zone, store.home)
@@ -595,6 +820,9 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
     // A person's card names their city first: "Lisbon · +8 hr · UTC+1".
     val city = if (place.person != null) "${place.name} · " else ""
     val detail = city + (here?.let { if (relation == "Your time" || relation == "Same time") it else "$it · $relation" } ?: relation) + " · " + utc
+    // Another day there leads the line: "Tomorrow · +8 hr · UTC+1".
+    val day = dayLine(store, place, moment)
+    val detailWithDay = if (day != "Today" && !otherDay) "$day · $detail" else detail
     // "Working", or "Off hours" / "Weekend" / "Day off" (when that setting is on).
     val work = if (store.showWorkHours) off ?: "Working" else null
     // "Sets 4:59 PM" while the sun is up there, "Rises 6:27 AM" while it's down.
@@ -613,7 +841,7 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
         .semantics(mergeDescendants = true) {
             contentDescription = listOfNotNull(place.title, place.person?.let { place.name }, TimeMath.time(moment, place.zone, store.use24h), detail, dayNote, work, sun?.let { "sun ${it.lowercase()}" }).joinToString(", ")
         }) {
-        Row(verticalAlignment = Alignment.Top) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Where you are, on this card rather than a second card for the same place.
@@ -621,55 +849,57 @@ fun CityRow(store: Store, place: Place, modifier: Modifier = Modifier) {
                         Icon(Icons.Filled.LocationOn, contentDescription = null, tint = Palette.primary, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(6.dp))
                     }
-                    Text(place.title, fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary,
+                    Text(place.title, fontSize = 20.sp, lineHeight = 25.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Text(detail, style = tnum, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = white(0.85f),
+                Text(detailWithDay, style = tnum, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = white(0.85f),
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.width(8.dp))
             // The time never truncates: it is measured first, and the name gives way.
-            Column(horizontalAlignment = Alignment.End) {
-                Text(clockText(clock, suffix), fontSize = 44.sp, lineHeight = 46.sp, fontWeight = FontWeight.Light,
-                    color = Palette.primary, maxLines = 1, softWrap = false)
-                Text(dayLine(store, place, moment), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = white(0.8f), maxLines = 1)
-            }
+            Text(clockText(clock, suffix), fontSize = 34.sp, lineHeight = 38.sp, fontWeight = FontWeight.Light,
+                color = Palette.primary, maxLines = 1, softWrap = false)
         }
+        Spacer(Modifier.height(10.dp))
+        HourTiles(store, place, onLongPress)
         Spacer(Modifier.height(8.dp))
         // Work on the left, the sun on the right; always there, so every card is the same height.
-        Row(Modifier.fillMaxWidth().heightIn(min = 20.dp), verticalAlignment = Alignment.CenterVertically,
+        Row(Modifier.fillMaxWidth().heightIn(min = 18.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween) {
             if (work != null) {
                 StatusNote(work, if (off == null) R.drawable.ic_briefcase else R.drawable.ic_moon,
-                    if (off == null) white(0.85f) else Palette.moon, Modifier.weight(1f, fill = false))
+                    if (off == null) white(0.85f) else Palette.moon, Modifier.weight(1f, fill = false), fontSize = 13.sp)
                 Spacer(Modifier.width(8.dp))
             } else Spacer(Modifier.width(0.dp))
-            if (sun != null) StatusNote(sun, if (sunUp) R.drawable.ic_sun else R.drawable.ic_sunrise, Palette.sun)
+            if (sun != null) StatusNote(sun, if (sunUp) R.drawable.ic_sun else R.drawable.ic_sunrise, Palette.sun, fontSize = 13.sp)
         }
-        Spacer(Modifier.height(10.dp))
-        DayBar(store, place)
     }
 }
 
 /**
- * Twelve hours of a city's sky in one slim bar (six before the selected moment, six after), brighter
- * by day and dimmer outside working hours, a white tick at midnight, a white knob at the selected
- * moment, and the city's hours labelled underneath. Drag it to move through time; tap to go to that hour.
+ * A city's hours as five tiles, two before the selected hour and two after, as on the Mac panel:
+ * each tile the colour of the sky there at that hour (warm black at night, greys at dawn and dusk,
+ * cream by day), dimmed outside working hours, the day's name and a white mark where a new day
+ * starts, and a white lens on the selected hour. Tap a tile to go to that hour; drag to move
+ * through time in quarter-hours.
  */
 @Composable
-fun DayBar(store: Store, place: Place) {
-    val hoursShown = 12.0
-    val moment = store.moment
-    val start = moment.minusSeconds((hoursShown / 2 * 3600).toLong())
-    var width by remember { mutableFloatStateOf(1f) }
-    val marks = marks(start, hoursShown, place, store)
-    Column(Modifier.fillMaxWidth()
-        .onSizeChanged { width = it.width.toFloat().coerceAtLeast(1f) }
+fun HourTiles(store: Store, place: Place, onLongPress: () -> Unit) {
+    val anchor = TimeMath.hourAnchor(store.moment, store.home)
+    val starts = (-2..2).map { anchor.plusSeconds(it * 3600L) }
+    fun newDay(start: Instant) = start.atZone(place.zone).toLocalDate() != start.minusSeconds(3600).atZone(place.zone).toLocalDate()
+    val off = if (store.showWorkHours) WorkWeek.offLabel(place, store.moment, store.workStart, store.workEnd) else null
+    val state = TimeMath.time(store.moment, place.zone, store.use24h) + if (store.showWorkHours) ", ${(off ?: "working").lowercase()}" else ""
+    val gapPx = with(LocalDensity.current) { 6.dp.toPx() }
+    var widthPx by remember { mutableFloatStateOf(1f) }
+    BoxWithConstraints(Modifier.fillMaxWidth().height(50.dp)
+        .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
         .pointerInput(place.id) {
-            detectTapGestures { offset ->
-                val tapped = start.plusSeconds((offset.x / width * hoursShown * 3600).toLong())
-                store.jump(tapped.atZone(place.zone).withMinute(0).withSecond(0).withNano(0).toInstant())
-            }
+            detectTapGestures(onLongPress = { onLongPress() }, onTap = { o ->
+                val pitch = (widthPx + gapPx) / 5
+                val k = (o.x / pitch).toInt().coerceIn(0, 4) - 2
+                if (k != 0 || !store.isNow) store.jump(TimeMath.hourAnchor(store.moment, store.home).plusSeconds(k * 3600L))
+            })
         }
         .pointerInput(place.id) {
             var base = 0
@@ -678,73 +908,76 @@ fun DayBar(store: Store, place: Place) {
                 onDragStart = { base = store.offsetMinutes; dx = 0f },
             ) { _, amount ->
                 dx += amount
-                val minutes = -dx / (width / hoursShown.toFloat()) * 60
+                val minutes = -dx / ((widthPx + gapPx) / 5) * 60
                 store.scrubToQuarterNear(base + minutes.toDouble())
             }
+        }
+        .semantics(mergeDescendants = true) {
+            contentDescription = "Hours in ${place.title}"
+            stateDescription = state
+            customActions = listOf(
+                CustomAccessibilityAction("Next hour") { store.travel(1); true },
+                CustomAccessibilityAction("Previous hour") { store.travel(-1); true },
+            )
         }) {
-        Box(Modifier.fillMaxWidth().height(18.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(50))) {
-                // Quarter-hour slices on whole pixels, edge to edge with no overlap, so no seams show.
-                val slices = (hoursShown * 4).toInt()
-                val w = size.width
-                for (i in 0 until slices) {
-                    val x0 = (i * w / slices).roundToInt()
-                    val x1 = ((i + 1) * w / slices).roundToInt()
-                    if (x1 <= x0) continue
-                    val at = start.plusSeconds(i * 900L + 450).atZone(place.zone)
-                    val dim = store.showWorkHours && !store.isWorking(place, at.toInstant())
-                    val fill = Color(DayColor.at(at.hour + at.minute / 60.0))
-                    val alpha = ((0.15f + 0.7f * fill.luminance()) * (if (dim) 0.5f else 1f)).coerceIn(0f, 1f)
-                    drawRect(white(alpha), topLeft = Offset(x0.toFloat(), 0f), size = Size((x1 - x0).toFloat(), size.height))
-                }
-            }
-            // Midnight, taller than the bar so it isn't clipped to it.
-            Canvas(Modifier.fillMaxWidth().height(12.dp)) {
-                val line = 1.5.dp.toPx()
-                marks.filter { it.midnight }.forEach {
-                    val x = it.fraction * size.width
-                    drawRect(white(0.9f), topLeft = Offset(x - line / 2, 0f), size = Size(line, size.height))
-                }
-            }
-            Box(Modifier.size(14.dp).clip(CircleShape).background(Palette.primary).border(1.5.dp, Palette.black.copy(alpha = 0.35f), CircleShape))
-        }
-        Spacer(Modifier.height(1.dp))
-        Layout(content = {
-            marks.forEach {
-                Text(it.label, fontSize = 11.sp, lineHeight = 12.sp, fontWeight = if (it.midnight) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (it.midnight) Palette.primary else white(0.6f), maxLines = 1)
-            }
-        }, modifier = Modifier.fillMaxWidth()) { measurables, constraints ->
-            val w = constraints.maxWidth
-            val placeables = measurables.map { it.measure(Constraints()) }
-            layout(w, placeables.maxOfOrNull { it.height } ?: 0) {
-                placeables.forEachIndexed { i, p ->
-                    val x = (marks[i].fraction * w - p.width / 2f).roundToInt().coerceIn(0, (w - p.width).coerceAtLeast(0))
-                    p.placeRelative(x, 0)
-                }
+        val pitch = (maxWidth + 6.dp) / 5
+        Row(Modifier.fillMaxSize().padding(vertical = 3.dp).clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            starts.forEachIndexed { i, start ->
+                HourTile(store, place, start, center = i == 2, newDay = newDay(start), modifier = Modifier.weight(1f).fillMaxHeight())
             }
         }
+        // Midnight: a white mark in the gap before the tile where a new day starts.
+        Canvas(Modifier.matchParentSize()) {
+            val pitchPx = (size.width + 6.dp.toPx()) / 5
+            val h = 28.dp.toPx()
+            for (i in 1..4) {
+                if (!newDay(starts[i])) continue
+                drawRoundRect(white(0.9f), topLeft = Offset(i * pitchPx - 3.dp.toPx() - 1.dp.toPx(), (size.height - h) / 2),
+                    size = Size(2.dp.toPx(), h), cornerRadius = CornerRadius(1.dp.toPx()))
+            }
+        }
+        // The lens: the selected hour, the same column on every card.
+        Box(Modifier.offset(x = pitch * 2 - 3.dp).size(width = pitch, height = 50.dp)
+            .background(white(0.06f), RoundedCornerShape(11.dp)).border(2.dp, Palette.primary, RoundedCornerShape(11.dp)))
     }
 }
 
-
-private data class Mark(val fraction: Float, val label: String, val midnight: Boolean)
-
-/** The city's hours divisible by three inside the bar (not at its very ends), and midnights. */
-private fun marks(start: Instant, hoursShown: Double, place: Place, store: Store): List<Mark> {
-    val end = start.plusSeconds((hoursShown * 3600).toLong())
-    var at = start.atZone(place.zone).withMinute(0).withSecond(0).withNano(0).plusHours(1)
-    val marks = mutableListOf<Mark>()
-    while (at.toInstant() < end) {
-        val fromStart = at.toEpochSecond() - start.epochSecond
-        val toEnd = end.epochSecond - at.toEpochSecond()
-        if (fromStart >= 1800 && toEnd >= 1800 && at.hour % 3 == 0) {
-            val label = if (at.hour == 0) TimeMath.weekday(at.toInstant(), place.zone).uppercase() else TimeMath.hourLabel(at.hour, store.use24h)
-            marks += Mark((fromStart / (hoursShown * 3600)).toFloat(), label, at.hour == 0)
+/** One hour tile: the sky's colour there at that hour, flat, with the hour in a colour that reads on it. */
+@Composable
+private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, modifier: Modifier) {
+    val z = start.atZone(place.zone)
+    val hour = z.hour
+    val minute = z.minute
+    val fill = DayColor.lifted(DayColor.at(hour + minute / 60.0))
+    val text = if (DayColor.isLight(fill)) Palette.bg else Palette.secondary
+    val fillColor by animateColorAsState(Color(fill), tween(250), label = "tile")
+    val textColor by animateColorAsState(text, tween(250), label = "tile text")
+    val dim = store.showWorkHours && !store.isWorking(place, start.plusSeconds(1800))
+    val shape = RoundedCornerShape(8.dp)
+    val use24h = store.use24h
+    // Large text is capped, then shrinks to fit the tile (to 70%), as on the iPhone.
+    val cap = maxOf(1f, LocalDensity.current.fontScale / 1.15f)
+    var shrink by remember(hour, minute, use24h) { mutableFloatStateOf(1f) }
+    val scale = shrink / cap
+    val label = buildAnnotatedString {
+        append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
+        if (minute != 0) withStyle(SpanStyle(fontSize = (11 * scale).sp)) { append(":%02d".format(minute)) }
+        if (!use24h) withStyle(SpanStyle(fontSize = ((if (minute != 0) 8 else 9) * scale).sp)) {
+            append(" " + if (hour < 12) "AM" else "PM")
         }
-        at = at.plusHours(1)
     }
-    return marks
+    Box(modifier.clip(shape).background(fillColor)
+        .then(if (dim) Modifier.background(Color.Black.copy(alpha = 0.35f)) else Modifier)
+        .border(0.5.dp, white(0.12f), shape), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(label, style = tnum, fontSize = (17 * scale).sp, lineHeight = (20 * scale).sp,
+                fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
+                color = textColor, maxLines = 1, softWrap = false,
+                onTextLayout = { if (it.didOverflowWidth && shrink > 0.7f) shrink = (shrink - 0.1f).coerceAtLeast(0.7f) })
+            if (newDay) Text(TimeMath.weekday(start, place.zone).uppercase(), fontSize = (9 / cap).sp, lineHeight = (11 / cap).sp,
+                fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false)
+        }
+    }
 }
 
 /** The widgets' hour tiles: the sky colour kept visible at night (never darker than the border tone), and dimmed halfway to the background. */
@@ -851,7 +1084,7 @@ fun CitySearchField(query: String, focus: Boolean = true, onSearch: () -> Unit =
 
 /** Search results in place of the cards; tap one to add it. */
 @Composable
-fun SearchResults(store: Store, query: String, searched: Pair<String, List<CityEntry>>?, modifier: Modifier, added: () -> Unit) {
+fun SearchResults(store: Store, query: String, searched: Pair<String, List<CityEntry>>?, modifier: Modifier, added: (String?) -> Unit) {
     val results = searched?.second.orEmpty()
     val ready = searched?.first == query
     LazyColumn(modifier.fillMaxSize()) {
@@ -868,7 +1101,7 @@ fun SearchResults(store: Store, query: String, searched: Pair<String, List<CityE
         items(results, key = { it.id }) { entry ->
             val have = store.contains(entry)
             val zone = runCatching { java.time.ZoneId.of(entry.zoneId) }.getOrNull()
-            Row(Modifier.fillMaxWidth().clickable(enabled = !have && store.canAdd, onClickLabel = "Add") { store.add(entry); added() }
+            Row(Modifier.fillMaxWidth().clickable(enabled = !have && store.canAdd, onClickLabel = "Add") { added(store.add(entry)) }
                 .padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(entry.name, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary,
@@ -973,7 +1206,7 @@ fun TimeRuler(store: Store) {
         }
     }
 
-    BoxWithConstraints(Modifier.fillMaxWidth().height(48.dp)) {
+    BoxWithConstraints(Modifier.fillMaxWidth().height(40.dp)) {
         val side = ((maxWidth - tick) / 2).coerceAtLeast(0.dp)
         LazyRow(state = listState, flingBehavior = fling, contentPadding = PaddingValues(horizontal = side),
             modifier = Modifier.fillMaxSize()
@@ -992,7 +1225,7 @@ fun TimeRuler(store: Store) {
             }
         }
         // The fixed line: where you are in time.
-        Box(Modifier.align(Alignment.TopCenter).padding(top = 16.dp).width(3.dp).height(30.dp)
+        Box(Modifier.align(Alignment.TopCenter).padding(top = 14.dp).width(2.dp).height(24.dp)
             .clip(RoundedCornerShape(50)).background(Palette.primary))
     }
 }
@@ -1002,7 +1235,7 @@ fun TimeRuler(store: Store) {
 private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, modifier: Modifier) {
     val hour = at.hour; val minute = at.minute
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.height(14.dp).wrapContentWidth(unbounded = true), contentAlignment = Alignment.Center) {
+        Box(Modifier.height(12.dp).wrapContentWidth(unbounded = true), contentAlignment = Alignment.Center) {
             if (minute == 0) Text(
                 if (hour == 0) at.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH).uppercase()
                 else if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}${TimeMath.THIN}${if (hour < 12) "AM" else "PM"}",
@@ -1010,9 +1243,9 @@ private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, modifier: Mo
                 fontWeight = if (hour == 0) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (hour == 0) Palette.primary else white(0.6f))
         }
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(3.dp))
         Box(Modifier.width(if (minute == 0) 1.5.dp else 1.dp)
-            .height(if (minute == 0) 18.dp else if (minute == 30) 12.dp else 7.dp)
+            .height(if (minute == 0) 14.dp else if (minute == 30) 9.dp else 5.dp)
             .background(white(if (minute == 0) 0.6f else if (minute == 30) 0.35f else 0.25f)))
     }
 }

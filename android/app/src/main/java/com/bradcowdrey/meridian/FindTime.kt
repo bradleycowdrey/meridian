@@ -121,7 +121,7 @@ fun FindTimeScreen(store: Store, onDone: () -> Unit) {
     // After work today, start with tomorrow.
     var day by remember { mutableStateOf(if (store.now.atZone(home).hour >= 17) today.plusDays(1) else today) }
     var length by remember { mutableIntStateOf(60) }
-    var chosen by remember { mutableStateOf(store.visiblePlaces.map { it.id }.toSet()) }
+    var chosen by remember { mutableStateOf(store.visiblePlaces.map { it.id }.toSet().ifEmpty { store.places.map { it.id }.toSet() }) }
     var slot by remember { mutableStateOf<Slot?>(null) }
 
     // The cards in the meeting, one per time zone and city (a person counts as their own).
@@ -183,7 +183,8 @@ private fun LengthPicker(length: Int, set: (Int) -> Unit) {
 @Composable
 private fun Who(store: Store, chosen: Set<String>, set: (Set<String>) -> Unit) {
     GlassCard("Who", Icons.Filled.Person) {
-        val groups = store.groups
+        // The chips' groups in the same order, leaving out empty ones.
+        val groups = store.chipGroups.filter { store.groupCount(it) > 0 }
         if (groups.isNotEmpty()) {
             Row(Modifier.bleed(14.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val everyone = store.places.map { it.id }.toSet()

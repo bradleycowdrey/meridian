@@ -6,6 +6,8 @@ import WidgetKit
 @MainActor
 final class CityStore: ObservableObject {
     static let maxPlaces = 24
+    /// The most custom groups the list keeps.
+    static let maxGroups = 24
 
     @Published var places: [Place] { didSet { save(); syncWidgets() } }
     @Published var use24h: Bool { didSet { defaults.set(use24h, forKey: "use24h"); syncWidgets() } }
@@ -18,13 +20,18 @@ final class CityStore: ObservableObject {
     @Published var continentGroups = Continent.autoGroups {
         didSet {
             Continent.autoGroups = continentGroups
-            // A continent filter that no longer exists goes back to everyone (as setGroups does).
-            if let filter = groupFilter, !groups.contains(filter) { groupFilter = nil }
+            // A continent filter that no longer exists goes back to everyone.
+            validateFilter()
         }
     }
     /// The group the list shows ("Design team"); nil shows everyone.
     @Published var groupFilter: String? = UserDefaults.standard.string(forKey: "groupFilter") {
         didSet { defaults.set(groupFilter, forKey: "groupFilter") }
+    }
+    /// The custom groups, in the user's order (the chips, Find a Time and the Groups screen follow
+    /// it). A group stays here with no cities in it until it is deleted.
+    @Published var groupOrder: [String] = [] {
+        didSet { if !demo { defaults.set(groupOrder, forKey: "groupOrder") } }
     }
     /// Clock changes the user has closed the notice for ("Europe/London|1793000000").
     @Published var dismissedClockChanges = Set(UserDefaults.standard.stringArray(forKey: "dismissedClockChanges") ?? []) {
@@ -78,6 +85,21 @@ final class CityStore: ObservableObject {
         workStart = d.object(forKey: "workStart") as? Int ?? 9
         workEnd = d.object(forKey: "workEnd") as? Int ?? 18
         useMyLocation = demo ? false : (d.object(forKey: "useMyLocation") as? Bool ?? true)
+        // The groups' order: saved, or (from before it was kept) the cards' groups A to Z; any group
+        // a card is in that the order lacks goes on the end.
+        let cardGroups: [String] = places.flatMap { $0.groups ?? [] }
+        var order: [String] = []
+        if !demo {
+            if let saved = d.stringArray(forKey: "groupOrder") {
+                order = saved
+            } else {
+                order = Array(Set(cardGroups)).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+            }
+        }
+        for g in cardGroups where !order.contains(g) { order.append(g) }
+        groupOrder = order
+        // didSet doesn't run in init.
+        if !demo { d.set(order, forKey: "groupOrder") }
         updateMyLocation(locate: false)
         syncWidgets()
         let ticker = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
@@ -142,6 +164,7 @@ final class CityStore: ObservableObject {
         if list != places { places = list }
         let host = on ? MyLocation.hostID(defaults: defaults) : nil
         if host != myLocationHost { myLocationHost = host }
+        validateFilter()
         guard on, locate, Terms.accepted else { return }
         locator.locate { [weak self] in self?.updateMyLocation(locate: false) }
     }
@@ -165,12 +188,15 @@ final class CityStore: ObservableObject {
         places.contains { $0.person == nil && $0.name == entry.name && $0.timeZoneID == entry.timeZoneID }
     }
 
-    func add(_ entry: CityEntry) {
-        guard canAdd, !contains(entry) else { return }
-        places.append(Place(name: entry.name, timeZoneID: entry.timeZoneID, countryCode: entry.countryCode,
-                            latitude: entry.latitude, longitude: entry.longitude))
+    /// Adds a city; returns its card's id (nil if it wasn't added, or became My Location).
+    @discardableResult func add(_ entry: CityEntry) -> UUID? {
+        guard canAdd, !contains(entry) else { return nil }
+        let place = Place(name: entry.name, timeZoneID: entry.timeZoneID, countryCode: entry.countryCode,
+                          latitude: entry.latitude, longitude: entry.longitude)
+        places.append(place)
         // A city in your own time zone becomes My Location, rather than showing twice.
         updateMyLocation(locate: false)
+        return places.contains { $0.id == place.id } ? place.id : nil
     }
 
     func remove(at offsets: IndexSet) {
@@ -181,7 +207,7 @@ final class CityStore: ObservableObject {
         places.remove(atOffsets: offsets)
         // Deleting the card standing in for My Location brings the My Location card back.
         if removesMyLocation { useMyLocation = false } else if removesHost { updateMyLocation(locate: false) }
-        if let filter = groupFilter, !groups.contains(filter) { groupFilter = nil }
+        validateFilter()
     }
     func remove(_ place: Place) {
         guard let i = places.firstIndex(where: { $0.id == place.id }) else { return }

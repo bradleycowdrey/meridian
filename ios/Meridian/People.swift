@@ -17,17 +17,30 @@ extension CityStore {
 
     // MARK: Groups
 
-    /// The groups made by hand on the list, A to Z.
-    var customGroups: [String] {
-        Array(Set(places.flatMap { $0.groups ?? [] })).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    /// The groups made by hand, in the user's order.
+    var customGroups: [String] { groupOrder }
+
+    /// A continent's automatic group (a custom group named like one is custom).
+    func isContinent(_ g: String) -> Bool { Continent.ordered.contains(g) && !groupOrder.contains(g) }
+
+    /// The continents the list's cities are on (when grouping by continent).
+    private var presentContinents: Set<String> {
+        continentGroups ? Set(places.compactMap { Continent.name(for: $0) }) : []
     }
 
-    /// Every group on the list: the continents its cities are on (when grouping by continent),
-    /// in a fixed order, then the custom groups A to Z. A custom group named like a continent merges.
-    var groups: [String] {
-        let continents: Set<String> = continentGroups ? Set(places.compactMap { Continent.name(for: $0) }) : []
-        return Continent.ordered.filter { continents.contains($0) } + customGroups.filter { !continents.contains($0) }
+    /// How many continent chips there could be (0 when grouping by continent is off).
+    var continentChipCount: Int { presentContinents.count }
+
+    /// Every group the chips show: the custom groups in order, then the continents (when the list
+    /// spans two or more), in a fixed order. A custom group named like a continent merges.
+    var chipGroups: [String] {
+        let present = presentContinents
+        guard present.count >= 2 else { return groupOrder }
+        return groupOrder + Continent.ordered.filter { present.contains($0) && !groupOrder.contains($0) }
     }
+
+    /// Every group on the list (for older callers).
+    var groups: [String] { chipGroups }
 
     /// The groups a card is in: its own, and its continent (when grouping by continent).
     func groups(of place: Place) -> [String] {
@@ -36,17 +49,106 @@ extension CityStore {
         return all
     }
 
-    /// The cards the list shows: everyone, or one group.
+    /// How many cards are in a group.
+    func groupCount(_ g: String) -> Int { places.filter { groups(of: $0).contains(g) }.count }
+
+    /// The cards the list shows: everyone, or one group (which may have none yet).
     var visiblePlaces: [Place] {
-        guard let group = groupFilter, groups.contains(group) else { return places }
+        guard let group = groupFilter, chipGroups.contains(group) else { return places }
         return places.filter { groups(of: $0).contains(group) }
+    }
+
+    /// "  Design   Team " -> "Design Team", at most 30 characters.
+    nonisolated static func normalizedGroupName(_ raw: String) -> String {
+        let words = raw.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        return String(words.joined(separator: " ").prefix(30))
+    }
+
+    /// Why a name can't be used for a new group (or for renaming `old`), or nil when it can.
+    func groupNameProblem(_ raw: String, renaming old: String? = nil) -> String? {
+        let name = Self.normalizedGroupName(raw)
+        if name.isEmpty { return "Enter a name." }
+        let lower = name.lowercased()
+        if lower == "all" || lower == "everyone" { return "\u{201C}All\u{201D} already means every city." }
+        if Continent.ordered.contains(where: { $0.lowercased() == lower }) { return "Continents are grouped automatically." }
+        if let existing = groupOrder.first(where: { $0 != old && $0.lowercased() == lower }) {
+            return "There\u{2019}s already a group called \(existing)."
+        }
+        if old == nil && groupOrder.count >= CityStore.maxGroups { return "You can have up to \(CityStore.maxGroups) groups." }
+        return nil
+    }
+
+    /// Makes an empty group; returns its name, or nil when the name can't be used.
+    @discardableResult func createGroup(_ raw: String) -> String? {
+        guard groupNameProblem(raw) == nil else { return nil }
+        let name = Self.normalizedGroupName(raw)
+        groupOrder.append(name)
+        return name
+    }
+
+    /// Renames a group on every card, in the order and in the filter.
+    @discardableResult func renameGroup(_ old: String, to raw: String) -> Bool {
+        let new = Self.normalizedGroupName(raw)
+        if new == old { return true }
+        guard groupNameProblem(raw, renaming: old) == nil else { return false }
+        let list = places.map { place -> Place in
+            guard let groups = place.groups, groups.contains(old) else { return place }
+            var renamed = place
+            renamed.groups = Array(Set(groups.map { $0 == old ? new : $0 })).sorted()
+            return renamed
+        }
+        if list != places { places = list }
+        if let i = groupOrder.firstIndex(of: old) { groupOrder[i] = new } else { groupOrder.append(new) }
+        if groupFilter == old { groupFilter = new }
+        return true
+    }
+
+    /// Deletes a group; its cities stay on the list.
+    func deleteGroup(_ g: String) {
+        let list = places.map { place -> Place in
+            guard let groups = place.groups, groups.contains(g) else { return place }
+            var changed = place
+            let rest = groups.filter { $0 != g }
+            changed.groups = rest.isEmpty ? nil : rest
+            return changed
+        }
+        if list != places { places = list }
+        groupOrder.removeAll { $0 == g }
+        validateFilter()
+    }
+
+    func moveGroups(from source: IndexSet, to destination: Int) {
+        groupOrder.move(fromOffsets: source, toOffset: destination)
+    }
+
+    /// Puts exactly these cards in a group (and takes the rest out).
+    func setMembers(_ ids: Set<UUID>, of g: String) {
+        let list = places.map { place -> Place in
+            var mine = place.groups ?? []
+            let want = ids.contains(place.id)
+            guard mine.contains(g) != want else { return place }
+            if want { mine.append(g) } else { mine.removeAll { $0 == g } }
+            var changed = place
+            changed.groups = mine.isEmpty ? nil : Array(Set(mine)).sorted()
+            return changed
+        }
+        if list != places { places = list }
+        if !groupOrder.contains(g) { groupOrder.append(g) }
     }
 
     func setGroups(_ groups: [String], for place: Place) {
         guard let i = places.firstIndex(where: { $0.id == place.id }) else { return }
         let clean = groups.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         places[i].groups = clean.isEmpty ? nil : Array(Set(clean)).sorted()
-        if let filter = groupFilter, !self.groups.contains(filter) { groupFilter = nil }
+        for g in clean where !groupOrder.contains(g) { groupOrder.append(g) }
+        validateFilter()
+    }
+
+    /// A filter whose group has gone goes back to every city (and VoiceOver says so).
+    func validateFilter() {
+        guard let filter = groupFilter, !chipGroups.contains(filter) else { return }
+        groupFilter = nil
+        UIAccessibility.post(notification: .announcement, argument: "Showing all cities")
     }
 
     // MARK: Clock changes

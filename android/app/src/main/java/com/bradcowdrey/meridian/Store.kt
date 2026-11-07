@@ -348,7 +348,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         if (!demo) prefs.edit().putString("groupOrder", JSONArray(list).toString()).apply()
     }
 
-    private fun setGroupOrder(list: List<String>) {
+    private fun applyGroupOrder(list: List<String>) {
         groupOrder = list
         saveGroupOrder(list)
     }
@@ -408,7 +408,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
     fun createGroup(raw: String): String? {
         if (groupNameProblem(raw) != null) return null
         val name = normalizedGroupName(raw)
-        setGroupOrder(groupOrder + name)
+        applyGroupOrder(groupOrder + name)
         return name
     }
 
@@ -423,7 +423,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
                 if (own == null || old !in own) p else p.copy(groups = own.map { if (it == old) name else it }.distinct().sorted())
             })
         }
-        setGroupOrder(if (old in groupOrder) groupOrder.map { if (it == old) name else it } else groupOrder + name)
+        applyGroupOrder(if (old in groupOrder) groupOrder.map { if (it == old) name else it } else groupOrder + name)
         if (groupFilter == old) updateGroupFilter(name)
         return true
     }
@@ -436,7 +436,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
                 if (own == null || group !in own) p else p.copy(groups = own.filter { it != group }.ifEmpty { null })
             })
         }
-        setGroupOrder(groupOrder.filter { it != group })
+        applyGroupOrder(groupOrder.filter { it != group })
         validateFilter()
     }
 
@@ -445,7 +445,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         val i = groupOrder.indexOf(group)
         val j = i + by
         if (i < 0 || j !in groupOrder.indices) return
-        setGroupOrder(groupOrder.toMutableList().also { it.add(j, it.removeAt(i)) })
+        applyGroupOrder(groupOrder.toMutableList().also { it.add(j, it.removeAt(i)) })
     }
 
     /** Puts exactly these cards in a group (and takes the rest out). */
@@ -461,7 +461,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
             }
         }
         if (list != places) update(list)
-        if (group !in groupOrder) setGroupOrder(groupOrder + group)
+        if (group !in groupOrder) applyGroupOrder(groupOrder + group)
         validateFilter()
     }
 
@@ -470,7 +470,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         val clean = groups.map { normalizedGroupName(it) }.filter { it.isNotEmpty() }.distinct().sorted()
         update(places.map { if (it.id == place.id) it.copy(groups = clean.ifEmpty { null }) else it })
         val missing = clean.filter { it !in groupOrder }
-        if (missing.isNotEmpty()) setGroupOrder(groupOrder + missing)
+        if (missing.isNotEmpty()) applyGroupOrder(groupOrder + missing)
         validateFilter()
     }
 

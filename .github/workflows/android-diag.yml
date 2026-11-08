@@ -20,13 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { key: empty, off: "footer,photos,capsule,tiles,pills,time,texts,scrim" }
-          - { key: tiles, off: "footer,photos,capsule,pills,time,texts,scrim" }
-          - { key: pills, off: "footer,photos,capsule,tiles,time,texts,scrim" }
-          - { key: time, off: "footer,photos,capsule,tiles,pills,texts,scrim" }
-          - { key: texts, off: "footer,photos,capsule,tiles,pills,time,scrim" }
           - { key: scrim, off: "footer,photos,capsule,tiles,pills,time,texts" }
-          - { key: photos, off: "footer,capsule,tiles,pills,time,texts,scrim" }
+          - { key: full, off: "none" }
     env:
       OUT: ${{ github.workspace }}/out
     steps:

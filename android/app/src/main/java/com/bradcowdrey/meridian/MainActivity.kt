@@ -1264,9 +1264,18 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
             // The scrim: black 55% at the bottom fading to nothing by 55% of the height, and a lighter
             // black 35% at the left fading to nothing by 60% of the width (Skyline.scrimAlpha matches).
             if (!Diag.has("scrim")) Box(Modifier.matchParentSize().drawBehind {
-                drawRect(Brush.verticalGradient(0f to Color.Transparent, 0.45f to Color.Transparent,
-                    0.7f to Color.Black.copy(alpha = 0.2f), 1f to Color.Black.copy(alpha = 0.55f)))
-                drawRect(Brush.horizontalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.6f to Color.Transparent))
+                // Two-colour gradients over exact bands only: multi-stop gradients across whole cards took
+                // the Android emulator's graphics down (CI), and simple ones look the same.
+                val h = size.height
+                val w = size.width
+                val clear = Color.Black.copy(alpha = 0f)
+                val mid = Color.Black.copy(alpha = 0.2f)
+                drawRect(Brush.verticalGradient(listOf(clear, mid), startY = h * 0.45f, endY = h * 0.7f),
+                    topLeft = Offset(0f, h * 0.45f), size = Size(w, h * 0.25f))
+                drawRect(Brush.verticalGradient(listOf(mid, Color.Black.copy(alpha = 0.55f)), startY = h * 0.7f, endY = h),
+                    topLeft = Offset(0f, h * 0.7f), size = Size(w, h * 0.3f))
+                drawRect(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.35f), clear), startX = 0f, endX = w * 0.6f),
+                    size = Size(w * 0.6f, h))
             })
         }
         val labelWidth = Rows.labelWidth(maxWidth)

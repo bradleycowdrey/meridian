@@ -70,24 +70,26 @@ object MeridianWidgets {
     private const val TILE_MARGIN = 2f
     /** The tile drawable's corner radius (drawable/tile). */
     private const val TILE_CORNER = 6f
-    /** The Now capsule: its outer edge this far outside the Now tile (inside the 4 dp gap to the next tile), and above and below the first and last tiles. */
-    private const val CAPSULE_OUTSET = 3f
-    private const val CAPSULE_OVERHANG = 10f
-    private const val CAPSULE_STROKE = 2f
     /**
-     * The dark halo under the capsule's white line (black 60%, CAPSULE_HALO_ALPHA), so the line holds 3:1 on a bright day sky too
-     * (was a bare white 62% line, 1.3:1 to 1.7:1 on day photos). 3.5 dp, not 4: centred on the line (2 dp from
-     * the Now tile), it stays inside the 4 dp gap between tiles (0.25 dp clear of each) instead of touching the next tile.
+     * The Now (centre) tile: NOW_WIDTH times as wide as the hour before and after (widget_photo_row's tile1 weights
+     * 1.12 beside 1 and 1), and NOW_GROW dp taller above and below their common centre (tile1_slot is 8 dp taller than
+     * its neighbours; the code pads it back where a row is too short). Its hour digits NOW_DIGITS_UP sp and its
+     * AM/PM and ":30" NOW_SMALL_UP sp larger than the row's other tiles, where they fit.
      */
-    private const val CAPSULE_HALO = 3.5f
+    private const val NOW_WIDTH = 1.12f
+    private const val NOW_GROW = 4f
+    private const val NOW_DIGITS_UP = 2
+    private const val NOW_SMALL_UP = 1f
+    /**
+     * The dark halo under the Now outline's white line (black 60%, CAPSULE_HALO_ALPHA), so the line holds 3:1 on a bright day sky too.
+     * The outline's centre line runs midway in the 4 dp gap (2 * TILE_MARGIN) between the Now tile and its neighbours,
+     * 2 dp from each; 3 dp wide (the gap less 1 dp), it stays 0.5 dp clear of both tiles.
+     */
+    private const val CAPSULE_HALO = 3f
     /** Black 60% (was 40%), as the app's capsule edge: about 0.07 L on a 0.45 day sky, 3.9:1 (was 0.14 L at best, and a single 0.21 L pixel at 1x). */
     private const val CAPSULE_HALO_ALPHA = 0.6f
     private const val CAPSULE_ALPHA = 0.85f
-    /**
-     * The white line's drawn width (dp): 1.5 inside the 3.5 dp halo, so a solid 1 dp dark band shows on each side (2 px at
-     * 2x; was 0.75 dp, one anti-aliased pixel). Geometry (the line's centre, the ends' radius) still uses CAPSULE_STROKE,
-     * so the capsule's position and its clearance from the tiles are unchanged.
-     */
+    /** The white line's drawn width (dp): 1.5 inside the 3 dp halo, so a 0.75 dp dark band shows on each side. */
     private const val CAPSULE_LINE = 1.5f
     /** Roboto's line height (ascent + descent, includeFontPadding off), in ems: for fitting a row's text. */
     private const val LINE_EM = 1.172f
@@ -305,7 +307,7 @@ object MeridianWidgets {
             // Tall tiles for the whole widget (the Now capsule's height is shared) only while every half-hour city's widest
             // hour, "10" at the 13 sp auto-size floor plus the 12 sp ":30", fits the tile's width; else every row takes
             // the one-line tiles, whose guard drops AM/PM rather than clip it.
-            val tileW = (innerW - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
+            val tileW = sideTileWidth(innerW)
             val tall = fit.tallTiles && run {
                 val dm = context.resources.displayMetrics
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -336,7 +338,8 @@ object MeridianWidgets {
             }
             // One Now capsule down the centre tiles of every row, over the tile column (the overlay spans the widget's full height).
             val blockW = (innerW - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT)
-            capsule(density, blockW, h.toFloat(), n, rowH, if (tall) TILE_TALL_HEIGHT else TILE_HEIGHT)?.let {
+            val tileH = if (tall) TILE_TALL_HEIGHT else TILE_HEIGHT
+            capsule(density, blockW, h.toFloat(), n, rowH, tileH, nowGrow(rowH, tileH))?.let {
                 root.setImageViewBitmap(R.id.now_capsule, it)
                 root.setViewVisibility(R.id.now_overlay, View.VISIBLE)
             }
@@ -429,7 +432,7 @@ object MeridianWidgets {
         } else {
             v.setViewVisibility(R.id.status, View.GONE)
         }
-        if (tiles) tiles(context, v, place, use24h, now, home, work, wDp, tallTiles)
+        if (tiles) tiles(context, v, place, use24h, now, home, work, wDp, hDp, tallTiles)
         return v
     }
 
@@ -465,7 +468,15 @@ object MeridianWidgets {
      * shown on the city's clock, so a half-hour city reads "9:30 PM" under the Now capsule on every surface: the day's
      * colour there, quieter outside working hours.
      */
-    private fun tiles(context: Context, v: RemoteViews, place: Place, use24h: Boolean, now: Instant, home: ZoneId, work: Work, wDp: Float, tall: Boolean) {
+    /** The hour before's and after's tile width (dp) in a row [wDp] wide: the tile column less its six 2 dp margins, shared 1 : NOW_WIDTH : 1. */
+    private fun sideTileWidth(wDp: Float): Float =
+        ((wDp - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) - 6 * TILE_MARGIN) / (2f + NOW_WIDTH)
+
+    /** How far (dp) the Now tile reaches above and below its neighbours: NOW_GROW, or less where the row has no room above the tiles. */
+    private fun nowGrow(rowHDp: Float, tileHDp: Float): Float =
+        minOf(NOW_GROW, rowHDp - ROW_PAD_TOP - ROW_PAD_BOTTOM - tileHDp, ROW_PAD_BOTTOM).coerceAtLeast(0f)
+
+    private fun tiles(context: Context, v: RemoteViews, place: Place, use24h: Boolean, now: Instant, home: ZoneId, work: Work, wDp: Float, hDp: Float, tall: Boolean) {
         val zone = place.zone
         // Rows at least TALL_TILE_ROW tall: the hour over AM/PM (as the app's tiles); shorter rows: "10 AM" on one line.
         v.setViewVisibility(R.id.tiles, if (tall) View.GONE else View.VISIBLE)
@@ -475,7 +486,14 @@ object MeridianWidgets {
         // AM/PM is always 12 sp (as the app), following the font scale; where "10 PM" would not fit the tile (the
         // narrowest widths, large font scales) the row drops AM/PM (keepSuffix) rather than shrink or cut it. The digits
         // take one size for the row (rowSp, below), 17 sp down to 11; the layout's auto-size stays only as a safety net.
-        val tileW = (wDp - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
+        val tileW = sideTileWidth(wDp)
+        val nowW = tileW * NOW_WIDTH
+        val tileH = if (tall) TILE_TALL_HEIGHT else TILE_HEIGHT
+        val grow = nowGrow(hDp, tileH)
+        val nowH = tileH + 2 * grow
+        // The Now tile's slot is NOW_GROW taller each way in the layout; pad it back where the row is shorter.
+        val trim = ((NOW_GROW - grow) * context.resources.displayMetrics.density).roundToInt()
+        v.setViewPadding(if (tall) R.id.tile1_tall_slot else R.id.tile1_slot, 0, trim, 0, trim)
         val ampmSp = AMPM_MIN_SP
         val starts = listOf(-1L, 0L, 1L).map { TimeMath.hourAnchor(now, home).plusSeconds(it * 3600L).atZone(zone) }
         // Half-hour cities: the minutes as a small ":30" (12 sp, MINUTES_SP) after the hour.
@@ -516,6 +534,17 @@ object MeridianWidgets {
             } && (if (tall) drawnLine(sp.toFloat()) + drawnLine(ampmSp) <= TILE_TALL_HEIGHT + 1f else drawnLine(sp.toFloat()) <= TILE_HEIGHT)
         }?.toFloat() ?: 11f
         val rowSp = if (tall) minOf(fitSp, 17f).coerceAtLeast(13f) else fitSp
+        // The Now tile: its digits up to NOW_DIGITS_UP sp and AM/PM and ":30" NOW_SMALL_UP sp larger, as far as its
+        // label fits its wider, taller tile (else the row's sizes, which fit the narrower tiles).
+        val nowAt = starts[1]
+        fun nowFits(sp: Float, small: Float): Boolean =
+            widthDp(digits(nowAt.hour), sp, TypedValue.COMPLEX_UNIT_SP) +
+                (if (nowAt.minute != 0) widthDp(":%02d".format(nowAt.minute), MINUTES_SP + (small - ampmSp), TypedValue.COMPLEX_UNIT_SP) else 0f) +
+                (if (keepSuffix && !use24h && !tall) widthDp(TimeMath.THIN + (suffix(nowAt.hour) ?: ""), small, TypedValue.COMPLEX_UNIT_SP) else 0f) +
+                2f <= nowW &&
+                (if (tall) drawnLine(sp) + drawnLine(small) <= nowH + 1f else drawnLine(sp) <= nowH && drawnLine(small) <= nowH)
+        val nowSizes = (NOW_DIGITS_UP downTo 0).map { up -> (rowSp + up) to (if (up > 0) ampmSp + NOW_SMALL_UP else ampmSp) }
+            .firstOrNull { (sp, small) -> nowFits(sp, small) } ?: (rowSp to ampmSp)
         ids.indices.forEach { i ->
             val id = ids[i]
             val at = starts[i]
@@ -538,11 +567,14 @@ object MeridianWidgets {
             val flags = android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             // Sizes in px from sp (dip = false), so ":30" and AM/PM follow the font scale with the hour digits.
             fun spPx(sp: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, dm).roundToInt()
-            text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(rowSp), false), 0, head.length, flags)
-            if (minutes.isNotEmpty()) text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(MINUTES_SP), false), head.length, head.length + minutes.length, flags)
+            val digitSp = if (i == 1) nowSizes.first else rowSp
+            val smallSp = if (i == 1) nowSizes.second else ampmSp
+            val minutesSp = MINUTES_SP + (smallSp - ampmSp)
+            text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(digitSp), false), 0, head.length, flags)
+            if (minutes.isNotEmpty()) text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(minutesSp), false), head.length, head.length + minutes.length, flags)
             // The separator before AM/PM (the thin space, or the tall tiles' line break) at AM/PM's size too, as rowSp
             // measured it, so no character is left at the auto-sized base size (a 17 sp break would heighten the hour's line).
-            if (period != null) text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(ampmSp), false), label.length - period.length - 1, label.length, flags)
+            if (period != null) text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(smallSp), false), label.length - period.length - 1, label.length, flags)
             v.setTextViewText(id, text)
             v.setTextColor(id, 0xFFFFFFFF.toInt())
             // Opaque either way: the dimmed tile is darker, not see-through, so photo highlights never sit under its text.
@@ -572,65 +604,48 @@ object MeridianWidgets {
     }
 
     /**
-     * The Now capsule, as on the cards: through the centre tile of every row, from a little above the
-     * first row's tile to a little below the last's, its outer edge CAPSULE_OUTSET (3 dp) outside the tile
-     * on each side (so its stroke sits in the 4 dp gap between tiles); a 1.5 dp white 85% outline over a 3.5 dp black 60% halo only (no glass
-     * fill or glow, which lightened the Now tile under its text). Its ends are as round as they can be
-     * while the stroke stays clear of the tiles' corners (about 18 dp, of a 25 dp half-width), so it never
-     * crosses a tile or its "10 PM". Drawn for the tile column ([blockWDp] by the widget's full [heightDp]),
-     * which the layout stretches to fit, so it stays on the tiles if the launcher's size is a little off.
+     * The Now outline: a rounded rectangle concentric with the Now (centre) tiles of every row, its stroke's centre
+     * line midway in the 4 dp gap between the Now tiles and their neighbours (inset = TILE_MARGIN, 2 dp, outside the
+     * Now tiles' sides, above the first row's Now tile and below the last's), its corners the tiles' 6 dp radius plus
+     * that inset, so its ends follow the tiles' corners. A 1.5 dp white 85% line over a 3 dp black 60% halo (no fill or
+     * glow), 0.5 dp clear of the tiles on both sides. Drawn for the tile column ([blockWDp] by the widget's full
+     * [heightDp]), which the layout stretches to fit, so it stays on the tiles if the launcher's size is a little off.
      */
-    private fun capsule(density: Float, blockWDp: Float, heightDp: Float, n: Int, rowHDp: Float, tileHDp: Float): Bitmap? {
+    private fun capsule(density: Float, blockWDp: Float, heightDp: Float, n: Int, rowHDp: Float, tileHDp: Float, growDp: Float): Bitmap? {
         if (blockWDp <= 0f || heightDp <= 0f || n <= 0) return null
         val s = minOf(density, 2f)
         val bw = (blockWDp * s).roundToInt()
         val bh = (heightDp * s).roundToInt()
         if (bw < 4 || bh < 4) return null
-        val slot = blockWDp / 3f
-        // The Now tiles' edges (dp, in the overlay, which spans the widget: rows start at PAD).
-        val tileLeft = slot + TILE_MARGIN
-        val tileRight = 2 * slot - TILE_MARGIN
-        val firstTop = PAD + rowHDp - ROW_PAD_BOTTOM - tileHDp
-        val lastBottom = PAD + (n - 1) * (rowHDp + ROW_GAP) + rowHDp - ROW_PAD_BOTTOM
-        val left = tileLeft - CAPSULE_OUTSET
-        val right = tileRight + CAPSULE_OUTSET
-        val top = maxOf(firstTop - CAPSULE_OVERHANG, 1f)
-        val bottom = minOf(lastBottom + CAPSULE_OVERHANG, heightDp - 1f)
+        val side = ((blockWDp - 6 * TILE_MARGIN) / (2f + NOW_WIDTH)).coerceAtLeast(0f)
+        // The Now tiles' edges (dp, in the overlay, which spans the widget: rows start at PAD), growDp above and below
+        // their neighbours' common centre.
+        val tileLeft = side + 3 * TILE_MARGIN
+        val tileRight = tileLeft + side * NOW_WIDTH
+        val firstTop = PAD + rowHDp - ROW_PAD_BOTTOM - tileHDp - growDp
+        val lastBottom = PAD + (n - 1) * (rowHDp + ROW_GAP) + rowHDp - ROW_PAD_BOTTOM + growDp
+        // The stroke's centre line: half the gap (TILE_MARGIN) outside the Now tiles, kept 1 dp inside the overlay.
+        val inset = TILE_MARGIN
+        val edge = CAPSULE_HALO / 2 + 1f
+        val left = tileLeft - inset
+        val right = tileRight + inset
+        val top = maxOf(firstTop - inset, edge)
+        val bottom = minOf(lastBottom + inset, heightDp - edge)
         if (bottom <= top || right <= left) return null
-        val half = CAPSULE_STROKE / 2
-        // From the stroke's centre line to the tile's edges, across and (the tighter end) along.
-        val dx = CAPSULE_OUTSET - half
-        val dy = minOf(firstTop - top, bottom - lastBottom) - half
-        // The roundest end whose stroke (plus 0.5 dp) clears the tile's rounded corner: sample that corner's arc.
-        // Cleared by the halo (the widest stroke), 0.25 dp to spare.
-        fun clears(r: Float): Boolean {
-            val e = CAPSULE_HALO / 2 + 0.25f
-            val cx = dx + TILE_CORNER
-            val cy = dy + TILE_CORNER
-            for (k in 0..8) {
-                val a = Math.toRadians(k * 11.25).toFloat()
-                val x = cx - TILE_CORNER * kotlin.math.cos(a)
-                val y = cy - TILE_CORNER * kotlin.math.sin(a)
-                if (x < e || y < e) return false
-                if (x < r && y < r && kotlin.math.hypot(r - x, r - y) > r - e) return false
-            }
-            return true
-        }
-        var radius = (right - left) / 2f - half
-        while (radius > 2f && !clears(radius)) radius -= 0.5f
+        val radius = minOf(TILE_CORNER + inset, (right - left) / 2f, (bottom - top) / 2f)
         val bitmap = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888)
         val c = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         fun white(alpha: Float) = ((alpha * 255).roundToInt().coerceIn(0, 255) shl 24) or 0xFFFFFF
         paint.style = Paint.Style.STROKE
-        // The stroke's centre line: first the dark halo, then the white line on it.
-        val inner = RectF((left + half) * s, (top + half) * s, (right - half) * s, (bottom - half) * s)
+        // First the dark halo, then the white line on it, both centred on the same line.
+        val line = RectF(left * s, top * s, right * s, bottom * s)
         paint.strokeWidth = CAPSULE_HALO * s
         paint.color = ((CAPSULE_HALO_ALPHA * 255).roundToInt() shl 24)
-        c.drawRoundRect(inner, radius * s, radius * s, paint)
+        c.drawRoundRect(line, radius * s, radius * s, paint)
         paint.strokeWidth = CAPSULE_LINE * s
         paint.color = white(CAPSULE_ALPHA)
-        c.drawRoundRect(inner, radius * s, radius * s, paint)
+        c.drawRoundRect(line, radius * s, radius * s, paint)
         return bitmap
     }
 

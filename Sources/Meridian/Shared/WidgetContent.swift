@@ -1647,10 +1647,20 @@ struct WidgetPhotoRows: View {
     static let sidePadding: CGFloat = 9
     static let bottomPadding: CGFloat = 7
     static let tileGap: CGFloat = 4
-    /// The capsule past the middle tile on each side, and above the first row's and below the last's.
-    static let outset: CGFloat = 4
-    static let overhang: CGFloat = 10
-    static let stroke: CGFloat = 1.5
+    /// The Now outline's centre line runs this far outside the Now tiles: half the gap, so it sits
+    /// midway between the Now tiles and their neighbours (and as far above and below).
+    static let inset: CGFloat = tileGap / 2
+    /// The outline's white core and the dark edge each side of it: 1.5 + 2 x 0.75 = 3 pt = gap - 1,
+    /// so 0.5 pt stays clear to the tiles on both sides.
+    static let core: CGFloat = 1.5
+    static let edge: CGFloat = 0.75
+    static let band: CGFloat = core + 2 * edge
+    /// The Now tile grows this much above and below the others (up to 4 pt), as far as the card's
+    /// bottom padding allows with the outline's band still on the last card: 7 - 2 - 1.5 = 3.5.
+    static let nowRise: CGFloat = min(4, max(2, bottomPadding - inset - band / 2))
+
+    /// The Now tile about 12% wider than the other two (40 -> 45 pt); they keep their width.
+    static func nowWidth(_ tileWidth: CGFloat) -> CGFloat { (tileWidth * 1.12).rounded() }
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -1673,36 +1683,29 @@ struct WidgetPhotoRows: View {
         }
     }
 
-    /// One capsule through the middle tile of every row.
+    /// One outline through the Now tile of every row: a rounded rectangle concentric with the Now
+    /// tiles, its centre line `inset` (half the gap) outside them on every side, its corners the
+    /// tiles' radius + inset. An outline only (a white wash lightened the tile under it); the dark
+    /// edge either side of the white core keeps it at 3:1 or more on bright or dark photos, and the
+    /// whole band stays inside the gap, 0.5 pt clear of both tiles. Its bottom edge ends on the
+    /// last card's bottom edge (7 - 3.5 - 2 - 1.5 = 0), never on the bare widget background.
     private func capsule(width: CGFloat, rows: Int, rowHeight: CGFloat, tileWidth: CGFloat, tileHeight: CGFloat) -> some View {
-        let middleLeft = width - Self.sidePadding - 2 * tileWidth - Self.tileGap
-        let top = rowHeight - Self.bottomPadding - tileHeight - Self.overhang
-        // Ends on the last card's bottom edge (strokeBorder draws inside), so the outline stays closed
-        // and on the cards, never on the bare widget background, as the app keeps it inside the content.
-        let bottom = CGFloat(max(rows, 1)) * rowHeight + CGFloat(max(rows, 1) - 1) * Self.gap
-        let w = tileWidth + 2 * Self.outset
-        // The bottom corners concentric with the tiles' 6 pt corners, so they clear them (farthest
-        // tile-corner point 6.7 pt from the arc centre < 10 - 0.75); the top keeps the full curve.
-        let foot = Self.outset + 6
-        let shape = UnevenRoundedRectangle(topLeadingRadius: w / 2, bottomLeadingRadius: foot,
-                                           bottomTrailingRadius: foot, topTrailingRadius: w / 2, style: .continuous)
-        // An outline only: a white wash or glow lightened the middle tile under it (12 PM fell to
-        // 4.3:1), the tile people read most. A dark halo (inside the outline, so it stays in the
-        // 4 pt gap and off the tiles) under a brighter white keeps the line at 3:1 or more on a bright
-        // day sky (62% white alone was 1.3:1 on New York's); on night photos the halo is invisible.
-        // Stroke + 1.5 (3 pt, 1.5 pt of dark behind the line): its inner edge sits 10 - 3 = 7 pt from
-        // the bottom corners' arc centre, clear of the middle tile's 6 pt corner (6.7 pt); at + 2 a
-        // 40% black sliver lay over that tile's bottom corners in the last row.
-        // The white line now sits 0.75 pt inside the dark band (as the app's NowCapsule, which insets
-        // it 1 pt), so it has a dark edge on both sides: its outer side touched the photo directly
-        // (white 0.83 on sky 0.62, 1.3:1). The band keeps its 3 pt width, so its inner edge stays
-        // clear of the tile corners; 60% black (was 40%, as the app's) holds each edge at 3:1 or more.
+        let nowWidth = Self.nowWidth(tileWidth)
+        let nowLeft = width - Self.sidePadding - tileWidth - Self.tileGap - nowWidth
+        let n = CGFloat(max(rows, 1))
+        let firstTop = rowHeight - Self.bottomPadding - tileHeight - Self.nowRise
+        let lastBottom = n * rowHeight + (n - 1) * Self.gap - Self.bottomPadding + Self.nowRise
+        let top = firstTop - Self.inset
+        let bottom = lastBottom + Self.inset
+        // .stroke (centred on the path, not .strokeBorder, which insets), so the line's centre is
+        // exactly the rect below.
+        let shape = RoundedRectangle(cornerRadius: WidgetPhotoTile.radius + Self.inset, style: .continuous)
         return ZStack {
-            shape.strokeBorder(Color.black.opacity(0.6), lineWidth: Self.stroke + 1.5)
-            shape.inset(by: 0.75).strokeBorder(Color.white.opacity(0.85), lineWidth: Self.stroke)
+            shape.stroke(Color.black.opacity(0.6), lineWidth: Self.band)
+            shape.stroke(Color.white.opacity(0.85), lineWidth: Self.core)
         }
-            .frame(width: w, height: max(1, bottom - top))
-            .offset(x: middleLeft - Self.outset, y: top)
+            .frame(width: nowWidth + 2 * Self.inset, height: max(1, bottom - top))
+            .offset(x: nowLeft - Self.inset, y: top)
     }
 
     private func row(_ city: WidgetSnapshot.City, width: CGFloat, height: CGFloat,
@@ -1757,10 +1760,14 @@ struct WidgetPhotoRows: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 HStack(spacing: Self.tileGap) {
                     ForEach(-1...1, id: \.self) { k in
+                        // The Now tile: wider, `nowRise` taller above and below the others' centre
+                        // line (the negative padding keeps the others where they were), digits +2 pt.
                         WidgetPhotoTile(snapshot: snapshot, city: city, zone: zone,
                                         start: anchor.addingTimeInterval(Double(k) * 3600), center: k == 0,
-                                        stacked: stacked, digitSize: digitSize, widest: widest)
-                            .frame(width: tileWidth, height: tileHeight)
+                                        stacked: stacked, digitSize: k == 0 ? digitSize + 2 : digitSize, widest: widest)
+                            .frame(width: k == 0 ? Self.nowWidth(tileWidth) : tileWidth,
+                                   height: k == 0 ? tileHeight + 2 * Self.nowRise : tileHeight)
+                            .padding(.vertical, k == 0 ? -Self.nowRise : 0)
                     }
                 }
                 .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1)
@@ -1791,6 +1798,10 @@ struct WidgetPhotoTile: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     /// AM/PM and ":30" grow with the reader's text size, as the rows' names and captions (12 -> 13.2 pt).
     private var typeScale: CGFloat { WidgetType.scale(typeSize) }
+    /// The tiles' corner radius (the Now outline's corners are this + its inset, concentric).
+    static let radius: CGFloat = 6
+    /// AM/PM and ":30": 12 pt, 13 on the larger Now tile.
+    private var minorPoints: CGFloat { center ? 13 : 12 }
 
     var body: some View {
         var calendar = Calendar(identifier: .gregorian)
@@ -1805,7 +1816,7 @@ struct WidgetPhotoTile: View {
         let highlights = snapshot.showStatus ?? true
         let fill = dim ? DayColor.offHoursFill(at: Double(hour) + Double(minute) / 60)
             : (highlights ? DayColor.workingFill(at: Double(hour) + Double(minute) / 60) : style.fill)
-        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
         let suffix: String? = snapshot.use24h ? nil : (hour < 12 ? "AM" : "PM")
         return Group {
             if stacked && minute != 0 {
@@ -1854,7 +1865,7 @@ struct WidgetPhotoTile: View {
     }
 
     /// AM/PM and half-hour minutes: 12 pt (was 11), a step above Apple's 11 pt minimum.
-    private var suffixFont: Font { .system(size: 12 * typeScale, weight: .semibold) }
+    private var suffixFont: Font { .system(size: minorPoints * typeScale, weight: .semibold) }
 
     /// "9" (12-hour) or "09" (24-hour).
     static func digits(_ hour: Int, use24h: Bool) -> String {
@@ -1864,12 +1875,12 @@ struct WidgetPhotoTile: View {
     /// `digits` (`size`, default `digitSize`: 16 pt over AM/PM, else 14), with ":30" inline at a
     /// constant 12 pt medium in half-hour zones (was 0.8x the digits, 11 to 12 pt), as the apps'.
     private func label(_ digits: String, minute: Int, size: CGFloat? = nil, weight: Font.Weight? = nil) -> Text {
-        let digitPoints = size ?? (minute != 0 ? 14 : digitSize)
+        let digitPoints = size ?? (minute != 0 ? (center ? 16 : 14) : digitSize)
         var text = Text(digits)
             .font(.system(size: digitPoints, weight: weight ?? (center ? .semibold : .medium)))
         if minute != 0 {
             text = text + Text(":" + String(format: "%02d", minute))
-                .font(.system(size: 12 * typeScale, weight: .medium))
+                .font(.system(size: minorPoints * typeScale, weight: .medium))
         }
         return text.monospacedDigit()
     }
@@ -1890,15 +1901,15 @@ struct WidgetPhotoTile: View {
         ViewThatFits(in: .horizontal) {
             VStack(spacing: -1) {
                 fitted(own, wide, minute: minute, size: digitSize)
-                if let suffix { suffixText(suffix, size: 12 * typeScale) }
+                if let suffix { suffixText(suffix, size: minorPoints * typeScale) }
             }
             VStack(spacing: -1) {
                 fitted(own, wide, minute: 0, size: digitSize)
-                minuteLine(minutes, suffix: suffix, size: 12 * typeScale)
+                minuteLine(minutes, suffix: suffix, size: minorPoints * typeScale)
             }
             VStack(spacing: -1) {
                 sharedLabel(hour: hour, minute: minute)
-                if let suffix { suffixText(suffix, size: 12 * typeScale) }
+                if let suffix { suffixText(suffix, size: minorPoints * typeScale) }
             }
         }
     }

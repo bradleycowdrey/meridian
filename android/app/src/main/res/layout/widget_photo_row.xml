@@ -10,7 +10,7 @@
     <ImageView android:id="@+id/bg" android:layout_width="match_parent" android:layout_height="match_parent"
         android:scaleType="fitXY" android:importantForAccessibility="no" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-        android:gravity="bottom" android:orientation="horizontal"
+        android:gravity="bottom" android:orientation="horizontal" android:clipToPadding="false"
         android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="0dp" android:paddingBottom="6dp">
         <LinearLayout android:id="@+id/text_col" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:layout_marginEnd="6dp" android:orientation="vertical">
@@ -76,24 +76,26 @@
                     android:fontFamily="sans-serif-medium" android:textColor="#9AD3A8" android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
-        <LinearLayout android:id="@+id/tiles" android:layout_width="0dp" android:layout_height="24dp" android:layout_weight="1.1"
-            android:orientation="horizontal">
-            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+        <!-- 8 dp taller than the tiles and 4 dp into the row's bottom padding, so the hour before and after (24 dp,
+             centred) keep their place and the Now tile (tile1_slot, weight 1.12: NOW_WIDTH) reaches 4 dp above and below them. -->
+        <LinearLayout android:id="@+id/tiles" android:layout_width="0dp" android:layout_height="32dp" android:layout_weight="1.1"
+            android:layout_marginBottom="-4dp" android:orientation="horizontal">
+            <FrameLayout android:layout_width="0dp" android:layout_height="24dp" android:layout_weight="1"
+                android:layout_gravity="center_vertical" android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile0" style="@style/WidgetTile"
                     android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile0_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
-            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+            <FrameLayout android:id="@+id/tile1_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.12"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile1" style="@style/WidgetTile"
                     android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile1_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
-            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+            <FrameLayout android:layout_width="0dp" android:layout_height="24dp" android:layout_weight="1"
+                android:layout_gravity="center_vertical" android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile2" style="@style/WidgetTile"
                     android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile2_edge" android:layout_width="match_parent" android:layout_height="match_parent"
@@ -101,25 +103,25 @@
             </FrameLayout>
         </LinearLayout>
         <!-- Rows at least 56 dp tall: the same three tiles, taller, with the hour over AM/PM (as the app's tiles and the
-             iPhone widget). Shown instead of [tiles] by MeridianWidgets.tiles; TILE_TALL_HEIGHT matches its height. -->
-        <LinearLayout android:id="@+id/tiles_tall" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1.1"
-            android:orientation="horizontal" android:visibility="gone">
-            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+             iPhone widget). Shown instead of [tiles] by MeridianWidgets.tiles; TILE_TALL_HEIGHT matches the side tiles (38 dp), the Now tile 8 dp more. -->
+        <LinearLayout android:id="@+id/tiles_tall" android:layout_width="0dp" android:layout_height="46dp" android:layout_weight="1.1"
+            android:layout_marginBottom="-4dp" android:orientation="horizontal" android:visibility="gone">
+            <FrameLayout android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1"
+                android:layout_gravity="center_vertical" android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile0_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
                     android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile0_tall_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
-            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+            <FrameLayout android:id="@+id/tile1_tall_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.12"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile1_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
                     android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile1_tall_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
-            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
-                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+            <FrameLayout android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1"
+                android:layout_gravity="center_vertical" android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile2_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
                     android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile2_tall_edge" android:layout_width="match_parent" android:layout_height="match_parent"

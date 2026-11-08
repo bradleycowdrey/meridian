@@ -848,6 +848,20 @@ object Strip {
     val gap = 6.dp
     val tileHeight = 44.dp
     val tileRadius = 9.dp
+    /** The Now (centre) tile's width against each of the other four (about 12% wider); the gaps stay [gap]. */
+    const val NOW_WIDTH = 1.12f
+    /** The Now tile's extra height each side (above and below the other tiles' centre line). */
+    val nowGrow = 4.dp
+
+    /** Each of the four other tiles' width, in a row of five [tiles] wide with [gap] between (px). */
+    fun tileWidth(tiles: Float, gap: Float): Float = (tiles - 4 * gap) / (4 + NOW_WIDTH)
+    /** Tile [i]'s left edge (0..4, the Now tile at 2), from the row's left (px). */
+    fun tileLeft(i: Int, tiles: Float, gap: Float): Float {
+        val w = tileWidth(tiles, gap)
+        return i * (w + gap) + if (i > 2) (NOW_WIDTH - 1f) * w else 0f
+    }
+    /** Tile [i]'s width (px). */
+    fun tileWidthAt(i: Int, tiles: Float, gap: Float): Float = tileWidth(tiles, gap) * (if (i == 2) NOW_WIDTH else 1f)
 
     /** Between the name column and the tiles. */
     val labelGap = 8.dp
@@ -1742,8 +1756,9 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
 /**
  * The Now capsule, once down the whole list as on the icon: drawn by each city card's list item over
  * its own slice, so the slices join into one capsule that scrolls with the cards and runs on past the
- * screen's edge. It runs through the centre (selected hour) tile of every card, from 12 dp above the
- * first card's tile to 12 dp below the last's, 7 dp wider than the tile each side. Only drawn: it
+ * screen's edge. It runs round the centre (selected hour) Now tile of every card, a rounded rectangle
+ * concentric with those tiles: its line half the tile gap outside the Now tiles' edges (left, right, above
+ * the first card's and below the last's), midway to the neighbouring tiles, its radius the tile's plus that. Only drawn: it
  * takes no touches and TalkBack doesn't see it. Geometry from [Rows] and [Strip], as [CityRow] lays out.
  */
 fun DrawScope.drawNowCapsule(index: Int, count: Int, rowHeight: Dp, first: Boolean) {
@@ -1752,57 +1767,55 @@ fun DrawScope.drawNowCapsule(index: Int, count: Int, rowHeight: Dp, first: Boole
     val pitch = (rowPx + Rows.gap.roundToPx()).toFloat()
     val cardTop = if (first) Rows.edge.roundToPx().toFloat() else 0f
     val tileBottom = cardTop + rowPx - Rows.padBottom.roundToPx()
-    val tileTop = tileBottom - Rows.tileHeightFor(rowHeight).roundToPx()
-    val overhang = NowCapsule.overhang.toPx()
-    val top = tileTop - overhang - index * pitch
-    val bottom = tileBottom + overhang + (count - 1 - index) * pitch
+    val tileHeightPx = Rows.tileHeightFor(rowHeight).roundToPx()
+    val tileTop = tileBottom - tileHeightPx
+    val gap = Strip.gap.toPx()
+    // The line's centre runs half the gap outside the Now tiles (midway between them and their neighbours), all round.
+    val inset = gap / 2
+    // The Now tile grows [Strip.nowGrow] above and below the row's other tiles (as HourTiles lays it out; the card has
+    // Rows.padBottom, 12 dp, below the tiles and at least 38 dp above, so it always fits whole).
+    val grow = Strip.nowGrow.toPx()
+    val top = tileTop - grow - inset - index * pitch
+    val bottom = tileBottom + grow + inset + (count - 1 - index) * pitch
     // Across: the card's insets, the name column, then the centre of five tiles.
     val margin = Strip.margin.roundToPx().toFloat()
     val cardWidth = size.width - 2 * margin
     val padH = Rows.padH.roundToPx().toFloat()
     val labelWidth = Rows.labelWidth(cardWidth.toDp()).roundToPx().toFloat()
     val labelGap = Strip.labelGap.roundToPx().toFloat()
-    val gap = Strip.gap.toPx()
     val tilesLeft = margin + padH + labelWidth + labelGap
     val tilesWidth = cardWidth - 2 * padH - labelWidth - labelGap
-    val tileWidth = (tilesWidth - 4 * gap) / 5
-    if (tileWidth <= 0f || bottom <= top) return
-    val side = NowCapsule.side.toPx()
-    val left = tilesLeft + 2 * (tileWidth + gap) - side
-    val width = tileWidth + 2 * side
+    val nowWidth = Strip.tileWidthAt(2, tilesWidth, gap)
+    if (nowWidth <= 0f || bottom <= top) return
+    // The line's centre: half the gap outside the Now tile's left and right edges.
+    val left = tilesLeft + Strip.tileLeft(2, tilesWidth, gap) - inset
+    val width = nowWidth + 2 * inset
     val height = bottom - top
-    val radius = width / 2
+    // Concentric with the tiles' corners (the tile radius plus the inset), not a capsule.
+    val radius = Strip.tileRadius.toPx() + inset
     clipRect(0f, 0f, size.width, size.height) {
-        // The glow: wider, fainter strokes behind (about white 18% over 8 dp).
-        for ((spread, alpha) in NowCapsule.glow) {
-            val w = spread.toPx()
-            drawRoundRect(Color.White.copy(alpha = alpha), topLeft = Offset(left, top), size = Size(width, height),
-                cornerRadius = CornerRadius(radius), style = Stroke(w))
-        }
-        // No fill: a white wash lightened the tile under it (12 PM to 4.1:1). The centre tile keeps its own colour.
+        // No glow (it would reach the tiles) and no fill (a white wash lightened the tile under it).
+        // Both strokes are centred on the line, so together they fit in the gap with clear space to both tiles.
         val stroke = NowCapsule.stroke.toPx()
-        // A dark halo (4 dp, black 40%) under the white line, centred on it, so 1 dp of dark edges each side: the line
-        // keeps 3:1 against a bright day sky (was 1.7:1 with white 62% alone), and is unchanged on a night photo.
-        val halo = NowCapsule.halo.toPx()
-        // Black 60% (was 40%): the edge reaches about L 0.07 on a bright day sky (L 0.43), about 3.9:1 (WCAG 1.4.11).
-        drawRoundRect(Color.Black.copy(alpha = 0.6f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
-            cornerRadius = CornerRadius(radius - stroke / 2), style = Stroke(halo))
-        drawRoundRect(Color.White.copy(alpha = 0.85f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
-            cornerRadius = CornerRadius(radius - stroke / 2), style = Stroke(stroke))
+        // A dark halo under the white line, centred on it (1 dp of dark edge each side): the line keeps 3:1 against a
+        // bright day sky, and is unchanged on a night photo. Black 60%: about 3.9:1 on a bright day sky (WCAG 1.4.11).
+        val halo = NowCapsule.haloFor(gap, density)
+        drawRoundRect(Color.Black.copy(alpha = 0.6f), topLeft = Offset(left, top), size = Size(width, height),
+            cornerRadius = CornerRadius(radius), style = Stroke(halo))
+        drawRoundRect(Color.White.copy(alpha = 0.85f), topLeft = Offset(left, top), size = Size(width, height),
+            cornerRadius = CornerRadius(radius), style = Stroke(minOf(stroke, halo - density)))
     }
 }
 
-/** The Now capsule's style, as the icon's. */
+/** The Now outline's style. */
 object NowCapsule {
-    /** Above the first card's centre tile and below the last's. */
-    val overhang = 12.dp
-    /** Wider than the centre tile, each side. */
-    val side = 7.dp
+    /** The white line. */
     val stroke = 2.dp
-    /** The dark halo under the stroke (black 60%), 1 dp each side of it. */
+    /** The dark halo under the line (black 60%), 1 dp each side of it. */
     val halo = 4.dp
-    /** The glow's strokes (width, alpha), widest and faintest first. */
-    val glow = listOf(16.dp to 0.035f, 10.dp to 0.05f, 6.dp to 0.07f)
+
+    /** The halo's width (px) in a [gap] (px): no wider than the gap less 1 dp (0.5 dp clear to each tile). */
+    fun haloFor(gap: Float, density: Float): Float = minOf(halo.value * density, gap - density)
 }
 
 /**
@@ -1831,8 +1844,8 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
     val digitStyle = tnum.copy(fontWeight = FontWeight.SemiBold)
     val labels = starts.map { val z = it.atZone(place.zone); z.hour to z.minute }
     val rowShrink = remember(labels, use24h, fontScale, widthPx, digitStyle) {
-        // Row weights give each tile a whole-pixel width, up to 1 px under widthPx / 5, so floor it and keep 1 px slack.
-        val tileText = kotlin.math.floor((widthPx - 4 * gapPx) / 5) - padPx - 1f
+        // Row weights give each tile a whole-pixel width, up to 1 px under its share, so floor it and keep 1 px slack.
+        val tileText = kotlin.math.floor(Strip.tileWidth(widthPx, gapPx)) - padPx - 1f
         fun width(h: Int, m: Int, s: Float): Int {
             val cap = TileText.cap(fontScale, m)
             return measurer.measure(TileText.digits(h, m, use24h, cap), digitStyle.copy(fontSize = (17f * s / cap).sp),
@@ -1845,26 +1858,46 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
             s
         }
     }
+    // The Now tile's hour (20 sp, ":30" at 14) against its own, wider tile: shrinks to fit, but never below the
+    // other tiles' hour size (17 sp x rowShrink, which fits a narrower tile, so the Now tile's always fits too).
+    val nowShrink = remember(labels, use24h, fontScale, widthPx, digitStyle, rowShrink) {
+        val tileText = kotlin.math.floor(Strip.tileWidthAt(2, widthPx, gapPx)) - padPx - 1f
+        val (h, m) = labels[2]
+        val cap = TileText.cap(fontScale, m)
+        fun width(s: Float): Int = measurer.measure(TileText.digits(h, m, use24h, cap, TileText.NOW_MINUTES),
+            digitStyle.copy(fontSize = (TileText.NOW_DIGITS * s / cap).sp), maxLines = 1, softWrap = false).size.width
+        val floor = 17f * rowShrink / TileText.NOW_DIGITS
+        if (widthPx <= 1f || tileText <= 0f) floor else {
+            var s = 1f
+            while (s > floor && width(s) > tileText) s = (s - 0.025f).coerceAtLeast(floor)
+            s
+        }
+    }
+    val nowGrow = Strip.nowGrow
     Box(modifier.fillMaxWidth().height(tileHeight)
         .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
         // A soft drop shadow under each tile (black ~35%, 1 dp down, ~3 dp soft), so they stand off the photo.
         .drawBehind {
             val g = Strip.gap.toPx()
-            val tw = (size.width - 4 * g) / 5
-            if (tw <= 0f) return@drawBehind
+            if (Strip.tileWidth(size.width, g) <= 0f) return@drawBehind
             val r = Strip.tileRadius.toPx()
             val dy = 1.dp.toPx()
+            val grow = nowGrow.toPx()
             for ((spread, alpha) in TileShadow.layers) {
                 val sp = spread.toPx()
                 val black = Color.Black.copy(alpha = alpha)
-                for (i in 0..4) drawRoundRect(black, topLeft = Offset(i * (tw + g) - sp, dy - sp), size = Size(tw + 2 * sp, size.height + 2 * sp),
-                    cornerRadius = CornerRadius(r + sp))
+                for (i in 0..4) {
+                    val up = if (i == 2) grow else 0f
+                    drawRoundRect(black, topLeft = Offset(Strip.tileLeft(i, size.width, g) - sp, dy - up - sp),
+                        size = Size(Strip.tileWidthAt(i, size.width, g) + 2 * sp, size.height + 2 * up + 2 * sp),
+                        cornerRadius = CornerRadius(r + sp))
+                }
             }
         }
         .pointerInput(place.id) {
             detectTapGestures(onLongPress = { onLongPress() }, onTap = { o ->
-                val pitch = (widthPx + gapPx) / 5
-                val k = (o.x / pitch).toInt().coerceIn(0, 4) - 2
+                // The tile under the tap (the gap split between its two tiles).
+                val k = (1..4).count { o.x >= Strip.tileLeft(it, widthPx, gapPx) - gapPx / 2 } - 2
                 if (k != 0 || !store.isNow) store.jump(TimeMath.hourAnchor(store.moment, store.home).plusSeconds(k * 3600L))
             })
         }
@@ -1891,16 +1924,21 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
             Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.spacedBy(Strip.gap)) {
                 starts.forEachIndexed { i, start ->
-                    HourTile(store, place, start, center = i == 2, newDay = newDay(start), height = tileHeight, shrink = rowShrink, modifier = Modifier.weight(1f).fillMaxHeight())
+                    // The Now tile: about 12% wider than each other tile, and nowGrow taller above and below their
+                    // centre line (it draws past this row's height; the card has room above and below).
+                    if (i == 2) HourTile(store, place, start, center = true, newDay = newDay(start), height = tileHeight + nowGrow * 2,
+                        shrink = nowShrink, modifier = Modifier.weight(Strip.NOW_WIDTH).fillMaxHeight()
+                            .wrapContentHeight(Alignment.CenterVertically, unbounded = true).requiredHeight(tileHeight + nowGrow * 2))
+                    else HourTile(store, place, start, center = false, newDay = newDay(start), height = tileHeight, shrink = rowShrink, modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
             // Midnight: a sunrise-gold mark in the gap before the tile where a new day starts, as on the Mac.
             Canvas(Modifier.matchParentSize()) {
-                val pitchPx = (size.width + Strip.gap.toPx()) / 5
+                val g = Strip.gap.toPx()
                 val inset = 8.dp.toPx()
                 for (i in 1..4) {
                     if (!newDay(starts[i])) continue
-                    drawRoundRect(Palette.midnight, topLeft = Offset(i * pitchPx - Strip.gap.toPx() / 2 - 1.dp.toPx(), inset),
+                    drawRoundRect(Palette.midnight, topLeft = Offset(Strip.tileLeft(i, size.width, g) - g / 2 - 1.dp.toPx(), inset),
                         size = Size(2.dp.toPx(), size.height - 2 * inset), cornerRadius = CornerRadius(1.dp.toPx()))
                 }
             }
@@ -1916,10 +1954,14 @@ private object TileText {
     /** Large text grows up to 1.3x (1.15x on half-hour tiles); past that the text size is capped. */
     fun cap(fontScale: Float, minute: Int) = maxOf(1f, fontScale / (if (minute != 0) 1.15f else 1.3f))
 
-    /** The hour, ":30" inline at 13 sp (never shrinks with the hour), normal tracking. */
-    fun digits(hour: Int, minute: Int, use24h: Boolean, cap: Float): AnnotatedString = buildAnnotatedString {
+    /** The Now tile's sizes (sp): its hour 3 over the others' 17, its ":30", AM/PM and day 1 over their 13. */
+    const val NOW_DIGITS = 20f
+    const val NOW_MINUTES = 14f
+
+    /** The hour, ":30" inline at [minutes] sp (13; never shrinks with the hour), normal tracking. */
+    fun digits(hour: Int, minute: Int, use24h: Boolean, cap: Float, minutes: Float = 13f): AnnotatedString = buildAnnotatedString {
         append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
-        if (minute != 0) withStyle(SpanStyle(fontSize = (13f / cap).sp)) { append(":%02d".format(minute)) }
+        if (minute != 0) withStyle(SpanStyle(fontSize = (minutes / cap).sp)) { append(":%02d".format(minute)) }
     }
 }
 
@@ -1958,11 +2000,14 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val cap = TileText.cap(fontScale, minute)
     val grow = fontScale / cap
     // [shrink] is the row's (HourTiles): every tile in a row draws its hour at the same size.
-    val digits = TileText.digits(hour, minute, use24h, cap)
+    // The Now tile's text a size up: the hour 20 sp (17), ":30", AM/PM and the day 14 sp (13).
+    val big = if (center) TileText.NOW_DIGITS else 17f
+    val small = if (center) TileText.NOW_MINUTES else 13f
+    val digits = TileText.digits(hour, minute, use24h, cap, small)
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
     val weekday = if (newDay) TimeMath.weekday(start, place.zone).uppercase() else null
     // A plain Box (the tile's height comes from HourTiles): no subcomposition per tile, so a card's first frame is quick.
-    // 2 dp clear each side on every tile (the now capsule's stroke sits outside the tile, NowCapsule.side).
+    // 2 dp clear each side on every tile (the Now outline's stroke sits in the gap outside the tile, NowCapsule).
     // Off-hours and night tiles (fill near the night photo's own darkness) get a 1 dp white 32% edge, so the five
     // still read as tiles on a dark photo; the fill stays as it is (3:1 working against off).
     val edge = dim || Color(fill).luminance() < 0.03f
@@ -1973,8 +2018,8 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
         .padding(horizontal = 2.dp),
         contentAlignment = Alignment.Center) {
         // The lines' heights (dp) at this text size, against the tile's.
-        val digitsH = 18f * grow
-        val dayH = 15f * grow
+        val digitsH = (big + 1f) * grow
+        val dayH = (small + 2f) * grow
         // Two lines on every tile (12-hour): the hour, then AM/PM, or on a new day's tile the day's name in AM/PM's
         // place ("12 / WED": next to the gold midnight mark, 12 by a weekday can only be midnight). The same line
         // heights as every other tile, so its "12" sits level with the neighbours' digits, and the day is never
@@ -1983,16 +2028,16 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
         val second = weekday ?: suffix
         val dayBelow = weekday != null && suffix == null && (height.value - digitsH) / 2f >= dayH + 2f
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(digits, style = tnum, fontSize = (17f * shrink / cap).sp, lineHeight = (18f / cap).sp,
+            Text(digits, style = tnum, fontSize = (big * shrink / cap).sp, lineHeight = ((big + 1f) / cap).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
                 color = textColor, maxLines = 1, softWrap = false)
             // AM/PM at 13 sp (the 13 floor the rest of the tile uses, as iOS TileLabel; it never shrinks with the
             // hour), full white. The day's name the same size and line height, semibold, tracked 0.3 (iOS weekdayText).
-            if (suffix != null && second != null) Text(second, style = tnum, fontSize = (13f / cap).sp, lineHeight = (15f / cap).sp,
+            if (suffix != null && second != null) Text(second, style = tnum, fontSize = (small / cap).sp, lineHeight = ((small + 2f) / cap).sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.3.sp, color = textColor, maxLines = 1, softWrap = false)
         }
-        if (dayBelow && weekday != null) Text(weekday, fontSize = (13f / cap).sp, lineHeight = (15f / cap).sp,
+        if (dayBelow && weekday != null) Text(weekday, fontSize = (small / cap).sp, lineHeight = ((small + 2f) / cap).sp,
             fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = textColor, maxLines = 1, softWrap = false,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp))
     }

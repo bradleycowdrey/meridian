@@ -9,6 +9,10 @@ enum TileGrid {
     static let height: CGFloat = 44
     static let radius: CGFloat = 9
     static let columns = [-2, -1, 0, 1, 2]
+    /// The Now tile (column 0) is this much wider than each other tile (they share the rest
+    /// equally; the gaps stay), and `nowGrow` taller above and below their common centre line.
+    static let nowWidthFactor: CGFloat = 1.12
+    static let nowGrow: CGFloat = 4
 
     /// Each column's start: whole hours on your clock around the moment.
     static func starts(_ moment: Date) -> [Date] {
@@ -107,7 +111,7 @@ struct Scrub: ViewModifier {
 /// the day at that hour there (navy at night, deep blues at dawn and dusk, sky blue by day), dimmed
 /// outside working hours, with the weekday and a gold mark where a new day starts, and the outer
 /// tiles fading into the panel (not on a city card's photo). The middle column (the hour holding
-/// the moment shown) is marked by one capsule down the whole list (`NowCapsule`), which finds the
+/// the moment shown) is larger, and marked by one outline down the whole list (`NowCapsule`), which finds the
 /// middle tiles through `NowTileAnchors`. Tap a tile to go to that hour; drag to scrub.
 struct HourTiles: View {
     @EnvironmentObject private var store: CityStore
@@ -131,14 +135,35 @@ struct HourTiles: View {
     /// One column and its gap.
     private var pitch: CGFloat { max(1, (width + TileGrid.gap) / CGFloat(columns.count)) }
 
+    /// Each tile but the Now tile, and the Now tile (`TileGrid.nowWidthFactor` as wide).
+    private func otherWidth(_ count: Int) -> CGFloat {
+        max(1, (width - TileGrid.gap * CGFloat(count - 1)) / (CGFloat(count - 1) + TileGrid.nowWidthFactor))
+    }
+    private func nowWidth(_ count: Int) -> CGFloat { otherWidth(count) * TileGrid.nowWidthFactor }
+
+    /// The column under `x`: tile edges as laid out (the Now tile wider), split mid-gap.
+    private func column(at x: CGFloat) -> Int {
+        let shown = columns
+        var edge: CGFloat = 0
+        for k in shown {
+            edge += (k == 0 ? nowWidth(shown.count) : otherWidth(shown.count)) + TileGrid.gap
+            if x < edge - TileGrid.gap / 2 { return k }
+        }
+        return shown[shown.count - 1]
+    }
+
     var body: some View {
         let starts = TileGrid.starts(store.moment)
         let shown = columns
         let inline = inlineMinutesFit(columns: shown)
         HStack(spacing: TileGrid.gap) {
             ForEach(shown, id: \.self) { k in
+                // The Now tile: wider, and taller by `nowGrow` above and below (the row stays
+                // `height` tall and centred, so the other tiles keep their place).
                 tile(k, start: starts[k + 2], inlineMinutes: inline)
-                    .frame(maxWidth: .infinity)
+                    .frame(width: k == 0 ? nowWidth(shown.count) : nil,
+                           height: k == 0 ? height + 2 * TileGrid.nowGrow : nil)
+                    .frame(maxWidth: k == 0 ? nil : CGFloat.infinity)
                     .anchorPreference(key: NowTileAnchors.self, value: .bounds) { anchor in
                         (nowAnchor && k == 0) ? [anchor] : []
                     }
@@ -146,12 +171,16 @@ struct HourTiles: View {
         }
         .frame(height: height)
         .mask {
-            if fade { TileGrid.edgeFade } else { Color.black }
+            // Past the row's top and bottom, so the taller Now tile isn't cut off.
+            Group {
+                if fade { TileGrid.edgeFade } else { Color.black }
+            }
+            .padding(.vertical, -TileGrid.nowGrow)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .contentShape(Rectangle())
         .onTapGesture { location in
-            let k = columns[min(max(Int(location.x / pitch), 0), columns.count - 1)]
+            let k = column(at: location.x)
             guard k != 0 || !store.isNow else { return }
             store.jump(to: TileGrid.starts(store.moment)[k + 2])
         }
@@ -183,14 +212,17 @@ struct HourTiles: View {
     /// fit (five tiles on an iPhone), every tile puts its minutes on their own line.
     private func inlineMinutesFit(columns: [Int]) -> Bool {
         let large = typeSize.isAccessibilitySize
-        let digitFont = UIFont.monospacedDigitSystemFont(ofSize: TileLabel.digitSize(digitMetric, large: large), weight: .semibold)
-        let minuteFont = UIFont.monospacedDigitSystemFont(ofSize: TileLabel.minuteSize(minuteMetric, large: large), weight: .semibold)
-        let count = CGFloat(columns.count)
-        // The tile's width less its 2 pt padding each side, and 1 pt to spare.
-        let room = (width - TileGrid.gap * (count - 1)) / count - 5
-        let needed = ("00" as NSString).size(withAttributes: [.font: digitFont]).width
-            + (":00" as NSString).size(withAttributes: [.font: minuteFont]).width
-        return needed.rounded(.up) <= room
+        // Each tile's width less its 2 pt padding each side, and 1 pt to spare: the other tiles at
+        // their type sizes, and the wider Now tile at its larger ones.
+        func fits(room: CGFloat, bump: CGFloat, minuteBump: CGFloat) -> Bool {
+            let digitFont = UIFont.monospacedDigitSystemFont(ofSize: TileLabel.digitSize(digitMetric, large: large) + bump, weight: .semibold)
+            let minuteFont = UIFont.monospacedDigitSystemFont(ofSize: TileLabel.minuteSize(minuteMetric, large: large) + minuteBump, weight: .semibold)
+            let needed = ("00" as NSString).size(withAttributes: [.font: digitFont]).width
+                + (":00" as NSString).size(withAttributes: [.font: minuteFont]).width
+            return needed.rounded(.up) <= room
+        }
+        return fits(room: otherWidth(columns.count) - 5, bump: 0, minuteBump: 0)
+            && fits(room: nowWidth(columns.count) - 5, bump: TileLabel.nowDigitBump, minuteBump: TileLabel.nowLabelBump)
     }
 
     private func tile(_ k: Int, start: Date, inlineMinutes: Bool) -> some View {
@@ -226,7 +258,7 @@ struct HourTiles: View {
                         .fill(Theme.midnight)
                         .frame(width: 2)
                         .padding(.vertical, 8)
-                        .offset(x: -(TileGrid.gap / 2 + 1))
+                        .offset(x: nowAnchor && (k == 0 || k == 1) ? 2 : -(TileGrid.gap / 2 + 1))
                         .allowsHitTesting(false)
                 }
             }
@@ -309,10 +341,13 @@ private struct TileLabel: View {
 
     static func digitSize(_ metric: CGFloat, large: Bool) -> CGFloat { min(max(metric, 17), large ? 26 : 21) }
     static func minuteSize(_ metric: CGFloat, large: Bool) -> CGFloat { min(max(metric, 13), large ? 17 : 15) }
+    /// The Now tile's type over the others': digits +3 pt; ":30", AM/PM and the weekday +1 pt.
+    static let nowDigitBump: CGFloat = 3
+    static let nowLabelBump: CGFloat = 1
 
-    private var digitSize: CGFloat { Self.digitSize(digitMetric, large: large) }
-    private var minuteSize: CGFloat { Self.minuteSize(minuteMetric, large: large) }
-    private var smallSize: CGFloat { min(max(smallMetric, 13), large ? 16 : 14) }
+    private var digitSize: CGFloat { Self.digitSize(digitMetric, large: large) + (center ? Self.nowDigitBump : 0) }
+    private var minuteSize: CGFloat { Self.minuteSize(minuteMetric, large: large) + (center ? Self.nowLabelBump : 0) }
+    private var smallSize: CGFloat { min(max(smallMetric, 13), large ? 16 : 14) + (center ? Self.nowLabelBump : 0) }
 
     var body: some View {
         ViewThatFits {
@@ -374,29 +409,34 @@ struct NowTileAnchors: PreferenceKey {
     }
 }
 
-/// One "Now" capsule down the list, as on the app icon: through the middle tile of every card,
-/// from just above the first to just below the last, over the list's content so it scrolls with
-/// the cards. It follows the moment shown (it is always on the middle column), never takes a
-/// touch, and VoiceOver skips it.
+/// One "Now" outline down the list, as on the app icon: round the middle tile of every card, from
+/// just above the first to just below the last, over the list's content so it scrolls with the
+/// cards. A rounded rectangle concentric with the Now tiles: its line runs midway in the gap between
+/// them and their neighbours, and its corners follow the tiles' corners. It follows the moment shown
+/// (it is always on the middle column), never takes a touch, and VoiceOver skips it.
 struct NowCapsule: View {
     let anchors: [Anchor<CGRect>]
-    /// Past the tile on each side.
-    static let outset: CGFloat = 7
-    /// Above the first card's tile and below the last one's.
-    static let overhang: CGFloat = 12
-    static let stroke: CGFloat = 2
+    /// The line's centre runs this far outside the Now tiles on every side: half the gap to their
+    /// neighbours, so it sits midway between the tiles it encloses and those it doesn't.
+    static let inset: CGFloat = TileGrid.gap / 2
+    /// Concentric with the tiles' corners (never width / 2).
+    static let radius: CGFloat = TileGrid.radius + inset
+    /// The white line, and the dark edge (60% black) each side of it that keeps it 3:1 or better
+    /// where it crosses a bright day sky. Together within the gap less 1 pt, so 0.5 pt or more of the
+    /// gap stays clear to the tiles each side (gap 6: 2 pt white, 1 pt dark each side, 1 pt clear).
+    static let core: CGFloat = min(2, max(1, TileGrid.gap - 2))
+    static let edge: CGFloat = min(1, max(0.5, (TileGrid.gap - 1 - core) / 2))
+    static let band: CGFloat = core + 2 * edge
 
     var body: some View {
         GeometryReader { proxy in
             if let frame = Self.capsuleFrame(anchors.map { proxy[$0] }, in: proxy.size) {
-                let shape = Capsule(style: .continuous)
-                // A stroke only: no fill or glow over the middle tiles, so they keep their own
-                // colour and their numbers' contrast.
-                // A 1 pt dark edge (60% black) each side of the white line keeps it 3:1 or better where it
-                // crosses a bright day sky (was 1.3 to 1.7:1); on a night photo it disappears.
+                let shape = RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
+                // A stroke only, centred on the outline's line (`stroke`, not `strokeBorder`): no fill
+                // or glow over the tiles, so they keep their own colour and their numbers' contrast.
                 ZStack {
-                    shape.strokeBorder(Color.black.opacity(0.6), lineWidth: Self.stroke + 2)
-                    shape.inset(by: 1).strokeBorder(Color.white.opacity(0.85), lineWidth: Self.stroke)
+                    shape.stroke(Color.black.opacity(0.6), lineWidth: Self.band)
+                    shape.stroke(Color.white.opacity(0.85), lineWidth: Self.core)
                 }
                     .frame(width: frame.width, height: frame.height)
                     .position(x: frame.midX, y: frame.midY)
@@ -406,15 +446,15 @@ struct NowCapsule: View {
         .accessibilityHidden(true)
     }
 
-    /// The capsule's frame: the middle tiles' column widened by `outset` each side, from
-    /// `overhang` above the topmost to `overhang` below the lowest, kept inside the content.
+    /// The outline's centre line: the Now tiles' column widened by `inset` each side, from `inset`
+    /// above the topmost to `inset` below the lowest, kept (with its stroke) inside the content.
     static func capsuleFrame(_ tiles: [CGRect], in size: CGSize) -> CGRect? {
         guard let first = tiles.first, size.width > 0, size.height > 0, first.width > 0 else { return nil }
-        let inset = stroke / 2
-        let left = max(inset, first.minX - outset)
-        let right = min(size.width - inset, first.maxX + outset)
-        let top = max(inset, (tiles.map(\.minY).min() ?? first.minY) - overhang)
-        let bottom = min(size.height - inset, (tiles.map(\.maxY).max() ?? first.maxY) + overhang)
+        let half = band / 2
+        let left = max(half, first.minX - inset)
+        let right = min(size.width - half, first.maxX + inset)
+        let top = max(half, (tiles.map(\.minY).min() ?? first.minY) - inset)
+        let bottom = min(size.height - half, (tiles.map(\.maxY).max() ?? first.maxY) + inset)
         guard right - left > 1, bottom - top > 1 else { return nil }
         return CGRect(x: left, y: top, width: right - left, height: bottom - top)
     }

@@ -1,0 +1,2 @@
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+screenshot 487550 bytes; device: device

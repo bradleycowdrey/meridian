@@ -841,6 +841,9 @@ private struct TimeRuler: View {
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $position, anchor: .center)
         }
+        // The fades measure from the ruler's own visible edges (0...width). `.scrollView` is offset
+        // by the content margins, which blanked every tick left of the line.
+        .coordinateSpace(.named(RulerTick.space))
         .frame(height: height)
         // The fixed line: where you are in time.
         .overlay {
@@ -883,6 +886,9 @@ private struct RulerTick: View {
     let calendar: Calendar
     /// The ruler's visible width, for fading towards its ends.
     let rulerWidth: CGFloat
+    /// The ruler's coordinate space, set on its GeometryReader.
+    /// `nonisolated` so the `@Sendable` `visualEffect` closures can read it off the main actor.
+    nonisolated static let space = "ruler"
 
     var body: some View {
         let parts = calendar.dateComponents([.hour, .minute, .weekday], from: date)
@@ -896,7 +902,7 @@ private struct RulerTick: View {
                         .monospacedDigit()
                         .fixedSize()
                         .visualEffect { [rulerWidth] content, proxy in
-                            content.opacity(Self.labelOpacity(proxy.frame(in: .scrollView), width: rulerWidth))
+                            content.opacity(Self.labelOpacity(proxy.frame(in: .named(RulerTick.space)), width: rulerWidth))
                         }
                 } else {
                     Text(" ").font(.footnote)
@@ -907,7 +913,7 @@ private struct RulerTick: View {
                 .fill(Color.white.opacity(minute == 0 ? Theme.Op.caption : (minute == 30 ? Theme.Op.faint : 0.25)))
                 .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))
                 .visualEffect { [rulerWidth] content, proxy in
-                    content.opacity(Self.tickOpacity(proxy.frame(in: .scrollView), width: rulerWidth))
+                    content.opacity(Self.tickOpacity(proxy.frame(in: .named(RulerTick.space)), width: rulerWidth))
                 }
             Spacer(minLength: 0)
         }

@@ -38,11 +38,8 @@ enum Theme {
     static let midnight = rgb(0xF2C66D)
     /// The time on a bright photo: Two Degrees' darkest navy.
     static let bannerInk = rgb(0x0A0E1C)
-    /// The calendar's selected day and month arrows on any day but today: a light sky blue, as UIKit
-    /// draws that selected number in this colour on a light tinted disc of it (#7FAEEA: 8:1 on the
-    /// card, the number about 4.5:1 on its disc, where #3D74B0 gave 3.0:1). When the selected day is
-    /// today, UIKit draws it white on a solid disc of the tint instead, so DateJumpView tints with
-    /// `switchOn` then: white on a solid #3D74B0 disc, about 4.9:1 (white on #7FAEEA would be 2.3:1).
+    /// Go to a Time's month arrows and today's number (when not the chosen day): a light sky blue,
+    /// #7FAEEA, 8:1 on the card (#3D74B0 gave 3.0:1).
     static let pickerAccent = rgb(0x7FAEEA)
     /// Switches, which would be white (and lose their knob) under the app's white tint: the clear-day sky.
     static let switchOn = rgb(0x3D74B0)

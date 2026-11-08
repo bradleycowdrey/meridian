@@ -53,7 +53,17 @@ struct ClockEntryView: View {
     @Environment(\.widgetFamily) private var family
     let entry: ClockEntry
 
+    /// iPhone: names, captions and status follow the reader's text size up to xLarge, where the
+    /// widget's fixed rows and tiles still hold (WidgetType.scale). The Mac keeps its sizes.
     var body: some View {
+        #if os(iOS)
+        face.dynamicTypeSize(...DynamicTypeSize.xLarge)
+        #else
+        face
+        #endif
+    }
+
+    private var face: some View {
         Group {
             #if os(iOS)
             switch family {

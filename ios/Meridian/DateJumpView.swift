@@ -31,13 +31,9 @@ struct DateJumpView: View {
                     quickPicks
                     VStack(alignment: .leading, spacing: 10) {
                         CardCaption("Date", "calendar")
-                        DatePicker("Day", selection: $day, displayedComponents: .date)
-                            .datePickerStyle(.graphical)
-                            .labelsHidden()
-                            .environment(\.timeZone, store.home)
-                            // Not white. UIKit draws today, when selected, white on a solid disc of the tint
-                            // (switchOn keeps that legible); any other selected day in the tint on a light disc of it.
-                            .tint(store.homeCalendar.isDateInToday(day) ? Theme.switchOn : Theme.pickerAccent)
+                        // Our own month, not DatePicker(.graphical): UIKit draws its weekday row in a gray
+                        // that measured 2.45:1 on the card. Here every letter and number is 6.6:1 or more.
+                        MonthGrid(day: $day, calendar: calendar, today: store.now)
                     }
                     .glassCard()
                     VStack(alignment: .leading, spacing: 10) {
@@ -54,10 +50,18 @@ struct DateJumpView: View {
                     }
                 }
                 .padding(.horizontal, Card.margin)
-                .padding(.bottom, 16)
+                .padding(.bottom, 24)
             }
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
+            // A 24 pt fade at the foot of the scroll, just above the bar (the scroll view's frame ends
+            // where the bar's inset begins), so a card scrolled under it reads as "more below", not cut off.
+            .overlay(alignment: .bottom) {
+                LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 24)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
             .safeAreaInset(edge: .bottom, spacing: 0) { goButton }
             .navigationTitle("Go to a Time")
             .navigationBarTitleDisplayMode(.inline)
@@ -210,14 +214,6 @@ struct DateJumpView: View {
         .padding(.horizontal, Card.margin)
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, ignoresSafeAreaEdges: .bottom)
-        // A short fade above the bar, so a card scrolled under it reads as "more below", not as cut off.
-        .background(alignment: .top) {
-            LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg.opacity(0.85)], startPoint: .top, endPoint: .bottom)
-                .frame(height: 24)
-                .offset(y: -24)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
         .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
         .environment(\.colorScheme, .dark)
     }
@@ -258,5 +254,118 @@ struct DateJumpView: View {
         let span = [d > 0 ? "\(d) d" : nil, h > 0 ? "\(h) hr" : nil, d == 0 && m > 0 ? "\(m) min" : nil]
             .compactMap { $0 }.joined(separator: " ")
         return total > 0 ? "In \(span)" : "\(span) ago"
+    }
+}
+
+/// The month to pick a day from: the month and year with arrows either side, the weekdays
+/// ("SUN"…"SAT", from your calendar's first weekday) at 6.6:1, and the days at title3 size. The
+/// chosen day is black on a white disc; today, when not chosen, is in the accent.
+private struct MonthGrid: View {
+    @Binding var day: Date
+    let calendar: Calendar
+    let today: Date
+    /// The first of the month shown; follows `day` until the arrows move it.
+    @State private var shown: Date?
+
+    private var month: Date { shown ?? Self.start(of: day, calendar) }
+
+    private static func start(of date: Date, _ calendar: Calendar) -> Date {
+        calendar.dateInterval(of: .month, for: date)?.start ?? date
+    }
+
+    private var title: String {
+        let f = DateFormatter()
+        f.calendar = calendar
+        f.timeZone = calendar.timeZone
+        f.setLocalizedDateFormatFromTemplate("MMMMy")
+        return f.string(from: month)
+    }
+
+    private var weekdays: [String] {
+        let symbols = calendar.shortStandaloneWeekdaySymbols
+        let first = calendar.firstWeekday - 1
+        return (0..<7).map { symbols[(first + $0) % 7].uppercased() }
+    }
+
+    /// The month's days, after blanks up to its first weekday.
+    private var cells: [Date?] {
+        let first = month
+        let count = calendar.range(of: .day, in: .month, for: first)?.count ?? 30
+        let lead = (calendar.component(.weekday, from: first) - calendar.firstWeekday + 7) % 7
+        let days: [Date?] = (0..<count).map { calendar.date(byAdding: .day, value: $0, to: first) }
+        return Array(repeating: nil, count: lead) + days
+    }
+
+    private func move(_ months: Int) {
+        shown = calendar.date(byAdding: .month, value: months, to: month).map { Self.start(of: $0, calendar) }
+    }
+
+    var body: some View {
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+        VStack(spacing: 6) {
+            HStack(spacing: 0) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 8)
+                Button { move(-1) } label: {
+                    Image(systemName: "chevron.left").frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Previous Month")
+                Button { move(1) } label: {
+                    Image(systemName: "chevron.right").frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Next Month")
+            }
+            .font(.body.weight(.semibold))
+            .foregroundStyle(Theme.pickerAccent)
+            LazyVGrid(columns: columns, spacing: 2) {
+                ForEach(Array(weekdays.enumerated()), id: \.offset) { _, name in
+                    Text(name)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .accessibilityHidden(true)
+                }
+                ForEach(Array(cells.enumerated()), id: \.offset) { _, date in
+                    if let date { cell(date) } else { Color.clear.frame(minHeight: 44) }
+                }
+            }
+        }
+        // Seven columns of two digits: capped where they'd no longer fit across.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .onChange(of: day) { _, _ in shown = nil }
+    }
+
+    private func cell(_ date: Date) -> some View {
+        let chosen = calendar.isDate(date, inSameDayAs: day)
+        let isToday = calendar.isDate(date, inSameDayAs: today)
+        return Button {
+            day = date
+        } label: {
+            Text("\(calendar.component(.day, from: date))")
+                .font(.title3.weight(chosen || isToday ? .semibold : .regular))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(chosen ? Color.black : (isToday ? Theme.pickerAccent : Color.white))
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                // The disc fits the cell (its column width or height, whichever is less), so it never
+                // runs into the next day at any text size.
+                .background {
+                    Circle().fill(chosen ? Color.white : Color.clear).aspectRatio(1, contentMode: .fit).padding(2)
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(date.formatted(Date.FormatStyle(date: .complete, time: .omitted, calendar: calendar, timeZone: calendar.timeZone)))
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }

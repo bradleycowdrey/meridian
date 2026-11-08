@@ -266,9 +266,11 @@ private struct TileLabel: View {
         ViewThatFits {
             // "5", ":30", "PM". Minutes always get their own line, so every tile in a row has
             // the same layout whatever the width of its own digits ("1:30" next to "12:30").
-            variant(inlineMinutes: false, suffix: true)
-            // Digits only (AM/PM is the least needed: the neighbouring tiles carry it).
-            variant(inlineMinutes: false, suffix: false)
+            // At midnight "12", "AM", "WED": a bare 12 could be noon or midnight, so AM stays.
+            variant(inlineMinutes: false, suffix: true, day: true)
+            // Digits only (AM/PM is the least needed: the neighbouring tiles carry it), except where a
+            // new day starts: there "12" keeps its AM and the weekday goes (the gold mark still shows it).
+            variant(inlineMinutes: false, suffix: weekday != nil, day: weekday == nil || use24h)
             // Last resort: the hour line may shrink a little (never below 90%).
             VStack(spacing: 0) {
                 hourLine(inlineMinutes: true)
@@ -280,18 +282,16 @@ private struct TileLabel: View {
         }
     }
 
-    private func variant(inlineMinutes: Bool, suffix: Bool) -> some View {
+    private func variant(inlineMinutes: Bool, suffix: Bool, day: Bool) -> some View {
         VStack(spacing: 0) {
             hourLine(inlineMinutes: inlineMinutes)
             if minute != 0 && !inlineMinutes { minuteText }
-            // Where a new day starts the weekday takes AM's line ("12" over "WED"; the day divider
-            // already says it's the morning), so the tile keeps the same insets as its neighbours.
-            if suffix, !use24h, weekday == nil {
+            if suffix, !use24h {
                 Text(hour < 12 ? "AM" : "PM")
                     .font(.system(size: smallSize, weight: .semibold))
                     .tracking(0.3)
             }
-            if let weekday { weekdayText(weekday) }
+            if day, let weekday { weekdayText(weekday) }
         }
         .monospacedDigit()
         .lineLimit(1)

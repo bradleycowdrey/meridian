@@ -15,8 +15,11 @@ adb logcat -c; (adb logcat -v time > "$OUT/logcat-full.txt" 2>&1 &)
 for screen in main travel add edit settings date find widgets terms; do
   timeout 180 adb wait-for-device || { echo "emulator gone before $screen" >> "$OUT/launch.txt"; break; }
   adb shell am force-stop com.bradcowdrey.meridian
+  adb logcat -c
   adb shell am start -n com.bradcowdrey.meridian/.MainActivity --ez screenshots true --es screen "$screen" >> "$OUT/launch.txt" 2>&1
-  sleep 7
+  # Wait until the app logs that every visible card has its photo (at most 20 s), then a moment to settle.
+  for t in $(seq 1 40); do adb logcat -d -s Meridian:I 2>/dev/null | grep -q "photos ready" && break; sleep 0.5; done
+  sleep 2
   adb exec-out screencap -p > "$OUT/screen-$screen.png"
   echo "$(date +%T) shot $screen" >> "$OUT/launch.txt"
 done

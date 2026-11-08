@@ -61,9 +61,13 @@ object DataFiles {
         runCatching { a.open(name).bufferedReader(Charsets.UTF_8).use { it.readText() } }.getOrNull()
     }
 
-    /** Reads both files in the background, so the first search and the first card don't wait. */
+    /**
+     * Reads both files in the background, each on its own thread, so the first search and the first card don't
+     * wait: the city list (what Add searches) never queues behind the holidays, and neither waits on the photos.
+     */
     fun preload() {
-        Thread { runCatching { Holidays.load(); CityDirectory.all } }.start()
+        Thread({ runCatching { CityDirectory.all } }, "preload-cities").start()
+        Thread({ runCatching { Holidays.load() } }, "preload-holidays").start()
     }
 }
 
@@ -179,6 +183,17 @@ object TimeMath {
 
     /** Start of the quarter-hour (every time zone's offset is a whole number of quarter-hours). */
     fun quarter(at: Instant): Instant = Instant.ofEpochSecond(Math.floorDiv(at.epochSecond, 900L) * 900L)
+
+    /**
+     * A city's short name, as the Lock Screen widgets write it (WidgetContent.swift, AccessoryClockView.tag):
+     * the initials of up to three words ("SF" for San Francisco, "NY" for New York), else the first three
+     * letters of a one-word name ("LON" for London).
+     */
+    fun shortTag(name: String): String {
+        val words = name.split(Regex("[^\\p{L}]+")).filter { it.isNotEmpty() }
+        if (words.size > 1) return words.take(3).map { it.first() }.joinToString("").uppercase()
+        return name.filter { it.isLetter() }.take(3).uppercase()
+    }
 }
 
 /** Sky through the day in Two Degrees tones: night navy, dawn and dusk blue-greys, sky blue by day. */

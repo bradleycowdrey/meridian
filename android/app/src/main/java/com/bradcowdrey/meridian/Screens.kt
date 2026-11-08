@@ -412,7 +412,7 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
     Screen("Settings", onDone, back = true) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            GlassCard("Time", Icons.Filled.DateRange) {
+            GlassCard("Time", Glyphs.clock) {
                 SwitchRow("24-Hour Time", store.use24h) { store.updateUse24h(it) }
                 SwitchRow("Highlight Working Hours", store.showWorkHours) { store.updateShowWorkHours(it) }
                 SwitchRow("Public Holidays Are Days Off", store.countHolidays) { store.updateCountHolidays(it) }
@@ -710,7 +710,7 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                             dayContentColor = Color.White, weekdayContentColor = white(0.6f), navigationContentColor = Color.White,
                             titleContentColor = Color.White, headlineContentColor = Color.White))
                 }
-                GlassCard("Time", Icons.Filled.DateRange) {
+                GlassCard("Time", Glyphs.clock) {
                     // Hour, then the quarter-hour: it can only land on :00, :15, :30 or :45.
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Hour", Modifier.weight(1f), color = white(0.85f))

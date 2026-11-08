@@ -62,7 +62,8 @@ class Slot(val start: Instant, val end: Instant, val states: List<Slot.State>) {
             get() = when (this) {
                 WORKING -> white(0.85f)
                 OFF -> white(0.3f)
-                NIGHT -> white(0.08f)
+                // 0.12, not 0.08: clearly its own step against the card as well as below Off.
+                NIGHT -> white(0.12f)
             }
     }
 
@@ -85,8 +86,10 @@ object FindTime {
     fun lengthLabel(minutes: Int): String =
         if (minutes < 60) "$minutes min" else if (minutes % 60 == 0) "${minutes / 60} hr" else "${minutes / 60}½ hr"
 
-    /** "LIS" for Lisbon, "ANA" for Ana. */
-    fun tag(place: Place): String = place.title.filter { it.isLetter() }.take(3).uppercase()
+    /** "SF" for San Francisco, "NY" for New York, "LIS" for Lisbon: the same short names as the Lock Screen widgets.
+     *  A person keeps the first three letters of their name ("Ana Lopez" is "ANA"), as on iOS: initials are ambiguous for people. */
+    fun tag(place: Place): String =
+        if (place.person == null) TimeMath.shortTag(place.name) else place.title.filter { it.isLetter() }.take(3).uppercase()
 
     /** "9 AM" or "09:00". */
     fun hourLabel(hour: Int, use24h: Boolean): String =
@@ -267,7 +270,7 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
     }
     // The count column grows with the font size, so "10/12" never clips at large text.
     val countW = (34f * LocalDensity.current.fontScale.coerceAtMost(1.6f)).dp
-    GlassCard("Every hour", Icons.Filled.DateRange) {
+    GlassCard("Every hour", Glyphs.grid) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(Modifier.padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text("You", Modifier.width(62.dp), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = white(0.6f))
@@ -307,6 +310,9 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
     }
 }
 
+/** How strong a past hour's cells are in the Every hour grid: 0.7, as on iOS, so working stays about 3.4:1 against off. */
+private const val PAST_ALPHA = 0.7f
+
 /** One hour of the grid: your hour, a cell per person, and how many are working. */
 @Composable
 private fun HourRow(store: Store, s: Slot, people: List<Place>, pick: (Slot) -> Unit) {
@@ -320,7 +326,9 @@ private fun HourRow(store: Store, s: Slot, people: List<Place>, pick: (Slot) -> 
         horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.width(62.dp), style = tnum, fontSize = 13.sp, color = if (all) Palette.primary else white(0.6f), maxLines = 1)
         s.states.forEach { state ->
-            Box(Modifier.weight(1f).height(22.dp).alpha(if (past) 0.35f else 1f).clip(RoundedCornerShape(6.dp)).background(state.color))
+            // Past cells at 70% (not 35%), as on iOS, so Working still stands out from Off by 3:1 in a past row (about 3.4:1;
+            // 35% left 2.5:1), still a visible step down from the hours to come.
+            Box(Modifier.weight(1f).height(22.dp).alpha(if (past) PAST_ALPHA else 1f).clip(RoundedCornerShape(6.dp)).background(state.color))
         }
         Text("${s.working}/${people.size}", Modifier.width(countW), style = tnum, fontSize = 12.sp, color = white(0.6f), textAlign = TextAlign.End, maxLines = 1, softWrap = false)
     }

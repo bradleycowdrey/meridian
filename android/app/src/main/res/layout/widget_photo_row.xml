@@ -52,7 +52,7 @@
                     android:textColor="#0A0E1C" android:textSize="12sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
             </LinearLayout>
-            <!-- The name (14 sp where the row fits it, 13 or 12 in tight rows: one step above the 12 sp status), with a
+            <!-- The name (15 sp where the row fits it, 14, 13 or 12 in tight rows: above the 13 sp status, 12 sp in the compact pill), with a
                  status dot before it in rows too short for the pill (MeridianWidgets.rowFit). Its bottom padding is the
                  gap above the full pill (set in code; 0 for the compact pill, the dot and none). -->
             <LinearLayout android:id="@+id/name_row" android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -62,7 +62,7 @@
                     android:src="@drawable/widget_dot" android:visibility="gone" android:importantForAccessibility="no" />
                 <TextView android:id="@+id/name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                     android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
-                    android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="15sp"
                     android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
             </LinearLayout>
             <LinearLayout android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -73,7 +73,7 @@
                     android:src="@drawable/ic_briefcase" android:importantForAccessibility="no" />
                 <TextView android:id="@+id/status_text" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="4dp" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
-                    android:fontFamily="sans-serif-medium" android:textColor="#9AD3A8" android:textSize="12sp" />
+                    android:fontFamily="sans-serif-medium" android:textColor="#9AD3A8" android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
         <LinearLayout android:id="@+id/tiles" android:layout_width="0dp" android:layout_height="24dp" android:layout_weight="1.1"

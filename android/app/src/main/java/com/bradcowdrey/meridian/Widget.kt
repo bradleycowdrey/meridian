@@ -22,6 +22,7 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
 import android.graphics.Shader
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
@@ -76,7 +77,9 @@ object MeridianWidgets {
     /** Roboto's line height (ascent + descent, includeFontPadding off), in ems: for fitting a row's text. */
     private const val LINE_EM = 1.172f
     /** widget_photo_row's status pill: text size (sp), icon, gap above the full pill (none above the compact one), and its normal top and bottom padding (dp). */
-    private const val STATUS_SP = 12f
+    private const val STATUS_SP = 13f
+    /** The compact pill's text (sp), one step down, so five rows on the large widget keep their status words. */
+    private const val STATUS_COMPACT_SP = 12f
     private const val STATUS_ICON = 12f
     private const val PILL_GAP = 1f
     private const val PILL_PAD_V = 1f
@@ -86,6 +89,8 @@ object MeridianWidgets {
     private const val SMALL_RADIUS = 22f
     /** The smallest AM/PM (sp), by the time and on the tiles: a fixed span on the tiles, so auto-size never shrinks it. */
     private const val AMPM_MIN_SP = 12f
+    /** A half-hour city's ":30" on the tiles (dp, fixed, as the app's 11 sp ":30"). */
+    private const val MINUTES_DP = 11f
     /**
      * Tile fills no lighter than this relative luminance (that of #3F6A97, as the app's tiles, DayColor.tile),
      * so white numbers and AM/PM on them are at least 5.6:1 (1.05 / 0.186).
@@ -168,30 +173,35 @@ object MeridianWidgets {
     private class RowFit(
         val timeSp: Float, val nameSp: Float, val status: StatusFit, val textPad: Float, val tallTiles: Boolean,
         val region: RectF, val labels: RectF,
-    )
+    ) {
+        /** The status text (sp): 13 in the full pill, 12 in the compact one. */
+        val statusSp: Float get() = if (status == StatusFit.COMPACT) STATUS_COMPACT_SP else STATUS_SP
+    }
 
     /**
      * What fits a row [rowHDp] tall at the phone's font scale, keeping time > name > status (as the app): a
-     * 20 sp time and 14 sp name with the full pill, then the pill without its padding, then an 18 sp time,
-     * then a 13 sp name, then 12 sp; else a status dot before the name and the largest time and name that fit
-     * (20, 18 or 15 sp over a 14, 13, 12 or 11 sp name; down to a 10 sp time at the largest font scales).
-     * The name column's bottom is level with the tiles' (TEXT_CLEARANCE is 0). At font scale 1: 5 rows at 320 dp (56.8 dp rows):
-     * 18 sp time, 13 sp name, compact pill; 2 rows at 152 dp (67 dp rows): 20 sp, 14 sp, full pill. Tall tiles (hour over
+     * 20 sp time and 15 sp name (as the iPhone widget's subheadline) with the full 13 sp pill, then the compact 12 sp pill,
+     * then a 14 sp name, then an 18 sp time, then a 13 sp name, then 12 sp; else a status dot before the name and the
+     * largest time and name that fit (20, 18 or 15 sp over a 15, 14, 13, 12 or 11 sp name; down to a 10 sp time at the
+     * largest font scales). The name column's bottom is level with the tiles' (TEXT_CLEARANCE is 0). At font scale 1:
+     * 5 rows at 320 dp (56.8 dp rows): 18 sp time, 13 sp name, compact pill; 2 rows at 152 dp (67 dp rows) and 4 at
+     * 320 dp: 20 sp, 15 sp, full 13 sp pill. Tall tiles (hour over
      * AM/PM) in rows at least TALL_TILE_ROW tall, only while both lines fit the tile at the font scale (up to about 1.57).
      */
     private fun rowFit(context: Context, rowHDp: Float, wantStatus: Boolean): RowFit {
         val fs = context.resources.configuration.fontScale.coerceAtLeast(0.5f)
         fun line(sp: Float) = sp * LINE_EM * fs
         val avail = rowHDp - ROW_PAD_TOP - ROW_PAD_BOTTOM
-        val pillBody = maxOf(line(STATUS_SP), STATUS_ICON)
         fun pillH(s: StatusFit): Float = when (s) {
-            StatusFit.PILL -> PILL_GAP + pillBody + 2 * PILL_PAD_V
-            StatusFit.COMPACT -> pillBody
+            StatusFit.PILL -> PILL_GAP + maxOf(line(STATUS_SP), STATUS_ICON) + 2 * PILL_PAD_V
+            StatusFit.COMPACT -> maxOf(line(STATUS_COMPACT_SP), STATUS_ICON)
             else -> 0f
         }
         fun height(t: Float, n: Float, s: StatusFit) = line(t) + line(n) + pillH(s)
         val tries = if (wantStatus) listOf(
+            Triple(20f, 15f, StatusFit.PILL), Triple(20f, 15f, StatusFit.COMPACT),
             Triple(20f, 14f, StatusFit.PILL), Triple(20f, 14f, StatusFit.COMPACT),
+            Triple(18f, 15f, StatusFit.PILL), Triple(18f, 15f, StatusFit.COMPACT),
             Triple(18f, 14f, StatusFit.PILL), Triple(18f, 14f, StatusFit.COMPACT),
             Triple(18f, 13f, StatusFit.PILL), Triple(18f, 13f, StatusFit.COMPACT),
             Triple(18f, 12f, StatusFit.COMPACT),
@@ -199,7 +209,7 @@ object MeridianWidgets {
         val chosen: Triple<Float, Float, StatusFit> = tries.firstOrNull { (t, n, s) -> height(t, n, s) <= avail }
             ?: run {
                 // No room for the pill: the largest time, then the largest name, that fit; at the largest font scales an 11 sp name and a time sized to what is left.
-                val pairs = listOf(20f to 14f, 20f to 13f, 18f to 14f, 18f to 13f, 15f to 13f, 15f to 12f, 15f to 11f)
+                val pairs = listOf(20f to 15f, 20f to 14f, 20f to 13f, 18f to 15f, 18f to 14f, 18f to 13f, 15f to 13f, 15f to 12f, 15f to 11f)
                 val (t, n) = pairs.firstOrNull { (pt, pn) -> line(pt) + line(pn) <= avail }
                     ?: (((avail - line(11f)) / (LINE_EM * fs)).coerceIn(10f, 15f) to 11f)
                 Triple(t, n, if (wantStatus) StatusFit.DOT else StatusFit.NONE)
@@ -246,7 +256,8 @@ object MeridianWidgets {
             root.addView(R.id.content, cell(context, R.layout.widget_photo_small, place, refs[place.id], use24h, now, live,
                 w.toFloat(), h.toFloat(), SMALL_RADIUS, maxPx = 400, region = RectF(0f, 0.4f, 0.7f, 0.72f),
                 labels = RectF(0f, 0.66f, 0.85f, 0.94f), column = 0.85f,
-                timeSp = 34f, nameSp = 13f, statusFit = StatusFit.PILL, tiles = false, work = work, textPad = 0f, tallTiles = false))
+                timeSp = 34f, nameSp = 15f, statusSp = STATUS_SP, statusFit = StatusFit.PILL, tiles = false, work = work, textPad = 0f,
+                tallTiles = false, home = home))
         } else {
             root.setViewPadding(R.id.content, pad, pad, pad, pad)
             val n = cities.size
@@ -256,17 +267,41 @@ object MeridianWidgets {
             // Every row keeps its status (time > name > status, as the app): a full pill, a tighter one, a
             // slightly smaller time, or at the least a status dot before the name, by what fits the row.
             val fit = rowFit(context, rowH, work.show)
+            // Tall tiles for the whole widget (the Now capsule's height is shared) only while every half-hour city's widest
+            // hour, "10" at the 13 sp auto-size floor plus the fixed 11 dp ":30", fits the tile's width; else every row takes
+            // the one-line tiles, whose guard drops AM/PM rather than clip it.
+            val tileW = (innerW - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
+            val tall = fit.tallTiles && run {
+                val dm = context.resources.displayMetrics
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    fontFeatureSettings = "tnum"
+                }
+                fun widthDp(t: String, size: Float, unit: Int): Float {
+                    paint.textSize = TypedValue.applyDimension(unit, size, dm)
+                    return paint.measureText(t) / dm.density
+                }
+                val anchor = TimeMath.hourAnchor(now, home)
+                cities.all { p ->
+                    listOf(-1L, 0L, 1L).all { k ->
+                        val at = anchor.plusSeconds(k * 3600L).atZone(p.zone)
+                        at.minute == 0 ||
+                            widthDp(if (use24h) "%02d".format(at.hour) else "${if (at.hour % 12 == 0) 12 else at.hour % 12}", 13f, TypedValue.COMPLEX_UNIT_SP) +
+                            widthDp(":%02d".format(at.minute), MINUTES_DP, TypedValue.COMPLEX_UNIT_DIP) + 2f <= tileW
+                    }
+                }
+            }
             cities.forEachIndexed { i, place ->
                 if (i > 0) root.addView(R.id.content, RemoteViews(context.packageName, R.layout.widget_row_gap))
                 root.addView(R.id.content, cell(context, R.layout.widget_photo_row, place, refs[place.id], use24h, now, live,
                     innerW, rowH, ROW_RADIUS, maxPx = 480, region = fit.region,
                     labels = fit.labels, column = 0.47f,
-                    timeSp = fit.timeSp, nameSp = fit.nameSp, statusFit = fit.status, tiles = true, work = work,
-                    textPad = fit.textPad, tallTiles = fit.tallTiles))
+                    timeSp = fit.timeSp, nameSp = fit.nameSp, statusSp = fit.statusSp, statusFit = fit.status, tiles = true, work = work,
+                    textPad = fit.textPad, tallTiles = tall, home = home))
             }
             // One Now capsule down the centre tiles of every row, over the tile column (the overlay spans the widget's full height).
             val blockW = (innerW - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT)
-            capsule(density, blockW, h.toFloat(), n, rowH, if (fit.tallTiles) TILE_TALL_HEIGHT else TILE_HEIGHT)?.let {
+            capsule(density, blockW, h.toFloat(), n, rowH, if (tall) TILE_TALL_HEIGHT else TILE_HEIGHT)?.let {
                 root.setImageViewBitmap(R.id.now_capsule, it)
                 root.setViewVisibility(R.id.now_overlay, View.VISIBLE)
             }
@@ -308,8 +343,8 @@ object MeridianWidgets {
     private fun cell(
         context: Context, layout: Int, place: Place, ref: WidgetPhotos.Ref?, use24h: Boolean, now: Instant, live: Boolean,
         wDp: Float, hDp: Float, cornerDp: Float, maxPx: Int, region: RectF, labels: RectF, column: Float,
-        timeSp: Float, nameSp: Float, statusFit: StatusFit, tiles: Boolean, work: Work,
-        textPad: Float, tallTiles: Boolean,
+        timeSp: Float, nameSp: Float, statusSp: Float, statusFit: StatusFit, tiles: Boolean, work: Work,
+        textPad: Float, tallTiles: Boolean, home: ZoneId,
     ): RemoteViews {
         val v = RemoteViews(context.packageName, layout)
         val phase = WidgetSky.phase(place, now)
@@ -346,6 +381,7 @@ object MeridianWidgets {
                 val padV = if (statusFit == StatusFit.COMPACT) 0 else (PILL_PAD_V * d).roundToInt()
                 v.setViewPadding(R.id.status, (6 * d).roundToInt(), padV, (7 * d).roundToInt(), padV)
                 v.setTextViewText(R.id.status_text, text)
+                v.setTextViewTextSize(R.id.status_text, TypedValue.COMPLEX_UNIT_SP, statusSp)
                 v.setTextColor(R.id.status_text, kind.color)
                 v.setImageViewResource(R.id.status_icon, kind.icon)
                 v.setInt(R.id.status_icon, "setColorFilter", kind.color)
@@ -354,7 +390,7 @@ object MeridianWidgets {
         } else {
             v.setViewVisibility(R.id.status, View.GONE)
         }
-        if (tiles) tiles(v, place, use24h, now, work, wDp, tallTiles)
+        if (tiles) tiles(context, v, place, use24h, now, home, work, wDp, tallTiles)
         return v
     }
 
@@ -385,8 +421,12 @@ object MeridianWidgets {
         }
     }
 
-    /** The hour before, now and the hour after, on the city's own clock: the day's colour there, quieter outside working hours. */
-    private fun tiles(v: RemoteViews, place: Place, use24h: Boolean, now: Instant, work: Work, wDp: Float, tall: Boolean) {
+    /**
+     * The hour before, now and the hour after, lined up on the home hour (as the app's tiles and the iPhone widget) and
+     * shown on the city's clock, so a half-hour city reads "9:30 PM" under the Now capsule on every surface: the day's
+     * colour there, quieter outside working hours.
+     */
+    private fun tiles(context: Context, v: RemoteViews, place: Place, use24h: Boolean, now: Instant, home: ZoneId, work: Work, wDp: Float, tall: Boolean) {
         val zone = place.zone
         // Rows at least TALL_TILE_ROW tall: the hour over AM/PM (as the app's tiles); shorter rows: "10 AM" on one line.
         v.setViewVisibility(R.id.tiles, if (tall) View.GONE else View.VISIBLE)
@@ -396,18 +436,45 @@ object MeridianWidgets {
         // "10 PM" is never cut; the digits auto-size from 15 sp down to 11 sp (below 12 sp only at the narrowest widths; widget_photo_row).
         val tileW = (wDp - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
         val ampmSp = if (tall || tileW >= 36f) AMPM_MIN_SP else 11f
-        val hourStart = now.atZone(zone).withMinute(0).withSecond(0).withNano(0)
-        ids.zip(listOf(-1L, 0L, 1L)).forEach { (id, k) ->
-            val at = hourStart.plusHours(k)
+        val starts = listOf(-1L, 0L, 1L).map { TimeMath.hourAnchor(now, home).plusSeconds(it * 3600L).atZone(zone) }
+        // Half-hour cities: the minutes as a small ":30" (11 dp, as the app's tiles) after the hour.
+        fun digits(hour: Int) = if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}"
+        fun suffix(hour: Int) = if (use24h) null else if (hour < 12) "AM" else "PM"
+        // One-line tiles: "10:30 PM" with the digits at their 11 sp floor must fit the tile; if the widest of the row's
+        // three does not (half-hour cities on narrow widgets, 12-hour clock), the row's tiles drop AM/PM together (the
+        // city's own time beside them carries it, and the tile's sky colour says day or night) rather than clip it.
+        val keepSuffix = tall || starts.all { it.minute == 0 } || run {
+            val dm = context.resources.displayMetrics
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                fontFeatureSettings = "tnum"
+            }
+            fun widthDp(text: String, size: Float, unit: Int): Float {
+                paint.textSize = TypedValue.applyDimension(unit, size, dm)
+                return paint.measureText(text) / dm.density
+            }
+            starts.maxOf { at ->
+                widthDp(digits(at.hour) + TimeMath.THIN, 11f, TypedValue.COMPLEX_UNIT_SP) +
+                    widthDp(":%02d".format(at.minute), MINUTES_DP, TypedValue.COMPLEX_UNIT_DIP) +
+                    widthDp(suffix(at.hour) ?: "", ampmSp, TypedValue.COMPLEX_UNIT_DIP)
+            } + 2f <= tileW
+        }
+        ids.zip(starts).forEach { (id, at) ->
             val color = capped(DayColor.at(at.hour + at.minute / 60.0))
-            // "10 AM" with a smaller AM, as on the iPhone, so it fits its tile (12 sp, or 11 sp on the narrowest tiles; auto-size shrinks only the digits).
-            val hourLabel = TimeMath.hourLabel(at.hour, use24h)
-            val period = hourLabel.indexOfFirst { it == 'A' || it == 'P' }
-            // Tall tiles: "10" over "AM" (17 sp digits, auto-sized down to 13 sp; 12 sp AM/PM).
-            val label = if (tall && period > 0) hourLabel.substring(0, period).replace(TimeMath.THIN, "").trim() + "\n" + hourLabel.substring(period) else hourLabel
+            val head = digits(at.hour)
+            val minutes = if (at.minute != 0) ":%02d".format(at.minute) else ""
+            val period = if (keepSuffix) suffix(at.hour) else null
+            // "10 AM" with a smaller AM, as on the iPhone (12 sp, or 11 sp on the narrowest tiles; auto-size shrinks only
+            // the hour); tall tiles: "10" over "AM" (17 sp digits, auto-sized down to 13 sp; 12 sp AM/PM).
+            val label = head + minutes + when {
+                period == null -> ""
+                tall -> "\n$period"
+                else -> TimeMath.THIN + period
+            }
             val text = android.text.SpannableString(label)
-            val cut = label.indexOfFirst { it == 'A' || it == 'P' }
-            if (cut > 0) text.setSpan(android.text.style.AbsoluteSizeSpan(ampmSp.roundToInt(), true), cut, label.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            val flags = android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            if (minutes.isNotEmpty()) text.setSpan(android.text.style.AbsoluteSizeSpan(MINUTES_DP.roundToInt(), true), head.length, head.length + minutes.length, flags)
+            if (period != null) text.setSpan(android.text.style.AbsoluteSizeSpan(ampmSp.roundToInt(), true), label.length - period.length, label.length, flags)
             v.setTextViewText(id, text)
             v.setTextColor(id, 0xFFFFFFFF.toInt())
             val dim = work.show && !WorkWeek.isWorking(place, at.toInstant().plusSeconds(1800), work.start, work.end)

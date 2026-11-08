@@ -297,6 +297,21 @@ struct WidgetFacePreview: View {
             .background { WidgetContainerBackground(snapshot: snapshot, date: date, family: family, isPreview: true) }
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .environment(\.colorScheme, .dark)
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)   // as the widget root (iPhone; WidgetType.scale is 1 on the Mac)
+    }
+}
+
+/// The reader's text size, for widget text set in points. iPhone: the default (Large) and smaller
+/// keep the designed sizes (nothing goes under 11 pt); larger sizes grow names, captions and status
+/// by 10%. The widget root caps Dynamic Type at xLarge, so the fixed tiles and rows still hold. The
+/// Mac keeps its sizes.
+enum WidgetType {
+    static func scale(_ size: DynamicTypeSize) -> CGFloat {
+        #if os(iOS)
+        return size > .large ? 1.1 : 1
+        #else
+        return 1
+        #endif
     }
 }
 
@@ -334,6 +349,9 @@ struct WidgetClockView: View {
 
     @Environment(\.widgetRenderingMode) var renderingMode
     @Environment(\.showsWidgetContainerBackground) var showsBackground
+    @Environment(\.dynamicTypeSize) private var typeSize
+    /// Names and captions grow with the reader's text size on iPhone (1 on the Mac).
+    private var typeScale: CGFloat { WidgetType.scale(typeSize) }
 
     /// Accented, vibrant (Lock Screen, tinted Home Screen) or clear (StandBy): no opaque blocks,
     /// no brand colours; shapes and text in the system's primary colour.
@@ -359,8 +377,8 @@ struct WidgetClockView: View {
     private static let tileSmallWeight: Font.Weight = .semibold
     private static let tileMinScale: CGFloat = 0.85   // digits only; AM/PM never shrinks
     /// City names and zone captions never scale under 11 pt on iPhone.
-    private static let nameMinScale: CGFloat = 0.85
-    private static let largeNameMinScale: CGFloat = 0.85
+    private static let nameMinScale: CGFloat = 0.9
+    private static let largeNameMinScale: CGFloat = 0.9
     private static let captionMinScale: CGFloat = 1
     #else
     private static let labelSize: CGFloat = 10
@@ -454,7 +472,7 @@ struct WidgetClockView: View {
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
         return VStack(alignment: .leading, spacing: 0) {
             Text(city.name)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13 * typeScale, weight: .semibold))
                 .foregroundStyle(WidgetTone.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(Self.nameMinScale)
@@ -463,7 +481,7 @@ struct WidgetClockView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(caption(zone))
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 11 * typeScale, weight: .medium))
                 .foregroundStyle(WidgetTone.muted)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -557,7 +575,7 @@ struct WidgetClockView: View {
                     HStack(spacing: 0) {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(city.name)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: 13 * typeScale, weight: .semibold))
                                 .foregroundStyle(WidgetTone.primary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(Self.largeNameMinScale)
@@ -568,7 +586,7 @@ struct WidgetClockView: View {
                                     .minimumScaleFactor(0.7)
                                     .layoutPriority(1)
                                 Text(caption(zone, short: true))
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.system(size: 11 * typeScale, weight: .medium))
                                     .foregroundStyle(WidgetTone.muted)
                                     .lineLimit(1)
                                     .truncationMode(.tail)
@@ -759,6 +777,10 @@ struct AccessoryClockView: View {
     let date: Date
     let family: WidgetFamily
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+    /// The rectangular widget's text grows 10% above the default text size (capped at xLarge).
+    private var typeScale: CGFloat { WidgetType.scale(typeSize) }
+
     private func zone(_ city: WidgetSnapshot.City) -> TimeZone { TimeZone(identifier: city.timeZoneID) ?? .current }
     /// "SF" for San Francisco, "NY" for New York, "LON" for London.
     private func tag(_ city: WidgetSnapshot.City) -> String {
@@ -766,10 +788,11 @@ struct AccessoryClockView: View {
         if words.count > 1 { return String(words.prefix(3).compactMap(\.first)).uppercased() }
         return String(city.name.filter(\.isLetter).prefix(3)).uppercased()
     }
-    /// "12:41 PM" (a regular space) or "14:05".
+    /// "12:41\u{202F}PM" (a narrow no-break space, Android's TimeMath.THIN; the run measured as
+    /// "12:41PM" with no gap) or "14:05".
     private func inlineTime(_ city: WidgetSnapshot.City) -> String {
         let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
-        return suffix.map { clock + " " + $0 } ?? clock
+        return suffix.map { clock + "\u{202F}" + $0 } ?? clock
     }
     private func shift(_ city: WidgetSnapshot.City) -> String {
         let d = WidgetClockView.dayShift(date, zone: zone(city))
@@ -785,8 +808,8 @@ struct AccessoryClockView: View {
         switch family {
         case .accessoryInline:
             // One line above the Lock Screen clock: "LON 14:05 · TYO 22:05", or "NY 12:41 PM · LON 5:41 PM"
-            // with a full space before AM/PM (the thin space collapsed there to "12:41PM"), as everywhere else.
-            // Falls back to the first city alone where both don't fit ("LON 5:41…" never shows).
+            // with a narrow no-break space before AM/PM, as everywhere else. Falls back to the first
+            // city alone where both don't fit (the gap is never closed, and "LON 5:41…" never shows).
             let list = snapshot.cities.filter { $0 != snapshot.cities.first || snapshot.cities.count == 1 }
             ViewThatFits {
                 Text(list.prefix(2).map { "\(tag($0)) \(inlineTime($0))" }.joined(separator: " · "))
@@ -825,13 +848,13 @@ struct AccessoryClockView: View {
                     let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(city.name)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 13 * typeScale, weight: .medium))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                            .minimumScaleFactor(0.9)
                         Spacer(minLength: 2)
                         // Another day stays visible ("+1 d"), as before.
-                        (WidgetClockText.text(clock, suffix: suffix, size: 15)
-                            + Text(shift(city)).font(.system(size: 11, weight: .medium)))
+                        (WidgetClockText.text(clock, suffix: suffix, size: 15 * typeScale)
+                            + Text(shift(city)).font(.system(size: 11 * typeScale, weight: .medium)))
                             .lineLimit(1)
                             .layoutPriority(1)
                             .widgetAccentable()
@@ -967,7 +990,7 @@ enum WidgetSkylines {
 
     /// What the scrim behind a card's text has to do: `boost`, a flat layer of extra black over the
     /// name, status and time (bottom-left, feathered 12 pt above and to the right, as Android's
-    /// clear()) so the white text keeps at least 5:1 against the brightest twentieth (p95), sampled
+    /// clear()) so the white name and status keep about 7.5:1 (p95 at most WidgetScrim.labelMax) and the time 5:1 against the brightest twentieth (p95), sampled
     /// 6 pt past the glyphs, of the photo behind it, and `bright`, whether the area behind the time is still too bright for white and bright on
     /// average (the time then switches to dark ink, as the app's, and the boost covers the name only).
     struct Backing: Equatable {
@@ -1006,14 +1029,15 @@ enum WidgetSkylines {
             // No photo: the drawn sky alone (white text drops under 4.5:1 above 0.183).
             return Backing(boost: boost, bright: skyLuminance(phase, region: timeRegion) > 0.183)
         }
-        // The smallest boost (of a few steps, up to 0.55) that brings the brightest twentieth behind
-        // the name and status under 0.16 (white text 5:1; was the brightest tenth, which left the
-        // worst pixels near 4.1:1); a dark night photo needs none. Sized for the name, not the time,
-        // so a day photo still looks like day.
+        // The smallest boost (in 0.05 steps, up to 0.55) that brings the brightest twentieth behind
+        // the name and status under `labelMax` (0.09, as the app's name column and Android's LABEL_MAX:
+        // white text about 7.5:1; was 0.16, 5:1, and the worst pixels behind "San Francisco" measured
+        // 5.2 to 5.5:1); a dark night photo needs none. Sized for the name, not the time, so a day
+        // photo still looks like day.
         for step in WidgetScrim.boostSteps {
             boost.amount = step
             let text = photoLuminance(photo, phase: phase, aspect: aspect, region: textRegion, boost: boost)?.p95 ?? 0
-            if text <= 0.16 { break }
+            if text <= WidgetScrim.labelMax { break }
         }
         var time = photoLuminance(photo, phase: phase, aspect: aspect, region: timeRegion, boost: boost)
         // A partly lit area behind the time (a few bright facades on a dark backdrop) keeps white
@@ -1238,7 +1262,7 @@ struct WidgetWorkStatus {
         let hex: UInt32
         switch kind {
         case .working: hex = 0x9AD3A8            // Two Degrees' mild green
-        case .offHours: hex = 0xB9C3CF           // TileAccent.cloud
+        case .offHours: hex = 0xD9DEE6           // the app's WorkStatus ink (was #B9C3CF, 0.54 luminance vs the app's 0.73)
         case .weekend, .dayOff: hex = 0xF2C66D   // TileAccent.sunrise
         case .holiday: hex = 0xF39A72            // TileAccent.sunset
         }
@@ -1317,9 +1341,13 @@ struct WidgetScrim: View {
     /// The boosts tried, smallest first (up to 0.55: enough for the white name on a day sky without
     /// turning the photo night-dark (0.65 for a night time, timeBoostSteps); a bright time switches
     /// to dark ink instead).
-    static let boostSteps: [Double] = [0, 0.15, 0.3, 0.45, 0.55]
-    /// For white digits on a partly lit area: one step further (0.65), covering the name and time.
-    static let timeBoostSteps: [Double] = boostSteps + [0.65]
+    /// In 0.05 steps (were 0.15), as Android's, so a photo is darkened no more than its text needs.
+    static let boostSteps: [Double] = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55]
+    /// For white digits on a partly lit area: further (to 0.65), covering the name and time.
+    static let timeBoostSteps: [Double] = boostSteps + [0.6, 0.65]
+    /// The brightest the brightest twentieth behind the name and status may be (relative luminance):
+    /// 0.09, the app's and Android's LABEL_MAX (white about 7.5:1).
+    static let labelMax = 0.09
 
     /// The boost: `amount` of black, full from `top` (unit, top-left origin) down to the bottom and
     /// from the left edge to `right`, eased in over `featherV` above and `featherH` to the right.
@@ -1495,38 +1523,53 @@ struct WidgetBannerClock: View {
     }
 }
 
-/// The app's status pill, small: an icon and the status in its colour on a dark backing (at least
-/// 11 pt, on black at 65% (was 50%) so a bright photo can't wash out "Off hours").
+/// The app's status pill, small: an icon and the status in its colour (the app's inks) on a dark
+/// backing: 12 pt with an 11 pt icon, as the app's (was 11 pt), on black at 75% (was 65%), so even
+/// over pure white every status keeps 4.8:1 or more ("Off hours" 7.7:1), whatever the photo.
 struct WidgetStatusPill: View {
     let status: WidgetWorkStatus
-    var size: CGFloat = 11
+    var size: CGFloat = 12
+
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        let scaled = size * WidgetType.scale(typeSize)
         HStack(spacing: 3) {
             Image(systemName: status.symbol)
-                .font(.system(size: size * 0.9, weight: .semibold))
+                .font(.system(size: scaled * 11 / 12, weight: .semibold))
             Text(status.title)
-                .font(.system(size: size, weight: .semibold))
+                .font(.system(size: scaled, weight: .semibold))
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
         .foregroundStyle(status.color)
         .padding(.horizontal, 6)
         .padding(.vertical, 1)
-        .background(Capsule().fill(Color.black.opacity(0.65)))
+        .background(Capsule().fill(Color.black.opacity(0.75)))
         .overlay(Capsule().strokeBorder(status.color.opacity(0.5), lineWidth: 1))
     }
 }
 
-/// The city name on a photo, with a soft shadow.
+/// The city name on a photo, with a soft shadow; grows with the reader's text size (to xLarge).
+private struct WidgetCityName: View {
+    let name: String
+    let size: CGFloat
+
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        Text(name)
+            .font(.system(size: size * WidgetType.scale(typeSize), weight: .semibold))
+            .foregroundStyle(Color.white)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .minimumScaleFactor(0.9)   // 13 pt never under 11.7 pt (was 0.85)
+            .shadow(color: Color.black.opacity(0.6), radius: 1.5, x: 0, y: 1)
+    }
+}
+
 private func widgetCityName(_ name: String, size: CGFloat) -> some View {
-    Text(name)
-        .font(.system(size: size, weight: .semibold))
-        .foregroundStyle(Color.white)
-        .lineLimit(1)
-        .truncationMode(.tail)
-        .minimumScaleFactor(0.85)   // 13 pt never under 11 pt
-        .shadow(color: Color.black.opacity(0.6), radius: 1.5, x: 0, y: 1)
+    WidgetCityName(name: name, size: size)
 }
 
 /// Medium and large: each city a row filled with its skyline photo (rounded, small gaps), the time,
@@ -1546,6 +1589,8 @@ struct WidgetPhotoRows: View {
     static let outset: CGFloat = 4
     static let overhang: CGFloat = 10
     static let stroke: CGFloat = 1.5
+
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         GeometryReader { geo in
@@ -1570,13 +1615,20 @@ struct WidgetPhotoRows: View {
     private func capsule(width: CGFloat, rows: Int, rowHeight: CGFloat, tileWidth: CGFloat, tileHeight: CGFloat) -> some View {
         let middleLeft = width - Self.sidePadding - 2 * tileWidth - Self.tileGap
         let top = rowHeight - Self.bottomPadding - tileHeight - Self.overhang
-        let bottom = CGFloat(max(rows, 1) - 1) * (rowHeight + Self.gap) + rowHeight - Self.bottomPadding + Self.overhang
-        let shape = Capsule(style: .continuous)
+        // Ends on the last card's bottom edge (strokeBorder draws inside), so the outline stays closed
+        // and on the cards, never on the bare widget background, as the app keeps it inside the content.
+        let bottom = CGFloat(max(rows, 1)) * rowHeight + CGFloat(max(rows, 1) - 1) * Self.gap
+        let w = tileWidth + 2 * Self.outset
+        // The bottom corners concentric with the tiles' 6 pt corners, so they clear them (farthest
+        // tile-corner point 6.7 pt from the arc centre < 10 - 0.75); the top keeps the full curve.
+        let foot = Self.outset + 6
+        let shape = UnevenRoundedRectangle(topLeadingRadius: w / 2, bottomLeadingRadius: foot,
+                                           bottomTrailingRadius: foot, topTrailingRadius: w / 2, style: .continuous)
         // An outline only: a white wash or glow lightened the middle tile under it (12 PM fell to
         // 4.3:1), the tile people read most.
         return shape
             .strokeBorder(Color.white.opacity(0.62), lineWidth: Self.stroke)
-            .frame(width: tileWidth + 2 * Self.outset, height: max(1, bottom - top))
+            .frame(width: w, height: max(1, bottom - top))
             .offset(x: middleLeft - Self.outset, y: top)
     }
 
@@ -1587,8 +1639,9 @@ struct WidgetPhotoRows: View {
         let phase = WidgetSky.phase(city, at: date)
         let status = WidgetWorkStatus.of(city, snapshot: snapshot, at: date)
         let clockSize = min(34, max(17, (height * 0.28).rounded()))
-        // About where the name (and status) and the time above them sit: bottom left.
-        let textHeight: CGFloat = status == nil ? 17 : 33
+        // About where the name (and status) and the time above them sit: bottom left (the 12 pt pill
+        // made it 36; both grow with the reader's text size).
+        let textHeight: CGFloat = (status == nil ? 17 : 36) * WidgetType.scale(typeSize)
         let clockBottom = height - Self.bottomPadding - textHeight
         let textWidth = min(0.45, max(clockSize * 3, 120) / max(width, 1))
         let textRegion = CGRect(x: Self.sidePadding / max(width, 1), y: max(0, clockBottom) / height,
@@ -1605,6 +1658,14 @@ struct WidgetPhotoRows: View {
         let halfHour = zone.secondsFromGMT(for: date) % 3600 != 0
         let stacked = !snapshot.use24h && (tileHeight >= 31 || tileWidth < 39 || halfHour)
         let digitSize: CGFloat = stacked && tileHeight >= 34 ? 16 : 14
+        // The row's widest hour ("10" of "8:30", "9:30", "10:30"), so its three tiles share one
+        // digit size (the "10" in "10:30" shrank alone, smaller than the "8" and "9" beside it).
+        let widest: String = (-1...1).map { k -> String in
+            var there = Calendar(identifier: .gregorian)
+            there.timeZone = zone
+            let h = there.component(.hour, from: anchor.addingTimeInterval(Double(k) * 3600))
+            return WidgetPhotoTile.digits(h, use24h: snapshot.use24h)
+        }.max { $0.count < $1.count } ?? ""
         return ZStack(alignment: .bottomLeading) {
             WidgetCityBackdrop(city: city, date: date, photo: photo, boost: backing.boost)
             HStack(alignment: .bottom, spacing: 6) {
@@ -1625,7 +1686,7 @@ struct WidgetPhotoRows: View {
                     ForEach(-1...1, id: \.self) { k in
                         WidgetPhotoTile(snapshot: snapshot, city: city, zone: zone,
                                         start: anchor.addingTimeInterval(Double(k) * 3600), center: k == 0,
-                                        stacked: stacked, digitSize: digitSize)
+                                        stacked: stacked, digitSize: digitSize, widest: widest)
                             .frame(width: tileWidth, height: tileHeight)
                     }
                 }
@@ -1651,6 +1712,8 @@ struct WidgetPhotoTile: View {
     let center: Bool
     var stacked = false
     var digitSize: CGFloat = 14
+    /// The widest hour in the row ("10"), measured by every tile so the row shares one digit size.
+    var widest: String = ""
 
     var body: some View {
         var calendar = Calendar(identifier: .gregorian)
@@ -1664,13 +1727,10 @@ struct WidgetPhotoTile: View {
         let suffix: String? = snapshot.use24h ? nil : (hour < 12 ? "AM" : "PM")
         return Group {
             if stacked {
-                // The hour over AM/PM, as the app's tiles: only the digits may shrink (to 0.88, 0.85 for half hours);
-                // AM/PM stays 12 pt.
+                // The hour over AM/PM, as the app's tiles: only the digits may shrink, one size for
+                // the whole row (sharedLabel); AM/PM stays 12 pt.
                 VStack(spacing: -1) {
-                    label(hour: hour, minute: minute)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(minute != 0 ? 0.85 : 0.88)
+                    sharedLabel(hour: hour, minute: minute)
                     if let suffix {
                         Text(suffix)
                             .font(Self.suffixFont)
@@ -1681,8 +1741,8 @@ struct WidgetPhotoTile: View {
             } else {
                 // Inline ("9 AM"): 24-hour labels, and the fallback for tiles under 31 pt tall,
                 // where shrinking the whole label (to 0.85) beats truncating it.
-                (suffix.map { label(hour: hour, minute: minute) + Text("\u{2009}" + $0).font(Self.suffixFont) }
-                    ?? label(hour: hour, minute: minute))
+                (suffix.map { label(Self.digits(hour, use24h: snapshot.use24h), minute: minute) + Text("\u{2009}" + $0).font(Self.suffixFont) }
+                    ?? label(Self.digits(hour, use24h: snapshot.use24h), minute: minute))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -1709,14 +1769,46 @@ struct WidgetPhotoTile: View {
     /// AM/PM and half-hour minutes: 12 pt (was 11), a step above Apple's 11 pt minimum.
     private static let suffixFont = Font.system(size: 12, weight: .semibold)
 
-    /// "9" or "09" (`digitSize`: 16 pt over AM/PM, else 14), with ":30" at 12 pt in half-hour zones.
-    private func label(hour: Int, minute: Int) -> Text {
-        var text = Text(snapshot.use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)")
-            .font(.system(size: minute != 0 ? 14 : digitSize, weight: center ? .semibold : .medium))
+    /// "9" (12-hour) or "09" (24-hour).
+    static func digits(_ hour: Int, use24h: Bool) -> String {
+        use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)"
+    }
+
+    /// `digits` (`size`, default `digitSize`: 16 pt over AM/PM, else 14), with ":30" at 12 pt in
+    /// half-hour zones.
+    private func label(_ digits: String, minute: Int, size: CGFloat? = nil, weight: Font.Weight? = nil) -> Text {
+        var text = Text(digits)
+            .font(.system(size: size ?? (minute != 0 ? 14 : digitSize), weight: weight ?? (center ? .semibold : .medium)))
         if minute != 0 {
-            text = text + Text(":" + String(format: "%02d", minute)).font(.system(size: 12, weight: .medium))
+            text = text + Text(":" + String(format: "%02d", minute)).font(.system(size: min(12, size ?? 12), weight: .medium))
         }
-        return text
+        return text.monospacedDigit()
+    }
+
+    /// The stacked hour at the largest of three sizes (base, −1, −2 pt) at which the row's widest
+    /// label (semibold, the now tile's weight) fits, so all three tiles in a row pick the same size;
+    /// only if none fits does the label shrink on its own (to 0.85), as before.
+    @ViewBuilder
+    private func sharedLabel(hour: Int, minute: Int) -> some View {
+        let own = Self.digits(hour, use24h: snapshot.use24h)
+        let wide = widest.count > own.count ? widest : own
+        let base: CGFloat = minute != 0 ? 14 : digitSize
+        ViewThatFits(in: .horizontal) {
+            fitted(own, wide, minute: minute, size: base)
+            fitted(own, wide, minute: minute, size: base - 1)
+            fitted(own, wide, minute: minute, size: base - 2)
+            label(own, minute: minute, size: base - 2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+    }
+
+    private func fitted(_ own: String, _ wide: String, minute: Int, size: CGFloat) -> some View {
+        ZStack {
+            label(wide, minute: minute, size: size, weight: .semibold).hidden()
+            label(own, minute: minute, size: size)
+        }
+        .lineLimit(1)
     }
 }
 

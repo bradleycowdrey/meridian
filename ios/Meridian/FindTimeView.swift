@@ -226,7 +226,15 @@ struct FindTimeView: View {
 
     static func lengthLabel(_ minutes: Int) -> String { minutes < 60 ? "\(minutes) min" : minutes % 60 == 0 ? "\(minutes / 60) hr" : "\(minutes / 60)½ hr" }
 
-    static func tag(_ place: Place) -> String { String(place.title.filter(\.isLetter).prefix(3)).uppercased() }
+    /// The column header: the Lock Screen widgets' short name for a city ("SF", "NY", "LON"), so the
+    /// same city reads the same everywhere; a person's first three letters.
+    static func tag(_ place: Place) -> String {
+        if place.person == nil {
+            let words = place.name.split(whereSeparator: { !$0.isLetter }).filter { !$0.isEmpty }
+            if words.count > 1 { return String(words.prefix(3).compactMap(\.first)).uppercased() }
+        }
+        return String(place.title.filter(\.isLetter).prefix(3)).uppercased()
+    }
 
     static func hourLabel(_ date: Date, use24h: Bool, calendar: Calendar = .current) -> String {
         let h = calendar.component(.hour, from: date)
@@ -311,7 +319,9 @@ private struct HourGrid: View {
                     .frame(width: labelWidth, alignment: .leading)
                 ForEach(Array(s.states.enumerated()), id: \.offset) { _, state in
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(state.color.opacity(past ? 0.4 : 1))
+                        // Past hours dim to 0.7, not 0.4: working stays 3.4:1 against off (164 vs 78
+                        // on the card), so who was working still reads at a glance; the hour label marks past.
+                        .fill(state.color.opacity(past ? 0.7 : 1))
                         .frame(maxWidth: .infinity)
                 }
                 Text("\(s.working)/\(people.count)")
@@ -338,7 +348,7 @@ struct Slot: Identifiable {
             switch self {
             case .working: return Color.white.opacity(0.85)
             case .off: return Color.white.opacity(0.3)
-            case .night: return Color.white.opacity(0.08)
+            case .night: return Color.white.opacity(0.12)
             }
         }
     }

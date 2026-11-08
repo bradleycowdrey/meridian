@@ -44,6 +44,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.yield
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.snapshotFlow
@@ -141,7 +143,8 @@ object Palette {
     val tile = Color(0xFF262626)
     val border = Color(0x26FFFFFF)
     val primary = Color.White
-    val secondary = Color(0xD9FFFFFF)
+    /** White 92%, as the iPhone's Theme.secondary: the card's zone line, the weakest text over a photo. */
+    val secondary = Color(0xEBFFFFFF)
     val muted = Color(0x99FFFFFF)
     val faint = Color(0x66FFFFFF)
     /** The midnight mark between hour tiles: the Two Degrees sunrise accent. */
@@ -172,6 +175,28 @@ object Palette {
     const val SHARE_MESSAGE = "Meridian: every time zone at a glance, on your Android phone and its home screen. Free, by Bradley Cowdrey."
     /** Copy a Message to Send: ready to paste into a chat, with where to get it. */
     const val MESSAGE_TO_SEND = "$SHARE_MESSAGE\n\nGet it for Android, iPhone or Mac: $APP_PAGE"
+}
+
+/**
+ * Section icons not in Material's core icon set, drawn from Material's own paths (24 dp grid): a clock for
+ * the Time sections (iOS "clock") and a grid for Find a Time's Every hour (iOS "tablecells").
+ */
+object Glyphs {
+    private fun glyph(name: String, path: String): ImageVector =
+        ImageVector.Builder(name = name, defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
+            .addPath(pathData = androidx.compose.ui.graphics.vector.addPathNodes(path),
+                fill = androidx.compose.ui.graphics.SolidColor(Color.Black))
+            .build()
+
+    /** Material "schedule". */
+    val clock: ImageVector by lazy {
+        glyph("Clock", "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zM12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z")
+    }
+
+    /** Material "grid_view". */
+    val grid: ImageVector by lazy {
+        glyph("Grid", "M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z")
+    }
 }
 
 /** White at a level of the opacity ladder (strong 0.9 … rowFill 0.07). */
@@ -939,10 +964,46 @@ object Skyline {
         return found
     }
 
-    /** Decoded photos by drawable, at most about 48 MB (a 1000 x 500 photo is about 2 MB). */
-    private val bitmaps = object : android.util.LruCache<Int, ImageBitmap>(48 * 1024) {
+    /**
+     * Decoded photos by drawable: at least 48 MB (a 1000 x 500 photo is about 2 MB, so two photos, day and night,
+     * for every card on screen and more), or an eighth of the app's memory where that's more, so a prefetched
+     * other half never pushes out a photo on screen.
+     */
+    private val bitmaps = object : android.util.LruCache<Int, ImageBitmap>(
+        maxOf(48 * 1024, (Runtime.getRuntime().maxMemory() / 1024L / 8L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())) {
         override fun sizeOf(key: Int, value: ImageBitmap): Int = (value.width * value.height * 4 / 1024).coerceAtLeast(1)
     }
+
+    /**
+     * The photo on screen first. Cards whose own photo (the one they show) is still being looked up or decoded:
+     * changed on the main thread only (in each card's effects). The other half (day or night) is prefetched only
+     * once this is 0, so it never competes with a photo on screen.
+     */
+    var pendingCurrent by mutableIntStateOf(0)
+        private set
+    private var everReady = false
+
+    fun beginCurrent() { pendingCurrent++ }
+    fun endCurrent() { pendingCurrent = (pendingCurrent - 1).coerceAtLeast(0) }
+    /**
+     * Logged once, the first time a card finds every photo on screen settled (pendingCurrent 0 for 0.4 s): CI can wait
+     * for this line (with a timeout) before its screenshots, so a capture shows the finished cards. Main thread only.
+     */
+    fun markReady() { if (!everReady) { everReady = true; android.util.Log.i("Meridian", "photos ready") } }
+
+    /** Decodes of photos on screen: two at a time, so the top cards finish first rather than all of them at once. */
+    val currentDecodes: kotlinx.coroutines.CoroutineDispatcher =
+        java.util.concurrent.Executors.newFixedThreadPool(2) { r -> Thread(r, "skyline-decode").apply { isDaemon = true } }
+            .asCoroutineDispatcher()
+    /** Prefetches of the other half: one at a time, at a low thread priority, after the photos on screen. */
+    val prefetches: kotlinx.coroutines.CoroutineDispatcher =
+        java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            Thread(r, "skyline-prefetch").apply { isDaemon = true; priority = Thread.MIN_PRIORITY }
+        }.asCoroutineDispatcher()
+    /** Measuring a card's look (scrim boost, time ink): two at a time, so it never starves the city search on Default. */
+    val measures: kotlinx.coroutines.CoroutineDispatcher =
+        java.util.concurrent.Executors.newFixedThreadPool(2) { r -> Thread(r, "skyline-measure").apply { isDaemon = true } }
+            .asCoroutineDispatcher()
 
     /** Drawables decoded at full size (sample 1): no wider copy exists, so any card can use them. */
     private val fullSize: MutableSet<Int> = java.util.concurrent.ConcurrentHashMap.newKeySet()
@@ -1448,10 +1509,17 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
     // until then (null) the card shows its drawn skyline, so the first frame never waits for a photo.
     var lookup by remember(city, place.zoneId) { mutableStateOf(Skyline.knownPhoto(city, place.zoneId)) }
     LaunchedEffect(city, place.zoneId) {
-        // (Only once the data files can be read, so a city is never taken for one without a photo too early.)
-        while (lookup == null) {
-            val found = withContext(Dispatchers.IO) { if (DataFiles.ready) Skyline.lookUp(context, city, place.zoneId) else null }
-            if (found != null) lookup = found else delay(250)
+        if (lookup != null) return@LaunchedEffect
+        // Counted as a photo on screen still to come, so no prefetch starts before this card has its own photo.
+        Skyline.beginCurrent()
+        try {
+            // (Only once the data files can be read, so a city is never taken for one without a photo too early.)
+            while (lookup == null) {
+                val found = withContext(Dispatchers.IO) { if (DataFiles.ready) Skyline.lookUp(context, city, place.zoneId) else null }
+                if (found != null) lookup = found else delay(250)
+            }
+        } finally {
+            Skyline.endCurrent()
         }
     }
     val photo = lookup?.photo
@@ -1477,7 +1545,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         val heightPx = constraints.maxHeight
         val usePhotos = !Diag.has("photos")
         // The one built-in photo the card shows: the night one when it's night there and the city has one, else the
-        // day one. Decoded off the main thread (never both); the photo shown stays until the next one is ready.
+        // day one. Decoded off the main thread (the one shown first); the photo shown stays until the next one is ready.
         val nightResId = photo?.nightResId ?: 0
         val resId = when {
             photo == null || !usePhotos -> 0
@@ -1487,19 +1555,36 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         var decoded by remember(city, place.zoneId) { mutableStateOf<Pair<Int, ImageBitmap>?>(null) }
         LaunchedEffect(resId, widthPx) {
             if (resId == 0) { decoded = null; return@LaunchedEffect }
-            val b = Skyline.cachedBitmap(resId, widthPx) ?: withContext(Dispatchers.IO) { Skyline.bitmap(context, resId, widthPx) }
-            decoded = b?.let { resId to it }
+            val cached = Skyline.cachedBitmap(resId, widthPx)
+            if (cached != null) { decoded = resId to cached; return@LaunchedEffect }
+            // The photo on screen: on the decode pool (two at a time, top cards first), counted until it's ready.
+            Skyline.beginCurrent()
+            try {
+                val b = withContext(Skyline.currentDecodes) { Skyline.bitmap(context, resId, widthPx) }
+                // A failed decode keeps the photo already shown (never back to the drawn skyline for it).
+                if (b != null) decoded = resId to b
+            } finally {
+                Skyline.endCurrent()
+            }
         }
-        // Then the other half (day or night) is decoded too, in the background, so a time jump (travel, Go to a Time)
-        // past sunrise or sunset swaps photo to photo instead of waiting on a decode.
+        // Then the other half (day or night) is decoded too, so a time jump (travel, Go to a Time) past sunrise or
+        // sunset swaps photo to photo instead of waiting on a decode. Only once every card on screen has its own
+        // photo (Skyline.pendingCurrent is 0), one at a time, at low priority: it never delays a photo on screen.
         val otherResId = when {
             resId == 0 || nightResId == 0 -> 0
             resId == nightResId -> photo?.resId ?: 0
             else -> nightResId
         }
         LaunchedEffect(otherResId, widthPx, decoded?.first == resId) {
-            if (otherResId != 0 && decoded?.first == resId && Skyline.cachedBitmap(otherResId, widthPx) == null)
-                withContext(Dispatchers.IO) { Skyline.bitmap(context, otherResId, widthPx) }
+            if (decoded?.first != resId && resId != 0) return@LaunchedEffect
+            // Settled: no photo on screen still to come for 0.4 s (a card between its lookup and its decode counts).
+            // Every card gets here (no night photo, a cached photo, no photo at all), so "photos ready" is always logged.
+            var calm = 0
+            while (calm < 2) { delay(200); calm = if (Skyline.pendingCurrent == 0) calm + 1 else 0 }
+            Skyline.markReady()
+            if (otherResId == 0) return@LaunchedEffect
+            if (Skyline.cachedBitmap(otherResId, widthPx) == null)
+                withContext(Skyline.prefetches) { yield(); Skyline.bitmap(context, otherResId, widthPx) }
         }
         // While the other half (day or night) of the same city's photo is read, the one shown stays.
         val bundled: Pair<Int, ImageBitmap>? = if (resId == 0) null else Skyline.cachedBitmap(resId, widthPx)?.let { resId to it }
@@ -1522,7 +1607,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         if (bitmap != null) LaunchedEffect(id, bitmap, shade, widthPx, heightPx, region) {
             val b = bitmap
             val got = Skyline.cachedLook(id, shade, widthPx, heightPx, region)
-                ?: withContext(Dispatchers.Default) { Skyline.look(id, b, biasY, shade, widthPx, heightPx, region) }
+                ?: withContext(Skyline.measures) { Skyline.look(id, b, biasY, shade, widthPx, heightPx, region) }
             measured = lookKey to got
         }
         val look = if (bitmap == null) null else Skyline.cachedLook(id, shade, widthPx, heightPx, region)
@@ -1532,7 +1617,8 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         // measured one replaces in place (only the scrim and ink change). The drawn skyline only while nothing is decoded.
         val last = remember(city, place.zoneId) { arrayOfNulls<ShownPhoto>(1) }
         val shown = when {
-            bitmap == null -> null
+            // Never back to the drawn skyline while this city's photo was shown and its photo is on its way.
+            bitmap == null -> if (photo != null && usePhotos) last[0] else null
             look != null -> ShownPhoto(bitmap, shade, look).also { last[0] = it }
             else -> last[0] ?: ShownPhoto(bitmap, shade, Skyline.provisionalLook(nightPhoto = nightShown))
         }
@@ -1621,11 +1707,11 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                 }
                 if (showZone && !Diag.has("texts")) {
                     // Shrinks to fit before it would cut, so "UTC+5:30" shows whole (as on the Mac), never below 11 sp.
-                    // Regular weight: a clear step down from the name, and quieter than the status.
+                    // Medium weight (thicker strokes over busy photo detail), still a clear step down from the SemiBold name.
                     var zoneShrink by remember(zoneText) { mutableFloatStateOf(1f) }
                     val zoneFloor = 11f / 13f
                     Text(zoneText, style = tnum.copy(shadow = textShadow), fontSize = (13f / cap * zoneShrink).sp, lineHeight = (16f / cap).sp,
-                        fontWeight = FontWeight.Normal, color = Palette.secondary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium, color = Palette.secondary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
                         onTextLayout = { if (it.didOverflowWidth && zoneShrink > zoneFloor) zoneShrink = (zoneShrink - 0.04f).coerceAtLeast(zoneFloor) })
                 }
                 if (status != null && !Diag.has("pills")) {
@@ -1808,12 +1894,12 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val cap = maxOf(1f, fontScale / (if (minute != 0) 1.15f else 1.3f))
     val grow = fontScale / cap
     var shrink by remember(hour, minute, use24h, cap) { mutableFloatStateOf(1f) }
-    // How far the hour may shrink to fit: to 80% (13.6 sp), so it stays clearly larger than the 11 sp ":30".
+    // How far the hour may shrink to fit: to 80% (13.6 sp), so it stays clearly larger than the 12 sp ":30".
     val shrinkFloor = 0.8f
     val digits = buildAnnotatedString {
         append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
-        // ":30" at 11 sp (about 0.65 em of the hour, never smaller), set a little tighter.
-        if (minute != 0) withStyle(SpanStyle(fontSize = (11f / cap).sp, letterSpacing = (-0.02f).em)) { append(":%02d".format(minute)) }
+        // ":30" at 12 sp (Material's floor for informative text; it never shrinks with the hour), set a little tighter.
+        if (minute != 0) withStyle(SpanStyle(fontSize = (12f / cap).sp, letterSpacing = (-0.02f).em)) { append(":%02d".format(minute)) }
     }
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
     val weekday = if (newDay) TimeMath.weekday(start, place.zone).uppercase() else null
@@ -1826,10 +1912,11 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
         val digitsH = 18f * grow
         val suffixH = 14f * grow
         val dayH = 12f * grow
-        // Three lines (12 / AM / WED) only with at least 4 dp clear above and below, like the other tiles; else the
-        // day replaces AM/PM ("12" over "WED": the day divider already says it's the morning).
-        val showSuffix = suffix != null && (weekday == null || digitsH + suffixH + dayH + 8f <= room)
-        val showDay = weekday != null && digitsH + (if (showSuffix) suffixH else 0f) + dayH <= room
+        // AM/PM always: a bare "12" could be noon or midnight, and every neighbouring tile has its AM/PM. The day
+        // (12 / AM / WED) only where all three lines fit with 4 dp clear top and bottom (2 for two lines); else the day
+        // divider beside the tile marks the new day.
+        val showSuffix = suffix != null
+        val showDay = weekday != null && digitsH + (if (showSuffix) suffixH else 0f) + dayH + (if (showSuffix) 8f else 4f) <= room
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(digits, style = tnum, fontSize = (17f * shrink / cap).sp, lineHeight = (18f / cap).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
@@ -1973,8 +2060,14 @@ fun SearchResults(store: Store, query: String, searched: Pair<String, List<CityE
         if (!store.canAdd) item {
             Text("You can keep up to ${Store.MAX_PLACES} cities. Remove one to add another.", fontSize = 15.sp, color = white(0.6f), modifier = Modifier.padding(16.dp))
         }
+        // (While a new query runs, the last results stay; this shows only before the first ones, with a spinner
+        // so the screen never reads as empty.)
         if (!ready && results.isEmpty()) item {
-            Text("Searching…", fontSize = 15.sp, color = white(0.6f), modifier = Modifier.padding(16.dp))
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(16.dp), color = white(0.6f), strokeWidth = 2.dp)
+                Spacer(Modifier.width(10.dp))
+                Text("Searching…", fontSize = 15.sp, color = white(0.6f))
+            }
         }
         if (ready && results.isEmpty()) item {
             Text("No places match “$query”. Try a city, an airport code like SFO, a time zone like PST, or UTC+5:30.",
@@ -2021,6 +2114,12 @@ fun EditRow(store: Store, place: Place) {
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 if (store.isHere(place)) MyLocationMark()
             }
+            // How it relates to you and its UTC offset ("+3 hr · UTC−4", "Your time · UTC−7"), as on the iPhone,
+            // so offsets can be checked while reordering.
+            val relation = TimeMath.relative(store.now, place.zone, store.home)
+                ?: if (place.zone.id == store.home.id) "Your time" else "Same time"
+            Text("$relation · ${TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, store.now))}", style = tnum,
+                fontSize = 13.sp, color = white(0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(TimeMath.time(store.now, place.zone, store.use24h), style = tnum, fontSize = 17.sp, color = Palette.primary, maxLines = 1)
         }
         IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) {
@@ -2081,10 +2180,20 @@ fun TimeRuler(store: Store) {
         }
     }
     // The time moved some other way (Now, the buttons, a date): bring the ruler along.
+    // Waits for the ruler's first layout (a jump at launch, such as travel, can come before it). A jump of more
+    // than two hours (a travel or a date) goes straight there; a short move animates. Then it checks it landed,
+    // and snaps there if anything (a busy first frame, an interrupted animation) left it short.
     LaunchedEffect(selected) {
-        if (!listState.isScrollInProgress && centered != selected) {
-            syncing.set(true)
-            try { listState.animateScrollToItem((selected - base).coerceIn(0, 4 * span)) } finally { syncing.set(false) }
+        while (listState.layoutInfo.totalItemsCount == 0) delay(16)
+        if (listState.isScrollInProgress || centered == selected) return@LaunchedEffect
+        val target = (selected - base).coerceIn(0, 4 * span)
+        syncing.set(true)
+        try {
+            if (kotlin.math.abs(centered - selected) > 8) listState.scrollToItem(target)
+            else listState.animateScrollToItem(target)
+            if (centered != selected && !listState.isScrollInProgress) listState.scrollToItem(target)
+        } finally {
+            syncing.set(false)
         }
     }
 

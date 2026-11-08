@@ -14,6 +14,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
+import android.graphics.ComposeShader
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
@@ -70,9 +71,9 @@ object MeridianWidgets {
     /** Roboto's line height (ascent + descent, includeFontPadding off), in ems: for fitting a row's text. */
     private const val LINE_EM = 1.172f
     /** widget_photo_row's status pill: text size (sp), icon, gap above it, and its normal top and bottom padding (dp). */
-    private const val STATUS_SP = 11f
-    private const val STATUS_ICON = 11f
-    private const val PILL_GAP = 2f
+    private const val STATUS_SP = 12f
+    private const val STATUS_ICON = 12f
+    private const val PILL_GAP = 1f
     private const val PILL_PAD_V = 1f
     /** The tiles' share of a row's width beside the name column's 1 (layout weights). */
     private const val TILES_WEIGHT = 1.1f
@@ -260,7 +261,7 @@ object MeridianWidgets {
     /** What a city is doing now, for the pill under its name: the cards' colours and icons. */
     private enum class Status(val color: Int, val icon: Int) {
         WORKING(0xFF9AD3A8.toInt(), R.drawable.ic_briefcase),
-        OFF_HOURS(0xFFB9C3CF.toInt(), R.drawable.ic_moon),
+        OFF_HOURS(0xFFD9DEE6.toInt(), R.drawable.ic_moon),
         WEEKEND(0xFFF2C66D.toInt(), R.drawable.ic_sun),
         DAY_OFF(0xFFF2C66D.toInt(), R.drawable.ic_sun),
         HOLIDAY(0xFFF39A72.toInt(), R.drawable.ic_star),
@@ -356,14 +357,15 @@ object MeridianWidgets {
     /** The hour before, now and the hour after, on the city's own clock: the day's colour there, quieter outside working hours. */
     private fun tiles(v: RemoteViews, place: Place, use24h: Boolean, now: Instant, work: Work, wDp: Float) {
         val zone = place.zone
-        // Each tile's width: 12 sp AM/PM where it fits, else 11 sp (the digits' auto-size minimum), so "10 PM" is never cut.
+        // Each tile's width: 12 sp AM/PM where it fits, else 11 sp (only at the narrowest widths, about 250 dp), so
+        // "10 PM" is never cut; the digits auto-size from 15 sp down to 11 sp (below 12 sp only at the narrowest widths; widget_photo_row).
         val tileW = (wDp - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
         val ampmSp = if (tileW >= 36f) AMPM_MIN_SP else 11f
         val hourStart = now.atZone(zone).withMinute(0).withSecond(0).withNano(0)
         listOf(R.id.tile0 to -1L, R.id.tile1 to 0L, R.id.tile2 to 1L).forEach { (id, k) ->
             val at = hourStart.plusHours(k)
             val color = capped(DayColor.at(at.hour + at.minute / 60.0))
-            // "10 AM" with a smaller AM, as on the iPhone, so it fits its tile (12 sp, or 11 sp on narrow tiles; auto-size shrinks only the digits).
+            // "10 AM" with a smaller AM, as on the iPhone, so it fits its tile (12 sp, or 11 sp on the narrowest tiles; auto-size shrinks only the digits).
             val label = TimeMath.hourLabel(at.hour, use24h)
             val text = android.text.SpannableString(label)
             val cut = label.indexOfFirst { it == 'A' || it == 'P' }
@@ -551,16 +553,21 @@ private object WidgetSky {
             drawn(c, w, h, phase, city, scale)
         }
         // The scrims, each a two-colour gradient over its own band: black 60% at the bottom fading to nothing
-        // by half the height, and black 55% at the left fading to nothing across the text column.
+        // by half the height, and black 55% at the left fading to nothing a little past the text column (so its
+        // end never lines up with the text area's right edge, where clear() starts its feather).
         val scrim = Paint()
         scrim.shader = LinearGradient(0f, h * 0.5f, 0f, h, 0, 0x99000000.toInt(), Shader.TileMode.CLAMP)
         c.drawRect(0f, h * 0.5f, w, h, scrim)
-        scrim.shader = LinearGradient(0f, 0f, w * column, 0f, 0x8C000000.toInt(), 0, Shader.TileMode.CLAMP)
-        c.drawRect(0f, 0f, w * column, h, scrim)
+        val scrimEnd = w * minOf(column + 0.12f, 1f)
+        scrim.shader = LinearGradient(0f, 0f, scrimEnd, 0f, 0x8C000000.toInt(), 0, Shader.TileMode.CLAMP)
+        c.drawRect(0f, 0f, scrimEnd, h, scrim)
         scrim.shader = null
         // Darken a text area until its 90th-percentile pixel is at most WHITE_MAX (white text 4.5:1): a black
-        // layer from the area's top to the bottom, feathered above and to the right (two-colour gradients
-        // over exact bands). A black layer at alpha a scales sRGB by (1 - a), so linear light by about (1 - a)^2.2.
+        // layer, full strength from the area's top to the bottom and from the left to its right edge, fading to
+        // nothing above it and to the right. One rectangle, one draw: its alpha is the product of a vertical and
+        // a horizontal two-colour ramp (each CLAMPed, so flat outside its band), so the corner above and right of
+        // the area fades too and nothing meets at a seam. A black layer at alpha a scales sRGB by (1 - a), so
+        // linear light by about (1 - a)^2.2.
         fun clear(area: RectF) {
             val high = percentile(out, area, 0.9f)
             if (high <= WHITE_MAX) return
@@ -568,16 +575,17 @@ private object WidgetSky {
             val k = (a * 255).roundToInt().coerceIn(0, 255) shl 24
             val t = area.top * h
             val r = minOf(area.right * w, w)
-            val feather = 0.12f * maxOf(w, h)
+            val featherY = 0.12f * maxOf(w, h)
+            val featherX = 0.2f * maxOf(w, h)
+            // Vertical: nothing above t - featherY, black at alpha k from t down. Horizontal: a mask, opaque
+            // left of r, clear past r + featherX. DST_IN keeps the first's colour at the product of the alphas.
+            val vertical = LinearGradient(0f, t - featherY, 0f, t, 0, k, Shader.TileMode.CLAMP)
+            val horizontal = LinearGradient(r, 0f, r + featherX, 0f, 0xFF000000.toInt(), 0, Shader.TileMode.CLAMP)
             val layer = Paint()
-            layer.color = k
-            c.drawRect(0f, t, r, h, layer)
-            // Opaque paint: the shader carries the alpha (else the feathers peak at a squared, a visible step).
+            // Opaque paint: the shader carries the alpha (else it would be applied twice).
             layer.color = 0xFF000000.toInt()
-            layer.shader = LinearGradient(0f, t - feather, 0f, t, 0, k, Shader.TileMode.CLAMP)
-            c.drawRect(0f, maxOf(t - feather, 0f), r, t, layer)
-            layer.shader = LinearGradient(r, 0f, r + feather, 0f, k, 0, Shader.TileMode.CLAMP)
-            c.drawRect(r, t, minOf(r + feather, w), h, layer)
+            layer.shader = ComposeShader(vertical, horizontal, PorterDuff.Mode.DST_IN)
+            c.drawRect(0f, maxOf(t - featherY, 0f), minOf(r + featherX, w), h, layer)
         }
         // The name and status are always white.
         clear(labels)

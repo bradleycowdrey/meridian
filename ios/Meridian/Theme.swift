@@ -11,7 +11,9 @@ enum Theme {
     static let tile = Color(white: 0.15)
     static let border = Color.white.opacity(0.15)
     static let primary = Color.white
-    static let secondary = Color.white.opacity(0.85)
+    /// The zone line and other small secondary text on photos: 92% white, so it keeps 4.5:1 on a
+    /// bright day sky too (hierarchy comes from size and weight, not a fainter grey).
+    static let secondary = Color.white.opacity(0.92)
     static let muted = Color.white.opacity(0.6)
     static let faint = Color.white.opacity(0.4)
     /// The Terms "I Agree" capsule: white, as Two Degrees.

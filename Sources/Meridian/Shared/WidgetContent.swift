@@ -173,6 +173,30 @@ enum DayColor {
         return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), text)
     }
 
+    #if os(iOS)
+    /// An hour outside working hours, as the app's tiles (HourTiles.offHours): the hour's sky at 55%
+    /// of its luminance (never darker than the night tile, #0A0E1C), same hue, fully opaque, so the
+    /// photo never shows through behind the numerals.
+    static let offHoursFactor = 0.55
+    static let offHoursFloor = 0.0048
+
+    static func offHoursFill(at hour: Double) -> Color {
+        let rgb = rgbAt(hour)
+        func linear(_ c: Double) -> Double {
+            let c = min(max(c, 0), 1)
+            return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        func encoded(_ l: Double) -> Double {
+            min(max(l <= 0.0031308 ? l * 12.92 : 1.055 * pow(l, 1 / 2.4) - 0.055, 0), 1)
+        }
+        let lr = linear(rgb.0), lg = linear(rgb.1), lb = linear(rgb.2)
+        let luminance = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
+        guard luminance > 0 else { return Color(red: rgb.0, green: rgb.1, blue: rgb.2) }
+        let k = max(min(luminance, offHoursFloor), luminance * offHoursFactor) / luminance
+        return Color(red: encoded(lr * k), green: encoded(lg * k), blue: encoded(lb * k))
+    }
+    #endif
+
     fileprivate static func components(_ hex: UInt32) -> (Double, Double, Double) {
         (Double((hex >> 16) & 0xFF) / 255, Double((hex >> 8) & 0xFF) / 255, Double(hex & 0xFF) / 255)
     }
@@ -931,32 +955,68 @@ enum WidgetSkylines {
         return Photo(image: image, isNight: night, key: key)
     }
 
-    /// What the scrim behind a card's text has to do: `boost`, extra black along the bottom so the
-    /// white name and status keep at least 5:1 against the brightest tenth of the photo behind them,
-    /// and `bright`, whether the area behind the time is still bright after that (the time then
-    /// switches to dark ink, as the app's).
+    /// What the scrim behind a card's text has to do: `boost`, a flat layer of extra black over the
+    /// name, status and time (bottom-left, feathered 12 pt above and to the right, as Android's
+    /// clear()) so the white text keeps at least 5:1 against the brightest tenth of the photo behind
+    /// it, and `bright`, whether the area behind the time is still too bright for white and bright on
+    /// average (the time then switches to dark ink, as the app's, and the boost covers the name only).
     struct Backing: Equatable {
-        var boost: Double = 0
+        var boost = WidgetScrim.Boost()
         var bright = false
     }
 
-    /// `textRegion` and `timeRegion` are areas of a card of `aspect` (width / height) in its unit
-    /// square (top-left origin): where the name and status sit, and where the time does.
-    static func backing(_ photo: Photo?, phase: WidgetSky.Phase, aspect: CGFloat,
+    /// The feather around the boost, in points.
+    static let boostFeather: CGFloat = 12
+
+    /// `textRegion` and `timeRegion` are areas of a card of `size` in its unit square (top-left
+    /// origin): where the name and status sit, and where the time does. The boost covers both.
+    static func backing(_ photo: Photo?, phase: WidgetSky.Phase, size: CGSize,
                         textRegion: CGRect, timeRegion: CGRect) -> Backing {
-        var boost = 0.0
-        if let photo {
-            // The smallest boost (of a few steps) that brings the brightest tenth under 0.16
-            // (white text 5:1); a dark night photo needs none.
-            for step in WidgetScrim.boostSteps {
-                boost = step
-                guard let measured = photoLuminance(photo, phase: phase, aspect: aspect, region: textRegion, boost: step),
-                      measured.p90 > 0.16 else { break }
+        let w = max(Double(size.width), 1), h = max(Double(size.height), 1)
+        let aspect = CGFloat(w / h)
+        // The boost's shape: full over `region` and everything below and left of it, feathered
+        // 12 pt above and to the right.
+        func shaped(_ region: CGRect, amount: Double) -> WidgetScrim.Boost {
+            let top = min(max(Double(region.minY), 0), 1)
+            let right = min(max(Double(region.maxX), 0), 1)
+            return WidgetScrim.Boost(amount: amount, top: top, right: right,
+                                     featherV: min(Double(boostFeather) / h, top),
+                                     featherH: min(Double(boostFeather) / w, 1 - right))
+        }
+        var boost = shaped(textRegion.union(timeRegion), amount: 0)
+        guard let photo else {
+            // No photo: the drawn sky alone (white text drops under 4.5:1 above 0.183).
+            return Backing(boost: boost, bright: skyLuminance(phase, region: timeRegion) > 0.183)
+        }
+        // The smallest boost (of a few steps, up to 0.55) that brings the brightest tenth behind the
+        // name and status under 0.16 (white text 5:1); a dark night photo needs none. Sized for the
+        // name, not the time, so a day photo still looks like day.
+        for step in WidgetScrim.boostSteps {
+            boost.amount = step
+            let text = photoLuminance(photo, phase: phase, aspect: aspect, region: textRegion, boost: boost)?.p90 ?? 0
+            if text <= 0.16 { break }
+        }
+        var time = photoLuminance(photo, phase: phase, aspect: aspect, region: timeRegion, boost: boost)
+        // A partly lit area behind the time (a few bright facades on a dark backdrop) keeps white
+        // ink: step the boost on (within the same cap) until white reaches 4.5:1 on its brightest tenth.
+        if let t = time, t.p90 > 0.183, t.mean <= 0.40 {
+            for step in WidgetScrim.boostSteps where step > boost.amount {
+                boost.amount = step
+                time = photoLuminance(photo, phase: phase, aspect: aspect, region: timeRegion, boost: boost)
+                if (time?.p90 ?? 0) <= 0.183 { break }
             }
         }
-        let mean = photo.flatMap { photoLuminance($0, phase: phase, aspect: aspect, region: timeRegion, boost: boost)?.mean }
-            ?? skyLuminance(phase, region: timeRegion)
-        return Backing(boost: boost, bright: mean > 0.40)
+        // Dark ink only where white still can't reach 4.5:1 and the area is bright on average
+        // (mean over 0.40 behind the time, as the app's rule). The boost then covers the name and
+        // status only, so the dark time and its halo sit on the un-darkened photo.
+        if let t = time, t.p90 > 0.183 {
+            let textOnly = shaped(textRegion, amount: boost.amount)
+            let unboosted = photoLuminance(photo, phase: phase, aspect: aspect, region: timeRegion, boost: textOnly)
+            if (unboosted?.mean ?? t.mean) > 0.40 {
+                return Backing(boost: textOnly, bright: true)
+            }
+        }
+        return Backing(boost: boost, bright: false)
     }
 
     private static func linear(_ c: Double) -> Double {
@@ -972,7 +1032,7 @@ enum WidgetSkylines {
     /// The region's mean and 90th-percentile luminance as the card shows it: the photo filling the
     /// card, tinted as WidgetSky.look says and darkened by the scrim (with `boost`).
     private static func photoLuminance(_ photo: Photo, phase: WidgetSky.Phase, aspect: CGFloat, region: CGRect,
-                                       boost: Double) -> (mean: Double, p90: Double)? {
+                                       boost: WidgetScrim.Boost) -> (mean: Double, p90: Double)? {
         let image = photo.image
         let iw = CGFloat(image.width), ih = CGFloat(image.height)
         guard iw > 0, ih > 0, aspect > 0 else { return nil }
@@ -1037,21 +1097,22 @@ enum WidgetSkylines {
         return result
     }
 
-    /// The fallback sky's gradient over the region, darkened by the scrim.
+    /// The fallback sky's gradient over the region, darkened by the scrim: its brightest sample.
     private static func skyLuminance(_ phase: WidgetSky.Phase, region: CGRect) -> Double {
         let (top, bottom) = WidgetSky.skyHex(phase)
         let a = DayColor.components(top), b = DayColor.components(bottom)
-        var total = 0.0
+        var brightest = 0.0
         let rows = 8, cols = 8
         for row in 0..<rows {
             let v = Double(region.minY) + Double(region.height) * (Double(row) + 0.5) / Double(rows)
             for col in 0..<cols {
                 let u = Double(region.minX) + Double(region.width) * (Double(col) + 0.5) / Double(cols)
-                let k = WidgetScrim.remaining(u: u, v: v, boost: 0)
-                total += luminance((a.0 + (b.0 - a.0) * v) * k, (a.1 + (b.1 - a.1) * v) * k, (a.2 + (b.2 - a.2) * v) * k)
+                let k = WidgetScrim.remaining(u: u, v: v)
+                brightest = max(brightest, luminance((a.0 + (b.0 - a.0) * v) * k, (a.1 + (b.1 - a.1) * v) * k,
+                                                     (a.2 + (b.2 - a.2) * v) * k))
             }
         }
-        return total / Double(rows * cols)
+        return brightest
     }
     #endif
 }
@@ -1216,45 +1277,111 @@ struct WidgetWorkStatus {
     }
 }
 
-/// The card's scrim, as the app's: black at 55% along the bottom, gone by 55% of the way up, and
-/// a lighter one from the left (35%, gone by 60% across). On a bright photo (a day photo's sky or
-/// white facades behind the name) `boost` adds more black along the bottom, as much as the
-/// measured brightness behind the text needs (WidgetSkylines.backing); dark photos get none.
+/// The card's scrim: black at 55% along the bottom, eased out by 70% of the way up, and a lighter
+/// one from the left (35%, eased out by 60% across); eased stops, so no line shows across a bright
+/// sky. On a bright photo (a day photo's sky or white facades behind the text) `boost` adds a flat
+/// layer of black over the name, status and time, as much as the measured brightness behind them
+/// needs (WidgetSkylines.backing); dark photos get none.
 struct WidgetScrim: View {
     static let bottomOpacity = 0.55
-    static let bottomReach = 0.55
-    static let leftOpacity = 0.35
-    static let leftReach = 0.6
-    /// The boosts tried, smallest first.
-    /// Up to 0.55 (was 0.45), enough for a bright day sky (luma 200+) behind the white name.
+    static let bottomReach = 0.70
+    /// By distance from the bottom: the fraction of `bottomOpacity`.
+    static let bottomStops: [(Double, Double)] = [(0, 1), (0.20, 0.80), (0.40, 0.42), (0.55, 0.14), (0.70, 0)]
+    /// By distance from the left: the opacity.
+    static let leftStops: [(Double, Double)] = [(0, 0.35), (0.30, 0.25), (0.45, 0.12), (0.60, 0)]
+    /// The boost's feather, eased (smoothstep at quarters).
+    static let featherStops: [(Double, Double)] = [(0, 0), (0.25, 0.156), (0.5, 0.5), (0.75, 0.844), (1, 1)]
+    /// The boosts tried, smallest first (up to 0.55: enough for the white name on a day sky without
+    /// turning the photo night-dark; a bright time switches to dark ink instead).
     static let boostSteps: [Double] = [0, 0.15, 0.3, 0.45, 0.55]
 
-    var boost: Double = 0
+    /// The boost: `amount` of black, full from `top` (unit, top-left origin) down to the bottom and
+    /// from the left edge to `right`, eased in over `featherV` above and `featherH` to the right.
+    struct Boost: Equatable {
+        var amount = 0.0
+        var top = 1.0
+        var right = 0.0
+        var featherV = 0.0
+        var featherH = 0.0
 
-    static func remaining(u: Double, v: Double, boost: Double = 0) -> Double {
-        let ramp = max(0, 1 - (1 - v) / bottomReach)
-        let up = bottomOpacity * ramp
-        let extra = boost * ramp
-        let across = leftOpacity * max(0, 1 - u / leftReach)
+        func coverage(u: Double, v: Double) -> Double {
+            let down: Double
+            if v >= top { down = 1 }
+            else if featherV > 0 { down = WidgetScrim.interpolate(WidgetScrim.featherStops, (v - (top - featherV)) / featherV) }
+            else { down = 0 }
+            let across: Double
+            if u <= right { across = 1 }
+            else if featherH > 0 { across = WidgetScrim.interpolate(WidgetScrim.featherStops, 1 - (u - right) / featherH) }
+            else { across = 0 }
+            return down * across
+        }
+    }
+
+    var boost = Boost()
+
+    /// Piecewise-linear through `stops` (as a gradient draws them), held flat outside them.
+    static func interpolate(_ stops: [(Double, Double)], _ x: Double) -> Double {
+        guard let first = stops.first, let last = stops.last else { return 0 }
+        if x <= first.0 { return first.1 }
+        if x >= last.0 { return last.1 }
+        for i in 0..<(stops.count - 1) where x >= stops[i].0 && x <= stops[i + 1].0 {
+            let span = stops[i + 1].0 - stops[i].0
+            let t = span == 0 ? 1 : (x - stops[i].0) / span
+            return stops[i].1 + (stops[i + 1].1 - stops[i].1) * t
+        }
+        return last.1
+    }
+
+    /// The light left at (u, v) of the card's unit square once the scrim is over it.
+    static func remaining(u: Double, v: Double, boost: Boost = Boost()) -> Double {
+        let up = bottomOpacity * interpolate(bottomStops, 1 - v)
+        let extra = boost.amount * boost.coverage(u: u, v: v)
+        let across = interpolate(leftStops, u)
         return (1 - up) * (1 - extra) * (1 - across)
+    }
+
+    private var bottomGradient: [Gradient.Stop] {
+        Self.bottomStops.map { stop -> Gradient.Stop in
+            Gradient.Stop(color: Color.black.opacity(Self.bottomOpacity * stop.1), location: CGFloat(stop.0))
+        }
+    }
+
+    private var leftGradient: [Gradient.Stop] {
+        Self.leftStops.map { stop -> Gradient.Stop in
+            Gradient.Stop(color: Color.black.opacity(stop.1), location: CGFloat(stop.0))
+        }
+    }
+
+    /// Clear above the boost, eased in over its feather, full to the bottom.
+    private var boostDown: [Gradient.Stop] {
+        var stops: [Gradient.Stop] = Self.featherStops.map { stop -> Gradient.Stop in
+            let location = boost.top - boost.featherV + boost.featherV * stop.0
+            return Gradient.Stop(color: Color.black.opacity(stop.1), location: CGFloat(location))
+        }
+        stops.append(Gradient.Stop(color: Color.black, location: 1))
+        return stops
+    }
+
+    /// Full from the left edge, eased out over the feather to the right of the text.
+    private var boostAcross: [Gradient.Stop] {
+        var stops: [Gradient.Stop] = [Gradient.Stop(color: Color.black, location: 0)]
+        for stop in Self.featherStops {
+            let opacity = Self.interpolate(Self.featherStops, 1 - stop.0)
+            let location = boost.right + boost.featherH * stop.0
+            stops.append(Gradient.Stop(color: Color.black.opacity(opacity), location: CGFloat(location)))
+        }
+        return stops
     }
 
     var body: some View {
         ZStack {
-            LinearGradient(stops: [
-                Gradient.Stop(color: Color.black.opacity(Self.bottomOpacity), location: 0),
-                Gradient.Stop(color: Color.black.opacity(0), location: Self.bottomReach),
-            ], startPoint: .bottom, endPoint: .top)
-            if boost > 0 {
-                LinearGradient(stops: [
-                    Gradient.Stop(color: Color.black.opacity(boost), location: 0),
-                    Gradient.Stop(color: Color.black.opacity(0), location: Self.bottomReach),
-                ], startPoint: .bottom, endPoint: .top)
+            LinearGradient(stops: bottomGradient, startPoint: .bottom, endPoint: .top)
+            if boost.amount > 0 {
+                Color.black.opacity(boost.amount)
+                    .mask(LinearGradient(stops: boostDown, startPoint: .top, endPoint: .bottom))
+                    .mask(LinearGradient(stops: boostAcross, startPoint: .leading, endPoint: .trailing))
             }
-            LinearGradient(stops: [
-                Gradient.Stop(color: Color.black.opacity(Self.leftOpacity), location: 0),
-                Gradient.Stop(color: Color.black.opacity(0), location: Self.leftReach),
-            ], startPoint: .leading, endPoint: .trailing)
+            LinearGradient(stops: leftGradient, startPoint: .leading, endPoint: .trailing)
         }
     }
 }
@@ -1266,7 +1393,7 @@ struct WidgetCityBackdrop: View {
     let city: WidgetSnapshot.City
     let date: Date
     let photo: WidgetSkylines.Photo?
-    var boost: Double = 0
+    var boost = WidgetScrim.Boost()
 
     var body: some View {
         let phase = WidgetSky.phase(city, at: date)
@@ -1316,8 +1443,8 @@ struct WidgetBannerClock: View {
             outlined(Text(parts.0).font(.system(size: size, weight: .semibold)).monospacedDigit().tracking(-0.02 * size),
                      width: size / 24)
             if let suffix = parts.1 {
-                // Never under 11 pt (it was 7.7 pt beside the large widget's 17 pt time).
-                let suffixSize = max(11, size * 0.45)
+                // Never under 13 pt, as the app's (11 pt read as 7.7 pt of ink beside the rows' 17 pt time).
+                let suffixSize = max(13, size * 0.45)
                 outlined(Text("\u{2009}" + suffix).font(.system(size: suffixSize, weight: .semibold)),
                          width: suffixSize / 24)
             }
@@ -1343,7 +1470,7 @@ struct WidgetBannerClock: View {
 }
 
 /// The app's status pill, small: an icon and the status in its colour on a dark backing (at least
-/// 11 pt, on black at 50% so a bright photo can't wash out "Off hours").
+/// 11 pt, on black at 65% (was 50%) so a bright photo can't wash out "Off hours").
 struct WidgetStatusPill: View {
     let status: WidgetWorkStatus
     var size: CGFloat = 11
@@ -1360,7 +1487,7 @@ struct WidgetStatusPill: View {
         .foregroundStyle(status.color)
         .padding(.horizontal, 6)
         .padding(.vertical, 1)
-        .background(Capsule().fill(Color.black.opacity(0.5)))
+        .background(Capsule().fill(Color.black.opacity(0.65)))
         .overlay(Capsule().strokeBorder(status.color.opacity(0.5), lineWidth: 1))
     }
 }
@@ -1440,9 +1567,10 @@ struct WidgetPhotoRows: View {
         let textWidth = min(0.45, max(clockSize * 3, 120) / max(width, 1))
         let textRegion = CGRect(x: Self.sidePadding / max(width, 1), y: max(0, clockBottom) / height,
                                 width: textWidth, height: min(1, textHeight / height))
+        // The digits and the 13 pt AM/PM after them.
         let timeRegion = CGRect(x: Self.sidePadding / max(width, 1), y: max(0, clockBottom - clockSize * 1.2) / height,
-                                width: min(0.5, clockSize * 3 / max(width, 1)), height: min(1, clockSize * 1.2 / height))
-        let backing = WidgetSkylines.backing(photo, phase: phase, aspect: width / max(height, 1),
+                                width: min(0.55, (clockSize * 2.9 + 30) / max(width, 1)), height: min(1, clockSize * 1.2 / height))
+        let backing = WidgetSkylines.backing(photo, phase: phase, size: CGSize(width: width, height: height),
                                              textRegion: textRegion, timeRegion: timeRegion)
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
         // AM/PM goes under the hour whenever the tile is tall enough (inline "11 AM" filled a 40 pt
@@ -1538,9 +1666,12 @@ struct WidgetPhotoTile: View {
         // Clear of the tile's rounded corners: 6 pt each side (was 1), 2 pt for "12:30" (digits may shrink to 0.85).
         .padding(.horizontal, stacked ? (minute != 0 ? 2 : 6) : 3)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Off-hours tiles are dimmed only lightly (0.88, was 0.72), so lit windows in a night photo
-        // don't show through behind the numerals.
-        .background(shape.fill(style.fill.opacity(dim ? 0.88 : 1)))
+        // Off-hours tiles are darkened, never see-through (was 88% opacity: the photo showed
+        // through behind the numerals), as the app's.
+        .background(shape.fill(dim ? DayColor.offHoursFill(at: Double(hour) + Double(minute) / 60) : style.fill))
+        // Night and off-hours tiles are near-black: a hairline keeps the row reading as tiles on a
+        // dark night photo, as the app's HourTiles.
+        .overlay(shape.strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.16 : 0), lineWidth: 0.5))
         .overlay(alignment: .leading) {
             if newDay {
                 Capsule().fill(WidgetTone.midnight)
@@ -1577,7 +1708,7 @@ struct WidgetSmallPhotoFace: View {
         let photo = WidgetSkylines.photo(for: city, at: date)
         let hasStatus = WidgetWorkStatus.of(city, snapshot: snapshot, at: date) != nil
         let backing = WidgetSkylines.backing(
-            photo, phase: WidgetSky.phase(city, at: date), aspect: 1,
+            photo, phase: WidgetSky.phase(city, at: date), size: CGSize(width: 160, height: 160),
             textRegion: CGRect(x: 0.08, y: hasStatus ? 0.66 : 0.74, width: 0.62, height: hasStatus ? 0.26 : 0.16),
             timeRegion: CGRect(x: 0.08, y: hasStatus ? 0.4 : 0.5, width: 0.6, height: 0.25))
         return (photo, backing)

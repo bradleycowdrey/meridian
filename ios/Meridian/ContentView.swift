@@ -727,6 +727,7 @@ struct TimeShifter: View {
                 nowButton
                 TimeRuler()
                     .frame(maxWidth: .infinity)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 Button(action: goToTime) {
                     Image(systemName: "calendar")
                         .font(.system(size: 17, weight: .medium))
@@ -802,7 +803,11 @@ private struct TimeRuler: View {
     /// The quarter-hour under the line, as an index (quarter-hours since 2001).
     @State private var position: Int?
 
-    private static let tick: CGFloat = 14
+    /// A quarter-hour's width and the ruler's height, growing with the reader's text size (capped at
+    /// accessibility1 below) so the hour labels never run into each other.
+    @ScaledMetric(relativeTo: .footnote) private var tick: CGFloat = 14
+    @ScaledMetric(relativeTo: .footnote) private var height: CGFloat = 40
+    @ScaledMetric(relativeTo: .footnote) private var labelHeight: CGFloat = 16
     private static let span = 4 * 48
 
     private static func index(_ date: Date, rounded rule: FloatingPointRoundingRule) -> Int {
@@ -820,26 +825,27 @@ private struct TimeRuler: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 0) {
                     ForEach((center - Self.span)...(center + Self.span), id: \.self) { i in
-                        RulerTick(date: Self.date(i), isNow: i == center, use24h: store.use24h)
-                            .frame(width: Self.tick, height: 40)
+                        RulerTick(date: Self.date(i), isNow: i == center, use24h: store.use24h,
+                                  labelHeight: labelHeight)
+                            .frame(width: tick, height: height)
                             .contentShape(Rectangle())
                             .onTapGesture { withAnimation(.snappy) { position = i } }
                     }
                 }
                 .scrollTargetLayout()
             }
-            .contentMargins(.horizontal, max(0, (geo.size.width - Self.tick) / 2), for: .scrollContent)
+            .contentMargins(.horizontal, max(0, (geo.size.width - tick) / 2), for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $position, anchor: .center)
         }
-        .frame(height: 40)
+        .frame(height: height)
         // The fixed line: where you are in time.
         .overlay {
             VStack(spacing: 0) {
                 Capsule().fill(Color.white).frame(width: 2, height: 22)
                 Spacer(minLength: 0)
             }
-            .padding(.top, 16)
+            .padding(.top, labelHeight)
             .allowsHitTesting(false)
         }
         .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12),
@@ -870,6 +876,7 @@ private struct RulerTick: View {
     let date: Date
     let isNow: Bool
     let use24h: Bool
+    let labelHeight: CGFloat
 
     var body: some View {
         let parts = Calendar.current.dateComponents([.hour, .minute, .weekday], from: date)
@@ -878,15 +885,15 @@ private struct RulerTick: View {
             Group {
                 if minute == 0 {
                     Text(label(hour: hour, weekday: parts.weekday ?? 1))
-                        .font(.system(size: 13, weight: hour == 0 ? .semibold : .medium))
+                        .font(.footnote.weight(hour == 0 ? .semibold : .medium))
                         .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : Theme.Op.body))
                         .monospacedDigit()
                         .fixedSize()
                 } else {
-                    Text(" ").font(.system(size: 13))
+                    Text(" ").font(.footnote)
                 }
             }
-            .frame(height: 16)
+            .frame(height: labelHeight)
             Capsule()
                 .fill(Color.white.opacity(minute == 0 ? Theme.Op.caption : (minute == 30 ? Theme.Op.faint : 0.25)))
                 .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))

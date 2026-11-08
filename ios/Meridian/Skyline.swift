@@ -1257,35 +1257,61 @@ enum BannerInk {
 }
 
 /// The card's scrim, so the text along its bottom reads on any sky (day photos included): black at
-/// 60% along the bottom edge, gone by 55% of the way up, and one from the left behind the text
-/// column (50%, held at full strength to 42% across so the whole column, long names included, has
-/// it, then gone by 56% before the tiles, so their side stays as it was). The only layer that
-/// darkens a photo for its text, the same at every time of day.
+/// 60% along the bottom edge, easing out (smoothstep) by 70% of the way up, and one from the left
+/// behind the text column (50%, held at full strength to 34% across, past the longest names,
+/// still 46% at the label column's edge, then easing out by 78%). Both fades are eased at each
+/// end, so there is no visible edge where they start or stop. The only layer that darkens a photo
+/// for its text, the same at every time of day; `remaining` and the drawn stops come from the same
+/// curve, so the measured ink matches.
 struct CardScrim: View {
     static let bottomOpacity = 0.6
-    static let bottomReach = 0.55
+    static let bottomReach = 0.70
     static let leftOpacity = 0.5
-    static let leftHold = 0.42
-    static let leftReach = 0.56
+    static let leftHold = 0.34
+    static let leftReach = 0.78
+    /// Stops per fade: enough that the drawn ramp follows the smooth curve with no visible kink.
+    private static let steps = 16
+
+    /// Smoothstep on 0...1 (flat at both ends).
+    static func ease(_ t: Double) -> Double {
+        let x = min(max(t, 0), 1)
+        return x * x * (3 - 2 * x)
+    }
+
+    /// The bottom scrim's opacity at a distance `d` up from the bottom edge (unit height).
+    static func upOpacity(_ d: Double) -> Double {
+        bottomOpacity * (1 - ease(d / bottomReach))
+    }
+
+    /// The left scrim's opacity at `u` across (unit width).
+    static func acrossOpacity(_ u: Double) -> Double {
+        leftOpacity * (1 - ease((u - leftHold) / (leftReach - leftHold)))
+    }
 
     /// How much of the photo shows through at a point of the card's unit square (top-left origin).
     static func remaining(u: Double, v: Double) -> Double {
-        let up = bottomOpacity * max(0, 1 - (1 - v) / bottomReach)
-        let across = u <= leftHold ? leftOpacity : leftOpacity * max(0, 1 - (u - leftHold) / (leftReach - leftHold))
-        return (1 - up) * (1 - across)
+        (1 - upOpacity(1 - v)) * (1 - acrossOpacity(u))
+    }
+
+    private static var bottomStops: [Gradient.Stop] {
+        (0...steps).map { i -> Gradient.Stop in
+            let location = bottomReach * Double(i) / Double(steps)
+            return Gradient.Stop(color: Color.black.opacity(upOpacity(location)), location: location)
+        }
+    }
+
+    private static var leftStops: [Gradient.Stop] {
+        let ramp = (0...steps).map { i -> Gradient.Stop in
+            let location = leftHold + (leftReach - leftHold) * Double(i) / Double(steps)
+            return Gradient.Stop(color: Color.black.opacity(acrossOpacity(location)), location: location)
+        }
+        return [Gradient.Stop(color: Color.black.opacity(leftOpacity), location: 0)] + ramp
     }
 
     var body: some View {
         ZStack {
-            LinearGradient(stops: [
-                Gradient.Stop(color: Color.black.opacity(Self.bottomOpacity), location: 0),
-                Gradient.Stop(color: Color.black.opacity(0), location: Self.bottomReach),
-            ], startPoint: .bottom, endPoint: .top)
-            LinearGradient(stops: [
-                Gradient.Stop(color: Color.black.opacity(Self.leftOpacity), location: 0),
-                Gradient.Stop(color: Color.black.opacity(Self.leftOpacity), location: Self.leftHold),
-                Gradient.Stop(color: Color.black.opacity(0), location: Self.leftReach),
-            ], startPoint: .leading, endPoint: .trailing)
+            LinearGradient(stops: Self.bottomStops, startPoint: .bottom, endPoint: .top)
+            LinearGradient(stops: Self.leftStops, startPoint: .leading, endPoint: .trailing)
         }
         .allowsHitTesting(false)
     }
@@ -1383,7 +1409,7 @@ struct WorkStatus {
     var color: Color {
         switch kind {
         case .working: return Theme.rgb(0x9AD3A8)
-        case .offHours: return Theme.rgb(0xB9C3CF)
+        case .offHours: return Theme.rgb(0xD9DEE6)
         case .weekend, .dayOff: return Theme.rgb(0xF2C66D)
         case .holiday: return Theme.rgb(0xF39A72)
         }
@@ -1483,7 +1509,7 @@ struct StatusPill: View {
         .padding(.vertical, 2)
         .background {
             // Dark enough that the status reads over a bright day photo too.
-            if backed { Capsule().fill(Color.black.opacity(0.55)) }
+            if backed { Capsule().fill(Color.black.opacity(0.68)) }
         }
         .overlay(Capsule().strokeBorder(status.color.opacity(0.5), lineWidth: 1))
         .accessibilityElement(children: .ignore)

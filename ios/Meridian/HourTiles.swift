@@ -185,6 +185,10 @@ struct HourTiles: View {
             // behind the numbers): working hours stand out from the rest at a glance.
             .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
                 .fill(dim ? Self.offHours(style.fill) : Self.legible(style.fill)))
+            // Night and off-hours tiles are near-black: a hairline keeps the row of five readable
+            // as tiles on a dark night photo.
+            .overlay(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
+                .strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.16 : 0), lineWidth: 0.5))
             .overlay(alignment: .leading) {
                 // Midnight: a sunrise-gold mark centred in the gap before the new day, as on the Mac.
                 if newDay {

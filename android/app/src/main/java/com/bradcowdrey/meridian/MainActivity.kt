@@ -854,7 +854,7 @@ object Rows {
 
 /** What a city is doing now, for the pill under its name. */
 enum class StatusKind(val color: Color) {
-    WORKING(Color(0xFF9AD3A8)), OFF_HOURS(Color(0xFFB9C3CF)), WEEKEND(Color(0xFFF2C66D)), DAY_OFF(Color(0xFFF2C66D)), HOLIDAY(Color(0xFFF39A72))
+    WORKING(Color(0xFF9AD3A8)), OFF_HOURS(Color(0xFFD9DEE6)), WEEKEND(Color(0xFFF2C66D)), DAY_OFF(Color(0xFFF2C66D)), HOLIDAY(Color(0xFFF39A72))
 }
 
 /** "Working" with "until 6 PM", "Off hours" with "back 9 AM Mon", or a holiday's name. */
@@ -1019,10 +1019,39 @@ object Skyline {
     /** The scrim's extra strength behind the name column, keyed by photo (day or night), shade and card shape. */
     private val boosts = HashMap<String, Float>()
 
-    /** The brightest a background may be (relative luminance) for white text at 0.85 to keep 4.5:1, with a little room. */
-    private const val LABEL_MAX = 0.15
+    /** The brightest a background may be (relative luminance) for the zone's white 85% at 13 sp to keep 4.5:1 (0.13: 4.8:1). */
+    private const val LABEL_MAX = 0.13
+    /** The share of the label rectangle's samples that must be no brighter than [LABEL_MAX] (all but the brightest 5%). */
+    private const val LABEL_QUANTILE = 0.95f
+    /** The grid a region of a photo is sampled at. */
+    private const val SAMPLES_W = 24
+    private const val SAMPLES_H = 12
     /** The most the scrim is boosted behind the name column (black at the left edge), for skies at luma 200 and up. */
     private const val BOOST_MAX = 0.55f
+
+    /** The left scrim (as iOS CardScrim): black [LEFT_ALPHA] held to [LEFT_HOLD] of the width, past the longest names. */
+    const val LEFT_ALPHA = 0.5f
+    const val LEFT_HOLD = 0.34f
+    /** Where the left scrim has eased out to nothing (smoothstep, as iOS). */
+    const val LEFT_REACH = 0.78f
+    /**
+     * The left scrim's alpha at evenly spaced points from [LEFT_HOLD] to [LEFT_REACH]: smoothstep sampled at
+     * quarters (0.5 x (1 - ease)). Drawn as two-colour bands between them, so it eases in and out with no edge.
+     */
+    val LEFT_KNOTS = floatArrayOf(0.5f, 0.421875f, 0.25f, 0.078125f, 0f)
+
+    /** The x (fraction of the width) of knot [i] of [LEFT_KNOTS]. */
+    fun leftKnotX(i: Int): Float = LEFT_HOLD + (LEFT_REACH - LEFT_HOLD) * i / (LEFT_KNOTS.size - 1)
+
+    /** The left scrim's alpha at [x] (fraction of the width), exactly as drawn (linear between the knots). */
+    fun leftAlpha(x: Float): Float {
+        if (x <= LEFT_HOLD) return LEFT_ALPHA
+        if (x >= LEFT_REACH) return 0f
+        val t = (x - LEFT_HOLD) / (LEFT_REACH - LEFT_HOLD) * (LEFT_KNOTS.size - 1)
+        val i = t.toInt().coerceIn(0, LEFT_KNOTS.size - 2)
+        val f = t - i
+        return LEFT_KNOTS[i] * (1f - f) + LEFT_KNOTS[i + 1] * f
+    }
 
     /** How a photo's card is drawn: the scrim's [boost] behind the name column, and whether the time's spot is [bright]. */
     data class CardLook(val boost: Float, val bright: Boolean)
@@ -1070,8 +1099,8 @@ object Skyline {
 
     /**
      * How much stronger the scrim is behind the name column on this photo (0 to [BOOST_MAX], in steps of 0.05):
-     * enough that the 90th-percentile pixel behind the city's name, zone and status, after the shading and
-     * the scrim, is no brighter than [LABEL_MAX], so the white text keeps 4.5:1 on bright day photos.
+     * enough that the 95th-percentile pixel over the whole name, zone and status rectangle, after the shading
+     * and the scrim as drawn at each spot, is no brighter than [LABEL_MAX], so the text keeps 4.5:1 on bright day photos.
      */
     fun scrimBoost(id: String, bitmap: ImageBitmap, biasY: Float, shade: Shade, width: Int, height: Int): Float {
         if (width <= 0 || height <= 0) return 0f
@@ -1079,17 +1108,24 @@ object Skyline {
         val key = boostKey(id, shade, width, height)
         synchronized(boosts) { boosts[key]?.let { return it } }
         val boost = try {
-            val l90 = regionLuminance(bitmap.asAndroidBitmap(), biasY, gain(shade), step / 20f, LABELS, quantile = 0.9f)
-            // The weakest scrim behind the labels: the top of the name, at the right of the column.
-            val x = LABELS.x1 * 0.8f
-            val a = scrimAlpha(x, LABELS.y0 + 0.1f)
-            val behind = l90 * Math.pow(1.0 - a, 2.2)
-            if (behind <= LABEL_MAX) 0f else {
-                // The extra black needed there, then the boost that gives it there (it fades to nothing by 55%).
-                val e = 1.0 - Math.pow(LABEL_MAX / behind, 1 / 2.2)
-                val atLeft = e / (1.0 - x / 0.55)
-                (kotlin.math.ceil(atLeft * 20) / 20).toFloat().coerceIn(0f, BOOST_MAX)
+            // Every sample over the whole label rectangle, each under the scrim as drawn at its own spot (the
+            // left scrim eases out across the column, so the right end of a long name sits on the lightest part).
+            val lums = regionSamples(bitmap.asAndroidBitmap(), biasY, gain(shade), step / 20f, LABELS)
+            fun behind(b: Float): Double {
+                val under = DoubleArray(lums.size)
+                for (i in lums.indices) {
+                    val x = LABELS.x0 + (i % SAMPLES_W + 0.5f) / SAMPLES_W * (LABELS.x1 - LABELS.x0)
+                    val y = LABELS.y0 + (i / SAMPLES_W + 0.5f) / SAMPLES_H * (LABELS.y1 - LABELS.y0)
+                    under[i] = lums[i] * Math.pow(1.0 - scrimAlpha(x, y, b), 2.2)
+                }
+                under.sort()
+                return under[((under.size - 1) * LABEL_QUANTILE).roundToInt()]
             }
+            // The least boost (in steps of 0.05) that brings the 95th-percentile pixel down to LABEL_MAX.
+            var steps = 0
+            val most = (BOOST_MAX * 20).roundToInt()
+            if (lums.isNotEmpty()) while (steps < most && behind(steps / 20f) > LABEL_MAX) steps++
+            steps / 20f
         } catch (e: Exception) {
             0f
         }
@@ -1102,7 +1138,8 @@ object Skyline {
 
     /**
      * The card's scrim, as drawn by [CityRow]: black 60% at the bottom edge fading to 25% at 72% of the height
-     * and nothing by half of it, plus black 50% at the left fading to nothing by half the width, plus the
+     * and nothing by half of it, plus black 50% held over the left [LEFT_HOLD] then easing to nothing by
+     * [LEFT_REACH] of the width ([leftAlpha], as iOS CardScrim), plus the
      * [boost] (black, fading to nothing by 55% of the width) on bright photos.
      */
     fun scrimAlpha(x: Float, y: Float, boost: Float = 0f): Float {
@@ -1111,7 +1148,7 @@ object Skyline {
             y <= 0.72f -> (y - 0.5f) / 0.22f * 0.25f
             else -> 0.25f + (minOf(y, 1f) - 0.72f) / 0.28f * 0.35f
         }
-        val h = (0.5f * (1f - x / 0.5f)).coerceAtLeast(0f)
+        val h = leftAlpha(x)
         val b = (boost * (1f - x / 0.55f)).coerceAtLeast(0f)
         return 1f - (1f - v) * (1f - h) * (1f - b)
     }
@@ -1132,10 +1169,14 @@ object Skyline {
         if (c <= 0.04045f) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
 
     /** The mean (or, with [quantile], that quantile of the) relative luminance of the photo in [region] of a card `aspect` wide by 1 high. */
-    private fun regionLuminance(src: android.graphics.Bitmap, biasY: Float, gain: FloatArray, aspect: Float, region: TimeRegion, quantile: Float? = null): Float {
+    /**
+     * The relative luminance (after [gain]) of [region] of the photo as the card crops it, as a grid of
+     * [SAMPLES_W] x [SAMPLES_H] samples, row by row from the top left (empty if the photo is too small).
+     */
+    private fun regionSamples(src: android.graphics.Bitmap, biasY: Float, gain: FloatArray, aspect: Float, region: TimeRegion): DoubleArray {
         val iw = src.width.toFloat()
         val ih = src.height.toFloat()
-        if (iw < 2f || ih < 2f) return 0f
+        if (iw < 2f || ih < 2f) return DoubleArray(0)
         // ContentScale.Crop, then BiasAlignment(0, biasY), as the Image draws it.
         val bw = aspect
         val bh = 1f
@@ -1149,9 +1190,9 @@ object Skyline {
         val w = (right - left).coerceIn(1, src.width - left)
         val h = (bottom - top).coerceIn(1, src.height - top)
         val crop = android.graphics.Bitmap.createBitmap(src, left, top, w, h)
-        val small = android.graphics.Bitmap.createScaledBitmap(crop, 24, 12, true)
-        val px = IntArray(24 * 12)
-        small.getPixels(px, 0, 24, 0, 0, 24, 12)
+        val small = android.graphics.Bitmap.createScaledBitmap(crop, SAMPLES_W, SAMPLES_H, true)
+        val px = IntArray(SAMPLES_W * SAMPLES_H)
+        small.getPixels(px, 0, SAMPLES_W, 0, 0, SAMPLES_W, SAMPLES_H)
         if (small !== src && small !== crop) small.recycle()
         if (crop !== src) crop.recycle()
         val lums = DoubleArray(px.size)
@@ -1161,6 +1202,12 @@ object Skyline {
             val b = ((c and 0xFF) / 255f * gain[2]).coerceIn(0f, 1f)
             lums[i] = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
         }
+        return lums
+    }
+
+    private fun regionLuminance(src: android.graphics.Bitmap, biasY: Float, gain: FloatArray, aspect: Float, region: TimeRegion, quantile: Float? = null): Float {
+        val lums = regionSamples(src, biasY, gain, aspect, region)
+        if (lums.isEmpty()) return 0f
         if (quantile != null) {
             lums.sort()
             return lums[((lums.size - 1) * quantile.coerceIn(0f, 1f)).roundToInt()].toFloat()
@@ -1321,10 +1368,10 @@ private fun StatusPill(status: RowStatus, showDetail: Boolean, cap: Float) {
         StatusKind.HOLIDAY -> rememberVectorPainter(Icons.Filled.Star)
     }
     val detail = status.detail?.takeIf { showDetail }
-    // A translucent dark backing, so the pill reads on any photo: black 50%, so the status keeps its contrast over
+    // A translucent dark backing, so the pill reads on any photo: black 68% (as iOS), so the status keeps its contrast over
     // bright day photos; the edge at half its colour so it shows. Text 12 sp semibold, the icon 12 dp (both grow with large text).
     val iconDp = 12f * LocalDensity.current.fontScale / cap
-    Row(Modifier.clip(shape).background(Color.Black.copy(alpha = 0.5f)).border(1.dp, color.copy(alpha = 0.5f), shape)
+    Row(Modifier.clip(shape).background(Color.Black.copy(alpha = 0.68f)).border(1.dp, color.copy(alpha = 0.5f), shape)
         .padding(horizontal = 7.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(iconDp.dp.coerceAtLeast(11.dp)))
@@ -1468,21 +1515,35 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                 DrawnSkyline(city, phase, Modifier.matchParentSize())
             }
             // The scrim, the only darkening over a photo that's shown as taken: black 60% at the bottom fading
-            // to 25% at 72% of the height and nothing by half of it, and black 50% at the left fading to nothing
-            // by half the width; on a bright photo, a little more at the left (Skyline.scrimAlpha matches).
+            // to 25% at 72% of the height and nothing by half of it, and black 50% held over the left 34% then
+            // easing to nothing by 78% of the width (as iOS CardScrim); on a bright photo, a little more at the left (Skyline.scrimAlpha matches).
             if (!Diag.has("scrim")) Box(Modifier.matchParentSize().drawBehind {
                 // Two-colour gradients over exact bands only: multi-stop gradients across whole cards took
                 // the Android emulator's graphics down (CI), and simple ones look the same.
+                // Band edges on whole pixels, so neighbouring bands meet exactly (no anti-aliased seam).
                 val h = size.height
                 val w = size.width
+                val y50 = kotlin.math.round(h * 0.5f)
+                val y72 = kotlin.math.round(h * 0.72f)
                 val clear = Color.Black.copy(alpha = 0f)
                 val mid = Color.Black.copy(alpha = 0.25f)
-                drawRect(Brush.verticalGradient(listOf(clear, mid), startY = h * 0.5f, endY = h * 0.72f),
-                    topLeft = Offset(0f, h * 0.5f), size = Size(w, h * 0.22f))
-                drawRect(Brush.verticalGradient(listOf(mid, Color.Black.copy(alpha = 0.6f)), startY = h * 0.72f, endY = h),
-                    topLeft = Offset(0f, h * 0.72f), size = Size(w, h * 0.28f))
-                drawRect(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.5f), clear), startX = 0f, endX = w * 0.5f),
-                    size = Size(w * 0.5f, h))
+                drawRect(Brush.verticalGradient(listOf(clear, mid), startY = y50, endY = y72),
+                    topLeft = Offset(0f, y50), size = Size(w, y72 - y50))
+                drawRect(Brush.verticalGradient(listOf(mid, Color.Black.copy(alpha = 0.6f)), startY = y72, endY = h),
+                    topLeft = Offset(0f, y72), size = Size(w, h - y72))
+                // The left scrim, as on the iPhone (CardScrim): black 50% held over the label column, then eased
+                // to nothing; the two bands meet at the same alpha, so there's no edge.
+                // The ease is drawn as a few two-colour bands (Skyline.LEFT_KNOTS), each starting at the alpha the last ends on.
+                val hold = kotlin.math.round(w * Skyline.LEFT_HOLD)
+                drawRect(Color.Black.copy(alpha = Skyline.LEFT_ALPHA), size = Size(hold, h))
+                var x0 = hold
+                for (i in 0 until Skyline.LEFT_KNOTS.size - 1) {
+                    val x1 = kotlin.math.round(w * Skyline.leftKnotX(i + 1))
+                    if (x1 > x0) drawRect(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = Skyline.LEFT_KNOTS[i]),
+                        Color.Black.copy(alpha = Skyline.LEFT_KNOTS[i + 1])), startX = x0, endX = x1),
+                        topLeft = Offset(x0, 0f), size = Size(x1 - x0, h))
+                    x0 = x1
+                }
                 if (boost > 0f) drawRect(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = boost), clear), startX = 0f, endX = w * 0.55f),
                     size = Size(w * 0.55f, h))
             })
@@ -1687,9 +1748,9 @@ private object TileShadow {
 
 /**
  * One hour tile, as on the Mac: the day's colour there at that hour, flat, with the hour in white on it.
- * The hour on one line (17 sp, ":30" at 12 sp, tabular), AM/PM under it (12 sp semibold), and the day's
+ * The hour on one line (17 sp, ":30" at 11 sp, tabular), AM/PM under it (12 sp semibold), and the day's
  * name under that where a new day starts. Large text grows up to 1.3x; then the hour shrinks to fit the
- * tile (to 80%); AM/PM never shrinks. With too little height, a new day's tile drops AM/PM (the day's
+ * tile (to 80%, 70% on half-hour tiles, which keep 4 dp clear each side); AM/PM never shrinks. With too little height, a new day's tile drops AM/PM (the day's
  * name and the gold mark say midnight), then the day's name.
  */
 @Composable
@@ -1700,24 +1761,29 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     // The sky colour, its brightest steps held so white on it stays at least 5.6:1.
     val fill = DayColor.tile(hour + minute / 60.0)
     val text = Color.White
-    val fillColor by animateColorAsState(Color(fill), tween(250), label = "tile")
-    val textColor by animateColorAsState(text, tween(250), label = "tile text")
-    // Outside working hours, as on the Mac: the tile a little quieter (88%, so photo highlights don't reach the numbers).
+    // Outside working hours, as on the Mac: the tile a little quieter, and opaque (its colour mixed toward the
+    // night ink, as the widget does, via TileDim), so no photo shows through behind the numbers.
     val dim = store.showWorkHours && !store.isWorking(place, start.plusSeconds(1800))
+    val fillColor by animateColorAsState(Color(if (dim) TileDim.opaque(fill) else fill), tween(250), label = "tile")
+    val textColor by animateColorAsState(text, tween(250), label = "tile text")
     val shape = RoundedCornerShape(Strip.tileRadius)
     val use24h = store.use24h
     val fontScale = LocalDensity.current.fontScale
     val cap = maxOf(1f, fontScale / (if (minute != 0) 1.15f else 1.3f))
     val grow = fontScale / cap
     var shrink by remember(hour, minute, use24h, cap) { mutableFloatStateOf(1f) }
+    // How far the hour may shrink to fit: to 80% (13.6 sp), so it stays clearly larger than the 11 sp ":30".
+    val shrinkFloor = 0.8f
     val digits = buildAnnotatedString {
         append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
-        if (minute != 0) withStyle(SpanStyle(fontSize = (maxOf(12f * shrink, 11f) / cap).sp)) { append(":%02d".format(minute)) }
+        // ":30" at 11 sp (about 0.65 em of the hour, never smaller), set a little tighter.
+        if (minute != 0) withStyle(SpanStyle(fontSize = (11f / cap).sp, letterSpacing = (-0.02f).em)) { append(":%02d".format(minute)) }
     }
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
     val weekday = if (newDay) TimeMath.weekday(start, place.zone).uppercase() else null
     // A plain Box (the tile's height comes from HourTiles): no subcomposition per tile, so a card's first frame is quick.
-    Box(modifier.clip(shape).background(fillColor.copy(alpha = if (dim) 0.88f else 1f)).padding(horizontal = if (minute != 0) 0.dp else 2.dp),
+    // 2 dp clear each side on every tile (the now capsule's stroke sits outside the tile, NowCapsule.side).
+    Box(modifier.clip(shape).background(fillColor).padding(horizontal = 2.dp),
         contentAlignment = Alignment.Center) {
         // The lines' heights (dp) at this text size, against the tile's.
         val room = height.value - 2f
@@ -1730,7 +1796,7 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
             Text(digits, style = tnum, fontSize = (17f * shrink / cap).sp, lineHeight = (18f / cap).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
                 color = textColor, maxLines = 1, softWrap = false,
-                onTextLayout = { if (it.didOverflowWidth && shrink > 0.8f) shrink = (shrink - 0.05f).coerceAtLeast(0.8f) })
+                onTextLayout = { if (it.didOverflowWidth && shrink > shrinkFloor) shrink = (shrink - 0.05f).coerceAtLeast(shrinkFloor) })
             // AM/PM at 12 sp (Material's smallest comfortable label; it never shrinks with the hour).
             if (showSuffix && suffix != null) Text(suffix, style = tnum, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
                 fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = textColor.copy(alpha = 0.95f), maxLines = 1, softWrap = false)
@@ -1738,6 +1804,24 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
                 fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false)
         }
     }
+}
+
+/**
+ * An hour tile outside working hours, for the app and the widget alike: its colour [MIX] of the way to the
+ * night ink (#0A0E1C), opaque, so it reads quieter without letting the photo through behind the numbers.
+ */
+object TileDim {
+    const val MIX = 0.28f
+    const val INK = 0xFF0A0E1C.toInt()
+
+    /** Opaque [a] moved [t] of the way to [b]. */
+    fun mix(a: Int, b: Int, t: Float): Int {
+        fun ch(shift: Int) = ((((a shr shift) and 0xFF) * (1 - t) + ((b shr shift) and 0xFF) * t).roundToInt()).coerceIn(0, 255)
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    }
+
+    /** [argb] as a dimmed (off-hours) tile: opaque. */
+    fun opaque(argb: Int): Int = mix(argb, INK, MIX)
 }
 
 /** The widgets' hour tiles: the sky colour kept visible at night (never darker than #24384F), and dimmed halfway toward black. */

@@ -41,16 +41,42 @@ jobs:
           xcrun simctl ui "$DEVICE" appearance dark
           xcrun simctl status_bar "$DEVICE" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
           xcrun simctl install "$DEVICE" "$APP" || echo "install failed" >> "$OUT/device.txt"
+          # Mean luminance of rows 300-2400 (below the status bar, above the home indicator); 99 if
+          # Pillow is missing, so a missing tool never triggers a retry or fails the job.
+          python3 -m pip install --quiet --user --break-system-packages pillow >/dev/null 2>&1 || python3 -m pip install --quiet --user pillow >/dev/null 2>&1
+          mean() { python3 -c 'import sys
+          try:
+              from PIL import Image
+          except Exception:
+              print(99); sys.exit()
+          im = Image.open(sys.argv[1]).convert("L"); w, h = im.size
+          px = im.crop((0, min(300, h), w, min(2400, h))).getdata()
+          print(int(sum(px) / max(1, len(px))))' "$1" 2>/dev/null || echo 99; }
+          # Warm-up: the first, cold launch after install can sit on the bare launch surface past the
+          # sleep (the black Terms capture in c10), so take that launch here, off the record.
+          xcrun simctl launch "$DEVICE" $ID -screenshots -screen main >> "$OUT/launch.txt" 2>&1
+          sleep 8
+          xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
           for screen in terms main travel edit add settings date find; do
             xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
             xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen -render-widgets >> "$OUT/launch.txt" 2>&1
-            sleep 6
+            if [ "$screen" = terms ]; then sleep 10; else sleep 6; fi
             xcrun simctl io "$DEVICE" screenshot "$OUT/screen-$screen.png"
+            M=$(mean "$OUT/screen-$screen.png")
+            if [ "${M:-99}" -lt 5 ]; then
+              echo "$screen: mean $M, retaking" >> "$OUT/device.txt"
+              sleep 6
+              xcrun simctl io "$DEVICE" screenshot "$OUT/screen-$screen.png"
+            fi
+            echo "$screen mean $(mean "$OUT/screen-$screen.png")" >> "$OUT/device.txt"
           done
+          TERMS_MEAN=$(mean "$OUT/screen-terms.png")
           DATA=$(xcrun simctl get_app_container "$DEVICE" $ID data)
           cp -R "$DATA/Documents/widgets" "$OUT/" 2>/dev/null || echo "no widget renders" >> "$OUT/device.txt"
           # Crash reports, if any.
           ls ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i meridian >> "$OUT/device.txt"
+          # Fail (after the renders are copied; the publish step still runs) if Terms is still black.
+          if [ "${TERMS_MEAN:-99}" -lt 3 ]; then echo "screen-terms.png is black (mean $TERMS_MEAN)"; exit 1; fi
       - name: Publish to ci-ios branch
         if: always()
         run: |

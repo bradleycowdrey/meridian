@@ -108,6 +108,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -676,7 +677,7 @@ fun GroupBar(store: Store, open: (String) -> Unit) {
     }
     LazyRow(state = state, contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        // The trailing 24 dp fades while there's more to scroll, so a cut chip ("+ Ne") reads as "more", not a clipped word.
+        // The trailing 40 dp fades while there's more to scroll, so a cut chip ("+ Ne") reads as "more", not a clipped word.
         modifier = Modifier.fillMaxWidth().fadeEnd(state).selectableGroup().semantics { contentDescription = "Groups" }) {
         item(key = "__all") {
             GroupChip("All", filter == null, "All, ${cityCount(store.places.size)}", emptyList(), onClick = { select(null) }) { _ -> }
@@ -1783,7 +1784,8 @@ fun DrawScope.drawNowCapsule(index: Int, count: Int, rowHeight: Dp, first: Boole
         // A dark halo (4 dp, black 40%) under the white line, centred on it, so 1 dp of dark edges each side: the line
         // keeps 3:1 against a bright day sky (was 1.7:1 with white 62% alone), and is unchanged on a night photo.
         val halo = NowCapsule.halo.toPx()
-        drawRoundRect(Color.Black.copy(alpha = 0.4f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
+        // Black 60% (was 40%): the edge reaches about L 0.07 on a bright day sky (L 0.43), about 3.9:1 (WCAG 1.4.11).
+        drawRoundRect(Color.Black.copy(alpha = 0.6f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
             cornerRadius = CornerRadius(radius - stroke / 2), style = Stroke(halo))
         drawRoundRect(Color.White.copy(alpha = 0.85f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
             cornerRadius = CornerRadius(radius - stroke / 2), style = Stroke(stroke))
@@ -1797,7 +1799,7 @@ object NowCapsule {
     /** Wider than the centre tile, each side. */
     val side = 7.dp
     val stroke = 2.dp
-    /** The dark halo under the stroke (black 40%), 1 dp each side of it. */
+    /** The dark halo under the stroke (black 60%), 1 dp each side of it. */
     val halo = 4.dp
     /** The glow's strokes (width, alpha), widest and faintest first. */
     val glow = listOf(16.dp to 0.035f, 10.dp to 0.05f, 6.dp to 0.07f)
@@ -1820,6 +1822,29 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
     val state = TimeMath.time(store.moment, place.zone, store.use24h) + if (store.showWorkHours) ", ${(off ?: "working").lowercase()}" else ""
     val gapPx = with(LocalDensity.current) { Strip.gap.toPx() }
     var widthPx by remember { mutableFloatStateOf(1f) }
+    // One hour size for the whole row (as iOS HourTiles): measure the row's widest label once against the tile's
+    // width and give every tile the same shrink, so "10:30" never draws smaller than "7:30" beside it.
+    val use24h = store.use24h
+    val fontScale = LocalDensity.current.fontScale
+    val padPx = with(LocalDensity.current) { (2 * 2.dp).toPx() }
+    val measurer = rememberTextMeasurer()
+    val digitStyle = tnum.copy(fontWeight = FontWeight.SemiBold)
+    val labels = starts.map { val z = it.atZone(place.zone); z.hour to z.minute }
+    val rowShrink = remember(labels, use24h, fontScale, widthPx, digitStyle) {
+        // Row weights give each tile a whole-pixel width, up to 1 px under widthPx / 5, so floor it and keep 1 px slack.
+        val tileText = kotlin.math.floor((widthPx - 4 * gapPx) / 5) - padPx - 1f
+        fun width(h: Int, m: Int, s: Float): Int {
+            val cap = TileText.cap(fontScale, m)
+            return measurer.measure(TileText.digits(h, m, use24h, cap), digitStyle.copy(fontSize = (17f * s / cap).sp),
+                maxLines = 1, softWrap = false).size.width
+        }
+        if (widthPx <= 1f || tileText <= 0f) 1f else {
+            val (wh, wm) = labels.maxBy { (h, m) -> width(h, m, 1f) }
+            var s = 1f
+            while (s > TileText.SHRINK_FLOOR && width(wh, wm, s) > tileText) s = (s - 0.05f).coerceAtLeast(TileText.SHRINK_FLOOR)
+            s
+        }
+    }
     Box(modifier.fillMaxWidth().height(tileHeight)
         .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
         // A soft drop shadow under each tile (black ~35%, 1 dp down, ~3 dp soft), so they stand off the photo.
@@ -1866,7 +1891,7 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
             Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.spacedBy(Strip.gap)) {
                 starts.forEachIndexed { i, start ->
-                    HourTile(store, place, start, center = i == 2, newDay = newDay(start), height = tileHeight, modifier = Modifier.weight(1f).fillMaxHeight())
+                    HourTile(store, place, start, center = i == 2, newDay = newDay(start), height = tileHeight, shrink = rowShrink, modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
             // Midnight: a sunrise-gold mark in the gap before the tile where a new day starts, as on the Mac.
@@ -1883,6 +1908,21 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
     }
 }
 
+/** An hour tile's hour label, shared by the row's one-size measurement (HourTiles) and the tile itself. */
+private object TileText {
+    /** How far the hour may shrink to fit: to 80% (13.6 sp), so it stays larger than the 13 sp ":30". */
+    const val SHRINK_FLOOR = 0.8f
+
+    /** Large text grows up to 1.3x (1.15x on half-hour tiles); past that the text size is capped. */
+    fun cap(fontScale: Float, minute: Int) = maxOf(1f, fontScale / (if (minute != 0) 1.15f else 1.3f))
+
+    /** The hour, ":30" inline at 13 sp (never shrinks with the hour), normal tracking. */
+    fun digits(hour: Int, minute: Int, use24h: Boolean, cap: Float): AnnotatedString = buildAnnotatedString {
+        append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
+        if (minute != 0) withStyle(SpanStyle(fontSize = (13f / cap).sp)) { append(":%02d".format(minute)) }
+    }
+}
+
 /** The hour tiles' soft shadow: wider, fainter layers (spread, alpha). */
 private object TileShadow {
     val layers = listOf(3.dp to 0.06f, 2.dp to 0.08f, 1.dp to 0.12f)
@@ -1895,7 +1935,7 @@ private object TileShadow {
  * tiles); then the hour shrinks to fit the tile (to 80%); AM/PM, the day and ":30" never shrink.
  */
 @Composable
-private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, height: Dp, modifier: Modifier) {
+private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, height: Dp, shrink: Float, modifier: Modifier) {
     val z = start.atZone(place.zone)
     val hour = z.hour
     val minute = z.minute
@@ -1915,16 +1955,10 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val shape = RoundedCornerShape(Strip.tileRadius)
     val use24h = store.use24h
     val fontScale = LocalDensity.current.fontScale
-    val cap = maxOf(1f, fontScale / (if (minute != 0) 1.15f else 1.3f))
+    val cap = TileText.cap(fontScale, minute)
     val grow = fontScale / cap
-    var shrink by remember(hour, minute, use24h, cap) { mutableFloatStateOf(1f) }
-    // How far the hour may shrink to fit: to 80% (13.6 sp), so it stays larger than the 13 sp ":30" and "10:30" never clips.
-    val shrinkFloor = 0.8f
-    val digits = buildAnnotatedString {
-        append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
-        // ":30" at 13 sp (above Material's 12 sp floor; it never shrinks with the hour), normal tracking.
-        if (minute != 0) withStyle(SpanStyle(fontSize = (13f / cap).sp)) { append(":%02d".format(minute)) }
-    }
+    // [shrink] is the row's (HourTiles): every tile in a row draws its hour at the same size.
+    val digits = TileText.digits(hour, minute, use24h, cap)
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
     val weekday = if (newDay) TimeMath.weekday(start, place.zone).uppercase() else null
     // A plain Box (the tile's height comes from HourTiles): no subcomposition per tile, so a card's first frame is quick.
@@ -1933,12 +1967,14 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     // still read as tiles on a dark photo; the fill stays as it is (3:1 working against off).
     val edge = dim || Color(fill).luminance() < 0.03f
     Box(modifier.clip(shape).background(fillColor)
-        .then(if (edge) Modifier.border(1.dp, Color.White.copy(alpha = 0.32f), shape) else Modifier)
+        .then(if (edge) Modifier.border(1.dp, Color.White.copy(alpha = 0.32f), shape)
+            // Day tiles a 1 dp black 30% edge, so the blue stands about 4:1 off a pale day sky (was about 2.6:1).
+            else Modifier.border(1.dp, Color.Black.copy(alpha = 0.3f), shape))
         .padding(horizontal = 2.dp),
         contentAlignment = Alignment.Center) {
         // The lines' heights (dp) at this text size, against the tile's.
         val digitsH = 18f * grow
-        val dayH = 14f * grow
+        val dayH = 15f * grow
         // Two lines on every tile (12-hour): the hour, then AM/PM, or on a new day's tile the day's name in AM/PM's
         // place ("12 / WED": next to the gold midnight mark, 12 by a weekday can only be midnight). The same line
         // heights as every other tile, so its "12" sits level with the neighbours' digits, and the day is never
@@ -1949,16 +1985,15 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(digits, style = tnum, fontSize = (17f * shrink / cap).sp, lineHeight = (18f / cap).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
-                color = textColor, maxLines = 1, softWrap = false,
-                onTextLayout = { if (it.didOverflowWidth && shrink > shrinkFloor) shrink = (shrink - 0.05f).coerceAtLeast(shrinkFloor) })
-            // AM/PM at 12 sp (Material's smallest comfortable label; it never shrinks with the hour), full white.
-            // The day's name the same size and line height, medium, a little tracked.
-            if (suffix != null && second != null) Text(second, style = tnum, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
-                fontWeight = if (weekday != null) FontWeight.Medium else FontWeight.SemiBold,
-                letterSpacing = if (weekday != null) 0.5.sp else 0.3.sp, color = textColor, maxLines = 1, softWrap = false)
+                color = textColor, maxLines = 1, softWrap = false)
+            // AM/PM at 13 sp (the 13 floor the rest of the tile uses, as iOS TileLabel; it never shrinks with the
+            // hour), full white. The day's name the same size and line height, semibold, tracked 0.3 (iOS weekdayText).
+            if (suffix != null && second != null) Text(second, style = tnum, fontSize = (13f / cap).sp, lineHeight = (15f / cap).sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.3.sp, color = textColor, maxLines = 1, softWrap = false)
         }
-        if (dayBelow && weekday != null) Text(weekday, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
-            fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false,
+        if (dayBelow && weekday != null) Text(weekday, fontSize = (13f / cap).sp, lineHeight = (15f / cap).sp,
+            fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = textColor, maxLines = 1, softWrap = false,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp))
     }
 }

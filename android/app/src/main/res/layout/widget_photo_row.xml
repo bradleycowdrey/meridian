@@ -81,21 +81,21 @@
             <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile0" style="@style/WidgetTile"
-                    android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="15sp" android:textSize="15sp" />
+                    android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile0_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
             <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile1" style="@style/WidgetTile"
-                    android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="15sp" android:textSize="15sp" />
+                    android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile1_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
             <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile2" style="@style/WidgetTile"
-                    android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="15sp" android:textSize="15sp" />
+                    android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile2_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
@@ -107,21 +107,21 @@
             <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile0_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
-                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:textSize="17sp" />
+                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile0_tall_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
             <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile1_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
-                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:textSize="17sp" />
+                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile1_tall_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
             <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile2_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
-                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:textSize="17sp" />
+                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile2_tall_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>

@@ -17,6 +17,11 @@ enum Screenshots {
     @MainActor
     static func run(store: CityStore) async {
         guard isActive, CommandLine.arguments.contains("-render-widgets") else { return }
+        // Not on the Terms launch: it is CI's first, cold launch after install, and rendering six
+        // widget faces (photos decoded at 3x) on the main actor there held back the first frame, so
+        // the screenshot caught the black launch screen. Every later launch renders them again and
+        // CI copies the last launch's set, so nothing is lost.
+        guard screen != "terms" else { return }
         let snapshot = WidgetSnapshot(cities: store.places.map { .init(name: $0.name, timeZoneID: $0.timeZoneID) },
                                       use24h: store.use24h)
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("widgets")

@@ -463,10 +463,11 @@ struct WidgetClockView: View {
         Group {
             if cities.isEmpty {
                 VStack(spacing: 4) {
+                    // Both grow with the reader's text size on iPhone (typeScale is 1 on the Mac).
                     Text("No cities yet")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 13 * typeScale, weight: .semibold))
                     Text("Add cities in Meridian")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 11 * typeScale, weight: .medium))
                         .foregroundStyle(WidgetTone.muted)
                 }
                 .multilineTextAlignment(.center)
@@ -879,7 +880,7 @@ struct AccessoryClockView: View {
                 let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
                 VStack(spacing: -2) {
                     Text(tag(city))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 12 * typeScale, weight: .semibold))
                         .lineLimit(1)
                     Text(clock)
                         .font(.system(size: 22, weight: .semibold))
@@ -889,7 +890,7 @@ struct AccessoryClockView: View {
                         .lineLimit(1)
                     if let suffix {
                         Text(suffix)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 12 * typeScale, weight: .semibold))
                             .lineLimit(1)
                             .widgetAccentable()
                     }
@@ -1692,9 +1693,13 @@ struct WidgetPhotoRows: View {
         // Stroke + 1.5 (3 pt, 1.5 pt of dark behind the line): its inner edge sits 10 - 3 = 7 pt from
         // the bottom corners' arc centre, clear of the middle tile's 6 pt corner (6.7 pt); at + 2 a
         // 40% black sliver lay over that tile's bottom corners in the last row.
+        // The white line now sits 0.75 pt inside the dark band (as the app's NowCapsule, which insets
+        // it 1 pt), so it has a dark edge on both sides: its outer side touched the photo directly
+        // (white 0.83 on sky 0.62, 1.3:1). The band keeps its 3 pt width, so its inner edge stays
+        // clear of the tile corners; 60% black (was 40%, as the app's) holds each edge at 3:1 or more.
         return ZStack {
-            shape.strokeBorder(Color.black.opacity(0.4), lineWidth: Self.stroke + 1.5)
-            shape.strokeBorder(Color.white.opacity(0.85), lineWidth: Self.stroke)
+            shape.strokeBorder(Color.black.opacity(0.6), lineWidth: Self.stroke + 1.5)
+            shape.inset(by: 0.75).strokeBorder(Color.white.opacity(0.85), lineWidth: Self.stroke)
         }
             .frame(width: w, height: max(1, bottom - top))
             .offset(x: middleLeft - Self.outset, y: top)
@@ -1783,6 +1788,10 @@ struct WidgetPhotoTile: View {
     /// The widest hour in the row ("10"), measured by every tile so the row shares one digit size.
     var widest: String = ""
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+    /// AM/PM and ":30" grow with the reader's text size, as the rows' names and captions (12 -> 13.2 pt).
+    private var typeScale: CGFloat { WidgetType.scale(typeSize) }
+
     var body: some View {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
@@ -1808,7 +1817,7 @@ struct WidgetPhotoTile: View {
                     sharedLabel(hour: hour, minute: minute)
                     if let suffix {
                         Text(suffix)
-                            .font(Self.suffixFont)
+                            .font(suffixFont)
                             .lineLimit(1)
                             .minimumScaleFactor(1)
                     }
@@ -1816,7 +1825,7 @@ struct WidgetPhotoTile: View {
             } else {
                 // Inline ("9 AM"): 24-hour labels, and the fallback for tiles under 31 pt tall,
                 // where shrinking the whole label (to 0.85) beats truncating it.
-                (suffix.map { label(Self.digits(hour, use24h: snapshot.use24h), minute: minute) + Text("\u{2009}" + $0).font(Self.suffixFont) }
+                (suffix.map { label(Self.digits(hour, use24h: snapshot.use24h), minute: minute) + Text("\u{2009}" + $0).font(suffixFont) }
                     ?? label(Self.digits(hour, use24h: snapshot.use24h), minute: minute))
                     .monospacedDigit()
                     .lineLimit(1)
@@ -1824,10 +1833,11 @@ struct WidgetPhotoTile: View {
             }
         }
         .foregroundStyle(style.text)
-        // Clear of the tile's rounded corners: 6 pt each side (was 1); 2 pt in half-hour tiles (was 3),
-        // whose text sits on the tile's middle, below the 6 pt corners, giving "10:30" (about 36.5 pt)
-        // the most room; ":30 PM" at 12 pt still does not fit a 40 pt tile, so it falls to the ladder.
-        .padding(.horizontal, stacked ? (minute != 0 ? 2 : 6) : 3)
+        // Clear of the tile's rounded corners: 6 pt each side (was 1) on full-hour stacked tiles; half-hour tiles take none (below), and ":30 PM" at 12 pt still does not fit a 40 pt tile, so it falls to the ladder.
+        // Half-hour tiles: no side padding (was 2): "10:30" at the row's 16 pt (about 37.6 pt) did not
+        // fit 36 pt, so the hour fell down the ladder to about 12 pt, 24% under the other rows'; at 40 pt
+        // it fits, and the text still sits on the tile's straight middle, clear of the 6 pt corners.
+        .padding(.horizontal, stacked ? (minute != 0 ? 0 : 6) : 3)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Off-hours tiles are darkened, never see-through (was 88% opacity: the photo showed
         // through behind the numerals), as the app's.
@@ -1844,7 +1854,7 @@ struct WidgetPhotoTile: View {
     }
 
     /// AM/PM and half-hour minutes: 12 pt (was 11), a step above Apple's 11 pt minimum.
-    private static let suffixFont = Font.system(size: 12, weight: .semibold)
+    private var suffixFont: Font { .system(size: 12 * typeScale, weight: .semibold) }
 
     /// "9" (12-hour) or "09" (24-hour).
     static func digits(_ hour: Int, use24h: Bool) -> String {
@@ -1859,7 +1869,7 @@ struct WidgetPhotoTile: View {
             .font(.system(size: digitPoints, weight: weight ?? (center ? .semibold : .medium)))
         if minute != 0 {
             text = text + Text(":" + String(format: "%02d", minute))
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 12 * typeScale, weight: .medium))
         }
         return text.monospacedDigit()
     }
@@ -1880,15 +1890,15 @@ struct WidgetPhotoTile: View {
         ViewThatFits(in: .horizontal) {
             VStack(spacing: -1) {
                 fitted(own, wide, minute: minute, size: digitSize)
-                if let suffix { suffixText(suffix, size: 12) }
+                if let suffix { suffixText(suffix, size: 12 * typeScale) }
             }
             VStack(spacing: -1) {
                 fitted(own, wide, minute: 0, size: digitSize)
-                minuteLine(minutes, suffix: suffix, size: 12)
+                minuteLine(minutes, suffix: suffix, size: 12 * typeScale)
             }
             VStack(spacing: -1) {
                 sharedLabel(hour: hour, minute: minute)
-                if let suffix { suffixText(suffix, size: 12) }
+                if let suffix { suffixText(suffix, size: 12 * typeScale) }
             }
         }
     }

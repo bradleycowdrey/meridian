@@ -392,10 +392,10 @@ struct NowCapsule: View {
                 let shape = Capsule(style: .continuous)
                 // A stroke only: no fill or glow over the middle tiles, so they keep their own
                 // colour and their numbers' contrast.
-                // A 1 pt dark edge each side of the white line keeps it 3:1 or better where it
+                // A 1 pt dark edge (60% black) each side of the white line keeps it 3:1 or better where it
                 // crosses a bright day sky (was 1.3 to 1.7:1); on a night photo it disappears.
                 ZStack {
-                    shape.strokeBorder(Color.black.opacity(0.4), lineWidth: Self.stroke + 2)
+                    shape.strokeBorder(Color.black.opacity(0.6), lineWidth: Self.stroke + 2)
                     shape.inset(by: 1).strokeBorder(Color.white.opacity(0.85), lineWidth: Self.stroke)
                 }
                     .frame(width: frame.width, height: frame.height)

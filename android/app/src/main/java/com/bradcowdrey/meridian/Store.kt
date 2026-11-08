@@ -84,7 +84,8 @@ class Store(private val context: Context, val demo: Boolean = false) {
         private set
     var termsAccepted by mutableStateOf(demo || !Terms.due(prefs))
         private set
-    var hasScrubbed by mutableStateOf(demo || prefs.getBoolean("hasScrubbed", false))
+    // Demo (screenshots) starts as a fresh install, so the footer shows the hint as on the iPhone.
+    var hasScrubbed by mutableStateOf(!demo && prefs.getBoolean("hasScrubbed", false))
         private set
     /** Keep a "My Location" row for the city you're in (on unless turned off in Settings). */
     var useMyLocation by mutableStateOf(!demo && prefs.getBoolean("useMyLocation", true))
@@ -196,7 +197,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
 
     private fun scrubbed() {
         userMoves++
-        if (!hasScrubbed) { hasScrubbed = true; prefs.edit().putBoolean("hasScrubbed", true).apply() }
+        if (!hasScrubbed) { hasScrubbed = true; if (!demo) prefs.edit().putBoolean("hasScrubbed", true).apply() }
     }
 
     /**

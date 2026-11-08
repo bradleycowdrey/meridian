@@ -13,6 +13,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -172,24 +173,14 @@ fun FindTimeScreen(store: Store, onDone: () -> Unit) {
     }
 }
 
-/** 30 min · 1 hr · 1½ hr · 2 hr, as one segmented control. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** 30 min · 1 hr · 1½ hr · 2 hr, as separate chips (the day chips' style above), as iOS FindTimeView. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LengthPicker(length: Int, set: (Int) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        FindTime.lengths.forEachIndexed { i, minutes ->
-            SegmentedButton(
-                selected = minutes == length,
-                onClick = { set(minutes) },
-                shape = SegmentedButtonDefaults.itemShape(index = i, count = FindTime.lengths.size),
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = Color.White, activeContentColor = Color.Black, activeBorderColor = white(0.2f),
-                    inactiveContainerColor = Color.Transparent, inactiveContentColor = Color.White, inactiveBorderColor = white(0.2f),
-                ),
-                icon = {},
-            ) {
-                Text(FindTime.lengthLabel(minutes), fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-            }
+    // Wraps at large text rather than clipping a chip.
+    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FindTime.lengths.forEach { minutes ->
+            PillChip(FindTime.lengthLabel(minutes), minutes == length) { set(minutes) }
         }
     }
 }
@@ -249,8 +240,8 @@ private fun BestTimes(store: Store, slots: List<Slot>, count: Int, pick: (Slot) 
                 Column(Modifier.weight(1f)) {
                     Text("${time(first.start)}–${time(run.last().end)}", style = tnum, fontSize = 20.sp, color = Palette.primary)
                     Spacer(Modifier.height(2.dp))
-                    // One line, same words as iOS FindTimeView: "Your time · start 10:00 PM to 11:30 PM" (no-break spaces inside the times).
-                    Text(if (run.size == 1) "Your time" else "Your time · start ${time(first.start)} to ${time(run.last().start)}",
+                    // Same words as iOS FindTimeView: "Your time · start any time from 10:00 PM to 11:30 PM" (no-break spaces inside the times).
+                    Text(if (run.size == 1) "Your time" else "Your time · start any time from ${time(first.start)} to ${time(run.last().start)}",
                         fontSize = 13.sp, color = white(0.7f))
                 }
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.5f))
@@ -357,10 +348,11 @@ private fun HourRow(store: Store, s: Slot, people: List<Place>, pick: (Slot) -> 
 private fun SlotCell(state: Slot.State, modifier: Modifier, moon: androidx.compose.ui.unit.Dp = 10.dp) {
     val shape = RoundedCornerShape(6.dp)
     Box(modifier.clip(shape).background(state.color)
-        .then(if (state == Slot.State.NIGHT) Modifier.border(0.75.dp, white(0.35f), shape) else Modifier),
+        .then(if (state == Slot.State.NIGHT) Modifier.border(1.dp, white(0.35f), shape) else Modifier),
         contentAlignment = Alignment.Center) {
         if (state == Slot.State.NIGHT) Image(painterResource(R.drawable.ic_moon), contentDescription = null,
-            colorFilter = ColorFilter.tint(white(0.5f)), modifier = Modifier.size(moon))
+            // The moon at white 85% (was 50%), so a night cell reads as a state at a glance, well over 3:1 on the card.
+            colorFilter = ColorFilter.tint(white(0.85f)), modifier = Modifier.size(moon))
     }
 }
 
@@ -483,11 +475,11 @@ private fun ActionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
 }
 
 /**
- * A horizontal chip row's trailing 24 dp fades to clear (one two-colour band, only while there is more to scroll), so a
+ * A horizontal chip row's trailing 40 dp fades to clear (one two-colour band, only while there is more to scroll), so a
  * chip cut by the screen's edge reads as "more", never as a clipped word ("Sat 1", "Asi", "+ Ne"). As iOS chipRowFade.
  * Put it after [bleed] and before the scroll modifier, so it covers the row's full width.
  */
-fun Modifier.fadeEnd(state: ScrollableState, width: androidx.compose.ui.unit.Dp = 24.dp): Modifier = this
+fun Modifier.fadeEnd(state: ScrollableState, width: androidx.compose.ui.unit.Dp = 40.dp): Modifier = this
     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
     .drawWithContent {
         drawContent()

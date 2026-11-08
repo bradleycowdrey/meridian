@@ -40,7 +40,15 @@
    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
    "source": "https://commons.wikimedia.org/wiki/File:20190616154621!Echo_Park_Lake_with_Downtown_Los_Angeles_Skyline.jpg"
   },
-  "night": null
+  "night": {
+   "file": "skyline-losangeles-night.jpg",
+   "credit": {
+    "author": "Ron Reiring",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Los_Angeles_and_skyline_at_night,_California,_U.S.jpg"
+   }
+  }
  },
  {
   "key": "seattle",
@@ -80,7 +88,15 @@
    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
    "source": "https://commons.wikimedia.org/wiki/File:San_Diego_Skyline_Image.jpg"
   },
-  "night": null
+  "night": {
+   "file": "skyline-sandiego-night.jpg",
+   "credit": {
+    "author": "Agha Zain",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:San_Diego_skyline_at_night_from_Point_Loma_2014.jpg"
+   }
+  }
  },
  {
   "key": "lasvegas",
@@ -1070,7 +1086,15 @@
    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
    "source": "https://commons.wikimedia.org/wiki/File:Paris_Paris_Skyline_(37328639624).jpg"
   },
-  "night": null
+  "night": {
+   "file": "skyline-paris-night.jpg",
+   "credit": {
+    "author": "Oleksandr Samoylyk",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Paris_Panorama_from_Tour_Montparnasse_at_Night_-_panoramio.jpg"
+   }
+  }
  },
  {
   "key": "brussels",
@@ -1234,7 +1258,15 @@
    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
    "source": "https://commons.wikimedia.org/wiki/File:Pont_de_la_Machine_Gen%C3%A8ve_BLS.jpg"
   },
-  "night": null
+  "night": {
+   "file": "skyline-geneva-night.jpg",
+   "credit": {
+    "author": "Björn S.",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Geneva_by_night_-_panoramio.jpg"
+   }
+  }
  },
  {
   "key": "milan",
@@ -1522,7 +1554,15 @@
    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
    "source": "https://commons.wikimedia.org/wiki/File:Kyiv_skyline_(15688086793).jpg"
   },
-  "night": null
+  "night": {
+   "file": "skyline-kyiv-night.jpg",
+   "credit": {
+    "author": "i.Parfeniy",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Kyiv_Pechersk_Lavra_at_night_2005.jpg"
+   }
+  }
  },
  {
   "key": "istanbul",
@@ -2017,7 +2057,15 @@
    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
    "source": "https://commons.wikimedia.org/wiki/File:Rajapushpa_Provincia_and_My_Home_Avatar_complexes_-_High-rise_residential_skyline_in_Hyderabad.jpg"
   },
-  "night": null
+  "night": {
+   "file": "skyline-hyderabad-night.jpg",
+   "credit": {
+    "author": "Mohammad Anees Qamar",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hyderabad_Hi-Tech_City_Skyline_at_Night_%E2%80%93_India%27s_Emerging_Silicon_Valley_(2025).jpg"
+   }
+  }
  },
  {
   "key": "chennai",
@@ -2444,7 +2492,15 @@
    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
    "source": "https://commons.wikimedia.org/wiki/File:Tokio_skyline_from_Tokyo_Metropolitan_Government_Building.jpg"
   },
-  "night": null
+  "night": {
+   "file": "skyline-tokyo-night.jpg",
+   "credit": {
+    "author": "https://www.flickr.com/people/imuttoo/",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Tokyo_night_view_1_(cropped).jpg"
+   }
+  }
  },
  {
   "key": "osaka",

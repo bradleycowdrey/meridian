@@ -640,7 +640,9 @@ struct ContentView: View {
     /// As Two Degrees' footer: small, centred, quiet.
     private var footer: some View {
         VStack(spacing: 6) {
-            Link("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com\u{00A0}↗", destination: Theme.website)
+            // Two lines, so the link never splits and no "·" dangles at the end of a line.
+            Text("Made by Bradley Cowdrey. Free. Forever.")
+            Link("bradcowdrey.com\u{00A0}↗", destination: Theme.website)
             Link("Terms & Privacy", destination: Theme.legal)
         }
         .font(.footnote)
@@ -702,6 +704,9 @@ struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
     let goToTime: () -> Void
+    /// Go to a Time's glyph grows with the text (as Now does): 17 pt at the default size, up to 26 pt.
+    @ScaledMetric(relativeTo: .body) private var calendarMetric: CGFloat = 17
+    private var calendarIcon: CGFloat { min(max(calendarMetric, 17), 26) }
 
     /// White, and the black set on it (as a selected chip).
     private static let light = Color.white
@@ -721,7 +726,8 @@ struct TimeShifter: View {
                     .minimumScaleFactor(0.9)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
-                    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+                    // An instruction, so never larger than the Now button it explains.
+                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             }
             HStack(spacing: 10) {
                 nowButton
@@ -730,9 +736,9 @@ struct TimeShifter: View {
                     .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 Button(action: goToTime) {
                     Image(systemName: "calendar")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(.system(size: calendarIcon, weight: .medium))
                         .foregroundStyle(.white)
-                        .frame(width: 36, height: 44)
+                        .frame(minWidth: 36, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -1212,7 +1218,9 @@ private struct SearchResultRow: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name).font(.headline).foregroundStyle(.white)
-                Text(WorkWeek.countryName(zoneID: entry.timeZoneID) ?? entry.region.replacingOccurrences(of: "_", with: " "))
+                // "California, United States" from the city list (as on Android), else the country.
+                Text(entry.countryCode != nil ? entry.region
+                     : WorkWeek.countryName(zoneID: entry.timeZoneID) ?? entry.region.replacingOccurrences(of: "_", with: " "))
                     .font(.subheadline).foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
             Spacer()

@@ -344,7 +344,7 @@ enum WidgetType {
 }
 
 /// A widget time: the digits, then AM/PM smaller and raised (Two Degrees' reading style).
-/// iPhone: AM/PM never below 11 pt, and raised only beside big digits (22 pt and up); beside
+/// iPhone: AM/PM never below 12 pt (was 11; Lock Screen vibrancy lowers contrast), and raised only beside big digits (22 pt and up); beside
 /// smaller ones (the Lock Screen's 15 pt) it sits on the baseline, where a tiny raised suffix
 /// was unreadable.
 enum WidgetClockText {
@@ -356,7 +356,7 @@ enum WidgetClockText {
         guard let suffix else { return main }
         #if os(iOS)
         return main + Text("\u{2009}" + suffix)
-            .font(.system(size: max(11, size * 0.42), weight: .semibold))
+            .font(.system(size: max(12, size * 0.42), weight: .semibold))
             .baselineOffset(size >= 22 ? size * 0.3 : 0)
         #else
         return main + Text("\u{2009}" + suffix)
@@ -879,8 +879,8 @@ struct AccessoryClockView: View {
                 let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
                 VStack(spacing: -2) {
                     Text(tag(city))
-                        .font(.system(size: 11, weight: .medium))
-                        .opacity(0.85)
+                        .font(.system(size: 12, weight: .semibold))
+                        .lineLimit(1)
                     Text(clock)
                         .font(.system(size: 22, weight: .semibold))
                         .monospacedDigit()
@@ -1686,9 +1686,16 @@ struct WidgetPhotoRows: View {
         let shape = UnevenRoundedRectangle(topLeadingRadius: w / 2, bottomLeadingRadius: foot,
                                            bottomTrailingRadius: foot, topTrailingRadius: w / 2, style: .continuous)
         // An outline only: a white wash or glow lightened the middle tile under it (12 PM fell to
-        // 4.3:1), the tile people read most.
-        return shape
-            .strokeBorder(Color.white.opacity(0.62), lineWidth: Self.stroke)
+        // 4.3:1), the tile people read most. A dark halo (inside the outline, so it stays in the
+        // 4 pt gap and off the tiles) under a brighter white keeps the line at 3:1 or more on a bright
+        // day sky (62% white alone was 1.3:1 on New York's); on night photos the halo is invisible.
+        // Stroke + 1.5 (3 pt, 1.5 pt of dark behind the line): its inner edge sits 10 - 3 = 7 pt from
+        // the bottom corners' arc centre, clear of the middle tile's 6 pt corner (6.7 pt); at + 2 a
+        // 40% black sliver lay over that tile's bottom corners in the last row.
+        return ZStack {
+            shape.strokeBorder(Color.black.opacity(0.4), lineWidth: Self.stroke + 1.5)
+            shape.strokeBorder(Color.white.opacity(0.85), lineWidth: Self.stroke)
+        }
             .frame(width: w, height: max(1, bottom - top))
             .offset(x: middleLeft - Self.outset, y: top)
     }
@@ -1792,7 +1799,9 @@ struct WidgetPhotoTile: View {
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         let suffix: String? = snapshot.use24h ? nil : (hour < 12 ? "AM" : "PM")
         return Group {
-            if stacked {
+            if stacked && minute != 0 {
+                halfHourLabel(hour: hour, minute: minute, suffix: suffix)
+            } else if stacked {
                 // The hour over AM/PM, as the app's tiles: only the digits may shrink, one size for
                 // the whole row (sharedLabel); AM/PM stays 12 pt.
                 VStack(spacing: -1) {
@@ -1815,15 +1824,17 @@ struct WidgetPhotoTile: View {
             }
         }
         .foregroundStyle(style.text)
-        // Clear of the tile's rounded corners: 6 pt each side (was 1), 3 pt for "10:30" (was 2; digits step down a size first, then may shrink to 0.85).
-        .padding(.horizontal, stacked ? (minute != 0 ? 3 : 6) : 3)
+        // Clear of the tile's rounded corners: 6 pt each side (was 1); 2 pt in half-hour tiles (was 3),
+        // whose text sits on the tile's middle, below the 6 pt corners, giving "10:30" (about 36.5 pt)
+        // the most room; ":30 PM" at 12 pt still does not fit a 40 pt tile, so it falls to the ladder.
+        .padding(.horizontal, stacked ? (minute != 0 ? 2 : 6) : 3)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Off-hours tiles are darkened, never see-through (was 88% opacity: the photo showed
         // through behind the numerals), as the app's.
         .background(shape.fill(fill))
-        // Night and off-hours tiles are near-black: a hairline keeps the row reading as tiles on a
-        // dark night photo, as the app's HourTiles.
-        .overlay(shape.strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.16 : 0), lineWidth: 0.5))
+        // Night and off-hours tiles are near-black: a 1 pt edge at 32% white (was 0.5 pt at 16%,
+        // 1.3:1) keeps the row reading as tiles on a dark night photo, as the app's HourTiles.
+        .overlay(shape.strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.32 : 0), lineWidth: 1))
         .overlay(alignment: .leading) {
             if newDay {
                 Capsule().fill(WidgetTone.midnight)
@@ -1840,17 +1851,64 @@ struct WidgetPhotoTile: View {
         use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)"
     }
 
-    /// `digits` (`size`, default `digitSize`: 16 pt over AM/PM, else 14), with ":30" at 0.8x the
-    /// digits (11 to 12 pt, never under Apple's 11 pt) in half-hour zones.
+    /// `digits` (`size`, default `digitSize`: 16 pt over AM/PM, else 14), with ":30" inline at a
+    /// constant 12 pt medium in half-hour zones (was 0.8x the digits, 11 to 12 pt), as the apps'.
     private func label(_ digits: String, minute: Int, size: CGFloat? = nil, weight: Font.Weight? = nil) -> Text {
         let digitPoints = size ?? (minute != 0 ? 14 : digitSize)
         var text = Text(digits)
             .font(.system(size: digitPoints, weight: weight ?? (center ? .semibold : .medium)))
         if minute != 0 {
             text = text + Text(":" + String(format: "%02d", minute))
-                .font(.system(size: min(12, max(11, digitPoints * 0.8)), weight: .medium))
+                .font(.system(size: 12, weight: .medium))
         }
         return text.monospacedDigit()
+    }
+
+    /// Half-hour tiles: the hour at the row's full digit size, as every other row's (it shrank to
+    /// about 12 pt, 24% under them). "8:30" over "PM" (the apps' layout) where "10:30" fits; else
+    /// "10" over ":30 PM" at 12 pt where that fits (it does not on a 40 pt tile: ":30 AM" is about
+    /// 39 pt against 36); else the shared ladder, where only the hour steps down and ":30" and AM/PM
+    /// stay 12 pt. The first two measure "10", so every row and every hour pick the same one.
+    @ViewBuilder
+    private func halfHourLabel(hour: Int, minute: Int, suffix: String?) -> some View {
+        let own = Self.digits(hour, use24h: snapshot.use24h)
+        // Measured against a fixed two-digit hour, as the app's HourTiles ("10:30"), not the row's
+        // own widest, so the layout never flips from hour to hour or between half-hour cities.
+        // (Only reached when stacked, i.e. 12-hour, so the hour is at most two digits.)
+        let wide = "10"
+        let minutes = ":" + String(format: "%02d", minute)
+        ViewThatFits(in: .horizontal) {
+            VStack(spacing: -1) {
+                fitted(own, wide, minute: minute, size: digitSize)
+                if let suffix { suffixText(suffix, size: 12) }
+            }
+            VStack(spacing: -1) {
+                fitted(own, wide, minute: 0, size: digitSize)
+                minuteLine(minutes, suffix: suffix, size: 12)
+            }
+            VStack(spacing: -1) {
+                sharedLabel(hour: hour, minute: minute)
+                if let suffix { suffixText(suffix, size: 12) }
+            }
+        }
+    }
+
+    private func suffixText(_ suffix: String, size: CGFloat) -> some View {
+        Text(suffix)
+            .font(.system(size: size, weight: .semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(1)
+    }
+
+    /// ":30 PM", measured as ":30 AM" (the wider) so tiles either side of noon pick the same variant.
+    private func minuteLine(_ minutes: String, suffix: String?, size: CGFloat) -> some View {
+        let font = Font.system(size: size, weight: .semibold)
+        let text = minutes + (suffix.map { "\u{2009}" + $0 } ?? "")
+        return ZStack {
+            Text(minutes + (suffix == nil ? "" : "\u{2009}AM")).font(font).monospacedDigit().hidden()
+            Text(text).font(font).monospacedDigit()
+        }
+        .lineLimit(1)
     }
 
     /// The stacked hour at the largest of three sizes (base, −1, −2 pt) at which the row's widest

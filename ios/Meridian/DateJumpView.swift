@@ -138,7 +138,7 @@ struct DateJumpView: View {
         .padding(.horizontal, -Card.margin)
     }
 
-    /// Hour, quarter-hour, and AM or PM (or 24-hour), as wheels.
+    /// Hour and quarter-hour as wheels (24-hour, or 12-hour with AM and PM as chips).
     private var timePicker: some View {
         HStack(spacing: 0) {
             Picker("Hour", selection: hourBinding) {
@@ -150,10 +150,15 @@ struct DateJumpView: View {
                 ForEach(0..<4, id: \.self) { q in Text(String(format: ":%02d", q * 15)).foregroundStyle(.white).tag(q) }
             }
             if !store.use24h {
-                Picker("AM or PM", selection: pmBinding) {
-                    Text("AM").foregroundStyle(.white).tag(false)
-                    Text("PM").foregroundStyle(.white).tag(true)
+                // AM and PM as chips, not a third wheel: the wheel faded the unchosen one to 3:1, so
+                // an option read as disabled. White with dark ink is chosen, as everywhere else.
+                VStack(spacing: 0) {
+                    PillChip(title: "AM", isOn: hour < 12) { hour = hour % 12 }
+                    PillChip(title: "PM", isOn: hour >= 12) { hour = hour % 12 + 12 }
                 }
+                .padding(.horizontal, 8)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("AM or PM")
             }
         }
         .pickerStyle(.wheel)
@@ -247,10 +252,6 @@ struct DateJumpView: View {
             get: { store.use24h ? hour : (hour % 12 == 0 ? 12 : hour % 12) },
             set: { h in hour = store.use24h ? h : (h % 12) + (hour >= 12 ? 12 : 0) }
         )
-    }
-
-    private var pmBinding: Binding<Bool> {
-        Binding(get: { hour >= 12 }, set: { pm in hour = hour % 12 + (pm ? 12 : 0) })
     }
 
     /// "Now", "In 3 d 2 hr", "5 hr ago".

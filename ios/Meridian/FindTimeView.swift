@@ -79,14 +79,16 @@ struct FindTimeView: View {
         .padding(.top, 4)
     }
 
+    /// The meeting's length as chips, like the day row: the chosen one white with dark ink (the
+    /// system segmented control's grey thumb stood only 2.5:1 from its track).
     private var lengthPicker: some View {
-        Picker("Length", selection: $length) {
+        FlowLayout(spacing: 8, lineSpacing: -4) {
             ForEach(Self.lengths, id: \.self) { minutes in
-                Text(Self.lengthLabel(minutes)).tag(minutes)
+                PillChip(title: Self.lengthLabel(minutes), isOn: length == minutes) { length = minutes }
             }
         }
-        .pickerStyle(.segmented)
-        .padding(.vertical, 4)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Length")
     }
 
     /// Who's in it: every card as a chip, and the groups as quick picks.

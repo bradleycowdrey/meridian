@@ -1780,7 +1780,12 @@ fun DrawScope.drawNowCapsule(index: Int, count: Int, rowHeight: Dp, first: Boole
         }
         // No fill: a white wash lightened the tile under it (12 PM to 4.1:1). The centre tile keeps its own colour.
         val stroke = NowCapsule.stroke.toPx()
-        drawRoundRect(white(0.62f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
+        // A dark halo (4 dp, black 40%) under the white line, centred on it, so 1 dp of dark edges each side: the line
+        // keeps 3:1 against a bright day sky (was 1.7:1 with white 62% alone), and is unchanged on a night photo.
+        val halo = NowCapsule.halo.toPx()
+        drawRoundRect(Color.Black.copy(alpha = 0.4f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
+            cornerRadius = CornerRadius(radius - stroke / 2), style = Stroke(halo))
+        drawRoundRect(Color.White.copy(alpha = 0.85f), topLeft = Offset(left + stroke / 2, top + stroke / 2), size = Size(width - stroke, height - stroke),
             cornerRadius = CornerRadius(radius - stroke / 2), style = Stroke(stroke))
     }
 }
@@ -1792,6 +1797,8 @@ object NowCapsule {
     /** Wider than the centre tile, each side. */
     val side = 7.dp
     val stroke = 2.dp
+    /** The dark halo under the stroke (black 40%), 1 dp each side of it. */
+    val halo = 4.dp
     /** The glow's strokes (width, alpha), widest and faintest first. */
     val glow = listOf(16.dp to 0.035f, 10.dp to 0.05f, 6.dp to 0.07f)
 }
@@ -1883,10 +1890,9 @@ private object TileShadow {
 
 /**
  * One hour tile, as on the Mac: the day's colour there at that hour, flat, with the hour in white on it.
- * The hour on one line (17 sp, ":30" at 11 sp, tabular), AM/PM under it (12 sp semibold), and the day's
- * name under that where a new day starts. Large text grows up to 1.3x; then the hour shrinks to fit the
- * tile (to 80%, 70% on half-hour tiles, which keep 4 dp clear each side); AM/PM never shrinks. With too little height, a new day's tile drops AM/PM (the day's
- * name and the gold mark say midnight), then the day's name.
+ * The hour on one line (17 sp, ":30" inline at 13 sp, tabular), AM/PM under it (12 sp semibold), or on a new
+ * day's tile the day's name in AM/PM's place (12 sp medium). Large text grows up to 1.3x (1.15x on half-hour
+ * tiles); then the hour shrinks to fit the tile (to 80%); AM/PM, the day and ":30" never shrink.
  */
 @Composable
 private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, height: Dp, modifier: Modifier) {
@@ -1899,7 +1905,7 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     // The sky colour, its brightest steps held so white on it stays at least 5.6:1; a working tile (where working
     // hours are shown) no darker than DayColor.WORKING_FLOOR, so 9 AM and 5 PM stand 3:1 from the off tile beside them.
     // Only where the hour's own sky is day or shoulder (6:30 AM to 8:30 PM): a night-shift city's working midnight
-    // keeps its navy, so the colour still says night; the 0.5 dp hairline tells it from an off tile.
+    // keeps its navy, so the colour still says night; the 1 dp edge (below) tells it from the photo.
     val h = hour + minute / 60.0
     val floor = if (store.showWorkHours && !dim && h >= 6.5 && h <= 20.5) DayColor.WORKING_FLOOR else 0.0
     val fill = DayColor.tile(h, floor)
@@ -1912,41 +1918,48 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val cap = maxOf(1f, fontScale / (if (minute != 0) 1.15f else 1.3f))
     val grow = fontScale / cap
     var shrink by remember(hour, minute, use24h, cap) { mutableFloatStateOf(1f) }
-    // How far the hour may shrink to fit: to 80% (13.6 sp), so it stays clearly larger than the 12 sp ":30".
+    // How far the hour may shrink to fit: to 80% (13.6 sp), so it stays larger than the 13 sp ":30" and "10:30" never clips.
     val shrinkFloor = 0.8f
     val digits = buildAnnotatedString {
         append(if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}")
-        // ":30" at 12 sp (Material's floor for informative text; it never shrinks with the hour), set a little tighter.
-        if (minute != 0) withStyle(SpanStyle(fontSize = (12f / cap).sp, letterSpacing = (-0.02f).em)) { append(":%02d".format(minute)) }
+        // ":30" at 13 sp (above Material's 12 sp floor; it never shrinks with the hour), normal tracking.
+        if (minute != 0) withStyle(SpanStyle(fontSize = (13f / cap).sp)) { append(":%02d".format(minute)) }
     }
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
     val weekday = if (newDay) TimeMath.weekday(start, place.zone).uppercase() else null
     // A plain Box (the tile's height comes from HourTiles): no subcomposition per tile, so a card's first frame is quick.
     // 2 dp clear each side on every tile (the now capsule's stroke sits outside the tile, NowCapsule.side).
-    Box(modifier.clip(shape).background(fillColor).padding(horizontal = 2.dp),
+    // Off-hours and night tiles (fill near the night photo's own darkness) get a 1 dp white 32% edge, so the five
+    // still read as tiles on a dark photo; the fill stays as it is (3:1 working against off).
+    val edge = dim || Color(fill).luminance() < 0.03f
+    Box(modifier.clip(shape).background(fillColor)
+        .then(if (edge) Modifier.border(1.dp, Color.White.copy(alpha = 0.32f), shape) else Modifier)
+        .padding(horizontal = 2.dp),
         contentAlignment = Alignment.Center) {
         // The lines' heights (dp) at this text size, against the tile's.
-        val room = height.value - 2f
         val digitsH = 18f * grow
-        val suffixH = 14f * grow
-        val dayH = 11f * grow
-        // AM/PM always: a bare "12" could be noon or midnight, and every neighbouring tile has its AM/PM. The day
-        // (12 / AM / WED, as on the iPhone) where all three lines fit with 3 dp clear top and bottom (2 for two lines):
-        // 18 + 14 + 11 + 6 = 49 dp fits the 52 dp card tile at default text size (it needed 52 + 2 and never showed).
-        // Else the day divider beside the tile marks the new day.
-        val showSuffix = suffix != null
-        val showDay = weekday != null && digitsH + (if (showSuffix) suffixH else 0f) + dayH + (if (showSuffix) 6f else 4f) <= room
+        val dayH = 14f * grow
+        // Two lines on every tile (12-hour): the hour, then AM/PM, or on a new day's tile the day's name in AM/PM's
+        // place ("12 / WED": next to the gold midnight mark, 12 by a weekday can only be midnight). The same line
+        // heights as every other tile, so its "12" sits level with the neighbours' digits, and the day is never
+        // crammed in as a third line. 24-hour: the hour centred as its neighbours, the day under it where it fits
+        // with 2 dp clear at the bottom; else the gold mark carries the new day.
+        val second = weekday ?: suffix
+        val dayBelow = weekday != null && suffix == null && (height.value - digitsH) / 2f >= dayH + 2f
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(digits, style = tnum, fontSize = (17f * shrink / cap).sp, lineHeight = (18f / cap).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
                 color = textColor, maxLines = 1, softWrap = false,
                 onTextLayout = { if (it.didOverflowWidth && shrink > shrinkFloor) shrink = (shrink - 0.05f).coerceAtLeast(shrinkFloor) })
-            // AM/PM at 12 sp (Material's smallest comfortable label; it never shrinks with the hour).
-            if (showSuffix && suffix != null) Text(suffix, style = tnum, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
-                fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = textColor.copy(alpha = 0.95f), maxLines = 1, softWrap = false)
-            if (showDay && weekday != null) Text(weekday, fontSize = (11f / cap).sp, lineHeight = (11f / cap).sp,
-                fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false)
+            // AM/PM at 12 sp (Material's smallest comfortable label; it never shrinks with the hour), full white.
+            // The day's name the same size and line height, medium, a little tracked.
+            if (suffix != null && second != null) Text(second, style = tnum, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
+                fontWeight = if (weekday != null) FontWeight.Medium else FontWeight.SemiBold,
+                letterSpacing = if (weekday != null) 0.5.sp else 0.3.sp, color = textColor, maxLines = 1, softWrap = false)
         }
+        if (dayBelow && weekday != null) Text(weekday, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
+            fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp))
     }
 }
 
@@ -2048,10 +2061,13 @@ private fun Footer() {
     val context = LocalContext.current
     fun open(url: String) = context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)))
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com ↗", fontSize = 13.sp, color = white(0.6f),
-            textAlign = TextAlign.Center, modifier = Modifier.clickable { open(Palette.WEBSITE) })
-        Text("Terms & Privacy", fontSize = 13.sp, color = white(0.6f), modifier = Modifier.clickable { open(Palette.LEGAL) })
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(0.dp)) {
+        // Two lines, as on iOS: the credit, then the link on its own 48 dp row so "·"/"↗" never wrap alone.
+        Text("Made by Bradley Cowdrey. Free. Forever.", fontSize = 13.sp, color = white(0.6f), textAlign = TextAlign.Center)
+        Text("bradcowdrey.com ↗", fontSize = 13.sp, color = white(0.6f),
+            modifier = Modifier.heightIn(min = 48.dp).clickable { open(Palette.WEBSITE) }.wrapContentHeight(Alignment.CenterVertically))
+        Text("Terms & Privacy", fontSize = 13.sp, color = white(0.6f),
+            modifier = Modifier.heightIn(min = 48.dp).clickable { open(Palette.LEGAL) }.wrapContentHeight(Alignment.CenterVertically))
     }
 }
 

@@ -559,7 +559,7 @@ fun TermsScreen(changed: Boolean = false, onAgree: () -> Unit) {
                 fontSize = 28.sp, lineHeight = 34.sp, letterSpacing = (-0.4).sp, fontWeight = FontWeight.SemiBold,
                 color = Palette.primary, textAlign = TextAlign.Center)
             Spacer(Modifier.height(16.dp))
-            Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your phone. If you allow it, your location is used only to name the city you're in.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.",
+            Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your phone. If you allow it, your location is used only to name the city you're\u00A0in.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.",
                 fontSize = 17.sp, lineHeight = 24.sp, color = white(0.85f), textAlign = TextAlign.Center)
             Spacer(Modifier.weight(1f))
             Button(onClick = onAgree, shape = RoundedCornerShape(50),
@@ -726,8 +726,8 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                 GlassCard("Date", Icons.Filled.DateRange) {
                     // To the card's edges: the calendar keeps its own margins.
                     DatePicker(state = dateState, modifier = Modifier.bleed(14.dp), title = null, headline = null, showModeToggle = false,
-                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent, selectedDayContainerColor = Palette.pickerAccent,
-                            selectedDayContentColor = Color.White, todayDateBorderColor = Palette.pickerAccent, todayContentColor = Color.White,
+                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent, selectedDayContainerColor = Color.White,
+                            selectedDayContentColor = Color.Black, todayDateBorderColor = white(0.6f), todayContentColor = Color.White,
                             dayContentColor = Color.White, weekdayContentColor = white(0.6f), navigationContentColor = Color.White,
                             titleContentColor = Color.White, headlineContentColor = Color.White))
                 }

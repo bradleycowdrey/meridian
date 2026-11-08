@@ -1523,10 +1523,21 @@ struct StatusPill: View {
     var backed = false
 
     var body: some View {
+        // The detail ("until 5 PM") goes before anything would be cut: the pill never ends in an
+        // ellipsis (VoiceOver still hears the detail through `status.spoken`).
+        ViewThatFits(in: .horizontal) {
+            pill(label(detail: true))
+            pill(label(detail: false))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(status.spoken)
+    }
+
+    private func pill(_ text: Text) -> some View {
         HStack(spacing: 4) {
             Image(systemName: status.symbol)
                 .font(.system(size: 11 * scale, weight: .semibold))
-            label
+            text
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
@@ -1538,13 +1549,11 @@ struct StatusPill: View {
             if backed { Capsule().fill(Color.black.opacity(0.68)) }
         }
         .overlay(Capsule().strokeBorder(status.color.opacity(0.5), lineWidth: 1))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(status.spoken)
     }
 
-    private var label: Text {
+    private func label(detail showsDetail: Bool) -> Text {
         let title = Text(status.title).font(.system(size: 12 * scale, weight: .semibold))
-        guard showDetail, let detail = status.detail else { return title }
+        guard showsDetail, showDetail, let detail = status.detail else { return title }
         return title + Text(" \u{00B7} " + detail).font(.system(size: 12 * scale, weight: .medium)).foregroundStyle(status.color.opacity(0.9))
     }
 }

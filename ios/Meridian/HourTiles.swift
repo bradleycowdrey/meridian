@@ -120,6 +120,9 @@ struct HourTiles: View {
     var fade = true
     @State private var width: CGFloat = 228
     @Environment(\.dynamicTypeSize) private var typeSize
+    /// The tile type sizes (as `TileLabel`'s), to decide whether ":30" fits inline in every tile.
+    @ScaledMetric(relativeTo: .body) private var digitMetric: CGFloat = 17
+    @ScaledMetric(relativeTo: .caption) private var minuteMetric: CGFloat = 13
 
     /// The columns shown: all five, or at Accessibility text sizes the hour before, the moment's
     /// hour and the hour after, so their numbers can keep growing (column 0 is always shown).
@@ -131,9 +134,10 @@ struct HourTiles: View {
     var body: some View {
         let starts = TileGrid.starts(store.moment)
         let shown = columns
+        let inline = inlineMinutesFit(columns: shown)
         HStack(spacing: TileGrid.gap) {
             ForEach(shown, id: \.self) { k in
-                tile(k, start: starts[k + 2])
+                tile(k, start: starts[k + 2], inlineMinutes: inline)
                     .frame(maxWidth: .infinity)
                     .anchorPreference(key: NowTileAnchors.self, value: .bounds) { anchor in
                         (nowAnchor && k == 0) ? [anchor] : []
@@ -172,7 +176,24 @@ struct HourTiles: View {
         return "\(time), \(off?.lowercased() ?? "working")"
     }
 
-    private func tile(_ k: Int, start: Date) -> some View {
+    /// Half-hour zones: whether ":30" fits inline after the hour ("7:30", as on the widgets and on
+    /// Android). Measured on the widest label any hour can take (two digits, as "10:30"; digits are
+    /// tabular), so the answer depends only on the tile width and text size: the row never switches
+    /// layout while you scrub, and "9:30" and "10:30" side by side never differ. Where it doesn't
+    /// fit (five tiles on an iPhone), every tile puts its minutes on their own line.
+    private func inlineMinutesFit(columns: [Int]) -> Bool {
+        let large = typeSize.isAccessibilitySize
+        let digitFont = UIFont.monospacedDigitSystemFont(ofSize: TileLabel.digitSize(digitMetric, large: large), weight: .semibold)
+        let minuteFont = UIFont.monospacedDigitSystemFont(ofSize: TileLabel.minuteSize(minuteMetric, large: large), weight: .semibold)
+        let count = CGFloat(columns.count)
+        // The tile's width less its 2 pt padding each side, and 1 pt to spare.
+        let room = (width - TileGrid.gap * (count - 1)) / count - 5
+        let needed = ("00" as NSString).size(withAttributes: [.font: digitFont]).width
+            + (":00" as NSString).size(withAttributes: [.font: minuteFont]).width
+        return needed.rounded(.up) <= room
+    }
+
+    private func tile(_ k: Int, start: Date, inlineMinutes: Bool) -> some View {
         let cal = place.calendar
         let parts = cal.dateComponents([.hour, .minute], from: start)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
@@ -183,7 +204,8 @@ struct HourTiles: View {
         let dim = store.showWorkHours && !store.isWorking(place, at: start.addingTimeInterval(1800))
         return TileLabel(hour: hour, minute: minute, use24h: store.use24h, center: k == 0,
                          large: typeSize.isAccessibilitySize,
-                         weekday: newDay ? TimeMath.weekday(start, in: place.timeZone) : nil)
+                         weekday: newDay ? TimeMath.weekday(start, in: place.timeZone) : nil,
+                         inlineMinutes: inlineMinutes)
             .contentTransition(.numericText())
             .foregroundStyle(style.text)
             .padding(.horizontal, 2)
@@ -193,10 +215,10 @@ struct HourTiles: View {
             .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
                 .fill(dim ? Self.offHours(style.fill)
                       : store.showWorkHours ? Self.working(style.fill) : Self.legible(style.fill)))
-            // Night and off-hours tiles are near-black: a hairline keeps the row of five readable
-            // as tiles on a dark night photo.
+            // Night and off-hours tiles are near-black, close to a night photo: a 1 pt edge (white at
+            // 32%) keeps the row of five readable as tiles there (was 0.5 pt at 16%, 1.3:1).
             .overlay(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
-                .strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.16 : 0), lineWidth: 0.5))
+                .strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.32 : 0), lineWidth: 1))
             .overlay(alignment: .leading) {
                 // Midnight: a sunrise-gold mark centred in the gap before the new day, as on the Mac.
                 if newDay {
@@ -263,12 +285,13 @@ struct HourTiles: View {
 }
 
 /// One tile's words, as on the widgets: the hour in large tabular digits with AM or PM under it,
-/// the minutes in half-hour zones, and the weekday where a new day starts. Sizes follow the
-/// reader's text size (never below 17 pt digits and 12 pt labels; at Accessibility sizes, where the
-/// row shows three tiles, up to 26 pt digits and 16 pt labels).
-/// In half-hour zones the minutes always sit on their own line under the hour, so the layout never
-/// depends on how wide a tile's digits are. When a tile can't hold everything it drops AM/PM, rather
-/// than shrinking the type.
+/// the minutes in half-hour zones, and the weekday (in place of AM/PM) where a new day starts.
+/// Sizes follow the reader's text size (never below 17 pt digits and 13 pt minutes and labels; at
+/// Accessibility sizes, where the row shows three tiles, up to 26 pt digits and 16 pt labels).
+/// Every tile has the same lines (hour, then AM/PM or the weekday), so its digits line up with its
+/// neighbours'. In half-hour zones ":30" follows the hour inline, smaller, as on the widgets and on
+/// Android, when the whole row fits it; otherwise the row puts its minutes on their own line. When
+/// a tile can't hold everything it drops AM/PM, rather than shrinking the type.
 private struct TileLabel: View {
     let hour: Int
     let minute: Int
@@ -277,24 +300,27 @@ private struct TileLabel: View {
     /// Three wide tiles (Accessibility text sizes): the type may grow further.
     var large = false
     let weekday: String?
+    /// ":30" inline after the hour (decided for the whole row by `HourTiles`).
+    var inlineMinutes = true
 
     @ScaledMetric(relativeTo: .body) private var digitMetric: CGFloat = 17
-    @ScaledMetric(relativeTo: .caption) private var minuteMetric: CGFloat = 12
-    @ScaledMetric(relativeTo: .caption2) private var smallMetric: CGFloat = 12
+    @ScaledMetric(relativeTo: .caption) private var minuteMetric: CGFloat = 13
+    @ScaledMetric(relativeTo: .caption2) private var smallMetric: CGFloat = 13
 
-    private var digitSize: CGFloat { min(max(digitMetric, 17), large ? 26 : 21) }
-    private var minuteSize: CGFloat { min(max(minuteMetric, 12), large ? 17 : 15) }
-    private var smallSize: CGFloat { min(max(smallMetric, 12), large ? 16 : 14) }
+    static func digitSize(_ metric: CGFloat, large: Bool) -> CGFloat { min(max(metric, 17), large ? 26 : 21) }
+    static func minuteSize(_ metric: CGFloat, large: Bool) -> CGFloat { min(max(metric, 13), large ? 17 : 15) }
+
+    private var digitSize: CGFloat { Self.digitSize(digitMetric, large: large) }
+    private var minuteSize: CGFloat { Self.minuteSize(minuteMetric, large: large) }
+    private var smallSize: CGFloat { min(max(smallMetric, 13), large ? 16 : 14) }
 
     var body: some View {
         ViewThatFits {
-            // "5", ":30", "PM". Minutes always get their own line, so every tile in a row has
-            // the same layout whatever the width of its own digits ("1:30" next to "12:30").
-            // At midnight "12", "AM", "WED": a bare 12 could be noon or midnight, so AM stays.
-            variant(inlineMinutes: false, suffix: true, day: true)
-            // Digits only (AM/PM is the least needed: the neighbouring tiles carry it), except where a
-            // new day starts: there "12" keeps its AM and the weekday goes (the gold mark still shows it).
-            variant(inlineMinutes: false, suffix: weekday != nil, day: weekday == nil || use24h)
+            // "5", "PM" (or "5:30", "PM"). Where a new day starts, "12", "WED": next to the gold mark
+            // and the weekday, 12 can only be midnight, and the tile keeps two lines like the rest.
+            variant(suffix: true)
+            // Without AM/PM (the least needed: the neighbouring tiles carry it); the weekday stays.
+            variant(suffix: false)
             // Last resort: the hour line may shrink a little (never below 90%).
             VStack(spacing: 0) {
                 hourLine(inlineMinutes: true)
@@ -306,16 +332,17 @@ private struct TileLabel: View {
         }
     }
 
-    private func variant(inlineMinutes: Bool, suffix: Bool, day: Bool) -> some View {
+    private func variant(suffix: Bool) -> some View {
         VStack(spacing: 0) {
             hourLine(inlineMinutes: inlineMinutes)
             if minute != 0 && !inlineMinutes { minuteText }
-            if suffix, !use24h {
+            if let weekday {
+                weekdayText(weekday)
+            } else if suffix, !use24h {
                 Text(hour < 12 ? "AM" : "PM")
                     .font(.system(size: smallSize, weight: .semibold))
                     .tracking(0.3)
             }
-            if day, let weekday { weekdayText(weekday) }
         }
         .monospacedDigit()
         .lineLimit(1)
@@ -333,7 +360,7 @@ private struct TileLabel: View {
 
     private func weekdayText(_ weekday: String) -> Text {
         Text(weekday.uppercased())
-            .font(.system(size: smallSize, weight: .medium))
+            .font(.system(size: smallSize, weight: .semibold))
             .tracking(0.3)
     }
 }
@@ -365,8 +392,12 @@ struct NowCapsule: View {
                 let shape = Capsule(style: .continuous)
                 // A stroke only: no fill or glow over the middle tiles, so they keep their own
                 // colour and their numbers' contrast.
-                shape
-                    .strokeBorder(Color.white.opacity(0.62), lineWidth: Self.stroke)
+                // A 1 pt dark edge each side of the white line keeps it 3:1 or better where it
+                // crosses a bright day sky (was 1.3 to 1.7:1); on a night photo it disappears.
+                ZStack {
+                    shape.strokeBorder(Color.black.opacity(0.4), lineWidth: Self.stroke + 2)
+                    shape.inset(by: 1).strokeBorder(Color.white.opacity(0.85), lineWidth: Self.stroke)
+                }
                     .frame(width: frame.width, height: frame.height)
                     .position(x: frame.midX, y: frame.midY)
             }

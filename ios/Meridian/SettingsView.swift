@@ -23,12 +23,16 @@ struct SettingsView: View {
                     footer("Each city follows its country's usual working days and hours and its national public holidays. To change a city's, touch and hold its card.")
                 }
                 .meridianSection()
+                // Each explanation sits under the toggle it explains (as on Android).
                 Section {
                     Toggle("Show My Location", isOn: $store.useMyLocation)
                         .tint(Theme.switchOn)
+                } header: { header("Cities", "location") } footer: {
+                    footer("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone.")
+                }
+                .meridianSection()
+                Section {
                     Toggle("Group by Continent", isOn: $store.continentGroups)
-                        .tint(Theme.switchOn)
-                    Toggle("Download City Photos", isOn: $store.downloadCityPhotos)
                         .tint(Theme.switchOn)
                     NavigationLink {
                         GroupsList()
@@ -40,11 +44,15 @@ struct SettingsView: View {
                                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                         }
                     }
-                } header: { header("Cities", "location") } footer: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        footer("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone. Cities are grouped by continent automatically when your list spans two or more.")
-                        footer("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on this phone. Only the city's name is sent.")
-                    }
+                } footer: {
+                    footer("Cities are grouped by continent automatically when your list spans two or more.")
+                }
+                .meridianSection()
+                Section {
+                    Toggle("Download City Photos", isOn: $store.downloadCityPhotos)
+                        .tint(Theme.switchOn)
+                } footer: {
+                    footer("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on this phone. Only the city's name is sent.")
                 }
                 .meridianSection()
                 Section {

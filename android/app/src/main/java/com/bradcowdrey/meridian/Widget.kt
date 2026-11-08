@@ -74,6 +74,14 @@ object MeridianWidgets {
     private const val CAPSULE_OUTSET = 3f
     private const val CAPSULE_OVERHANG = 10f
     private const val CAPSULE_STROKE = 2f
+    /**
+     * The dark halo under the capsule's white line (black 40%), so the line holds 3:1 on a bright day sky too
+     * (was a bare white 62% line, 1.3:1 to 1.7:1 on day photos). 3.5 dp, not 4: centred on the line (2 dp from
+     * the Now tile), it stays inside the 4 dp gap between tiles (0.25 dp clear of each) instead of touching the next tile.
+     */
+    private const val CAPSULE_HALO = 3.5f
+    private const val CAPSULE_HALO_ALPHA = 0.4f
+    private const val CAPSULE_ALPHA = 0.85f
     /** Roboto's line height (ascent + descent, includeFontPadding off), in ems: for fitting a row's text. */
     private const val LINE_EM = 1.172f
     /** widget_photo_row's status pill: text size (sp), icon, gap above the full pill (none above the compact one), and its normal top and bottom padding (dp). */
@@ -90,8 +98,12 @@ object MeridianWidgets {
     private const val SMALL_RADIUS = 22f
     /** The smallest AM/PM (sp), by the time and on the tiles: a fixed span on the tiles (in sp, so it follows the font scale), so auto-size never shrinks it. */
     private const val AMPM_MIN_SP = 12f
-    /** A half-hour city's ":30" on the tiles (sp, a fixed span that follows the font scale, as the app's 11 sp ":30"). */
-    private const val MINUTES_SP = 11f
+    /** A half-hour city's ":30" on the tiles (sp, a fixed span that follows the font scale): 12 sp (was 11), level with AM/PM, as the app's inline ":30". */
+    private const val MINUTES_SP = 12f
+    /** Gap (dp) above the compact pill (five rows on the large widget; was 0), so the name never sits on the pill's outline. */
+    private const val COMPACT_GAP = 1f
+    /** Off-hours and night tiles (fill at most this luminance) get a 1 dp white 32% edge (widget_tile_edge), so they read as tiles on a night photo. */
+    private const val EDGE_MAX_LUMINANCE = 0.05
     /** The least clear space (dp) above the time's line in a row with the compact pill (five rows on the large widget): with the cap's own 3.7 dp, about 6 dp from the row's top edge to the time. */
     private const val COMPACT_TOP_CLEAR = 2f
     /**
@@ -204,7 +216,7 @@ object MeridianWidgets {
         val avail = rowHDp - ROW_PAD_TOP - ROW_PAD_BOTTOM
         fun pillH(s: StatusFit): Float = when (s) {
             StatusFit.PILL -> PILL_GAP + maxOf(line(STATUS_SP), STATUS_ICON) + 2 * PILL_PAD_V
-            StatusFit.COMPACT -> maxOf(line(STATUS_COMPACT_SP), STATUS_ICON)
+            StatusFit.COMPACT -> COMPACT_GAP + maxOf(line(STATUS_COMPACT_SP), STATUS_ICON)
             else -> 0f
         }
         fun height(t: Float, n: Float, s: StatusFit) = line(t) + line(n) + pillH(s)
@@ -284,7 +296,7 @@ object MeridianWidgets {
             // slightly smaller time, or at the least a status dot before the name, by what fits the row.
             val fit = rowFit(context, rowH, work.show)
             // Tall tiles for the whole widget (the Now capsule's height is shared) only while every half-hour city's widest
-            // hour, "10" at the 13 sp auto-size floor plus the 11 sp ":30", fits the tile's width; else every row takes
+            // hour, "10" at the 13 sp auto-size floor plus the 12 sp ":30", fits the tile's width; else every row takes
             // the one-line tiles, whose guard drops AM/PM rather than clip it.
             val tileW = (innerW - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
             val tall = fit.tallTiles && run {
@@ -381,7 +393,11 @@ object MeridianWidgets {
             v.setViewVisibility(R.id.status_dot, View.GONE)
             v.setViewPadding(R.id.text_col, 0, 0, 0, (textPad * d).roundToInt())
             // The gap above the full pill only (rowFit counts it there alone).
-            val gap = if (statusFit == StatusFit.PILL && work.show) (PILL_GAP * d).roundToInt() else 0
+            val gap = if (!work.show) 0 else when (statusFit) {
+                StatusFit.PILL -> (PILL_GAP * d).roundToInt()
+                StatusFit.COMPACT -> (COMPACT_GAP * d).roundToInt()
+                else -> 0
+            }
             v.setViewPadding(R.id.name_row, 0, 0, 0, gap)
         }
         v.setContentDescription(R.id.name, null)
@@ -410,10 +426,10 @@ object MeridianWidgets {
         return v
     }
 
-    /** The time, with AM/PM at 0.45 of its size, as on the cards, but never under AMPM_MIN_SP (12 sp). */
+    /** The time, with AM/PM at 0.45 of its size, as on the cards, never under AMPM_MIN_SP (12 sp), and never above the digits (only a time under 12 sp pulls AM/PM below the floor, to the digits' own size). */
     private fun clock(v: RemoteViews, ids: TimeIds, zone: ZoneId, use24h: Boolean, now: Instant, live: Boolean, size: Float) {
         listOf(ids.clock, ids.clockStatic).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, size) }
-        listOf(ids.ampm, ids.ampmStatic).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, maxOf(size * 0.45f, AMPM_MIN_SP)) }
+        listOf(ids.ampm, ids.ampmStatic).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, maxOf(size * 0.45f, AMPM_MIN_SP).coerceAtMost(maxOf(size - 3f, minOf(AMPM_MIN_SP, size)))) }
         if (live) {
             v.setViewVisibility(ids.clockStatic, View.GONE)
             v.setViewVisibility(ids.ampmStatic, View.GONE)
@@ -448,13 +464,14 @@ object MeridianWidgets {
         v.setViewVisibility(R.id.tiles, if (tall) View.GONE else View.VISIBLE)
         v.setViewVisibility(R.id.tiles_tall, if (tall) View.VISIBLE else View.GONE)
         val ids = if (tall) listOf(R.id.tile0_tall, R.id.tile1_tall, R.id.tile2_tall) else listOf(R.id.tile0, R.id.tile1, R.id.tile2)
+        val edges = if (tall) listOf(R.id.tile0_tall_edge, R.id.tile1_tall_edge, R.id.tile2_tall_edge) else listOf(R.id.tile0_edge, R.id.tile1_edge, R.id.tile2_edge)
         // AM/PM is always 12 sp (as the app), following the font scale; where "10 PM" would not fit the tile (the
         // narrowest widths, large font scales) the row drops AM/PM (keepSuffix) rather than shrink or cut it. The digits
         // auto-size from 15 sp down to 11 sp (widget_photo_row).
         val tileW = (wDp - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
         val ampmSp = AMPM_MIN_SP
         val starts = listOf(-1L, 0L, 1L).map { TimeMath.hourAnchor(now, home).plusSeconds(it * 3600L).atZone(zone) }
-        // Half-hour cities: the minutes as a small ":30" (11 sp, as the app's tiles) after the hour.
+        // Half-hour cities: the minutes as a small ":30" (12 sp, MINUTES_SP) after the hour.
         fun digits(hour: Int) = if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}"
         fun suffix(hour: Int) = if (use24h) null else if (hour < 12) "AM" else "PM"
         // One-line tiles: "10:30 PM" with the digits at their 11 sp floor must fit the tile; if the widest of the row's
@@ -477,7 +494,9 @@ object MeridianWidgets {
                     widthDp(suffix(at.hour) ?: "", ampmSp, TypedValue.COMPLEX_UNIT_SP)
             } + 2f <= tileW
         })
-        ids.zip(starts).forEach { (id, at) ->
+        ids.indices.forEach { i ->
+            val id = ids[i]
+            val at = starts[i]
             val dim = work.show && !WorkWeek.isWorking(place, at.toInstant().plusSeconds(1800), work.start, work.end)
             // Working tiles (where working hours show) no darker than TILE_WORKING_FLOOR, as the app's; dimmed ones as before.
             // Only at day and shoulder hours (6:30 AM to 8:30 PM), as the app's, so a working night tile keeps its navy.
@@ -505,7 +524,15 @@ object MeridianWidgets {
             val fill = if (dim) TileDim.opaque(color) else color
             if (Build.VERSION.SDK_INT >= 31) v.setColorStateList(id, "setBackgroundTintList", ColorStateList.valueOf(fill))
             else v.setInt(id, "setBackgroundColor", fill)
+            // Off-hours and night tiles: a 1 dp white 32% edge over the tile (an overlay, so the tint above never touches it).
+            v.setViewVisibility(edges[i], if (luminance(fill) <= EDGE_MAX_LUMINANCE) View.VISIBLE else View.GONE)
         }
+    }
+
+    /** [rgb]'s relative luminance (WCAG). */
+    private fun luminance(rgb: Int): Double {
+        fun lin(v: Int): Double { val c = v / 255.0; return if (c <= 0.04045) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4) }
+        return 0.2126 * lin((rgb shr 16) and 0xFF) + 0.7152 * lin((rgb shr 8) and 0xFF) + 0.0722 * lin(rgb and 0xFF)
     }
 
     /** [rgb] with its linear light scaled (same hue) so its relative luminance is at most [TILE_MAX_LUMINANCE] and at least [floor]. */
@@ -522,7 +549,7 @@ object MeridianWidgets {
     /**
      * The Now capsule, as on the cards: through the centre tile of every row, from a little above the
      * first row's tile to a little below the last's, its outer edge CAPSULE_OUTSET (3 dp) outside the tile
-     * on each side (so its stroke sits in the 4 dp gap between tiles); a white 62% outline only (no glass
+     * on each side (so its stroke sits in the 4 dp gap between tiles); a white 85% outline over a 3.5 dp black 40% halo only (no glass
      * fill or glow, which lightened the Now tile under its text). Its ends are as round as they can be
      * while the stroke stays clear of the tiles' corners (about 18 dp, of a 25 dp half-width), so it never
      * crosses a tile or its "10 PM". Drawn for the tile column ([blockWDp] by the widget's full [heightDp]),
@@ -550,8 +577,9 @@ object MeridianWidgets {
         val dx = CAPSULE_OUTSET - half
         val dy = minOf(firstTop - top, bottom - lastBottom) - half
         // The roundest end whose stroke (plus 0.5 dp) clears the tile's rounded corner: sample that corner's arc.
+        // Cleared by the halo (the widest stroke), 0.25 dp to spare.
         fun clears(r: Float): Boolean {
-            val e = half + 0.5f
+            val e = CAPSULE_HALO / 2 + 0.25f
             val cx = dx + TILE_CORNER
             val cy = dy + TILE_CORNER
             for (k in 0..8) {
@@ -570,10 +598,13 @@ object MeridianWidgets {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         fun white(alpha: Float) = ((alpha * 255).roundToInt().coerceIn(0, 255) shl 24) or 0xFFFFFF
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = CAPSULE_STROKE * s
-        paint.color = white(0.62f)
-        // The stroke's centre line.
+        // The stroke's centre line: first the dark halo, then the white line on it.
         val inner = RectF((left + half) * s, (top + half) * s, (right - half) * s, (bottom - half) * s)
+        paint.strokeWidth = CAPSULE_HALO * s
+        paint.color = ((CAPSULE_HALO_ALPHA * 255).roundToInt() shl 24)
+        c.drawRoundRect(inner, radius * s, radius * s, paint)
+        paint.strokeWidth = CAPSULE_STROKE * s
+        paint.color = white(CAPSULE_ALPHA)
         c.drawRoundRect(inner, radius * s, radius * s, paint)
         return bitmap
     }

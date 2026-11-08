@@ -1263,7 +1263,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
             }
             // The scrim: black 55% at the bottom fading to nothing by 55% of the height, and a lighter
             // black 35% at the left fading to nothing by 60% of the width (Skyline.scrimAlpha matches).
-            Box(Modifier.matchParentSize().drawBehind {
+            if (!Diag.has("scrim")) Box(Modifier.matchParentSize().drawBehind {
                 drawRect(Brush.verticalGradient(0f to Color.Transparent, 0.45f to Color.Transparent,
                     0.7f to Color.Black.copy(alpha = 0.2f), 1f to Color.Black.copy(alpha = 0.55f)))
                 drawRect(Brush.horizontalGradient(0f to Color.Black.copy(alpha = 0.35f), 0.6f to Color.Transparent))
@@ -1279,7 +1279,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                 verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 val (digits, suffix) = TimeMath.clock(moment, place.zone, store.use24h)
                 // The time may run wider than the name column: it sits above the hour tiles.
-                BannerTime(digits, suffix, compact = !tall, bright = bright, modifier = Modifier
+                if (!Diag.has("time")) BannerTime(digits, suffix, compact = !tall, bright = bright, modifier = Modifier
                     .padding(bottom = 2.dp)
                     .wrapContentWidth(Alignment.Start, unbounded = true)
                     .onGloballyPositioned { coords ->
@@ -1291,7 +1291,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                         val r = parent.localBoundingBoxOf(coords, false)
                         region = TimeRegion.of(r.left / w, r.top / h, r.right / w, r.bottom / h)
                     })
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                if (!Diag.has("texts")) Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(place.title, style = LocalTextStyle.current.copy(shadow = textShadow), fontSize = (17f / cap).sp, lineHeight = (21f / cap).sp,
                         fontWeight = FontWeight.SemiBold, color = Palette.primary, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false))
@@ -1299,14 +1299,14 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                     if (here) Icon(Icons.Filled.LocationOn, contentDescription = null, tint = Palette.secondary,
                         modifier = Modifier.padding(start = 4.dp).size(12.dp))
                 }
-                if (showZone) {
+                if (showZone && !Diag.has("texts")) {
                     // Shrinks to fit before it would cut, so "UTC+5:30" shows whole (as on the Mac).
                     var zoneShrink by remember(zoneText) { mutableFloatStateOf(1f) }
                     Text(zoneText, style = tnum.copy(shadow = textShadow), fontSize = (12f / cap * zoneShrink).sp, lineHeight = (15f / cap).sp,
                         color = Palette.secondary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
                         onTextLayout = { if (it.didOverflowWidth && zoneShrink > 0.75f) zoneShrink = (zoneShrink - 0.05f).coerceAtLeast(0.75f) })
                 }
-                if (status != null) {
+                if (status != null && !Diag.has("pills")) {
                     Spacer(Modifier.height(1.dp))
                     StatusPill(status, showDetail = tall, cap = cap)
                 }

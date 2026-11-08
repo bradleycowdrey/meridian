@@ -1,0 +1,56 @@
+name: Skyline photos
+
+# Fetches a freely licensed skyline photo for each city in scripts/skyline-cities.txt from
+# Wikimedia Commons (scripts/fetch-skylines.py) and publishes the photos, the manifest
+# (skylines.json), a contact sheet and a report to the ci-skylines branch.
+# Bring them into the apps with: scripts/import-skylines.sh <checkout of ci-skylines>
+on:
+  push:
+    branches: [main]
+    paths: ["scripts/fetch-skylines.py", "scripts/skyline-cities.txt", ".github/workflows/skylines.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: skylines
+  cancel-in-progress: true
+
+jobs:
+  skylines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OUT: ${{ github.workspace }}/out
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install Pillow
+        run: python -m pip install --upgrade pip Pillow
+      - name: Fetch photos
+        run: |
+          mkdir -p "$OUT"
+          set -o pipefail
+          python scripts/fetch-skylines.py --out "$OUT" 2>&1 | tee "$OUT/fetch.log"
+          cat "$OUT/report.txt"
+      - name: Keep the fetch log and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skylines-log
+          path: |
+            out/fetch.log
+            out/report.txt
+          if-no-files-found: ignore
+      # Only a run that fetched photos and wrote the manifest replaces the branch.
+      - name: Publish to ci-skylines branch
+        if: ${{ success() && hashFiles('out/skylines.json') != '' }}
+        run: |
+          cd "$OUT"
+          echo "$GITHUB_SHA" > commit.txt
+          git init -q -b ci-skylines
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "Skyline photos for $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-skylines

@@ -1636,15 +1636,17 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         val bright = if (drawnNight) Skyline.drawnIsBright(phase) else shown?.look?.bright ?: Skyline.drawnIsBright(phase)
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
             // Photo to drawn skyline (a city with no night photo at sunset, and back at sunrise) fades over 0.3 s too.
+            // Inside a Crossfade there's no card BoxScope: its children fill the Crossfade's own box (fillMaxSize),
+            // which matchParentSize sizes to the card. matchParentSize in here measured the photo at 0x0 (pass 6).
             Crossfade(targetState = shown != null && !drawnNight, modifier = Modifier.matchParentSize(), animationSpec = tween(300), label = "drawn night") { photoShown ->
                 if (photoShown && shown != null) {
                     // Photo to photo (day to night, and back) crossfades over 0.3 s; the first photo just appears.
-                    Crossfade(targetState = shown.bitmap to shown.shade, modifier = Modifier.matchParentSize(), animationSpec = tween(300), label = "skyline") { (pic, how) ->
+                    Crossfade(targetState = shown.bitmap to shown.shade, modifier = Modifier.fillMaxSize(), animationSpec = tween(300), label = "skyline") { (pic, how) ->
                         Image(pic, contentDescription = null, contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, biasY),
                             colorFilter = if (Diag.has("shade")) null else Skyline.filter(how), modifier = Modifier.fillMaxSize())
                     }
                 } else {
-                    DrawnSkyline(city, phase, Modifier.matchParentSize())
+                    DrawnSkyline(city, phase, Modifier.fillMaxSize())
                 }
             }
             // The scrim, the only darkening over a photo that's shown as taken: black 60% at the bottom fading
@@ -1891,12 +1893,17 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val z = start.atZone(place.zone)
     val hour = z.hour
     val minute = z.minute
-    // The sky colour, its brightest steps held so white on it stays at least 5.6:1.
-    val fill = DayColor.tile(hour + minute / 60.0)
-    val text = Color.White
     // Outside working hours, as on the Mac: the tile a little quieter, and opaque (its colour mixed toward the
     // sky at 30% of its luminance, via TileDim), so no photo shows through behind the numbers.
     val dim = store.showWorkHours && !store.isWorking(place, start.plusSeconds(1800))
+    // The sky colour, its brightest steps held so white on it stays at least 5.6:1; a working tile (where working
+    // hours are shown) no darker than DayColor.WORKING_FLOOR, so 9 AM and 5 PM stand 3:1 from the off tile beside them.
+    // Only where the hour's own sky is day or shoulder (6:30 AM to 8:30 PM): a night-shift city's working midnight
+    // keeps its navy, so the colour still says night; the 0.5 dp hairline tells it from an off tile.
+    val h = hour + minute / 60.0
+    val floor = if (store.showWorkHours && !dim && h >= 6.5 && h <= 20.5) DayColor.WORKING_FLOOR else 0.0
+    val fill = DayColor.tile(h, floor)
+    val text = Color.White
     val fillColor by animateColorAsState(Color(if (dim) TileDim.opaque(fill) else fill), tween(250), label = "tile")
     val textColor by animateColorAsState(text, tween(250), label = "tile text")
     val shape = RoundedCornerShape(Strip.tileRadius)
@@ -2123,6 +2130,8 @@ fun SearchResults(store: Store, query: String, searched: Pair<String, List<CityE
 /** A card in Edit List: remove on the left, the city, move up and down on the right. */
 @Composable
 fun EditRow(store: Store, place: Place) {
+    // At large text (1.3x and up, as the ruler hint) the time goes back under the offsets, so the name is never cut.
+    val stackTime = LocalDensity.current.fontScale >= 1.3f
     Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { store.remove(place) }) {
             Box(Modifier.size(22.dp).clip(CircleShape).background(Palette.destructive), contentAlignment = Alignment.Center) {
@@ -2130,10 +2139,15 @@ fun EditRow(store: Store, place: Place) {
             }
         }
         Column(Modifier.weight(1f)) {
+            // The name, and its time at the right on the same line (as on the iPhone), so the time reads as the row's value.
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(place.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                if (store.isHere(place)) MyLocationMark()
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Text(place.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (store.isHere(place)) MyLocationMark()
+                }
+                if (!stackTime) Text(TimeMath.time(store.now, place.zone, store.use24h), style = tnum, fontSize = 17.sp, color = Palette.primary,
+                    maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 8.dp))
             }
             // How it relates to you and its UTC offset ("+3 hr · UTC−4", "Your time · UTC−7"), as on the iPhone,
             // so offsets can be checked while reordering.
@@ -2141,7 +2155,8 @@ fun EditRow(store: Store, place: Place) {
                 ?: if (place.zone.id == store.home.id) "Your time" else "Same time"
             Text("$relation · ${TimeMath.offsetLabel(TimeMath.offsetSeconds(place.zone, store.now))}", style = tnum,
                 fontSize = 13.sp, color = white(0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(TimeMath.time(store.now, place.zone, store.use24h), style = tnum, fontSize = 17.sp, color = Palette.primary, maxLines = 1)
+            if (stackTime) Text(TimeMath.time(store.now, place.zone, store.use24h), style = tnum, fontSize = 17.sp,
+                color = Palette.primary, maxLines = 1)
         }
         IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) {
             Icon(Icons.Filled.KeyboardArrowUp, "Move ${place.title} up", tint = if (place != store.places.first()) Palette.primary else white(0.38f))
@@ -2269,7 +2284,7 @@ private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, centre: Bool
                 else if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}${TimeMath.THIN}${if (hour < 12) "AM" else "PM"}",
                 style = tnum, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 1, softWrap = false,
                 fontWeight = if (hour == 0) FontWeight.SemiBold else FontWeight.Medium,
-                color = if (hour == 0 || centre) Palette.primary else white(0.7f))
+                color = if (hour == 0 || centre) Palette.primary else white(0.85f))  // 0.85, as the iPhone's ruler labels (was 0.7)
         }
         Spacer(Modifier.height(3.dp))
         Box(Modifier.width(if (minute == 0) 1.5.dp else 1.dp)

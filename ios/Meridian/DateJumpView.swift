@@ -108,8 +108,10 @@ struct DateJumpView: View {
                 .foregroundStyle(Color.white.opacity(Theme.Op.body))
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 24)
-        .padding(.bottom, 16)
+        // 12 + 8 (was 24 + 16): at first open the month's third week sat half under the Go bar
+        // (its digits cut at ~45% of their height); 20 pt up, that week clears the bar whole.
+        .padding(.top, 12)
+        .padding(.bottom, 8)
         .animation(.snappy, value: moment)
         .accessibilityElement(children: .combine)
     }
@@ -141,20 +143,21 @@ struct DateJumpView: View {
         HStack(spacing: 0) {
             Picker("Hour", selection: hourBinding) {
                 ForEach(store.use24h ? Array(0..<24) : Array(1...12), id: \.self) { h in
-                    Text(store.use24h ? String(format: "%02d", h) : "\(h)").tag(h)
+                    Text(store.use24h ? String(format: "%02d", h) : "\(h)").foregroundStyle(.white).tag(h)
                 }
             }
             Picker("Minutes", selection: $quarter) {
-                ForEach(0..<4, id: \.self) { q in Text(String(format: ":%02d", q * 15)).tag(q) }
+                ForEach(0..<4, id: \.self) { q in Text(String(format: ":%02d", q * 15)).foregroundStyle(.white).tag(q) }
             }
             if !store.use24h {
                 Picker("AM or PM", selection: pmBinding) {
-                    Text("AM").tag(false)
-                    Text("PM").tag(true)
+                    Text("AM").foregroundStyle(.white).tag(false)
+                    Text("PM").foregroundStyle(.white).tag(true)
                 }
             }
         }
         .pickerStyle(.wheel)
+        // Rows are white; UIKit's depth fade still dims the outer rows — contrast of the ±1 values is unmeasured.
         .frame(height: 150)
         .monospacedDigit()
     }

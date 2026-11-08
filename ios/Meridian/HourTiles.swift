@@ -191,7 +191,8 @@ struct HourTiles: View {
             // Outside working hours the tile is the same sky, deeper (opaque, so a photo never shows
             // behind the numbers): working hours stand out from the rest at a glance.
             .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
-                .fill(dim ? Self.offHours(style.fill) : Self.legible(style.fill)))
+                .fill(dim ? Self.offHours(style.fill)
+                      : store.showWorkHours ? Self.working(style.fill) : Self.legible(style.fill)))
             // Night and off-hours tiles are near-black: a hairline keeps the row of five readable
             // as tiles on a dark night photo.
             .overlay(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
@@ -228,6 +229,16 @@ struct HourTiles: View {
     /// early evening), so white numbers on it always read.
     static func legible(_ fill: Color) -> Color {
         scaled(fill) { l in min(l, maxLuminance) }
+    }
+
+    /// A working hour, while working hours are shown: the legible sky, never darker than
+    /// `workingFloor`. The shoulder hours (8–9:30 and 17:30–19) come from the ramp's darker part
+    /// (9 AM #2C5386, L 0.084, only 2.4:1 against the 0.006 off tile beside it); at 0.12 every
+    /// working tile stands 3.05:1 from an off tile, and white on it stays 6.2:1.
+    static let workingFloor = 0.12
+
+    static func working(_ fill: Color) -> Color {
+        scaled(fill) { l in min(max(l, workingFloor), maxLuminance) }
     }
 
     /// `fill` with its relative luminance mapped by `target`, keeping its hue.

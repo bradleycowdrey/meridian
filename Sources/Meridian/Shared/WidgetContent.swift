@@ -199,6 +199,30 @@ enum DayColor {
         let k = min(max(min(luminance, offHoursFloor), luminance * offHoursFactor), offHoursCap) / luminance
         return Color(red: encoded(lr * k), green: encoded(lg * k), blue: encoded(lb * k))
     }
+
+    /// An hour inside working hours (when the app highlights them), as the app's HourTiles.legible:
+    /// the hour's sky, same hue, its luminance held between `workingFloor` and `workingCap`. The
+    /// shoulder hours (8 to 9.5 h, 17.5 to 19 h) come from the ramp's darker steps: 9 AM was
+    /// (44,83,134), L 0.084, only 2.4:1 from the off tile beside it (L 0.006). Floored at 0.12 it
+    /// stands 3.05:1 from every off tile (WCAG 1.4.11) and white on it stays 6.2:1.
+    static let workingFloor = 0.12
+    static let workingCap = 0.14
+
+    static func workingFill(at hour: Double) -> Color {
+        let rgb = rgbAt(hour)
+        func linear(_ c: Double) -> Double {
+            let c = min(max(c, 0), 1)
+            return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        func encoded(_ l: Double) -> Double {
+            min(max(l <= 0.0031308 ? l * 12.92 : 1.055 * pow(l, 1 / 2.4) - 0.055, 0), 1)
+        }
+        let lr = linear(rgb.0), lg = linear(rgb.1), lb = linear(rgb.2)
+        let luminance = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
+        guard luminance > 0 else { return Color(red: rgb.0, green: rgb.1, blue: rgb.2) }
+        let k = min(max(luminance, workingFloor), workingCap) / luminance
+        return Color(red: encoded(lr * k), green: encoded(lg * k), blue: encoded(lb * k))
+    }
     #endif
 
     fileprivate static func components(_ hex: UInt32) -> (Double, Double, Double) {
@@ -419,6 +443,18 @@ struct WidgetClockView: View {
         } else {
             WidgetPhotoRows(snapshot: snapshot, cities: cities, date: date)
         }
+    }
+
+    /// A stacked half-hour tile's "8:30" at fixed sizes, one ViewThatFits step.
+    private func halfHourDigits(_ hour: Int, _ minute: Int, hourSize: CGFloat, minuteSize: CGFloat) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            Text("\(hour % 12 == 0 ? 12 : hour % 12)")
+                .font(.system(size: hourSize, weight: .medium))
+            Text(":" + String(format: "%02d", minute))
+                .font(.system(size: minuteSize, weight: .medium))
+        }
+        .monospacedDigit()
+        .lineLimit(1)
     }
     #endif
 
@@ -658,11 +694,28 @@ struct WidgetClockView: View {
         let suffix: String? = snapshot.use24h ? nil : (hour < 12 ? "AM" : "PM")
         if stacked, let suffix {
             VStack(spacing: -1) {
-                tileDigits(hour: hour, minute: minute)
-                    .font(.system(size: Self.tileSize + 2, weight: .medium))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
+                if minute != 0 {
+                    // "8:30": ":30" steps down to 11 pt first, then the hour 15 -> 14 -> 13 pt; the old
+                    // all-together 0.8 shrink is the last fallback. ViewThatFits picks by ideal
+                    // (unscaled) size, so each step is a fixed size, not a minimumScaleFactor.
+                    ViewThatFits(in: .horizontal) {
+                        halfHourDigits(hour, minute, hourSize: Self.tileSize + 2, minuteSize: Self.tileMinuteSize)
+                        halfHourDigits(hour, minute, hourSize: Self.tileSize + 2, minuteSize: 11)
+                        halfHourDigits(hour, minute, hourSize: Self.tileSize + 1, minuteSize: 11)
+                        halfHourDigits(hour, minute, hourSize: Self.tileSize, minuteSize: 11)
+                        tileDigits(hour: hour, minute: minute)
+                            .font(.system(size: Self.tileSize + 2, weight: .medium))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                } else {
+                    tileDigits(hour: hour, minute: minute)
+                        .font(.system(size: Self.tileSize + 2, weight: .medium))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
+                }
                 Text(suffix)
                     .font(.system(size: Self.tileSmallSize, weight: Self.tileSmallWeight))
                     .lineLimit(1)
@@ -792,11 +845,11 @@ struct AccessoryClockView: View {
         if words.count > 1 { return String(words.prefix(3).compactMap(\.first)).uppercased() }
         return String(city.name.filter(\.isLetter).prefix(3)).uppercased()
     }
-    /// "12:41\u{202F}PM" (a narrow no-break space, Android's TimeMath.THIN; the run measured as
-    /// "12:41PM" with no gap) or "14:05".
+    /// "12:41\u{2009}PM" (the thin space the rectangular widget and the app's tiles use; U+202F
+    /// rendered about 2 px wide here, so the line read "12:41PM") or "14:05".
     private func inlineTime(_ city: WidgetSnapshot.City) -> String {
         let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
-        return suffix.map { clock + "\u{202F}" + $0 } ?? clock
+        return suffix.map { clock + "\u{2009}" + $0 } ?? clock
     }
     private func shift(_ city: WidgetSnapshot.City) -> String {
         let d = WidgetClockView.dayShift(date, zone: zone(city))
@@ -812,7 +865,7 @@ struct AccessoryClockView: View {
         switch family {
         case .accessoryInline:
             // One line above the Lock Screen clock: "LON 14:05 · TYO 22:05", or "NY 12:41 PM · LON 5:41 PM"
-            // with a narrow no-break space before AM/PM, as everywhere else. Falls back to the first
+            // with a thin space before AM/PM, as everywhere else. Falls back to the first
             // city alone where both don't fit (the gap is never closed, and "LON 5:41…" never shows).
             let list = snapshot.cities.filter { $0 != snapshot.cities.first || snapshot.cities.count == 1 }
             ViewThatFits {
@@ -1731,6 +1784,11 @@ struct WidgetPhotoTile: View {
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
         let newDay = !calendar.isDate(start, inSameDayAs: start.addingTimeInterval(-3600))
         let dim = WidgetWorkStatus.dims(city, snapshot: snapshot, hourStart: start)
+        // Working tiles are floored at 0.12 luminance only while working hours are highlighted
+        // (off tiles then sit beside them); otherwise the plain sky, night tiles stay night.
+        let highlights = snapshot.showStatus ?? true
+        let fill = dim ? DayColor.offHoursFill(at: Double(hour) + Double(minute) / 60)
+            : (highlights ? DayColor.workingFill(at: Double(hour) + Double(minute) / 60) : style.fill)
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         let suffix: String? = snapshot.use24h ? nil : (hour < 12 ? "AM" : "PM")
         return Group {
@@ -1762,7 +1820,7 @@ struct WidgetPhotoTile: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Off-hours tiles are darkened, never see-through (was 88% opacity: the photo showed
         // through behind the numerals), as the app's.
-        .background(shape.fill(dim ? DayColor.offHoursFill(at: Double(hour) + Double(minute) / 60) : style.fill))
+        .background(shape.fill(fill))
         // Night and off-hours tiles are near-black: a hairline keeps the row reading as tiles on a
         // dark night photo, as the app's HourTiles.
         .overlay(shape.strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.16 : 0), lineWidth: 0.5))
@@ -1802,14 +1860,30 @@ struct WidgetPhotoTile: View {
     private func sharedLabel(hour: Int, minute: Int) -> some View {
         let own = Self.digits(hour, use24h: snapshot.use24h)
         let wide = widest.count > own.count ? widest : own
-        let base: CGFloat = minute != 0 ? 14 : digitSize
-        ViewThatFits(in: .horizontal) {
-            fitted(own, wide, minute: minute, size: base)
-            fitted(own, wide, minute: minute, size: base - 1)
-            fitted(own, wide, minute: minute, size: base - 2)
-            label(own, minute: minute, size: base - 2)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+        if minute != 0 {
+            // Half-hour zones: the hour starts at the row's digit size, as the full-hour rows' (it
+            // started at 14 and fell to 12, 24% under them, beside an 11 pt ":30"), with ":30" at
+            // 11 to 12 pt; it steps down only as far as the old 12 pt, then shrinks as before.
+            ViewThatFits(in: .horizontal) {
+                fitted(own, wide, minute: minute, size: digitSize)
+                fitted(own, wide, minute: minute, size: digitSize - 1)
+                fitted(own, wide, minute: minute, size: max(12, digitSize - 2))
+                fitted(own, wide, minute: minute, size: max(12, digitSize - 3))
+                fitted(own, wide, minute: minute, size: 12)
+                label(own, minute: minute, size: 12)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+        } else {
+            let base = digitSize
+            ViewThatFits(in: .horizontal) {
+                fitted(own, wide, minute: minute, size: base)
+                fitted(own, wide, minute: minute, size: base - 1)
+                fitted(own, wide, minute: minute, size: base - 2)
+                label(own, minute: minute, size: base - 2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
         }
     }
 

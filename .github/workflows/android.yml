@@ -49,6 +49,20 @@ jobs:
           heap-size: 576M
           disk-size: 6000M
           script: bash android/screenshots.sh "$OUT/screenshots"
+      - name: Check the city cards show photos
+        run: |
+          pip install --quiet pillow
+          python3 - "$OUT/screenshots/screen-main.png" <<'EOF'
+          import sys
+          from PIL import Image, ImageStat
+          im = Image.open(sys.argv[1]).convert("L")
+          w, h = im.size
+          # The sky of the first two cards (top right, above the tiles): a photo or the drawn skyline has texture; a blank card is flat.
+          boxes = [(int(w * .74), int(h * .175), int(w * .95), int(h * .215)), (int(w * .74), int(h * .33), int(w * .95), int(h * .37))]
+          spreads = [ImageStat.Stat(im.crop(b)).stddev[0] for b in boxes]
+          print("card sky spread:", [round(x, 1) for x in spreads])
+          sys.exit(0 if max(spreads) >= 6 else "city cards look blank (no photo or drawn skyline)")
+          EOF
       - name: Publish to ci-android branch
         if: always()
         run: |

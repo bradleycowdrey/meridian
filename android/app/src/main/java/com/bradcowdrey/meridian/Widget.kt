@@ -88,15 +88,22 @@ object MeridianWidgets {
     private const val TILES_WEIGHT = 1.1f
     private const val ROW_RADIUS = 12f
     private const val SMALL_RADIUS = 22f
-    /** The smallest AM/PM (sp), by the time and on the tiles: a fixed span on the tiles, so auto-size never shrinks it. */
+    /** The smallest AM/PM (sp), by the time and on the tiles: a fixed span on the tiles (in sp, so it follows the font scale), so auto-size never shrinks it. */
     private const val AMPM_MIN_SP = 12f
-    /** A half-hour city's ":30" on the tiles (dp, fixed, as the app's 11 sp ":30"). */
-    private const val MINUTES_DP = 11f
+    /** A half-hour city's ":30" on the tiles (sp, a fixed span that follows the font scale, as the app's 11 sp ":30"). */
+    private const val MINUTES_SP = 11f
+    /** The least clear space (dp) above the time's line in a row with the compact pill (five rows on the large widget): with the cap's own 3.7 dp, about 6 dp from the row's top edge to the time. */
+    private const val COMPACT_TOP_CLEAR = 2f
     /**
      * Tile fills no lighter than this relative luminance (that of #3F6A97, as the app's tiles, DayColor.tile),
      * so white numbers and AM/PM on them are at least 5.6:1 (1.05 / 0.186).
      */
     private const val TILE_MAX_LUMINANCE = 0.136
+    /**
+     * Working (not dimmed) tile fills no darker than this relative luminance, as the app's (DayColor.WORKING_FLOOR):
+     * 3.05:1 from an off-hours tile (0.006) at the shoulder hours too (9 AM was 2.9:1), white on it 6.3:1.
+     */
+    private const val TILE_WORKING_FLOOR = 0.12
     // Outside working hours a tile is dimmed exactly as the app's tiles, via TileDim.opaque (MainActivity.kt): same hue,
     // opaque so no photo shows through, 30% of its luminance, no lighter than 0.006 and no darker than the #0A0E1C night
     // tile (0.0048). A working day tile (0.136) against the brightest off one (0.006) is 3.3:1 (WCAG 1.4.11).
@@ -186,9 +193,10 @@ object MeridianWidgets {
      * then a 14 sp name, then an 18 sp time, then a 13 sp name, then 12 sp; else a status dot before the name and the
      * largest time and name that fit (20, 18 or 15 sp over a 15, 14, 13, 12 or 11 sp name; down to a 10 sp time at the
      * largest font scales). The name column's bottom is level with the tiles' (TEXT_CLEARANCE is 0). At font scale 1:
-     * 5 rows at 320 dp (56.8 dp rows): 18 sp time, 13 sp name, compact pill; 2 rows at 152 dp (67 dp rows) and 4 at
+     * 5 rows at 320 dp (56.8 dp rows): 17 sp time, 12.5 sp name, compact pill (COMPACT_TOP_CLEAR: about 6 dp above
+     * the time's cap, 6 dp under the pill; 18/13 left 4.2 dp); 2 rows at 152 dp (67 dp rows) and 4 at
      * 320 dp: 20 sp, 15 sp, full 13 sp pill. Tall tiles (hour over
-     * AM/PM) in rows at least TALL_TILE_ROW tall, only while both lines fit the tile at the font scale (up to about 1.57).
+     * AM/PM) in rows at least TALL_TILE_ROW tall, only while both lines fit the tile at the font scale (through 1.3, about 1.33).
      */
     private fun rowFit(context: Context, rowHDp: Float, wantStatus: Boolean): RowFit {
         val fs = context.resources.configuration.fontScale.coerceAtLeast(0.5f)
@@ -206,9 +214,12 @@ object MeridianWidgets {
             Triple(18f, 15f, StatusFit.PILL), Triple(18f, 15f, StatusFit.COMPACT),
             Triple(18f, 14f, StatusFit.PILL), Triple(18f, 14f, StatusFit.COMPACT),
             Triple(18f, 13f, StatusFit.PILL), Triple(18f, 13f, StatusFit.COMPACT),
-            Triple(18f, 12f, StatusFit.COMPACT),
+            Triple(17f, 12.5f, StatusFit.COMPACT), Triple(18f, 12f, StatusFit.COMPACT),
         ) else emptyList()
-        val chosen: Triple<Float, Float, StatusFit> = tries.firstOrNull { (t, n, s) -> height(t, n, s) <= avail }
+        // The compact pill only with COMPACT_TOP_CLEAR above the time; else, as before, the first that fits at all.
+        val chosen: Triple<Float, Float, StatusFit> =
+            tries.firstOrNull { (t, n, s) -> height(t, n, s) + (if (s == StatusFit.COMPACT) COMPACT_TOP_CLEAR else 0f) <= avail }
+            ?: tries.firstOrNull { (t, n, s) -> height(t, n, s) <= avail }
             ?: run {
                 // No room for the pill: the largest time, then the largest name, that fit; at the largest font scales an 11 sp name and a time sized to what is left.
                 val pairs = listOf(20f to 15f, 20f to 14f, 20f to 13f, 18f to 15f, 18f to 14f, 18f to 13f, 15f to 13f, 15f to 12f, 15f to 11f)
@@ -222,8 +233,11 @@ object MeridianWidgets {
         val textTopDp = rowHDp - ROW_PAD_BOTTOM - textPad - textH
         val top = (textTopDp / rowHDp).coerceIn(0f, 0.8f)
         val timeBottom = ((textTopDp + line(timeSp)) / rowHDp).coerceIn(top + 0.05f, 0.9f)
-        // Tall tiles only while the 13 sp digits (auto-size minimum, scaled) over the fixed 12 dp AM/PM fit the 38 dp tile; else the one-line tiles.
-        val tall = rowHDp >= TALL_TILE_ROW && line(13f) + AMPM_MIN_SP * LINE_EM <= TILE_TALL_HEIGHT
+        // Tall tiles only while the 13 sp digits (auto-size minimum) over the 12 sp AM/PM, both at the font scale as drawn
+        // (applyDimension, non-linear on Android 14+), fit the 38 dp tile (less up to 1 dp of the AM/PM descent); else the one-line tiles.
+        val dm = context.resources.displayMetrics
+        fun drawnLine(sp: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, dm) / dm.density * LINE_EM
+        val tall = rowHDp >= TALL_TILE_ROW && drawnLine(13f) + drawnLine(AMPM_MIN_SP) <= TILE_TALL_HEIGHT + 1f  // the AM/PM line's descent (no descenders in AM/PM) may overhang
         return RowFit(timeSp, nameSp, status, textPad, tall,
             RectF(0f, top, 0.4f, timeBottom), RectF(0f, timeBottom, 0.47f, 0.95f))
     }
@@ -270,7 +284,7 @@ object MeridianWidgets {
             // slightly smaller time, or at the least a status dot before the name, by what fits the row.
             val fit = rowFit(context, rowH, work.show)
             // Tall tiles for the whole widget (the Now capsule's height is shared) only while every half-hour city's widest
-            // hour, "10" at the 13 sp auto-size floor plus the fixed 11 dp ":30", fits the tile's width; else every row takes
+            // hour, "10" at the 13 sp auto-size floor plus the 11 sp ":30", fits the tile's width; else every row takes
             // the one-line tiles, whose guard drops AM/PM rather than clip it.
             val tileW = (innerW - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
             val tall = fit.tallTiles && run {
@@ -289,7 +303,7 @@ object MeridianWidgets {
                         val at = anchor.plusSeconds(k * 3600L).atZone(p.zone)
                         at.minute == 0 ||
                             widthDp(if (use24h) "%02d".format(at.hour) else "${if (at.hour % 12 == 0) 12 else at.hour % 12}", 13f, TypedValue.COMPLEX_UNIT_SP) +
-                            widthDp(":%02d".format(at.minute), MINUTES_DP, TypedValue.COMPLEX_UNIT_DIP) + 2f <= tileW
+                            widthDp(":%02d".format(at.minute), MINUTES_SP, TypedValue.COMPLEX_UNIT_SP) + 2f <= tileW
                     }
                 }
             }
@@ -434,19 +448,21 @@ object MeridianWidgets {
         v.setViewVisibility(R.id.tiles, if (tall) View.GONE else View.VISIBLE)
         v.setViewVisibility(R.id.tiles_tall, if (tall) View.VISIBLE else View.GONE)
         val ids = if (tall) listOf(R.id.tile0_tall, R.id.tile1_tall, R.id.tile2_tall) else listOf(R.id.tile0, R.id.tile1, R.id.tile2)
-        // Each tile's width: 12 sp AM/PM where it fits, else 11 sp (only at the narrowest widths, about 250 dp), so
-        // "10 PM" is never cut; the digits auto-size from 15 sp down to 11 sp (below 12 sp only at the narrowest widths; widget_photo_row).
+        // AM/PM is always 12 sp (as the app), following the font scale; where "10 PM" would not fit the tile (the
+        // narrowest widths, large font scales) the row drops AM/PM (keepSuffix) rather than shrink or cut it. The digits
+        // auto-size from 15 sp down to 11 sp (widget_photo_row).
         val tileW = (wDp - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT) / 3f - 2 * TILE_MARGIN
-        val ampmSp = if (tall || tileW >= 36f) AMPM_MIN_SP else 11f
+        val ampmSp = AMPM_MIN_SP
         val starts = listOf(-1L, 0L, 1L).map { TimeMath.hourAnchor(now, home).plusSeconds(it * 3600L).atZone(zone) }
-        // Half-hour cities: the minutes as a small ":30" (11 dp, as the app's tiles) after the hour.
+        // Half-hour cities: the minutes as a small ":30" (11 sp, as the app's tiles) after the hour.
         fun digits(hour: Int) = if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}"
         fun suffix(hour: Int) = if (use24h) null else if (hour < 12) "AM" else "PM"
         // One-line tiles: "10:30 PM" with the digits at their 11 sp floor must fit the tile; if the widest of the row's
         // three does not (half-hour cities on narrow widgets, 12-hour clock), the row's tiles drop AM/PM together (the
         // city's own time beside them carries it, and the tile's sky colour says day or night) rather than clip it.
-        val keepSuffix = tall || starts.all { it.minute == 0 } || run {
-            val dm = context.resources.displayMetrics
+        val dm = context.resources.displayMetrics
+        // One-line tiles: AM/PM at the font scale must also fit the 24 dp tile's height.
+        val keepSuffix = tall || (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, ampmSp, dm) / dm.density * LINE_EM <= TILE_HEIGHT && run {
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 fontFeatureSettings = "tnum"
@@ -457,16 +473,20 @@ object MeridianWidgets {
             }
             starts.maxOf { at ->
                 widthDp(digits(at.hour) + TimeMath.THIN, 11f, TypedValue.COMPLEX_UNIT_SP) +
-                    widthDp(":%02d".format(at.minute), MINUTES_DP, TypedValue.COMPLEX_UNIT_DIP) +
-                    widthDp(suffix(at.hour) ?: "", ampmSp, TypedValue.COMPLEX_UNIT_DIP)
+                    widthDp(":%02d".format(at.minute), MINUTES_SP, TypedValue.COMPLEX_UNIT_SP) +
+                    widthDp(suffix(at.hour) ?: "", ampmSp, TypedValue.COMPLEX_UNIT_SP)
             } + 2f <= tileW
-        }
+        })
         ids.zip(starts).forEach { (id, at) ->
-            val color = capped(DayColor.at(at.hour + at.minute / 60.0))
+            val dim = work.show && !WorkWeek.isWorking(place, at.toInstant().plusSeconds(1800), work.start, work.end)
+            // Working tiles (where working hours show) no darker than TILE_WORKING_FLOOR, as the app's; dimmed ones as before.
+            // Only at day and shoulder hours (6:30 AM to 8:30 PM), as the app's, so a working night tile keeps its navy.
+            val h = at.hour + at.minute / 60.0
+            val color = capped(DayColor.at(h), if (work.show && !dim && h >= 6.5 && h <= 20.5) TILE_WORKING_FLOOR else 0.0)
             val head = digits(at.hour)
             val minutes = if (at.minute != 0) ":%02d".format(at.minute) else ""
             val period = if (keepSuffix) suffix(at.hour) else null
-            // "10 AM" with a smaller AM, as on the iPhone (12 sp, or 11 sp on the narrowest tiles; auto-size shrinks only
+            // "10 AM" with a smaller AM, as on the iPhone (12 sp, following the font scale; auto-size shrinks only
             // the hour); tall tiles: "10" over "AM" (17 sp digits, auto-sized down to 13 sp; 12 sp AM/PM).
             val label = head + minutes + when {
                 period == null -> ""
@@ -475,11 +495,12 @@ object MeridianWidgets {
             }
             val text = android.text.SpannableString(label)
             val flags = android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            if (minutes.isNotEmpty()) text.setSpan(android.text.style.AbsoluteSizeSpan(MINUTES_DP.roundToInt(), true), head.length, head.length + minutes.length, flags)
-            if (period != null) text.setSpan(android.text.style.AbsoluteSizeSpan(ampmSp.roundToInt(), true), label.length - period.length, label.length, flags)
+            // Sizes in px from sp (dip = false), so ":30" and AM/PM follow the font scale with the hour digits.
+            fun spPx(sp: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, dm).roundToInt()
+            if (minutes.isNotEmpty()) text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(MINUTES_SP), false), head.length, head.length + minutes.length, flags)
+            if (period != null) text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(ampmSp), false), label.length - period.length, label.length, flags)
             v.setTextViewText(id, text)
             v.setTextColor(id, 0xFFFFFFFF.toInt())
-            val dim = work.show && !WorkWeek.isWorking(place, at.toInstant().plusSeconds(1800), work.start, work.end)
             // Opaque either way: the dimmed tile is darker, not see-through, so photo highlights never sit under its text.
             val fill = if (dim) TileDim.opaque(color) else color
             if (Build.VERSION.SDK_INT >= 31) v.setColorStateList(id, "setBackgroundTintList", ColorStateList.valueOf(fill))
@@ -487,14 +508,14 @@ object MeridianWidgets {
         }
     }
 
-    /** [rgb] with its linear light scaled down (same hue) so its relative luminance is at most [TILE_MAX_LUMINANCE]. */
-    private fun capped(rgb: Int): Int {
+    /** [rgb] with its linear light scaled (same hue) so its relative luminance is at most [TILE_MAX_LUMINANCE] and at least [floor]. */
+    private fun capped(rgb: Int, floor: Double = 0.0): Int {
         fun lin(v: Int): Double { val c = v / 255.0; return if (c <= 0.04045) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4) }
         fun enc(l: Double): Int { val c = if (l <= 0.0031308) l * 12.92 else 1.055 * Math.pow(l, 1 / 2.4) - 0.055; return (c * 255).roundToInt().coerceIn(0, 255) }
         val r = lin((rgb shr 16) and 0xFF); val g = lin((rgb shr 8) and 0xFF); val b = lin(rgb and 0xFF)
         val l = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        if (l <= TILE_MAX_LUMINANCE) return rgb
-        val k = TILE_MAX_LUMINANCE / l
+        if (l <= 0.0 || (l <= TILE_MAX_LUMINANCE && l >= floor)) return rgb
+        val k = (if (l > TILE_MAX_LUMINANCE) TILE_MAX_LUMINANCE else floor) / l
         return (0xFF shl 24) or (enc(r * k) shl 16) or (enc(g * k) shl 8) or enc(b * k)
     }
 

@@ -469,7 +469,7 @@ private fun SwitchRow(label: String, on: Boolean, set: (Boolean) -> Unit) {
         // On: green with a white knob, as the system's switches; off: faint white.
         Switch(on, set, colors = SwitchDefaults.colors(checkedTrackColor = Palette.switchOn, checkedThumbColor = Color.White,
             checkedBorderColor = Palette.switchOn, uncheckedTrackColor = white(0.15f), uncheckedThumbColor = white(0.6f),
-            uncheckedBorderColor = Color.Transparent))
+            uncheckedBorderColor = white(0.55f)))  // The off track's edge at about 5:1 on the card (was transparent, 1.5:1), as M3's outline.
     }
 }
 
@@ -684,8 +684,9 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
           Box(Modifier.weight(1f)) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // The answer: the chosen time, large, with its day and how far away it is.
-                Column(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                // The answer: the chosen time, large, with its day and how far away it is. 12 dp above and 8 below
+                // (were 24 and 16), so at first open 20 dp more of the month clears the Go bar (a week row sat cut by it).
+                Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     val (clock, suffix) = TimeMath.clock(moment, zone, store.use24h)
                     // Medium, as the cards' times and the iPhone (Thin's hairline strokes blurred at arm's length);
                     // AM/PM is one step lighter (Normal, in clockText), so the digits stay the heaviest part.

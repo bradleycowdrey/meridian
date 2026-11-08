@@ -249,7 +249,8 @@ private fun BestTimes(store: Store, slots: List<Slot>, count: Int, pick: (Slot) 
                 Column(Modifier.weight(1f)) {
                     Text("${time(first.start)}–${time(run.last().end)}", style = tnum, fontSize = 20.sp, color = Palette.primary)
                     Spacer(Modifier.height(2.dp))
-                    Text(if (run.size == 1) "Your time" else "Your time · start any time from ${time(first.start)} to ${time(run.last().start)}",
+                    // The range bound with no-break spaces: a wrap moves "from 10:00 PM to 11:30 PM" whole (a lone "11:30 PM" was left on line 2).
+                    Text(if (run.size == 1) "Your time" else "Your time · start any time from\u00A0${time(first.start)}\u00A0to\u00A0${time(run.last().start)}",
                         fontSize = 13.sp, color = white(0.7f))
                 }
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.5f))

@@ -370,10 +370,12 @@ private struct HourGrid: View {
 }
 
 /// One person's cell in an hour of the grid (and in its key). Working is a pale sky blue (the hour
-/// tiles' hue, as bright as the old white), Off a mid grey, Night near the card with a hairline
-/// edge and a small moon, so night never depends on brightness alone. On the card (~#1F1F1F):
-/// working 3.4:1 against off (was 4.5), off 3.2:1 against night (was 1.9); past hours (cells at
-/// 0.9, was 0.7) 3.2:1 and 2.9:1 (were 3.4 and 1.5), the night edge 3.8:1 on the card.
+/// tiles' hue, as bright as the old white), Off a mid grey, Night the hour tiles' night ink
+/// (#0A0E1C) with a hairline edge and a small moon (white 0.75, 10.8:1 on it), so night never depends on brightness alone. On the card (~#1F1F1F):
+/// working 3.4:1 against off (was 4.5), off ~4.7:1 against night (was 3.2); past hours (cells at
+/// 0.9, composited on the card) ~3.2:1 working/off and ~4.1:1 off/night. The night fill alone is
+/// only ~1.16:1 against the card, so the 0.75 pt edge (3.8:1 on the card) and the moon carry the
+/// distinction between a night cell and the card.
 private struct SlotCell: View {
     let state: Slot.State
     let past: Bool
@@ -392,7 +394,7 @@ private struct SlotCell: View {
                         shape.strokeBorder(Color.white.opacity(0.35), lineWidth: 0.75)
                         Image(systemName: "moon.fill")
                             .font(.system(size: glyph, weight: .medium))
-                            .foregroundStyle(Color.white.opacity(0.5))
+                            .foregroundStyle(Color.white.opacity(0.75))
                     }
                 }
             }
@@ -411,7 +413,9 @@ struct Slot: Identifiable {
             // #DDEAFA: L 0.81, as bright as the old white 0.85, with the hour tiles' sky-blue hue.
             case .working: return Theme.rgb(0xDDEAFA)
             case .off: return Color.white.opacity(0.42)
-            case .night: return Color.white.opacity(0.08)
+            // The hour tiles' night ink (#0A0E1C), so night is the same colour here as on the
+            // main list and reads as a dark state (off vs night ~4.7:1, past ~4.1:1; was 3.2), not an empty slot.
+            case .night: return Theme.rgb(0x0A0E1C)
             }
         }
     }

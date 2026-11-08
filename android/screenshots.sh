@@ -14,7 +14,7 @@ adb shell am broadcast -a com.android.systemui.demo -e command notifications -e 
 adb logcat -c; (adb logcat -v time > "$OUT/logcat-full.txt" 2>&1 &)
 # Screens without city photos first, so if the emulator drops out we can see which screen took it down.
 # The main list piece by piece first (CI diagnostics): off= parts left out of the cards.
-for step in "photos,capsule,shadows,outline" "capsule,shadows,outline" "capsule,shadows" "capsule"; do
+for step in "rows,footer" "footer" "rows" "tiles,footer"; do
   timeout 180 adb wait-for-device || { echo "emulator gone before main off=$step" >> "$OUT/launch.txt"; break; }
   adb shell am force-stop com.bradcowdrey.meridian
   adb shell am start -n com.bradcowdrey.meridian/.MainActivity --ez screenshots true --es screen main --es off "$step" >> "$OUT/launch.txt" 2>&1

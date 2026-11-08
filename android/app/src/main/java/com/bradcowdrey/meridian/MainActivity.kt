@@ -452,7 +452,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
             if (showBar) {
                 Column(Modifier.fillMaxWidth().background(Palette.barBg).navigationBarsPadding()) {
                     HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))
-                    TimeShifter(store) { open("date") }
+                    if (!Diag.has("footer")) TimeShifter(store) { open("date") }
                 }
             }
         },
@@ -535,6 +535,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                             bottom = if (last) Rows.edge else Rows.gap)
                             .fillMaxWidth().clip(shape).background(Palette.tile)) {
                             if (editing) EditRow(store, place)
+                            else if (Diag.has("rows")) Box(Modifier.fillMaxWidth().height(rowHeight))
                             else {
                                 CityRow(store, place, height = rowHeight, modifier = Modifier
                                     .pointerInput(place.id) {
@@ -1311,7 +1312,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                 }
             }
             Spacer(Modifier.width(Strip.labelGap))
-            HourTiles(store, place, Modifier.weight(1f), onLongPress, tileHeight)
+            if (Diag.has("tiles")) Spacer(Modifier.weight(1f)) else HourTiles(store, place, Modifier.weight(1f), onLongPress, tileHeight)
         }
     }
 }

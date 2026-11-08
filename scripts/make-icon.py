@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Draws Meridian's app icon in the app's colours (the Two Degrees sky: day blue into night navy,
-white type) with the family's crimson band along the top, as on Two Degrees' icon.
+white type), with no band along the top.
 
 The mark: four days as bars of light and dark (one per city), crossed by the "now" capsule.
 
@@ -26,7 +26,6 @@ def hexc(h):
 
 
 SKY = [(0.0, hexc(0x4A80BD)), (0.5, hexc(0x1F416B)), (1.0, hexc(0x0B1022))]
-CRIMSON = hexc(0x990F3D)
 # Each bar: daylight as (position 0..1, white opacity) stops, left to right.
 BARS = [
     [(0, .12), (.18, .30), (.38, .92), (1, .95)],          # morning: night into day
@@ -45,7 +44,6 @@ def art(size):
     sky = np.repeat(rgb[:, None, :], S, axis=1)
     img = Image.fromarray(np.dstack([sky, np.full((S, S), 255.0)]).astype(np.uint8), "RGBA")
     d = ImageDraw.Draw(img)
-    d.rectangle([0, 0, S, round(S * 0.034)], fill=CRIMSON + (255,))
 
     left, right, h = 0.165 * S, 0.835 * S, 0.098 * S
     centers = [0.30, 0.445, 0.59, 0.735]

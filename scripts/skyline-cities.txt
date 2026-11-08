@@ -82,7 +82,7 @@ Casablanca|Casablanca|Africa/Casablanca|CMN;Hassan II|-File:Navire conteneur SKY
 Lagos|Lagos|Africa/Lagos|LOS
 Accra|Accra|Africa/Accra|ACC|-File:Power lines and skyline view from North Dzorwulu (IMG 6833).jpg
 Addis Ababa|Addis Ababa|Africa/Addis_Ababa|ADD
-Nairobi|Nairobi|Africa/Nairobi|NBO||-File:Monikos Quiz Night in Nairobi.jpg
+Nairobi|Nairobi|Africa/Nairobi|NBO||-File:Monikos Quiz Night in Nairobi.jpg;-File:Monikos Quiz Night in Nairobi.jpg
 Johannesburg|Johannesburg|Africa/Johannesburg|JNB;Joburg
 Cape Town|Cape Town|Africa/Johannesburg|CPT
 # Middle East
@@ -98,7 +98,7 @@ Delhi|Delhi|Asia/Kolkata|New Delhi;DEL|File:Skyline at Rajiv Chowk.JPG
 Mumbai|Mumbai|Asia/Kolkata|Bombay;BOM
 Bengaluru|Bengaluru|Asia/Kolkata|Bangalore;BLR
 Hyderabad|Hyderabad|Asia/Kolkata|HYD||-File:The terminal station of Hyderabad Deccan Nampally at night 02.jpg
-Chennai|Chennai|Asia/Kolkata|Madras;MAA||-File:Jagannath Temple Chennai night view.jpg
+Chennai|Chennai|Asia/Kolkata|Madras;MAA||-File:Jagannath Temple Chennai night view.jpg;-File:Jagannath Temple Chennai night view.jpg
 Kolkata|Kolkata|Asia/Kolkata|Calcutta;CCU
 Dhaka|Dhaka|Asia/Dhaka|DAC
 Bangkok|Bangkok|Asia/Bangkok|BKK

@@ -12,17 +12,7 @@ adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi s
 adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
 # Keep a running log on the runner, so a crash (or the emulator going offline) still leaves a trace.
 adb logcat -c; (adb logcat -v time > "$OUT/logcat-full.txt" 2>&1 &)
-# Screens without city photos first, so if the emulator drops out we can see which screen took it down.
-# The main list piece by piece first (CI diagnostics): off= parts left out of the cards.
-for step in "rows,footer" "footer" "rows" "tiles,footer"; do
-  timeout 180 adb wait-for-device || { echo "emulator gone before main off=$step" >> "$OUT/launch.txt"; break; }
-  adb shell am force-stop com.bradcowdrey.meridian
-  adb shell am start -n com.bradcowdrey.meridian/.MainActivity --ez screenshots true --es screen main --es off "$step" >> "$OUT/launch.txt" 2>&1
-  sleep 9
-  adb exec-out screencap -p > "$OUT/diag-main-off-${step//,/-}.png"
-  echo "$(date +%T) shot main off=$step ($(stat -c %s "$OUT/diag-main-off-${step//,/-}.png") bytes)" >> "$OUT/launch.txt"
-done
-for screen in settings terms date find add widgets main travel edit; do
+for screen in main travel add edit settings date find widgets terms; do
   timeout 180 adb wait-for-device || { echo "emulator gone before $screen" >> "$OUT/launch.txt"; break; }
   adb shell am force-stop com.bradcowdrey.meridian
   adb shell am start -n com.bradcowdrey.meridian/.MainActivity --ez screenshots true --es screen "$screen" >> "$OUT/launch.txt" 2>&1

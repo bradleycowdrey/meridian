@@ -1,1 +1,1722 @@
-[]
+[
+ {
+  "key": "sanfrancisco",
+  "names": [
+   "San Francisco",
+   "SF",
+   "SFO",
+   "Bay Area"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-sanfrancisco.jpg",
+  "credit": {
+   "author": "Dllu",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_of_April_2017_seen_from_Treasure_Island.jpg"
+  }
+ },
+ {
+  "key": "losangeles",
+  "names": [
+   "Los Angeles",
+   "LA",
+   "LAX"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-losangeles.jpg",
+  "credit": {
+   "author": "Eric Polk",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Downtown_Los_Angeles_skyline_from_Toy_District.jpg"
+  }
+ },
+ {
+  "key": "seattle",
+  "names": [
+   "Seattle",
+   "SEA"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-seattle.jpg",
+  "credit": {
+   "author": "Cacophony",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:SeattleI5Skyline.jpg"
+  }
+ },
+ {
+  "key": "sandiego",
+  "names": [
+   "San Diego",
+   "SAN"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-sandiego.jpg",
+  "credit": {
+   "author": "Eric youtse",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:San_Diego_Skyline_Image.jpg"
+  }
+ },
+ {
+  "key": "lasvegas",
+  "names": [
+   "Las Vegas",
+   "LAS",
+   "Vegas"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-lasvegas.jpg",
+  "credit": {
+   "author": "King of Hearts",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bellagio_Las_Vegas_December_2013_panorama.jpg"
+  }
+ },
+ {
+  "key": "portland",
+  "names": [
+   "Portland",
+   "PDX"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-portland.jpg",
+  "credit": {
+   "author": "M.O. Stevens",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Portland_Skyline_glow_July_2017_pan_-_Oregon.jpg"
+  }
+ },
+ {
+  "key": "vancouver",
+  "names": [
+   "Vancouver",
+   "YVR"
+  ],
+  "zone": "America/Vancouver",
+  "file": "skyline-vancouver.jpg",
+  "credit": {
+   "author": "Kyle Pearce / DIY Genius",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Vancouver_Skyline_and_Mountains.jpg"
+  }
+ },
+ {
+  "key": "saltlakecity",
+  "names": [
+   "Salt Lake City",
+   "SLC"
+  ],
+  "zone": "America/Denver",
+  "file": "skyline-saltlakecity.jpg",
+  "credit": {
+   "author": "Iansmh98",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Salt_Lake_City_skyline_(2020)_from_Ensign_Peak.jpg"
+  }
+ },
+ {
+  "key": "denver",
+  "names": [
+   "Denver",
+   "DEN"
+  ],
+  "zone": "America/Denver",
+  "file": "skyline-denver.jpg",
+  "credit": {
+   "author": "Xnatedawgx",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Denver_skyline_from_Speer_Blvd_near_I-25,_April_2019.jpg"
+  }
+ },
+ {
+  "key": "phoenix",
+  "names": [
+   "Phoenix",
+   "PHX"
+  ],
+  "zone": "America/Phoenix",
+  "file": "skyline-phoenix.jpg",
+  "credit": {
+   "author": "Alan Stark from Goodyear, AZ, United States",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Downtown_Phoenix_Skyline_1_(6408553527).jpg"
+  }
+ },
+ {
+  "key": "calgary",
+  "names": [
+   "Calgary",
+   "YYC"
+  ],
+  "zone": "America/Edmonton",
+  "file": "skyline-calgary.jpg",
+  "credit": {
+   "author": "Quintin Soloviev",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Calgary_skyline_at_night_(Quintin_Soloviev).png"
+  }
+ },
+ {
+  "key": "austin",
+  "names": [
+   "Austin",
+   "AUS"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-austin.jpg",
+  "credit": {
+   "author": "Steve",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Austin_Texas_skyline,_December_2023_-_Evening.jpg"
+  }
+ },
+ {
+  "key": "dallas",
+  "names": [
+   "Dallas",
+   "DFW"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-dallas.jpg",
+  "credit": {
+   "author": "Matthew T Rader",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Dallas_Skyline_at_Dusk.jpg"
+  }
+ },
+ {
+  "key": "houston",
+  "names": [
+   "Houston",
+   "IAH"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-houston.jpg",
+  "credit": {
+   "author": "Jason Villanueva",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Buildings-city-houston-skyline-1870617.jpg"
+  }
+ },
+ {
+  "key": "chicago",
+  "names": [
+   "Chicago",
+   "ORD",
+   "CHI"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-chicago.jpg",
+  "credit": {
+   "author": "Diego Delso",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_de_Chicago_desde_el_centro,_Illinois,_Estados_Unidos,_2012-10-20,_DD_06.jpg"
+  }
+ },
+ {
+  "key": "minneapolis",
+  "names": [
+   "Minneapolis",
+   "MSP"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-minneapolis.jpg",
+  "credit": {
+   "author": "AlexiusHoratius",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Minneapolis_skyline_51.JPG"
+  }
+ },
+ {
+  "key": "mexicocity",
+  "names": [
+   "Mexico City",
+   "MEX",
+   "Ciudad de México",
+   "CDMX"
+  ],
+  "zone": "America/Mexico_City",
+  "file": "skyline-mexicocity.jpg",
+  "credit": {
+   "author": "Jonathan Salvador",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Mexico_City_Reforma_skyline.jpg"
+  }
+ },
+ {
+  "key": "newyork",
+  "names": [
+   "New York",
+   "New York City",
+   "NYC",
+   "JFK",
+   "LGA",
+   "EWR",
+   "Manhattan"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-newyork.jpg",
+  "credit": {
+   "author": "Diliff",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:New_York_Midtown_Skyline_at_night_-_Jan_2006_edit1.jpg"
+  }
+ },
+ {
+  "key": "boston",
+  "names": [
+   "Boston",
+   "BOS"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-boston.jpg",
+  "credit": {
+   "author": "King of Hearts",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Boston_skyline_from_Longfellow_Bridge_September_2017_panorama_2.jpg"
+  }
+ },
+ {
+  "key": "washingtondc",
+  "names": [
+   "Washington DC",
+   "Washington",
+   "Washington D.C.",
+   "DC",
+   "IAD",
+   "DCA"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-washingtondc.jpg",
+  "credit": {
+   "author": "Ad Meskens",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Washington_dc_skyline.jpg"
+  }
+ },
+ {
+  "key": "philadelphia",
+  "names": [
+   "Philadelphia",
+   "PHL"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-philadelphia.jpg",
+  "credit": {
+   "author": "Ed Yakovich ( Emy111 at en.wikipedia )",
+   "license": "Public domain",
+   "licenseUrl": "",
+   "source": "https://commons.wikimedia.org/wiki/File:Philadelphia_skyline_sunset.jpg"
+  }
+ },
+ {
+  "key": "atlanta",
+  "names": [
+   "Atlanta",
+   "ATL"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-atlanta.jpg",
+  "credit": {
+   "author": "brandon walker",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Atlanta_Skyline_from_Mableton.jpg"
+  }
+ },
+ {
+  "key": "miami",
+  "names": [
+   "Miami",
+   "MIA"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-miami.jpg",
+  "credit": {
+   "author": "Wilfredor",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Miami,_Florida_skyline.jpg"
+  }
+ },
+ {
+  "key": "detroit",
+  "names": [
+   "Detroit",
+   "DTW"
+  ],
+  "zone": "America/Detroit",
+  "file": "skyline-detroit.jpg",
+  "credit": {
+   "author": "Arthur S. Siegel",
+   "license": "Public domain",
+   "licenseUrl": "",
+   "source": "https://commons.wikimedia.org/wiki/File:Detroit_Skyline_1942d.jpg"
+  }
+ },
+ {
+  "key": "toronto",
+  "names": [
+   "Toronto",
+   "YYZ"
+  ],
+  "zone": "America/Toronto",
+  "file": "skyline-toronto.jpg",
+  "credit": {
+   "author": "Jchmrt",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sunset_Toronto_Skyline_Panorama_Crop_from_Snake_Island.jpg"
+  }
+ },
+ {
+  "key": "montreal",
+  "names": [
+   "Montreal",
+   "Montréal",
+   "YUL"
+  ],
+  "zone": "America/Toronto",
+  "file": "skyline-montreal.jpg",
+  "credit": {
+   "author": "monsieuricon",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Paysage_-_Montreal_Skyline,_November_2005.jpg"
+  }
+ },
+ {
+  "key": "havana",
+  "names": [
+   "Havana",
+   "La Habana",
+   "HAV"
+  ],
+  "zone": "America/Havana",
+  "file": "skyline-havana.jpg",
+  "credit": {
+   "author": "Flickr User: Kuhnmi",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Vedado_Neighborhood_in_Havana,_Cuba.jpg"
+  }
+ },
+ {
+  "key": "panamacity",
+  "names": [
+   "Panama City",
+   "Panama",
+   "PTY"
+  ],
+  "zone": "America/Panama",
+  "file": "skyline-panamacity.jpg",
+  "credit": {
+   "author": "Dr. Thomas Liptak",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Panama_City_Skyline_1.jpg"
+  }
+ },
+ {
+  "key": "honolulu",
+  "names": [
+   "Honolulu",
+   "HNL"
+  ],
+  "zone": "Pacific/Honolulu",
+  "file": "skyline-honolulu.jpg",
+  "credit": {
+   "author": "Jason Jacobs from Honolulu, USA",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Honolulu_Skyline_(Explored)_-_Flickr_-_jijake1977.jpg"
+  }
+ },
+ {
+  "key": "anchorage",
+  "names": [
+   "Anchorage",
+   "ANC"
+  ],
+  "zone": "America/Anchorage",
+  "file": "skyline-anchorage.jpg",
+  "credit": {
+   "author": "Quintin Soloviev",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Anchorage,_Alaska_skyline.jpg"
+  }
+ },
+ {
+  "key": "bogota",
+  "names": [
+   "Bogota",
+   "Bogotá",
+   "BOG"
+  ],
+  "zone": "America/Bogota",
+  "file": "skyline-bogota.jpg",
+  "credit": {
+   "author": "Tijs Zwinkels",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_downtown_Bogota.jpg"
+  }
+ },
+ {
+  "key": "lima",
+  "names": [
+   "Lima",
+   "LIM"
+  ],
+  "zone": "America/Lima",
+  "file": "skyline-lima.jpg",
+  "credit": {
+   "author": "Joshua87",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Lima,_Urban_Skyline--Ciudad_de_Lima,_Skyline_urbano.jpg"
+  }
+ },
+ {
+  "key": "santiago",
+  "names": [
+   "Santiago",
+   "Santiago de Chile",
+   "SCL"
+  ],
+  "zone": "America/Santiago",
+  "file": "skyline-santiago.jpg",
+  "credit": {
+   "author": "3BRBS",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Santiago_with_San_Crist%C3%B3bal_hill_at_the_back_(Northeast_view_Panorama_01_-_Flat_projection).jpg"
+  }
+ },
+ {
+  "key": "buenosaires",
+  "names": [
+   "Buenos Aires",
+   "EZE"
+  ],
+  "zone": "America/Argentina/Buenos_Aires",
+  "file": "skyline-buenosaires.jpg",
+  "credit": {
+   "author": "Jimmy Baikovicius",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Buenos_Aires_Skyline_in_Color.jpg"
+  }
+ },
+ {
+  "key": "saopaulo",
+  "names": [
+   "Sao Paulo",
+   "São Paulo",
+   "GRU"
+  ],
+  "zone": "America/Sao_Paulo",
+  "file": "skyline-saopaulo.jpg",
+  "credit": {
+   "author": "Diego Torres Silvestre from Sao Paulo, Brazil",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:(2006)_Sao_Paulo_Skyline_(9557402041).jpg"
+  }
+ },
+ {
+  "key": "riodejaneiro",
+  "names": [
+   "Rio de Janeiro",
+   "Rio",
+   "GIG"
+  ],
+  "zone": "America/Sao_Paulo",
+  "file": "skyline-riodejaneiro.jpg",
+  "credit": {
+   "author": "Wilfredor",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Rio_de_Janeiro_skyline_and_Sugarloaf_Mountain_at_sunset,_Brazil_3.jpg"
+  }
+ },
+ {
+  "key": "london",
+  "names": [
+   "London",
+   "LHR",
+   "LGW"
+  ],
+  "zone": "Europe/London",
+  "file": "skyline-london.jpg",
+  "credit": {
+   "author": "Diliff",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:London_Skyline_from_Waterloo_Bridge,_London,_UK_-_Diliff.jpg"
+  }
+ },
+ {
+  "key": "manchester",
+  "names": [
+   "Manchester"
+  ],
+  "zone": "Europe/London",
+  "file": "skyline-manchester.jpg",
+  "credit": {
+   "author": "Peter McDermott",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Manchester_Skyline_-_geograph.org.uk_-_3411450.jpg"
+  }
+ },
+ {
+  "key": "edinburgh",
+  "names": [
+   "Edinburgh",
+   "EDI"
+  ],
+  "zone": "Europe/London",
+  "file": "skyline-edinburgh.jpg",
+  "credit": {
+   "author": "Carlesmari",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Edinburgh_Skyline_from_the_Castle.jpg"
+  }
+ },
+ {
+  "key": "dublin",
+  "names": [
+   "Dublin",
+   "DUB"
+  ],
+  "zone": "Europe/Dublin",
+  "file": "skyline-dublin.jpg",
+  "credit": {
+   "author": "Chris Morgan",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Dublin_skyline_and_River_Liffey_from_ferry_arriving_at_Dublin_Port_-_geograph.org.uk_-_5167299.jpg"
+  }
+ },
+ {
+  "key": "reykjavik",
+  "names": [
+   "Reykjavik",
+   "Reykjavík",
+   "KEF"
+  ],
+  "zone": "Atlantic/Reykjavik",
+  "file": "skyline-reykjavik.jpg",
+  "credit": {
+   "author": "Navaro",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Reykjav%C3%ADk_skyline_-_Skuggahverfi.JPG"
+  }
+ },
+ {
+  "key": "lisbon",
+  "names": [
+   "Lisbon",
+   "Lisboa",
+   "LIS"
+  ],
+  "zone": "Europe/Lisbon",
+  "file": "skyline-lisbon.jpg",
+  "credit": {
+   "author": "acediscovery",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:LisbonSkyline.jpg"
+  }
+ },
+ {
+  "key": "madrid",
+  "names": [
+   "Madrid",
+   "MAD"
+  ],
+  "zone": "Europe/Madrid",
+  "file": "skyline-madrid.jpg",
+  "credit": {
+   "author": "Barcex",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Madrid_-_Madrid_skyline_-_140314_195825.jpg"
+  }
+ },
+ {
+  "key": "barcelona",
+  "names": [
+   "Barcelona",
+   "BCN"
+  ],
+  "zone": "Europe/Madrid",
+  "file": "skyline-barcelona.jpg",
+  "credit": {
+   "author": "Marc Evans from Reading, UK",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Barcelona_Skyline_(3296188366).jpg"
+  }
+ },
+ {
+  "key": "paris",
+  "names": [
+   "Paris",
+   "CDG"
+  ],
+  "zone": "Europe/Paris",
+  "file": "skyline-paris.jpg",
+  "credit": {
+   "author": "Christer Gundersen",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_in_Paris,_12_July_2017.jpg"
+  }
+ },
+ {
+  "key": "brussels",
+  "names": [
+   "Brussels",
+   "Bruxelles",
+   "BRU"
+  ],
+  "zone": "Europe/Brussels",
+  "file": "skyline-brussels.jpg",
+  "credit": {
+   "author": "Luca Mangiat",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Brussels_Skyline_(cropped).jpg"
+  }
+ },
+ {
+  "key": "amsterdam",
+  "names": [
+   "Amsterdam",
+   "AMS"
+  ],
+  "zone": "Europe/Amsterdam",
+  "file": "skyline-amsterdam.jpg",
+  "credit": {
+   "author": "Choinowski",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_Amsterdam_Zuidas_(cropped).jpg"
+  }
+ },
+ {
+  "key": "frankfurt",
+  "names": [
+   "Frankfurt",
+   "Frankfurt am Main"
+  ],
+  "zone": "Europe/Berlin",
+  "file": "skyline-frankfurt.jpg",
+  "credit": {
+   "author": "DXR",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Seat_of_the_European_Central_Bank_and_Frankfurt_Skyline_at_dawn_20150422_1.jpg"
+  }
+ },
+ {
+  "key": "berlin",
+  "names": [
+   "Berlin",
+   "BER"
+  ],
+  "zone": "Europe/Berlin",
+  "file": "skyline-berlin.jpg",
+  "credit": {
+   "author": "Casp",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Berlin_skyline_2009w.jpg"
+  }
+ },
+ {
+  "key": "munich",
+  "names": [
+   "Munich",
+   "München",
+   "MUC"
+  ],
+  "zone": "Europe/Berlin",
+  "file": "skyline-munich.jpg",
+  "credit": {
+   "author": "Mwinog2777 ( talk )",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Munich_skyline_1.jpg"
+  }
+ },
+ {
+  "key": "zurich",
+  "names": [
+   "Zurich",
+   "Zürich",
+   "ZRH"
+  ],
+  "zone": "Europe/Zurich",
+  "file": "skyline-zurich.jpg",
+  "credit": {
+   "author": "Kuhnmi",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Zurich_skyline_blue_hour.jpg"
+  }
+ },
+ {
+  "key": "geneva",
+  "names": [
+   "Geneva",
+   "Genève",
+   "GVA"
+  ],
+  "zone": "Europe/Zurich",
+  "file": "skyline-geneva.jpg",
+  "credit": {
+   "author": "fr:Utilisateur:Stéphane_Pecorini",
+   "license": "CC BY-SA 2.0 fr",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/fr/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Geneve_2005_001_Ork.ch.jpg"
+  }
+ },
+ {
+  "key": "milan",
+  "names": [
+   "Milan",
+   "Milano",
+   "MXP"
+  ],
+  "zone": "Europe/Rome",
+  "file": "skyline-milan.jpg",
+  "credit": {
+   "author": "Daniel Case",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Full_Milan_skyline_from_Duomo_roof.jpg"
+  }
+ },
+ {
+  "key": "rome",
+  "names": [
+   "Rome",
+   "Roma",
+   "FCO"
+  ],
+  "zone": "Europe/Rome",
+  "file": "skyline-rome.jpg",
+  "credit": {
+   "author": "Nicholas Hartmann",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Rome_skyline_panorama.jpg"
+  }
+ },
+ {
+  "key": "vienna",
+  "names": [
+   "Vienna",
+   "Wien",
+   "VIE"
+  ],
+  "zone": "Europe/Vienna",
+  "file": "skyline-vienna.jpg",
+  "credit": {
+   "author": "Sohom Datta",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Vienna_skyline_across_the_Danube_river.jpg"
+  }
+ },
+ {
+  "key": "prague",
+  "names": [
+   "Prague",
+   "Praha",
+   "PRG"
+  ],
+  "zone": "Europe/Prague",
+  "file": "skyline-prague.jpg",
+  "credit": {
+   "author": "Petar Milošević",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Prague_skyline_at_dawn.jpg"
+  }
+ },
+ {
+  "key": "copenhagen",
+  "names": [
+   "Copenhagen",
+   "København",
+   "CPH"
+  ],
+  "zone": "Europe/Copenhagen",
+  "file": "skyline-copenhagen.jpg",
+  "credit": {
+   "author": "Skyline_003.jpg : Paul Burani from New York, NY derivative work: Blunts ( talk )",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Copenhagen_(Cropped).jpg"
+  }
+ },
+ {
+  "key": "oslo",
+  "names": [
+   "Oslo",
+   "OSL"
+  ],
+  "zone": "Europe/Oslo",
+  "file": "skyline-oslo.jpg",
+  "credit": {
+   "author": "Audun",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Oslo_skyline.jpg"
+  }
+ },
+ {
+  "key": "stockholm",
+  "names": [
+   "Stockholm",
+   "ARN"
+  ],
+  "zone": "Europe/Stockholm",
+  "file": "skyline-stockholm.jpg",
+  "credit": {
+   "author": "Tony Webster from Portland, Oregon, United States",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Stockholm_Skyline_(15189547020).jpg"
+  }
+ },
+ {
+  "key": "helsinki",
+  "names": [
+   "Helsinki",
+   "HEL"
+  ],
+  "zone": "Europe/Helsinki",
+  "file": "skyline-helsinki.jpg",
+  "credit": {
+   "author": "Tim Tregenza",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Helsinki_skyline_-_panoramio.jpg"
+  }
+ },
+ {
+  "key": "warsaw",
+  "names": [
+   "Warsaw",
+   "Warszawa",
+   "WAW"
+  ],
+  "zone": "Europe/Warsaw",
+  "file": "skyline-warsaw.jpg",
+  "credit": {
+   "author": "Simon Jowett (Flikr)",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:A_Warsaw_skyline_at_dusk_3345h5u5.jpg"
+  }
+ },
+ {
+  "key": "budapest",
+  "names": [
+   "Budapest",
+   "BUD"
+  ],
+  "zone": "Europe/Budapest",
+  "file": "skyline-budapest.jpg",
+  "credit": {
+   "author": "Elekes Andor",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Budapest_skyline_from_Gell%C3%A9rt_Hill_(3).jpg"
+  }
+ },
+ {
+  "key": "athens",
+  "names": [
+   "Athens",
+   "Athína",
+   "ATH"
+  ],
+  "zone": "Europe/Athens",
+  "file": "skyline-athens.jpg",
+  "credit": {
+   "author": "acediscovery",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Athens_Skyline.jpg"
+  }
+ },
+ {
+  "key": "kyiv",
+  "names": [
+   "Kyiv",
+   "Kiev",
+   "KBP"
+  ],
+  "zone": "Europe/Kyiv",
+  "file": "skyline-kyiv.jpg",
+  "credit": {
+   "author": "Sergey Galyonkin from Raleigh, USA",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Kyiv_skyline_(15688086793).jpg"
+  }
+ },
+ {
+  "key": "istanbul",
+  "names": [
+   "Istanbul",
+   "İstanbul",
+   "IST"
+  ],
+  "zone": "Europe/Istanbul",
+  "file": "skyline-istanbul.jpg",
+  "credit": {
+   "author": "SegLig",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Istanbul_skyline_01.jpg"
+  }
+ },
+ {
+  "key": "moscow",
+  "names": [
+   "Moscow",
+   "Moskva",
+   "SVO"
+  ],
+  "zone": "Europe/Moscow",
+  "file": "skyline-moscow.jpg",
+  "credit": {
+   "author": "Александр Сигачёв",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Moscow_-_Skyline_-_2026-09_-_p02.jpg"
+  }
+ },
+ {
+  "key": "cairo",
+  "names": [
+   "Cairo",
+   "CAI"
+  ],
+  "zone": "Africa/Cairo",
+  "file": "skyline-cairo.jpg",
+  "credit": {
+   "author": "Maher Najm",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cairo_Skyline.jpg"
+  }
+ },
+ {
+  "key": "casablanca",
+  "names": [
+   "Casablanca",
+   "CMN",
+   "Hassan II"
+  ],
+  "zone": "Africa/Casablanca",
+  "file": "skyline-casablanca.jpg",
+  "credit": {
+   "author": "elchicogris",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Casablanca_(1).jpg"
+  }
+ },
+ {
+  "key": "lagos",
+  "names": [
+   "Lagos",
+   "LOS"
+  ],
+  "zone": "Africa/Lagos",
+  "file": "skyline-lagos.jpg",
+  "credit": {
+   "author": "Clara Sanchiz",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Lagos_skyline.jpg"
+  }
+ },
+ {
+  "key": "accra",
+  "names": [
+   "Accra",
+   "ACC"
+  ],
+  "zone": "Africa/Accra",
+  "file": "skyline-accra.jpg",
+  "credit": {
+   "author": "Synth85",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Accra_Skyline_-_Ghana.jpg"
+  }
+ },
+ {
+  "key": "addisababa",
+  "names": [
+   "Addis Ababa",
+   "ADD"
+  ],
+  "zone": "Africa/Addis_Ababa",
+  "file": "skyline-addisababa.jpg",
+  "credit": {
+   "author": "Simfan34",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Addis_Ababa_skyline.jpg"
+  }
+ },
+ {
+  "key": "nairobi",
+  "names": [
+   "Nairobi",
+   "NBO"
+  ],
+  "zone": "Africa/Nairobi",
+  "file": "skyline-nairobi.jpg",
+  "credit": {
+   "author": "This Photo was taken by Timothy A. Gonsalves . Feel free to use my photos, but please mention me as the author. I wou...",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Nairobi_Skyline_Savannah_Kenya_May19_R1600687.jpg"
+  }
+ },
+ {
+  "key": "johannesburg",
+  "names": [
+   "Johannesburg",
+   "JNB",
+   "Joburg"
+  ],
+  "zone": "Africa/Johannesburg",
+  "file": "skyline-johannesburg.jpg",
+  "credit": {
+   "author": "Mark Hillary",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Johannesburg_skyline_2017.jpg"
+  }
+ },
+ {
+  "key": "capetown",
+  "names": [
+   "Cape Town",
+   "CPT"
+  ],
+  "zone": "Africa/Johannesburg",
+  "file": "skyline-capetown.jpg",
+  "credit": {
+   "author": "SkyPixels",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cape_Town_Skyline_of_CBD_at_Dusk.jpg"
+  }
+ },
+ {
+  "key": "telaviv",
+  "names": [
+   "Tel Aviv",
+   "TLV"
+  ],
+  "zone": "Asia/Jerusalem",
+  "file": "skyline-telaviv.jpg",
+  "credit": {
+   "author": "Yair Haklai",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skylines_of_Tel_Aviv-Yafo.jpg"
+  }
+ },
+ {
+  "key": "riyadh",
+  "names": [
+   "Riyadh",
+   "RUH"
+  ],
+  "zone": "Asia/Riyadh",
+  "file": "skyline-riyadh.jpg",
+  "credit": {
+   "author": "B.alotaby",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Riyadh_Skyline.jpg"
+  }
+ },
+ {
+  "key": "doha",
+  "names": [
+   "Doha",
+   "DOH"
+  ],
+  "zone": "Asia/Qatar",
+  "file": "skyline-doha.jpg",
+  "credit": {
+   "author": "Zairon",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Doha_Skyline_01.jpg"
+  }
+ },
+ {
+  "key": "dubai",
+  "names": [
+   "Dubai",
+   "DXB"
+  ],
+  "zone": "Asia/Dubai",
+  "file": "skyline-dubai.jpg",
+  "credit": {
+   "author": "Challiyil Eswaramangalath Pavithran Vipin",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Dubai_Skyline_from_Zabeel_Park.jpg"
+  }
+ },
+ {
+  "key": "abudhabi",
+  "names": [
+   "Abu Dhabi",
+   "AUH"
+  ],
+  "zone": "Asia/Dubai",
+  "file": "skyline-abudhabi.jpg",
+  "credit": {
+   "author": "Wadiia",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Abu_dhabi_skylines_2014.jpg"
+  }
+ },
+ {
+  "key": "tehran",
+  "names": [
+   "Tehran",
+   "IKA"
+  ],
+  "zone": "Asia/Tehran",
+  "file": "skyline-tehran.jpg",
+  "credit": {
+   "author": "Mhsheikholeslami",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Tehran_skyline-_Alborz_Mountains_on_background-20150401.jpg"
+  }
+ },
+ {
+  "key": "karachi",
+  "names": [
+   "Karachi",
+   "KHI"
+  ],
+  "zone": "Asia/Karachi",
+  "file": "skyline-karachi.jpg",
+  "credit": {
+   "author": "Ktownboy103",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Karachi_Skyline_2025.jpg"
+  }
+ },
+ {
+  "key": "delhi",
+  "names": [
+   "Delhi",
+   "New Delhi",
+   "DEL"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-delhi.jpg",
+  "credit": {
+   "author": "Kabi1990",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_at_Rajiv_Chowk.JPG"
+  }
+ },
+ {
+  "key": "mumbai",
+  "names": [
+   "Mumbai",
+   "Bombay",
+   "BOM"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-mumbai.jpg",
+  "credit": {
+   "author": "Cididity Hat",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Mumbai_Skyline_at_Night.jpg"
+  }
+ },
+ {
+  "key": "bengaluru",
+  "names": [
+   "Bengaluru",
+   "Bangalore",
+   "BLR"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-bengaluru.jpg",
+  "credit": {
+   "author": "Kushagra140",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bengaluru_Skyline_from_Tata_Promont.jpg"
+  }
+ },
+ {
+  "key": "hyderabad",
+  "names": [
+   "Hyderabad",
+   "HYD"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-hyderabad.jpg",
+  "credit": {
+   "author": "iMahesh",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Rajapushpa_Provincia_and_My_Home_Avatar_complexes_-_High-rise_residential_skyline_in_Hyderabad.jpg"
+  }
+ },
+ {
+  "key": "chennai",
+  "names": [
+   "Chennai",
+   "Madras",
+   "MAA"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-chennai.jpg",
+  "credit": {
+   "author": "Vineeshkoomully",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Chennai_skyline.JPG"
+  }
+ },
+ {
+  "key": "kolkata",
+  "names": [
+   "Kolkata",
+   "Calcutta",
+   "CCU"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-kolkata.jpg",
+  "credit": {
+   "author": "DeepanjanGhosh",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Kolkata_skyline_at_night.jpg"
+  }
+ },
+ {
+  "key": "dhaka",
+  "names": [
+   "Dhaka",
+   "DAC"
+  ],
+  "zone": "Asia/Dhaka",
+  "file": "skyline-dhaka.jpg",
+  "credit": {
+   "author": "Tarunno",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_View_of_the_City_of_Dhaka_on_a_Cloudy_Day.jpg"
+  }
+ },
+ {
+  "key": "bangkok",
+  "names": [
+   "Bangkok",
+   "BKK"
+  ],
+  "zone": "Asia/Bangkok",
+  "file": "skyline-bangkok.jpg",
+  "credit": {
+   "author": "srihariyv",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bangkok_skyline_2018.jpg"
+  }
+ },
+ {
+  "key": "hanoi",
+  "names": [
+   "Hanoi",
+   "Hà Nội",
+   "HAN"
+  ],
+  "zone": "Asia/Ho_Chi_Minh",
+  "file": "skyline-hanoi.jpg",
+  "credit": {
+   "author": "NKSTTSSHNVN",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Hanoi_Skyline_-_NKS.jpg"
+  }
+ },
+ {
+  "key": "hochiminhcity",
+  "names": [
+   "Ho Chi Minh City",
+   "Ho Chi Minh",
+   "Saigon",
+   "SGN"
+  ],
+  "zone": "Asia/Ho_Chi_Minh",
+  "file": "skyline-hochiminhcity.jpg",
+  "credit": {
+   "author": "Jim 陳",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ho_Chi_Minh_City_Skyline_(night).jpg"
+  }
+ },
+ {
+  "key": "kualalumpur",
+  "names": [
+   "Kuala Lumpur",
+   "KL",
+   "KUL"
+  ],
+  "zone": "Asia/Kuala_Lumpur",
+  "file": "skyline-kualalumpur.jpg",
+  "credit": {
+   "author": "CEphoto, Uwe Aranas",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Kuala_Lumpur_Malaysia_Skyline-of-Kuala-Lumpur-Sentral-01.jpg"
+  }
+ },
+ {
+  "key": "singapore",
+  "names": [
+   "Singapore",
+   "SIN"
+  ],
+  "zone": "Asia/Singapore",
+  "file": "skyline-singapore.jpg",
+  "credit": {
+   "author": "Basile Morin",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_the_Central_Business_District_of_Singapore_with_Esplanade_Bridge_in_the_evening.jpg"
+  }
+ },
+ {
+  "key": "jakarta",
+  "names": [
+   "Jakarta",
+   "CGK"
+  ],
+  "zone": "Asia/Jakarta",
+  "file": "skyline-jakarta.jpg",
+  "credit": {
+   "author": "Netaholic13 at English Wikipedia",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Jakarta_skyline.jpg"
+  }
+ },
+ {
+  "key": "manila",
+  "names": [
+   "Manila",
+   "MNL",
+   "Makati"
+  ],
+  "zone": "Asia/Manila",
+  "file": "skyline-manila.jpg",
+  "credit": {
+   "author": "SwarmCheng",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_in_Manila_18.jpg"
+  }
+ },
+ {
+  "key": "hongkong",
+  "names": [
+   "Hong Kong",
+   "HK",
+   "HKG"
+  ],
+  "zone": "Asia/Hong_Kong",
+  "file": "skyline-hongkong.jpg",
+  "credit": {
+   "author": "Diliff",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Hong_Kong_Skyline_Restitch_-_Dec_2007.jpg"
+  }
+ },
+ {
+  "key": "shenzhen",
+  "names": [
+   "Shenzhen",
+   "SZX"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-shenzhen.jpg",
+  "credit": {
+   "author": "Sparktour",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Shenzhen_from_Hong_Kong.jpg"
+  }
+ },
+ {
+  "key": "guangzhou",
+  "names": [
+   "Guangzhou",
+   "Canton",
+   "CAN"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-guangzhou.jpg",
+  "credit": {
+   "author": "kevinmcgill from Den Bosch, Netherlands",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Guangzhou_skyline_(6343573781).jpg"
+  }
+ },
+ {
+  "key": "shanghai",
+  "names": [
+   "Shanghai",
+   "PVG"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-shanghai.jpg",
+  "credit": {
+   "author": "https://www.pxfuel.com/en/free-photo-ovozr",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Shanghai_skyline_from_the_bund.jpg"
+  }
+ },
+ {
+  "key": "beijing",
+  "names": [
+   "Beijing",
+   "Peking",
+   "PEK"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-beijing.jpg",
+  "credit": {
+   "author": "Picrazy2",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Beijing_skyline_(cropped).jpg"
+  }
+ },
+ {
+  "key": "taipei",
+  "names": [
+   "Taipei",
+   "TPE"
+  ],
+  "zone": "Asia/Taipei",
+  "file": "skyline-taipei.jpg",
+  "credit": {
+   "author": "fcant.tw",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Taipei_Skyline_2013.jpg"
+  }
+ },
+ {
+  "key": "seoul",
+  "names": [
+   "Seoul",
+   "ICN"
+  ],
+  "zone": "Asia/Seoul",
+  "file": "skyline-seoul.jpg",
+  "credit": {
+   "author": "USAGI_POST",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Han_River_Seoul_skyline_Pixabay_1214950.jpg"
+  }
+ },
+ {
+  "key": "tokyo",
+  "names": [
+   "Tokyo",
+   "HND",
+   "NRT"
+  ],
+  "zone": "Asia/Tokyo",
+  "file": "skyline-tokyo.jpg",
+  "credit": {
+   "author": "Max221B",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Tokio_skyline_from_Tokyo_Metropolitan_Government_Building.jpg"
+  }
+ },
+ {
+  "key": "osaka",
+  "names": [
+   "Osaka",
+   "KIX"
+  ],
+  "zone": "Asia/Tokyo",
+  "file": "skyline-osaka.jpg",
+  "credit": {
+   "author": "Ug",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ufoto-wiki-01_Osaka-Skyline_May2014.jpg"
+  }
+ },
+ {
+  "key": "perth",
+  "names": [
+   "Perth",
+   "PER"
+  ],
+  "zone": "Australia/Perth",
+  "file": "skyline-perth.jpg",
+  "credit": {
+   "author": "Mark",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Perth_skyline_2.jpg"
+  }
+ },
+ {
+  "key": "adelaide",
+  "names": [
+   "Adelaide",
+   "ADL"
+  ],
+  "zone": "Australia/Adelaide",
+  "file": "skyline-adelaide.jpg",
+  "credit": {
+   "author": "Ardash Muradian from Australia",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Adelaide_skyline,_December_2022.jpg"
+  }
+ },
+ {
+  "key": "brisbane",
+  "names": [
+   "Brisbane",
+   "BNE"
+  ],
+  "zone": "Australia/Brisbane",
+  "file": "skyline-brisbane.jpg",
+  "credit": {
+   "author": "King Eliot",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Brisbane_skyline_from_Kangaroo_Point.jpg"
+  }
+ },
+ {
+  "key": "sydney",
+  "names": [
+   "Sydney",
+   "SYD"
+  ],
+  "zone": "Australia/Sydney",
+  "file": "skyline-sydney.jpg",
+  "credit": {
+   "author": "Diliff",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sydney_skyline_at_dusk_-_Dec_2008.jpg"
+  }
+ },
+ {
+  "key": "melbourne",
+  "names": [
+   "Melbourne",
+   "MEL"
+  ],
+  "zone": "Australia/Melbourne",
+  "file": "skyline-melbourne.jpg",
+  "credit": {
+   "author": "Diliff",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Melbourne_Skyline_from_Rialto_Crop_-_Nov_2008.jpg"
+  }
+ },
+ {
+  "key": "auckland",
+  "names": [
+   "Auckland",
+   "AKL"
+  ],
+  "zone": "Pacific/Auckland",
+  "file": "skyline-auckland.jpg",
+  "credit": {
+   "author": "DXR",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Auckland_Skyline_as_seen_from_Devonport_20100128_3.jpg"
+  }
+ },
+ {
+  "key": "wellington",
+  "names": [
+   "Wellington",
+   "WLG"
+  ],
+  "zone": "Pacific/Auckland",
+  "file": "skyline-wellington.jpg",
+  "credit": {
+   "author": "Simeon W from Wellington, New Zealand",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Wellington_Skyline_(34319401232).jpg"
+  }
+ }
+]

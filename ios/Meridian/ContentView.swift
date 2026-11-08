@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The whole app on one screen: one row per city in one panel, as in Meridian for Mac (its name
-/// and time, then five hour tiles shaded for day and night), with the column labels pinned above
-/// and the time ruler below. Drag any row of tiles sideways to move through time in quarter-hours;
-/// tap a tile to go to that hour.
+/// The whole app on one screen: one card per city (its skyline filling it, its time, name and
+/// status, then five hour tiles shaded for day and night), one Now capsule down the list through
+/// the hour shown, and the time ruler below. Drag any row of tiles sideways to move through time
+/// in quarter-hours; tap a tile to go to that hour.
 struct ContentView: View {
     @EnvironmentObject private var store: CityStore
     /// Search to add a city, right above the cards (as in Apple's Weather and Two Degrees).
@@ -32,7 +32,7 @@ struct ContentView: View {
     @State private var groupPickerFor: Place?
     /// Groups: the list, one group, or a new one.
     @State private var groupsRoute: GroupsRoute?
-    /// The list's visible height (between the column labels and the bottom bar), which up to five
+    /// The list's visible height (between the top bar and the bottom bar), which up to five
     /// city cards share.
     @State private var listHeight: CGFloat = 600
     /// Each clock-change notice's height, taken out of what the cards share.
@@ -139,7 +139,7 @@ struct ContentView: View {
             .toolbarBackground(Theme.bg, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .environment(\.editMode, $editMode)
-            // The groups and the column labels pinned at the top, over the tiles they label.
+            // The group chips pinned at the top.
             .safeAreaInset(edge: .top, spacing: 0) { topBar }
             // The time ruler and Now on a frosted bar at the bottom, in thumb reach, as Two Degrees' bar.
             .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
@@ -149,16 +149,12 @@ struct ContentView: View {
     private var showBar: Bool { !adding && !editMode.isEditing && !store.places.isEmpty }
     /// The group chips: once there's a group to pick (a custom one, or two continents).
     private var showGroupBar: Bool { showBar && (!store.customGroups.isEmpty || store.continentChipCount >= 2) }
-    /// The column labels: while there are cards under them.
-    private var showHeader: Bool { showBar && !store.visiblePlaces.isEmpty }
 
+    /// The group chips (the ruler in the bottom bar moves the time; there are no column labels).
     @ViewBuilder private var topBar: some View {
-        if showGroupBar || showHeader {
+        if showGroupBar {
             VStack(spacing: 0) {
-                if showGroupBar {
-                    GroupBar(open: { groupsRoute = $0 }, openSettings: { showingSettings = true })
-                }
-                if showHeader { ColumnHeader() }
+                GroupBar(open: { groupsRoute = $0 }, openSettings: { showingSettings = true })
             }
             .frame(maxWidth: .infinity)
             .background(.ultraThinMaterial)
@@ -189,15 +185,63 @@ struct ContentView: View {
         .animation(.snappy, value: copied)
     }
 
-    private var cityList: some View {
-        List {
-            if adding {
-                searchField
-                if !query.trimmingCharacters(in: .whitespaces).isEmpty { searchResults } else { searchHint }
-            } else {
-                cards
+    /// Search and Edit List in a list; the cards in a scroll view, so the Now capsule can be drawn
+    /// over their content (measured from the cards' own middle tiles) and scroll with them.
+    @ViewBuilder private var cityList: some View {
+        if adding || editMode.isEditing {
+            List {
+                if adding {
+                    searchField
+                    if !query.trimmingCharacters(in: .whitespaces).isEmpty { searchResults } else { searchHint }
+                } else {
+                    cards
+                }
             }
+        } else {
+            cardScroll
         }
+    }
+
+    /// The city cards (not in Edit List): with one to five they share the screen; six or more
+    /// scroll. One Now capsule runs down them through every card's middle tile.
+    private var cardScroll: some View {
+        ScrollView(.vertical) {
+            VStack(spacing: 0) {
+                if store.places.isEmpty {
+                    emptyState
+                }
+                ForEach(store.clockChanges) { change in
+                    clockNotice(change)
+                        .padding(.horizontal, Card.margin)
+                        .padding(.vertical, Card.gap / 2)
+                }
+                if !store.places.isEmpty && store.visiblePlaces.isEmpty, let f = store.groupFilter {
+                    emptyGroup(f)
+                        .padding(.horizontal, Card.margin)
+                }
+                let shown = store.visiblePlaces
+                let layout = cardLayout(count: shown.count)
+                VStack(spacing: 0) {
+                    ForEach(shown) { place in
+                        scrollRow(place, first: place.id == shown.first?.id, last: place.id == shown.last?.id,
+                                  height: layout.height)
+                    }
+                }
+                // Over the cards' content, so it scrolls with them and runs on past the screen's edge.
+                .overlayPreferenceValue(NowTileAnchors.self) { anchors in
+                    NowCapsule(anchors: anchors)
+                }
+                // Left out while the cards share the screen exactly (its links are in the More menu and Settings).
+                if !layout.fits || shown.isEmpty {
+                    footer
+                        .padding(.top, 8)
+                        .padding(.horizontal, Card.margin)
+                        .padding(.bottom, 24)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     /// The search field, shown by + in the top bar.
@@ -322,8 +366,8 @@ struct ContentView: View {
         }
     }
 
-    /// The city cards' height: with one to five cities they share the height between the column
-    /// labels and the bottom bar exactly (after any clock-change notices); with six or more, or
+    /// The city cards' height: with one to five cities they share the height between the top bar
+    /// and the bottom bar exactly (after any clock-change notices); with six or more, or
     /// where that would make them too short, they're a fixed height and the list scrolls.
     private func cardLayout(count: Int) -> (height: CGFloat, fits: Bool) {
         let scrolling = (RowCard.scrollHeight * min(max(textScale, 1), 1.3)).rounded()
@@ -406,16 +450,19 @@ struct ContentView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// A card in the scroll view: its share of the gaps above and below, and the screen's margins.
+    private func scrollRow(_ place: Place, first: Bool, last: Bool, height: CGFloat) -> some View {
+        rowContent(place, editing: false, first: first, last: last, height: height, capsule: true)
+            .padding(.top, first ? RowCard.gap : RowCard.gap / 2)
+            .padding(.bottom, last ? RowCard.gap : RowCard.gap / 2)
+            .padding(.horizontal, Strip.margin)
+    }
+
     private func row(_ place: Place, first: Bool, last: Bool, height: CGFloat) -> some View {
-        // Each city is its own rounded card, its skyline across the top. In Edit List the rows go
-        // back to compact rows in one panel, drawn row by row behind them (rounded at the top of the
-        // first and the bottom of the last). Each card has its own actions: touch and hold for the
-        // menu (a tap on a tile goes to that hour). No swipe to remove: a sideways swipe drags the
-        // hour tiles, which moves the time for every city.
+        // In Edit List the rows go back to compact rows in one panel, drawn row by row behind them
+        // (rounded at the top of the first and the bottom of the last).
         let editing = editMode.isEditing
-        return CityRow(place: place, editing: editing, first: first, last: last, height: height)
-            .contentShape(Rectangle())
-            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: editing ? 0 : RowCard.radius, style: .continuous))
+        return rowContent(place, editing: editing, first: first, last: last, height: height, capsule: false)
             .deleteDisabled(!editing)
             .moveDisabled(!editing)
             .listRowInsets(editing
@@ -426,6 +473,15 @@ struct ContentView: View {
                 if editing { PanelSegment(first: first, last: last) } else { Color.clear }
             })
             .listRowSeparator(.hidden)
+    }
+
+    /// A city: each its own rounded card, its skyline filling it, with its own actions: touch and
+    /// hold for the menu (a tap on a tile goes to that hour). No swipe to remove: a sideways swipe
+    /// drags the hour tiles, which moves the time for every city.
+    private func rowContent(_ place: Place, editing: Bool, first: Bool, last: Bool, height: CGFloat, capsule: Bool) -> some View {
+        CityRow(place: place, editing: editing, first: first, last: last, height: height, capsule: capsule)
+            .contentShape(Rectangle())
+            .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: editing ? 0 : RowCard.radius, style: .continuous))
             .contextMenu {
                 Button { copy(place) } label: { Label("Copy Time", systemImage: "doc.on.doc") }
                 Button { workFor = place } label: { Label("Working Days & Hours", systemImage: "briefcase") }
@@ -623,12 +679,16 @@ private struct CopiedPill: View {
     }
 }
 
-/// Moves every city through time from the bottom bar, in one row within thumb reach: Go to a Time
-/// (the calendar), a ruler from two days back to two ahead (in quarter-hours, under a fixed line),
-/// and Now. The column labels above the cards jump an hour at a time; the tiles drag.
+/// Moves every city through time from the bottom bar, in one row within thumb reach: Now on the
+/// left, a ruler from two days back to two ahead (in quarter-hours, under a fixed line) filling the
+/// middle, and Go to a Time (the calendar) at the right end. The tiles drag too.
 struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
     let goToTime: () -> Void
+
+    /// Cream ink (#F5F0EA) and the dark ink (#141210) set on it.
+    private static let cream = Color(red: 245 / 255, green: 240 / 255, blue: 234 / 255)
+    private static let ink = Color(red: 20 / 255, green: 18 / 255, blue: 16 / 255)
 
     var body: some View {
         VStack(spacing: 4) {
@@ -642,7 +702,10 @@ struct TimeShifter: View {
                     .frame(height: 16)
                     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             }
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
+                nowButton
+                TimeRuler()
+                    .frame(maxWidth: .infinity)
                 Button(action: goToTime) {
                     Image(systemName: "calendar")
                         .font(.system(size: 17, weight: .medium))
@@ -652,28 +715,32 @@ struct TimeShifter: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Go to a Time")
-                TimeRuler()
-                    .frame(maxWidth: .infinity)
-                nowButton
             }
             .padding(.horizontal, 12)
         }
     }
 
+    /// Now as a large pill: light ink on faint glass while the list shows the current time, and
+    /// filled cream with dark ink once the time has moved, so it reads as the way back. Not
+    /// `.disabled` at now, which would dim it; the tap simply does nothing then.
     private var nowButton: some View {
-        Button { store.backToNow() } label: {
+        Button { if !store.isNow { store.backToNow() } } label: {
             Text("Now")
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 17, weight: .semibold))
                 .lineLimit(1)
-                .frame(width: 64, height: 32)
-                .background(Capsule().fill(store.isNow ? Color.white.opacity(Theme.Op.fill) : Color.white))
-                .foregroundStyle(store.isNow ? Color.white.opacity(Theme.Op.faint) : Color.black)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
+                .fixedSize()
+                .padding(.horizontal, 18)
+                .frame(minWidth: 68, minHeight: 44)
+                .foregroundStyle(store.isNow ? Self.cream : Self.ink)
+                .background(Capsule().fill(store.isNow ? Color.white.opacity(0.14) : Self.cream))
+                .overlay(Capsule().strokeBorder(Color.white.opacity(store.isNow ? 0.25 : 0), lineWidth: 0.5))
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .disabled(store.isNow)
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .animation(.snappy, value: store.isNow)
         .accessibilityLabel(store.isNow ? "Now" : "Back to now")
+        .accessibilityHint(store.isNow ? "" : "Returns every city to the current time.")
     }
 
     /// "+3", "3", "-1.5", "−2:30", "+0:45 hr" -> minutes from now (up to a week either way).
@@ -823,12 +890,14 @@ struct StatusLabelStyle: LabelStyle {
     }
 }
 
-/// One city as a card: its skyline across the top (a photo, shaded for the time of day there, or
-/// one drawn for it) with its time on it; under that its name, time zone and working status on the
-/// left and its hours as five day-and-night tiles on the right, the selected hour under the lens.
-/// In Edit List, a compact row (name, offset, time).
+/// One city as a card: its skyline filling it (a photo, shaded for the time of day there, or one
+/// drawn for it); along its bottom, over a soft scrim, its time, name, time zone and working status
+/// on the left and its hours as five day-and-night tiles on the right (the list's Now capsule runs
+/// through the middle one). In Edit List, a compact row (name, offset, time).
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
+    /// Downloaded photos, for cities without a bundled one.
+    @ObservedObject private var photos = CityPhotos.shared
     /// The row's type, scaled with the reader's text size.
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     let place: Place
@@ -839,8 +908,13 @@ struct CityRow: View {
     var last = false
     /// The card's height (shared out by the list; see `RowCard`).
     var height: CGFloat = RowCard.scrollHeight
-    /// The row's width, for the name column (the tiles take the rest).
-    @State private var width: CGFloat = 346
+    /// Report the middle tile for the list's Now capsule (on the list, not in the menu's preview).
+    var capsule = false
+    /// The card's width, for the name column (the tiles take the rest) and the photo's crop.
+    @State private var cardWidth: CGFloat = 366
+    /// Where the time sits on the card, to judge what's behind it.
+    @State private var clockFrame: CGRect = .zero
+    private static let cardSpace = "cityCard"
 
     /// "My Location" for where you are; with the city you're in when this is another city in the
     /// same time zone ("My Location · Boulder" on Denver).
@@ -899,50 +973,76 @@ struct CityRow: View {
     private var card: some View {
         let moment = store.moment
         let tall = RowCard.isTall(height)
-        let banner = RowCard.bannerHeight(height)
-        let below = height - banner
         let status = workStatus(moment, detail: tall)
-        // The banner time grows only a little with the reader's text size.
-        let clockSize = (tall ? 36 : 24) * min(max(scale, 0.9), 1.15)
+        // The time grows only a little with the reader's text size.
+        let clockSize = (tall ? RowCard.tallClock : RowCard.compactClock) * min(max(scale, 0.9), 1.15)
         let phase = SkylineArt.phase(for: place, at: moment)
-        // Dark digits on a bright corner of the banner, white ones on a dark corner (the card's
-        // width is the content's plus its insets).
-        let bright = BannerInk.isBright(place: place, phase: phase,
-                                        size: CGSize(width: width + 2 * Strip.inset, height: banner))
-        return VStack(spacing: 0) {
-            SkylineBanner(place: place, phase: phase)
-                .frame(height: banner)
-                .overlay { BannerScrim(bright: bright) }
-                .overlay(alignment: .bottomLeading) {
+        let photo = SkylineArt.photo(for: place, downloaded: store.downloadCityPhotos ? photos.image(for: place) : nil)
+        let size = CGSize(width: cardWidth, height: height)
+        // Dark digits where the card is bright behind the time, white ones where it's dark.
+        let bright = BannerInk.isBright(photo: photo, seed: place.name, phase: phase, size: size,
+                                        region: clockRegion(size: size, clockSize: clockSize))
+        let content = max(0, cardWidth - 2 * RowCard.sidePadding)
+        let tileHeight = min(RowCard.tileHeight, max(28, height - RowCard.topPadding - RowCard.bottomPadding))
+        return ZStack(alignment: .bottomLeading) {
+            SkylineBackdrop(seed: place.name, photo: photo, phase: phase)
+                .accessibilityHidden(true)
+            CardScrim()
+                .accessibilityHidden(true)
+            HStack(alignment: .bottom, spacing: Strip.labelGap) {
+                VStack(alignment: .leading, spacing: 0) {
                     BannerClock(moment: moment, zone: place.timeZone, use24h: store.use24h, size: clockSize,
                                 bright: bright)
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, tall ? 6 : 3)
+                        .onGeometryChange(for: CGRect.self) { proxy in
+                            proxy.frame(in: NamedCoordinateSpace.named(Self.cardSpace))
+                        } action: { clockFrame = $0 }
+                        .padding(.bottom, 2)
+                        .layoutPriority(1)
+                    info(moment, status: status, tall: tall)
                 }
-                .clipped()
-                .accessibilityHidden(true)
-            HStack(alignment: .center, spacing: Strip.labelGap) {
-                info(moment, status: status, tall: tall)
-                    .frame(width: Strip.labelWidth(width), alignment: .leading)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel([place.title, place.person != nil ? place.name : nil, hereLabel,
-                                         TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
-                                         detail(moment), dayNote(moment), status?.spoken]
-                                         .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
+                .frame(width: Strip.labelWidth(content), alignment: .bottomLeading)
+                .frame(maxHeight: .infinity, alignment: .bottomLeading)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel([place.title, place.person != nil ? place.name : nil, hereLabel,
+                                     TimeMath.time(moment, in: place.timeZone, use24h: store.use24h),
+                                     detail(moment), dayNote(moment), status?.spoken]
+                                     .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
                 // The city's hours: two before, the one holding the moment, two after.
-                HourTiles(place: place, height: min(RowCard.tileHeight, max(28, below - 16)), lens: true)
+                HourTiles(place: place, height: tileHeight, nowAnchor: capsule, fade: false)
+                    .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1)
             }
-            // The content's width, for the name column (as the column labels above work it out).
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-            .padding(.horizontal, Strip.inset)
-            .padding(.vertical, 4)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, RowCard.sidePadding)
+            .padding(.top, RowCard.topPadding)
+            .padding(.bottom, RowCard.bottomPadding)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: height)
+        .coordinateSpace(.named(Self.cardSpace))
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { cardWidth = $0 }
         .background(Theme.tile)
         .clipShape(RoundedRectangle(cornerRadius: RowCard.radius, style: .continuous))
         .foregroundStyle(.white)
         .accessibilityElement(children: .contain)
+        // A city without a bundled photo: its photo from disk, or asked for once (never blocking).
+        .task(id: "\(place.name)|\(place.timeZoneID)|\(store.downloadCityPhotos)") {
+            guard store.downloadCityPhotos, !Screenshots.isActive else { return }
+            photos.request(place)
+        }
+    }
+
+    /// The area behind the time in the card's unit square: where it was laid out, or before the
+    /// first layout about where it sits (bottom left, above the name).
+    private func clockRegion(size: CGSize, clockSize: CGFloat) -> CGRect {
+        guard size.width > 1, size.height > 1 else { return CGRect(x: 0, y: 0.4, width: 0.4, height: 0.3) }
+        var frame = clockFrame
+        if frame.width < 1 || frame.height < 1 {
+            let h = clockSize * 1.2
+            frame = CGRect(x: RowCard.sidePadding, y: max(0, size.height - RowCard.bottomPadding - h - clockSize * 2.2),
+                           width: clockSize * 3, height: h)
+        }
+        return CGRect(x: frame.minX / size.width, y: frame.minY / size.height,
+                      width: frame.width / size.width, height: frame.height / size.height)
     }
 
     /// The name, the time zone ("UTC−8", "+1 d · UTC+9"), and the working status; what fits the
@@ -961,12 +1061,13 @@ struct CityRow: View {
             if zone {
                 Text(zoneText(moment))
                     .font(cardFont(13))
-                    .foregroundStyle(Theme.muted)
+                    .foregroundStyle(Theme.rgb(0xE0D8D0))
+                    .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             if let status {
-                StatusPill(status: status, showDetail: tall, scale: capped)
+                StatusPill(status: status, showDetail: tall, scale: capped, backed: true)
                     .padding(.top, 2)
             }
         }
@@ -983,9 +1084,10 @@ struct CityRow: View {
             if store.isHere(place) {
                 Image(systemName: "location.fill")
                     .font(cardFont(9, .medium))
-                    .foregroundStyle(Theme.muted)
+                    .foregroundStyle(Theme.rgb(0xE0D8D0))
             }
         }
+        .shadow(color: Color.black.opacity(0.6), radius: 1.5, x: 0, y: 1)
     }
 
     /// "UTC−8"; "+1 d · UTC+9" when it's another day there; a person's city first ("Lisbon · UTC").

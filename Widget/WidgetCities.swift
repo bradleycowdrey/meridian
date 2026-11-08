@@ -114,7 +114,13 @@ struct ClockConfiguration: WidgetConfigurationIntent {
     func snapshot() -> WidgetSnapshot {
         var snapshot = WidgetSnapshot.load()
         if !followApp, let cities, !cities.isEmpty {
-            snapshot.cities = cities.map { .init(name: $0.name, timeZoneID: $0.timeZoneID) }
+            // A chosen city that's also on the app's list keeps what the app knows about it (where
+            // it is, its working week), for its sky and status.
+            let known = snapshot.cities
+            snapshot.cities = cities.map { city in
+                known.first { $0.name == city.name && $0.timeZoneID == city.timeZoneID }
+                    ?? .init(name: city.name, timeZoneID: city.timeZoneID)
+            }
         }
         return snapshot
     }

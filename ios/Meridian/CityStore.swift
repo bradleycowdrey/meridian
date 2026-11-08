@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import WidgetKit
 
@@ -11,11 +12,11 @@ final class CityStore: ObservableObject {
 
     @Published var places: [Place] { didSet { save(); syncWidgets() } }
     @Published var use24h: Bool { didSet { defaults.set(use24h, forKey: "use24h"); syncWidgets() } }
-    @Published var showWorkHours: Bool { didSet { defaults.set(showWorkHours, forKey: "showWorkHours") } }
-    @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart") } }
-    @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
+    @Published var showWorkHours: Bool { didSet { defaults.set(showWorkHours, forKey: "showWorkHours"); syncWidgets() } }
+    @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart"); syncWidgets() } }
+    @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd"); syncWidgets() } }
     /// Count public holidays as days off (Settings).
-    @Published var countHolidays = Holidays.counted { didSet { Holidays.counted = countHolidays } }
+    @Published var countHolidays = Holidays.counted { didSet { Holidays.counted = countHolidays; syncWidgets() } }
     /// Group cities by continent automatically (Settings).
     @Published var continentGroups = Continent.autoGroups {
         didSet {
@@ -46,6 +47,11 @@ final class CityStore: ObservableObject {
             updateMyLocation()
         }
     }
+    /// Download photos of cities without a built-in one from Wikimedia Commons (Settings; on
+    /// unless turned off). Read by CityPhotos from the same key.
+    @Published var downloadCityPhotos = UserDefaults.standard.object(forKey: "downloadCityPhotos") as? Bool ?? true {
+        didSet { defaults.set(downloadCityPhotos, forKey: CityPhotos.enabledKey); exportWidgetPhotos() }
+    }
     private let locator = CityLocator()
     /// Answered the first-launch "Use your location?" question (or changed the setting).
     @Published private(set) var locationChosen = MyLocation.chosen
@@ -64,6 +70,8 @@ final class CityStore: ObservableObject {
 
     private let defaults = UserDefaults.standard
     private var ticker: Timer?
+    /// Watches for downloaded photos arriving, to hand the widgets their copies.
+    private var photoWatch: AnyCancellable?
     /// Demo mode (App Store screenshots): fixed cities, nothing saved.
     private let demo: Bool
 
@@ -102,11 +110,19 @@ final class CityStore: ObservableObject {
         if !demo { d.set(order, forKey: "groupOrder") }
         updateMyLocation(locate: false)
         syncWidgets()
+        // The demo list never exports; this only hands the in-app widget previews their photos.
+        if demo { WidgetPhotoExport.sync(places, downloads: false) }
         let ticker = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
         RunLoop.main.add(ticker, forMode: .common)
         self.ticker = ticker
+        if !demo {
+            photoWatch = CityPhotos.shared.$images
+                .dropFirst()
+                .debounce(for: .seconds(1), scheduler: RunLoop.main)
+                .sink { [weak self] _ in Task { @MainActor in self?.exportWidgetPhotos() } }
+        }
     }
 
     /// 12- or 24-hour to match the phone's region, until the user chooses.
@@ -176,8 +192,21 @@ final class CityStore: ObservableObject {
 
     private func syncWidgets() {
         guard !demo else { return }
-        let snapshot = WidgetSnapshot(cities: places.map { .init(name: $0.name, timeZoneID: $0.timeZoneID) }, use24h: use24h)
+        let cities = places.map { place in
+            WidgetSnapshot.City(name: place.name, timeZoneID: place.timeZoneID, countryCode: place.countryCode,
+                                latitude: place.latitude, longitude: place.longitude,
+                                workDays: place.workDays.map { $0.sorted() }, workStart: place.workStart, workEnd: place.workEnd)
+        }
+        let snapshot = WidgetSnapshot(cities: cities, use24h: use24h, showStatus: showWorkHours,
+                                      workStart: workStart, workEnd: workEnd, countHolidays: countHolidays)
         if snapshot.save() { WidgetCenter.shared.reloadAllTimelines() }
+        exportWidgetPhotos()
+    }
+
+    /// Small copies of the cities' photos for the widgets (only those that changed are written).
+    private func exportWidgetPhotos() {
+        guard !demo else { return }
+        WidgetPhotoExport.sync(places, downloads: downloadCityPhotos)
     }
 
     // MARK: Cities

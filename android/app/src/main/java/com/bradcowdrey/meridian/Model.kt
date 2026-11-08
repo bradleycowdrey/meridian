@@ -52,6 +52,14 @@ object DataFiles {
         runCatching { a.open(name).bufferedReader(Charsets.UTF_8).use { it.readLines() } }.getOrNull()
     }
 
+    /** Whether [init] has run (the files can be read). */
+    val ready: Boolean get() = assets != null
+
+    /** The whole file as text, or null before [init] or if it isn't there (skylines.json until the photo pipeline writes it). */
+    fun text(name: String): String? = assets?.let { a ->
+        runCatching { a.open(name).bufferedReader(Charsets.UTF_8).use { it.readText() } }.getOrNull()
+    }
+
     /** Reads both files in the background, so the first search and the first card don't wait. */
     fun preload() {
         Thread { runCatching { Holidays.load(); CityDirectory.all } }.start()

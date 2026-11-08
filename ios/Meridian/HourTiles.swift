@@ -7,11 +7,6 @@ enum TileGrid {
     static let gap: CGFloat = 6
     static let height: CGFloat = 44
     static let radius: CGFloat = 9
-    static let lensStroke: CGFloat = 2
-    /// The lens's stroke sits centred in the gutter around the tile, as on the Mac.
-    static let lensOutset: CGFloat = gap / 2 + lensStroke / 2
-    /// Concentric with the tiles' corners.
-    static let lensRadius: CGFloat = radius + lensOutset
     static let columns = [-2, -1, 0, 1, 2]
 
     /// Each column's start: whole hours on your clock around the moment.
@@ -35,7 +30,7 @@ enum TileGrid {
 }
 
 /// The cities as rows in one rounded panel, as in Meridian for Mac: the name and time on the
-/// left, five hour tiles on the right. The column labels at the top line up with the tiles.
+/// left, five hour tiles on the right.
 enum Strip {
     /// Screen edge to panel.
     static let margin: CGFloat = 12
@@ -110,15 +105,18 @@ struct Scrub: ViewModifier {
 /// A city's hours as five day-and-night tiles, as in Meridian for Mac: each tile the colour of
 /// the day at that hour there (warm black at night, greys at dawn and dusk, cream by day), dimmed
 /// outside working hours, with the weekday and a crimson mark where a new day starts, and the outer
-/// tiles fading into the panel. With `lens`, the white lens marks the middle column.
-/// Tap a tile to go to that hour; drag to scrub.
+/// tiles fading into the panel (not on a city card's photo). The middle column (the hour holding
+/// the moment shown) is marked by one capsule down the whole list (`NowCapsule`), which finds the
+/// middle tiles through `NowTileAnchors`. Tap a tile to go to that hour; drag to scrub.
 struct HourTiles: View {
     @EnvironmentObject private var store: CityStore
     let place: Place
-    /// The tiles' height (taller under a city card's banner).
+    /// The tiles' height (taller on a city card).
     var height: CGFloat = TileGrid.height
-    /// Draw the white lens around the middle tile here (each city card has its own).
-    var lens = false
+    /// Report the middle tile's frame for the list's Now capsule.
+    var nowAnchor = false
+    /// Fade the outer tiles into the panel behind (off on a photo).
+    var fade = true
     @State private var width: CGFloat = 228
 
     /// One column and its gap.
@@ -130,12 +128,14 @@ struct HourTiles: View {
             ForEach(TileGrid.columns, id: \.self) { k in
                 tile(k, start: starts[k + 2])
                     .frame(maxWidth: .infinity)
+                    .anchorPreference(key: NowTileAnchors.self, value: .bounds) { anchor in
+                        (nowAnchor && k == 0) ? [anchor] : []
+                    }
             }
         }
         .frame(height: height)
-        .mask { TileGrid.edgeFade }
-        .overlay(alignment: .topLeading) {
-            if lens { lensOutline }
+        .mask {
+            if fade { TileGrid.edgeFade } else { Color.black }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .contentShape(Rectangle())
@@ -156,18 +156,6 @@ struct HourTiles: View {
             @unknown default: break
             }
         }
-    }
-
-    /// The white lens around the hour holding the selected moment, centred in the gutter around it.
-    private var lensOutline: some View {
-        let o = TileGrid.lensOutset
-        let shape = RoundedRectangle(cornerRadius: TileGrid.lensRadius, style: .continuous)
-        return shape.fill(Color.white.opacity(0.06))
-            .overlay(shape.strokeBorder(Color.white, lineWidth: TileGrid.lensStroke))
-            .frame(width: max(0, pitch - TileGrid.gap + 2 * o), height: height + 2 * o)
-            .offset(x: 2 * pitch - o, y: -o)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
     }
 
     private var accessibilityValue: String {
@@ -233,98 +221,54 @@ struct HourTiles: View {
     }
 }
 
-/// The column labels, drawn once over every row's tiles in the bar under the title: "Now" (or
-/// the selected time) in the middle, and −2/−1/+1/+2 hr as small buttons either side. A short white
-/// line under a column says everyone on the list is working then.
-struct ColumnHeader: View {
-    @EnvironmentObject private var store: CityStore
-    /// The bar's width, so the labels line up with the rows' tiles.
-    @State private var width: CGFloat = 390
+/// The middle tiles' frames (the hour holding the moment shown), from every city card on the list.
+struct NowTileAnchors: PreferenceKey {
+    static let defaultValue: [Anchor<CGRect>] = []
+
+    static func reduce(value: inout [Anchor<CGRect>], nextValue: () -> [Anchor<CGRect>]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
+/// One "Now" capsule down the list, as on the app icon: through the middle tile of every card,
+/// from just above the first to just below the last, over the list's content so it scrolls with
+/// the cards. It follows the moment shown (it is always on the middle column), never takes a
+/// touch, and VoiceOver skips it.
+struct NowCapsule: View {
+    let anchors: [Anchor<CGRect>]
+    /// Past the tile on each side.
+    static let outset: CGFloat = 7
+    /// Above the first card's tile and below the last one's.
+    static let overhang: CGFloat = 12
+    static let stroke: CGFloat = 2
 
     var body: some View {
-        let starts = TileGrid.starts(store.moment)
-        let nowAnchor = TimeMath.hourAnchor(store.now)
-        HStack(spacing: TileGrid.gap) {
-            ForEach(TileGrid.columns, id: \.self) { k in
-                column(k, start: starts[k + 2], nowAnchor: nowAnchor)
+        GeometryReader { proxy in
+            if let frame = Self.capsuleFrame(anchors.map { proxy[$0] }, in: proxy.size) {
+                let shape = Capsule(style: .continuous)
+                shape
+                    .fill(LinearGradient(colors: [Color.white.opacity(0.07), Color.white.opacity(0.025)],
+                                         startPoint: .top, endPoint: .bottom))
+                    .overlay(shape.strokeBorder(Color.white.opacity(0.62), lineWidth: Self.stroke))
+                    .shadow(color: Color.white.opacity(0.18), radius: 8)
+                    .frame(width: frame.width, height: frame.height)
+                    .position(x: frame.midX, y: frame.midY)
             }
         }
-        // Over the tiles: past the name column, to the panel's inner edge.
-        .padding(.leading, Strip.edge + Strip.labelWidth(max(0, width - 2 * Strip.edge)) + Strip.labelGap)
-        .padding(.trailing, Strip.edge)
-        .frame(height: 44)
-        .frame(maxWidth: .infinity)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
-    private func column(_ k: Int, start: Date, nowAnchor: Date) -> some View {
-        // A side column holding the current hour reads "Now" (after travelling a little).
-        let readsNow = k != 0 && !store.isNow && start == nowAnchor
-        let plain = k == 0 || readsNow
-        let centreAtNow = k == 0 && store.isNow
-        return Button {
-            tap(k, start: start, readsNow: readsNow)
-        } label: {
-            VStack(spacing: 3) {
-                Text(label(k, readsNow: readsNow))
-                    .font(.system(size: 13, weight: plain ? .semibold : .medium))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .foregroundStyle(Color.white.opacity(readsNow ? 0.9 : 1))
-                    .contentTransition(.numericText())
-                    .padding(.horizontal, 2)
-                    .frame(maxWidth: .infinity, minHeight: 28)
-                    .background {
-                        if !plain { Capsule().fill(Color.white.opacity(0.08)) }
-                    }
-                Capsule()
-                    .fill(Color.white)
-                    .frame(width: 16, height: 3)
-                    .opacity(overlap(start) ? 1 : 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        // At now the middle does nothing, but stays fully white (not greyed as disabled).
-        .allowsHitTesting(!centreAtNow)
-        .accessibilityLabel(accessibilityLabel(k, start: start, readsNow: readsNow))
-        .accessibilityAddTraits(centreAtNow ? .isSelected : [])
-    }
-
-    private func label(_ k: Int, readsNow: Bool) -> String {
-        if k == 0 { return store.isNow ? "Now" : TimeMath.time(store.moment, in: .current, use24h: store.use24h) }
-        if readsNow { return "Now" }
-        return k > 0 ? "+\(k) hr" : "\u{2212}\(-k) hr"
-    }
-
-    private func tap(_ k: Int, start: Date, readsNow: Bool) {
-        if k == 0 || readsNow {
-            if !store.isNow { store.backToNow() }
-        } else if store.isNow {
-            // As the old hour buttons: moves with the clock.
-            store.shift(minutes: k * 60)
-        } else {
-            store.jump(to: start)
-        }
-    }
-
-    private func accessibilityLabel(_ k: Int, start: Date, readsNow: Bool) -> String {
-        if k == 0 { return store.isNow ? "Now" : "Back to now" }
-        if readsNow { return "Back to now" }
-        if store.isNow { return TimeShifter.describe(k * 60) }
-        let hours = abs(k) == 1 ? "1 hour" : "\(abs(k)) hours"
-        return "\(hours) \(k > 0 ? "later" : "earlier"), \(TimeMath.time(start, in: .current, use24h: store.use24h))"
-    }
-
-    /// Everyone on the list is working through this column's middle.
-    private func overlap(_ start: Date) -> Bool {
-        let places = store.visiblePlaces
-        guard store.showWorkHours, places.count >= 2 else { return false }
-        let middle = start.addingTimeInterval(1800)
-        return places.allSatisfy { store.isWorking($0, at: middle) }
+    /// The capsule's frame: the middle tiles' column widened by `outset` each side, from
+    /// `overhang` above the topmost to `overhang` below the lowest, kept inside the content.
+    static func capsuleFrame(_ tiles: [CGRect], in size: CGSize) -> CGRect? {
+        guard let first = tiles.first, size.width > 0, size.height > 0, first.width > 0 else { return nil }
+        let inset = stroke / 2
+        let left = max(inset, first.minX - outset)
+        let right = min(size.width - inset, first.maxX + outset)
+        let top = max(inset, (tiles.map(\.minY).min() ?? first.minY) - overhang)
+        let bottom = min(size.height - inset, (tiles.map(\.maxY).max() ?? first.maxY) + overhang)
+        guard right - left > 1, bottom - top > 1 else { return nil }
+        return CGRect(x: left, y: top, width: right - left, height: bottom - top)
     }
 }

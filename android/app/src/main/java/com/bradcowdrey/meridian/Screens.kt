@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -401,6 +402,13 @@ private fun GroupDetail(store: Store, name: String, modifier: Modifier, onRename
 fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
     val context = LocalContext.current
     fun open(url: String) = context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    // Photo Credits, from About: its own screen, back to Settings.
+    var credits by rememberSaveable { mutableStateOf(false) }
+    if (credits) {
+        BackHandler { credits = false }
+        PhotoCreditsScreen { credits = false }
+        return
+    }
     Screen("Settings", onDone, back = true) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -422,6 +430,8 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.6f))
                 }
                 Note("Cities are grouped by continent automatically when your list spans two or more.")
+                SwitchRow("Download City Photos", store.downloadPhotos) { store.updateDownloadPhotos(it) }
+                Note("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on this phone. Only the city's name is sent.")
             }
             GlassCard("Widgets", Icons.Filled.Settings) {
                 Note("Touch and hold your home screen, tap Widgets, then find Meridian. Widgets show your cities in the same order as here.")
@@ -435,7 +445,10 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
                 LinkRow("bradcowdrey.com/meridian") { open(Palette.APP_PAGE) }
                 LinkRow("Source code on GitHub") { open(Palette.SOURCE) }
                 LinkRow("Terms & Privacy") { open(Palette.LEGAL) }
-                PhotoCredits { open(it) }
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { credits = true }, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Photo Credits", Modifier.weight(1f), color = Palette.primary)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.6f))
+                }
             }
             Text("Made by Bradley Cowdrey. Free. Forever.", fontSize = 13.sp, color = white(0.6f), textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 24.dp))
@@ -472,37 +485,56 @@ private fun StepperRow(label: String, down: () -> Unit, up: () -> Unit) {
     }
 }
 
-/** The skyline photos on the city cards, from Wikimedia Commons (Resources/Data/skyline-credits.json). */
-private val skylineCredits = listOf(
-    "San Francisco" to "https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_from_Coit_Tower.jpg",
-    "New York" to "https://commons.wikimedia.org/wiki/File:Manhattan_from_Weehawken,_NJ.jpg",
-    "London" to "https://commons.wikimedia.org/wiki/File:London_Skyline_(125508655).jpeg",
-    "Tokyo" to "https://commons.wikimedia.org/wiki/File:Skyscrapers_of_Shinjuku_2009_January.jpg",
-)
-
-/** Photo Credits: tap to show the four skyline photos, each opening its page on Wikimedia Commons. */
+/**
+ * Photo Credits: the skyline photos built in (skylines.json) and those downloaded for other cities,
+ * each with its author and licence; tap one to open its page on Wikimedia Commons.
+ */
 @Composable
-private fun PhotoCredits(open: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClickLabel = if (expanded) "Hide" else "Show") { expanded = !expanded },
-        verticalAlignment = Alignment.CenterVertically) {
-        Text("Photo Credits", Modifier.weight(1f), color = Palette.primary)
-        Icon(if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = white(0.6f))
+fun PhotoCreditsScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    fun open(url: String) {
+        if (url.isBlank()) return
+        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
-    if (expanded) {
-        Text("City skyline photos from Wikimedia Commons.", fontSize = 13.sp, color = white(0.6f),
-            modifier = Modifier.padding(bottom = 4.dp))
-        skylineCredits.forEach { (city, url) ->
-            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable(onClickLabel = "Open on Wikimedia Commons") { open(url) },
-                verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(city, color = Palette.primary)
-                    Text(url.removePrefix("https://commons.wikimedia.org/wiki/").replace('_', ' '), fontSize = 12.sp,
-                        color = white(0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.6f))
+    val bundled = remember { SkylineManifest.credited(context) }
+    // Read off the main thread; again whenever a photo is saved.
+    val downloaded by produceState(emptyList<CityPhotos.Downloaded>(), CityPhotos.saved) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { CityPhotos.downloaded(context) }
+    }
+    Screen("Photo Credits", onBack, back = true) { padding ->
+        Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Note("City skyline photos from Wikimedia Commons, under the licence shown for each.")
+            GlassCard("Built In", null, spacing = 0.dp) {
+                bundled.forEach { (city, credit) -> CreditRow(city, credit) { open(it) } }
             }
+            if (downloaded.isNotEmpty()) {
+                GlassCard("Downloaded", null, spacing = 0.dp) {
+                    downloaded.forEach { CreditRow(it.city, it.credit) { url -> open(url) } }
+                }
+            }
+            Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+/** A photo's city, author and licence, opening its source page (and its licence from the licence line). */
+@Composable
+private fun CreditRow(city: String, credit: PhotoCredit?, open: (String) -> Unit) {
+    val source = credit?.source.orEmpty()
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(enabled = source.isNotBlank(), onClickLabel = "Open on Wikimedia Commons") { open(source) }
+        .padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(city, color = Palette.primary)
+            val byline = listOfNotNull(credit?.author?.takeIf { it.isNotBlank() }, credit?.license?.takeIf { it.isNotBlank() }).joinToString(" · ")
+            if (byline.isNotEmpty()) Text(byline, fontSize = 12.sp, color = white(0.7f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (source.isNotBlank()) Text(source.removePrefix("https://commons.wikimedia.org/wiki/").replace('_', ' '), fontSize = 12.sp,
+                color = white(0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val licenseUrl = credit?.licenseUrl
+            if (!licenseUrl.isNullOrBlank()) Text("Licence", fontSize = 12.sp, color = white(0.6f),
+                modifier = Modifier.heightIn(min = 24.dp).clickable(onClickLabel = "Open the licence") { open(licenseUrl) }.padding(vertical = 3.dp))
+        }
+        if (source.isNotBlank()) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.6f))
     }
 }
 

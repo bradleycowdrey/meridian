@@ -98,6 +98,9 @@ class Store(private val context: Context, val demo: Boolean = false) {
     /** Group cards by continent automatically ("Europe", "Asia"), as well as their own groups (Settings; on unless turned off). */
     var continentGroups by mutableStateOf(prefs.getBoolean("continentGroups", true))
         private set
+    /** Download a photo (once, from Wikimedia Commons) for cities without a built-in one (Settings; on unless turned off). */
+    var downloadPhotos by mutableStateOf(prefs.getBoolean("downloadCityPhotos", true))
+        private set
     /** The group the list shows ("Design team"); null shows everyone. */
     var groupFilter by mutableStateOf(if (demo) null else prefs.getString("groupFilter", null))
         private set
@@ -289,7 +292,8 @@ class Store(private val context: Context, val demo: Boolean = false) {
         if (demo) return
         val on = useMyLocation && locationChosen
         val list = if (on) MyLocation.apply(places, prefs) else MyLocation.remove(places, prefs)
-        if (list != places) update(list)
+        // A new city name changes My Location's photo on the widgets too.
+        if (list != places) update(list) else syncWidgets()
         myLocationHost = if (on) MyLocation.hostId(prefs) else null
         validateFilter()
     }
@@ -547,15 +551,16 @@ class Store(private val context: Context, val demo: Boolean = false) {
     // MARK: Settings
 
     fun updateUse24h(on: Boolean) { use24h = on; prefs.edit().putBoolean("use24h", on).apply(); syncWidgets() }
-    fun updateCountHolidays(on: Boolean) { countHolidays = on; Holidays.counted = on; prefs.edit().putBoolean("countHolidays", on).apply() }
+    fun updateCountHolidays(on: Boolean) { countHolidays = on; Holidays.counted = on; prefs.edit().putBoolean("countHolidays", on).apply(); syncWidgets() }
     fun updateContinentGroups(on: Boolean) {
         continentGroups = on
         prefs.edit().putBoolean("continentGroups", on).apply()
         validateFilter()
     }
-    fun updateShowWorkHours(on: Boolean) { showWorkHours = on; prefs.edit().putBoolean("showWorkHours", on).apply() }
-    fun updateWorkStart(hour: Int) { workStart = hour.coerceIn(0, 23); prefs.edit().putInt("workStart", workStart).apply() }
-    fun updateWorkEnd(hour: Int) { workEnd = hour.coerceIn(1, 24); prefs.edit().putInt("workEnd", workEnd).apply() }
+    fun updateDownloadPhotos(on: Boolean) { downloadPhotos = on; prefs.edit().putBoolean("downloadCityPhotos", on).apply() }
+    fun updateShowWorkHours(on: Boolean) { showWorkHours = on; prefs.edit().putBoolean("showWorkHours", on).apply(); syncWidgets() }
+    fun updateWorkStart(hour: Int) { workStart = hour.coerceIn(0, 23); prefs.edit().putInt("workStart", workStart).apply(); syncWidgets() }
+    fun updateWorkEnd(hour: Int) { workEnd = hour.coerceIn(1, 24); prefs.edit().putInt("workEnd", workEnd).apply(); syncWidgets() }
     fun updateUseMyLocation(on: Boolean) {
         useMyLocation = on
         locationChosen = true
@@ -572,7 +577,8 @@ class Store(private val context: Context, val demo: Boolean = false) {
         Terms.refresh(prefs) { if (Terms.due(prefs)) termsAccepted = false }
     }
 
-    private fun syncWidgets() = MeridianWidgets.updateAll(context)
+    /** Redraws the widgets (in the background), making their photo copies first: the list, or a setting they show, changed. */
+    private fun syncWidgets() { if (!demo) MeridianWidgets.updateAll(context) }
 }
 
 /**

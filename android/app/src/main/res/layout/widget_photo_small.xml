@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One city (small widget): its photo fills the widget; bottom-left a big time, the name and what it's doing. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <ImageView android:id="@+id/bg" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:scaleType="fitXY" android:importantForAccessibility="no" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+        android:gravity="bottom" android:orientation="vertical" android:padding="12dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+            <LinearLayout android:id="@+id/time_light" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:baselineAligned="true" android:orientation="horizontal" android:visibility="visible">
+                <TextClock android:id="@+id/clock" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
+                    android:letterSpacing="-0.02" android:textColor="#FFFFFF" android:textSize="20sp" android:maxLines="1"
+                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                <TextView android:id="@+id/clock_static" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
+                    android:letterSpacing="-0.02" android:textColor="#FFFFFF" android:textSize="20sp" android:maxLines="1"
+                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                <TextClock android:id="@+id/ampm" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+                    android:textColor="#FFFFFF" android:textSize="9sp" android:maxLines="1"
+                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                <TextView android:id="@+id/ampm_static" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+                    android:textColor="#FFFFFF" android:textSize="9sp" android:maxLines="1"
+                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/time_dark" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:baselineAligned="true" android:orientation="horizontal" android:visibility="gone">
+                <TextClock android:id="@+id/clock_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
+                    android:letterSpacing="-0.02" android:textColor="#141210" android:textSize="20sp" android:maxLines="1"
+                    android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
+                <TextView android:id="@+id/clock_static_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
+                    android:letterSpacing="-0.02" android:textColor="#141210" android:textSize="20sp" android:maxLines="1"
+                    android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
+                <TextClock android:id="@+id/ampm_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+                    android:textColor="#141210" android:textSize="9sp" android:maxLines="1"
+                    android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
+                <TextView android:id="@+id/ampm_static_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+                    android:textColor="#141210" android:textSize="9sp" android:maxLines="1"
+                    android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
+            </LinearLayout>
+            <TextView android:id="@+id/name" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="1dp" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
+                android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="12sp"
+                android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+            <LinearLayout android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="3dp" android:background="@drawable/widget_pill" android:gravity="center_vertical"
+                android:orientation="horizontal" android:paddingStart="6dp" android:paddingEnd="7dp"
+                android:paddingTop="1dp" android:paddingBottom="1dp" android:visibility="gone">
+                <ImageView android:id="@+id/status_icon" android:layout_width="9dp" android:layout_height="9dp"
+                    android:src="@drawable/ic_briefcase" android:importantForAccessibility="no" />
+                <TextView android:id="@+id/status_text" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginStart="3dp" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
+                    android:fontFamily="sans-serif-medium" android:textColor="#9FE3A6" android:textSize="9.5sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

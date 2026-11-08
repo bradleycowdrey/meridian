@@ -1,9 +1,11 @@
 import SwiftUI
 import UIKit
+import WidgetKit
 
-/// The city cards: each city a rounded card on the warm dark background, a skyline banner across
-/// its top (the city's photo, or a skyline drawn for it) with its time on it, and under that its
-/// name, time zone and working status on the left and its five hour tiles on the right.
+/// The city cards: each city a rounded card filled with its skyline (the city's photo, or a
+/// skyline drawn for it), shaded for the time of day there. Along the card's bottom, over a soft
+/// dark scrim, its time, name, time zone and working status on the left and its five hour tiles on
+/// the right, so the sky shows above them.
 enum RowCard {
     static let radius: CGFloat = 16
     /// Between cards, and above the first and below the last.
@@ -14,15 +16,70 @@ enum RowCard {
     static let maxFitCount = 5
     /// Shorter than this, the cards stop sharing the screen and scroll at `scrollHeight`.
     static let minFitHeight: CGFloat = 96
-    /// The hour tiles' height under the banner (less when the card is short).
+    /// The hour tiles' height (less when the card is short).
     static let tileHeight: CGFloat = 52
+    /// The card's edge to its content: the content sits on the card's bottom.
+    static let sidePadding: CGFloat = 14
+    static let bottomPadding: CGFloat = 12
+    static let topPadding: CGFloat = 8
+    /// The time's size in tall cards and in compact ones.
+    static let tallClock: CGFloat = 38
+    static let compactClock: CGFloat = 26
 
     /// A tall card gets the large time and the status detail.
     static func isTall(_ row: CGFloat) -> Bool { row >= 150 }
+}
 
-    static func bannerHeight(_ row: CGFloat) -> CGFloat {
-        (isTall(row) ? row * 0.42 : max(42, row * 0.34)).rounded()
+/// A photo credit: who took it, its licence, and where it lives on Wikimedia Commons.
+struct SkylinePhotoCredit: Codable, Hashable {
+    var author: String?
+    var license: String?
+    var licenseUrl: String?
+    var source: String?
+}
+
+/// One city of Resources/Data/skylines.json (written by the photo pipeline): its photo's key
+/// (asset "Skyline-<key>"), the names it goes by, its time zone, and the photo's credit.
+struct SkylineManifestEntry: Decodable {
+    let key: String
+    var names: [String] = []
+    var zone: String?
+    var file: String?
+    var credit: SkylinePhotoCredit?
+
+    private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        key = try c.decode(String.self, forKey: .key)
+        names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
+        zone = try? c.decodeIfPresent(String.self, forKey: .zone)
+        file = try? c.decodeIfPresent(String.self, forKey: .file)
+        credit = try? c.decodeIfPresent(SkylinePhotoCredit.self, forKey: .credit)
     }
+}
+
+/// A manifest entry that failed to decode is skipped rather than losing the whole manifest.
+private struct LenientManifestEntry: Decodable {
+    let entry: SkylineManifestEntry?
+    init(from decoder: Decoder) throws { entry = try? SkylineManifestEntry(from: decoder) }
+}
+
+/// A photo for a card, and a name for it that stays the same (for the ink cache).
+struct SkylinePhoto {
+    let id: String
+    let image: UIImage
+}
+
+/// A credit as Settings → About → Photo Credits lists it.
+struct PhotoCreditItem: Identifiable, Hashable {
+    let id: String
+    let city: String
+    let author: String?
+    let license: String?
+    let source: URL?
+    /// Shown when there is no author or licence (the photo's file name).
+    var fallback: String?
 }
 
 /// The skyline photos bundled with the app, by city, and their credits.
@@ -34,27 +91,43 @@ enum SkylineArt {
         return (now != .twilight && hourAgo != now) ? .twilight : now
     }
 
-    struct Credit {
-        let city: String
-        let file: String
-        let url: URL
+    // MARK: The manifest
+
+    /// skylines.json from the app bundle, or nil until the photo pipeline has added it.
+    static let manifest: [SkylineManifestEntry]? = {
+        guard let url = Bundle.main.url(forResource: "skylines", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let list = try? JSONDecoder().decode([LenientManifestEntry].self, from: data)
+        else { return nil }
+        let entries = list.compactMap(\.entry)
+        return entries.isEmpty ? nil : entries
+    }()
+
+    /// The manifest's entries by every name they go by (normalised).
+    private static let index: [String: [SkylineManifestEntry]] = {
+        var out: [String: [SkylineManifestEntry]] = [:]
+        for entry in manifest ?? [] {
+            var names = entry.names
+            if names.isEmpty { names = [entry.key] }
+            for name in names {
+                let n = normalize(name)
+                guard !n.isEmpty else { continue }
+                out[n, default: []].append(entry)
+            }
+        }
+        return out
+    }()
+
+    /// Lowercased, without accents or spaces at the ends ("São Paulo" -> "sao paulo").
+    static func normalize(_ name: String) -> String {
+        name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US"))
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// From Resources/Data/skyline-credits.json.
-    static let credits: [Credit] = [
-        Credit(city: "San Francisco", file: "San Francisco skyline from Coit Tower",
-               url: URL(string: "https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_from_Coit_Tower.jpg")!),
-        Credit(city: "New York", file: "Manhattan from Weehawken, NJ",
-               url: URL(string: "https://commons.wikimedia.org/wiki/File:Manhattan_from_Weehawken,_NJ.jpg")!),
-        Credit(city: "London", file: "London Skyline (125508655)",
-               url: URL(string: "https://commons.wikimedia.org/wiki/File:London_Skyline_(125508655).jpeg")!),
-        Credit(city: "Tokyo", file: "Skyscrapers of Shinjuku 2009 January",
-               url: URL(string: "https://commons.wikimedia.org/wiki/File:Skyscrapers_of_Shinjuku_2009_January.jpg")!),
-    ]
-
-    /// The photo's key for a city name ("San Francisco" -> "sanfrancisco"), or nil.
-    static func key(for name: String) -> String? {
-        switch name.trimmingCharacters(in: .whitespaces).lowercased() {
+    /// The four photos from before the manifest, by name.
+    private static func legacyKey(for name: String) -> String? {
+        switch normalize(name) {
         case "san francisco": return "sanfrancisco"
         case "new york", "new york city", "manhattan": return "newyork"
         case "london": return "london"
@@ -63,10 +136,87 @@ enum SkylineArt {
         }
     }
 
-    /// The bundled photo for a city (asset "Skyline-<key>"), or nil to draw one.
-    static func photo(for name: String) -> UIImage? {
-        key(for: name).flatMap { UIImage(named: "Skyline-\($0)") }
+    /// Whether a manifest entry's time zone fits the card: the same zone, or one on the same
+    /// clock all year (Asia/Calcutta and Asia/Kolkata); never Portland, Maine for Portland, Oregon.
+    private static func zoneFits(_ zone: String?, _ place: Place) -> Bool {
+        guard let zone, !zone.isEmpty, zone != place.timeZoneID else { return true }
+        guard let tz = TimeZone(identifier: zone) else { return true }
+        // Compared on two fixed dates (mid-January and mid-July 2026), so only zones that keep the
+        // same time all year (an old name for the same zone) match, not ones that agree just today.
+        let dates = [Date(timeIntervalSince1970: 1768478400), Date(timeIntervalSince1970: 1784116800)]
+        return dates.allSatisfy { tz.secondsFromGMT(for: $0) == place.timeZone.secondsFromGMT(for: $0) }
     }
+
+    /// Answers so far, by name and zone ("" for none).
+    private static var keyCache: [String: String] = [:]
+
+    /// The bundled photo's key for a card (its city's name, for a person their city's), or nil.
+    static func key(for place: Place) -> String? {
+        let cacheKey = place.name + "|" + place.timeZoneID
+        if let hit = keyCache[cacheKey] { return hit.isEmpty ? nil : hit }
+        let result: String?
+        if manifest == nil {
+            result = legacyKey(for: place.name)
+        } else {
+            let candidates = index[normalize(place.name)] ?? []
+            let exact = candidates.first(where: { $0.zone == place.timeZoneID })
+            result = (exact ?? candidates.first(where: { zoneFits($0.zone, place) }))?.key
+        }
+        if keyCache.count > 400 { keyCache.removeAll() }
+        keyCache[cacheKey] = result ?? ""
+        return result
+    }
+
+    /// The bundled photo for a card (asset "Skyline-<key>"), or nil.
+    static func bundledPhoto(for place: Place) -> UIImage? {
+        key(for: place).flatMap { UIImage(named: "Skyline-\($0)") }
+    }
+
+    /// The card's photo: bundled, else the one downloaded for it; nil to draw one.
+    static func photo(for place: Place, downloaded: UIImage?) -> SkylinePhoto? {
+        if let key = key(for: place), let image = UIImage(named: "Skyline-\(key)") {
+            return SkylinePhoto(id: "b:" + key, image: image)
+        }
+        if let downloaded { return SkylinePhoto(id: "d:" + slug(for: place), image: downloaded) }
+        return nil
+    }
+
+    /// A file-safe name for a card's downloaded photo: its city and time zone.
+    static func slug(for place: Place) -> String {
+        let raw = normalize(place.name) + "_" + place.timeZoneID.lowercased()
+        let allowed = Set("abcdefghijklmnopqrstuvwxyz0123456789_")
+        return String(raw.map { allowed.contains($0) ? $0 : "-" })
+    }
+
+    // MARK: Credits
+
+    /// The four photos from before the manifest.
+    private static let legacyCredits: [PhotoCreditItem] = [
+        ("San Francisco", "San Francisco skyline from Coit Tower", "San_Francisco_skyline_from_Coit_Tower.jpg"),
+        ("New York", "Manhattan from Weehawken, NJ", "Manhattan_from_Weehawken,_NJ.jpg"),
+        ("London", "London Skyline (125508655)", "London_Skyline_(125508655).jpeg"),
+        ("Tokyo", "Skyscrapers of Shinjuku 2009 January", "Skyscrapers_of_Shinjuku_2009_January.jpg"),
+    ].map { city, title, file in
+        PhotoCreditItem(id: "b:" + city, city: city, author: nil, license: nil,
+                        source: URL(string: "https://commons.wikimedia.org/wiki/File:" + file), fallback: title)
+    }
+
+    /// The bundled photos' credits, A to Z by city.
+    static var bundledCredits: [PhotoCreditItem] {
+        guard let manifest else { return legacyCredits }
+        var seen = Set<String>()
+        return manifest.compactMap { entry -> PhotoCreditItem? in
+            guard seen.insert(entry.key).inserted else { return nil }
+            let city = entry.names.first ?? entry.key
+            return PhotoCreditItem(id: "b:" + entry.key, city: city, author: entry.credit?.author,
+                                   license: entry.credit?.license,
+                                   source: entry.credit?.source.flatMap { URL(string: $0) },
+                                   fallback: entry.file)
+        }
+        .sorted { $0.city.localizedCaseInsensitiveCompare($1.city) == .orderedAscending }
+    }
+
+    // MARK: Shading
 
     /// The photo shaded for the time of day there: darker and cooler at night, warmer and a
     /// little darker in twilight, as it is by day.
@@ -103,6 +253,502 @@ enum SkylineArt {
         case .night: return Theme.rgb(0x06080F)
         }
     }
+
+    /// The Wikipedia titles to try for a city without a bundled photo: "City, Country" first
+    /// (from the city list), then the plain name. None for UTC and offsets.
+    static func wikipediaTitles(for place: Place) -> [String] {
+        let name = place.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let upper = name.uppercased()
+        guard !name.isEmpty, !upper.hasPrefix("UTC"), !upper.hasPrefix("GMT") else { return [] }
+        var out: [String] = []
+        func add(_ title: String?) {
+            guard let title, !title.isEmpty, !out.contains(title) else { return }
+            out.append(title)
+        }
+        let zoneRegions: Set<String> = ["America", "Europe", "Asia", "Africa", "Australia", "Pacific",
+                                        "Atlantic", "Indian", "Antarctica", "Arctic", "Coordinated Universal Time"]
+        let entry = CityDirectory.all.first {
+            $0.timeZoneID == place.timeZoneID && $0.name.caseInsensitiveCompare(name) == .orderedSame
+        }
+        if let region = entry?.region, !region.isEmpty, !zoneRegions.contains(region) { add("\(name), \(region)") }
+        if let code = place.countryCode ?? entry?.countryCode,
+           let country = Locale(identifier: "en_US").localizedString(forRegionCode: code) {
+            add("\(name), \(country)")
+        }
+        if let country = WorkWeek.countryName(zoneID: place.timeZoneID) { add("\(name), \(country)") }
+        add(name)
+        return out
+    }
+}
+
+/// What a downloaded photo's credit file holds: the city, when it was asked for, the image file
+/// (nil when there was no photo it could use), and the credit.
+struct CityPhotoRecord: Codable {
+    var name: String
+    var fetched: Date
+    var file: String?
+    var credit: SkylinePhotoCredit?
+}
+
+/// Photos for cities without a bundled one, from Wikimedia Commons: asked for once (only the
+/// city's name is sent), kept in Caches, and never asked for again within 30 days. Never blocks
+/// the UI; the drawn skyline shows until a photo is ready, and offline nothing changes.
+@MainActor
+final class CityPhotos: ObservableObject {
+    static let shared = CityPhotos()
+
+    nonisolated static let enabledKey = "downloadCityPhotos"
+    nonisolated static let userAgent = "Meridian/2.0 (https://bradcowdrey.com/meridian)"
+    nonisolated static let retryAfter: TimeInterval = 30 * 24 * 3600
+
+    /// Settings → Cities → Download City Photos (on unless turned off).
+    nonisolated static var enabled: Bool {
+        UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
+    }
+
+    /// Loaded photos, by slug.
+    @Published private(set) var images: [String: UIImage] = [:]
+    /// What's on disk, by slug.
+    @Published private(set) var records: [String: CityPhotoRecord] = [:]
+    private var inFlight = Set<String>()
+    /// Asked for (or failed offline) since launch: not again until the next launch.
+    private var tried = Set<String>()
+    private var recordsTask: Task<Void, Never>?
+
+    private init() {
+        recordsTask = Task { [weak self] in
+            let found = await Task.detached(priority: .utility) { CityPhotos.readRecords() }.value
+            guard let self else { return }
+            for (slug, record) in found where self.records[slug] == nil { self.records[slug] = record }
+        }
+    }
+
+    /// The card's downloaded photo, if it has been loaded.
+    func image(for place: Place) -> UIImage? {
+        images[SkylineArt.slug(for: place)]
+    }
+
+    /// Downloaded photos' credits, A to Z by city.
+    var credits: [PhotoCreditItem] {
+        records.compactMap { (slug, record) -> PhotoCreditItem? in
+            guard record.file != nil else { return nil }
+            return PhotoCreditItem(id: "d:" + slug, city: record.name, author: record.credit?.author,
+                                   license: record.credit?.license,
+                                   source: record.credit?.source.flatMap { URL(string: $0) }, fallback: nil)
+        }
+        .sorted { $0.city.localizedCaseInsensitiveCompare($1.city) == .orderedAscending }
+    }
+
+    /// Loads the card's photo from disk, or asks Wikimedia for one (once), in the background.
+    func request(_ place: Place) {
+        guard Self.enabled, SkylineArt.bundledPhoto(for: place) == nil else { return }
+        let slug = SkylineArt.slug(for: place)
+        guard images[slug] == nil, !inFlight.contains(slug), !tried.contains(slug) else { return }
+        inFlight.insert(slug)
+        Task { [weak self] in
+            await self?.load(slug: slug, place: place)
+        }
+    }
+
+    private func load(slug: String, place: Place) async {
+        let name = place.name
+        defer {
+            inFlight.remove(slug)
+            tried.insert(slug)
+        }
+        _ = await recordsTask?.value
+        if let record = records[slug] {
+            if let file = record.file {
+                if let image = await Self.readImage(file) {
+                    images[slug] = image
+                    return
+                }
+                // The system cleared the image: ask again, but not within 30 days of the last fetch.
+                if Date().timeIntervalSince(record.fetched) < Self.retryAfter { return }
+            } else if Date().timeIntervalSince(record.fetched) < Self.retryAfter {
+                return
+            }
+        }
+        guard Self.enabled else { return }
+        // The city list is large: look the city up off the main thread.
+        let titles = await Task.detached(priority: .utility) { SkylineArt.wikipediaTitles(for: place) }.value
+        guard !titles.isEmpty else { return }
+        switch await Self.fetch(titles: titles) {
+        case .offline:
+            return
+        case .noPhoto:
+            let record = CityPhotoRecord(name: name, fetched: Date(), file: nil, credit: nil)
+            records[slug] = record
+            await Self.write(record, slug: slug, data: nil)
+        case .photo(let data, let credit):
+            guard let image = await Self.decode(data) else {
+                let record = CityPhotoRecord(name: name, fetched: Date(), file: nil, credit: nil)
+                records[slug] = record
+                await Self.write(record, slug: slug, data: nil)
+                return
+            }
+            let record = CityPhotoRecord(name: name, fetched: Date(), file: slug + ".jpg", credit: credit)
+            await Self.write(record, slug: slug, data: data)
+            records[slug] = record
+            images[slug] = image
+        }
+    }
+
+    // MARK: Disk
+
+    nonisolated private static func directory() -> URL? {
+        guard let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return nil }
+        let dir = base.appendingPathComponent("CityPhotos", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    nonisolated private static func readRecords() -> [String: CityPhotoRecord] {
+        guard let dir = directory(),
+              let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)
+        else { return [:] }
+        var out: [String: CityPhotoRecord] = [:]
+        let decoder = JSONDecoder()
+        for file in files where file.pathExtension == "json" {
+            if let data = try? Data(contentsOf: file), let record = try? decoder.decode(CityPhotoRecord.self, from: data) {
+                out[file.deletingPathExtension().lastPathComponent] = record
+            }
+        }
+        return out
+    }
+
+    nonisolated private static func readImage(_ file: String) async -> UIImage? {
+        await Task.detached(priority: .utility) { () -> UIImage? in
+            guard let dir = directory(),
+                  let image = UIImage(contentsOfFile: dir.appendingPathComponent(file).path) else { return nil }
+            return image.preparingForDisplay() ?? image
+        }.value
+    }
+
+    nonisolated private static func decode(_ data: Data) async -> UIImage? {
+        await Task.detached(priority: .utility) { () -> UIImage? in
+            guard let image = UIImage(data: data), image.size.width > 0 else { return nil }
+            return image.preparingForDisplay() ?? image
+        }.value
+    }
+
+    nonisolated private static func write(_ record: CityPhotoRecord, slug: String, data: Data?) async {
+        await Task.detached(priority: .utility) {
+            guard let dir = directory() else { return }
+            if let data, let file = record.file {
+                try? data.write(to: dir.appendingPathComponent(file), options: .atomic)
+            }
+            if let json = try? JSONEncoder().encode(record) {
+                try? json.write(to: dir.appendingPathComponent(slug + ".json"), options: .atomic)
+            }
+        }.value
+    }
+
+    // MARK: Network
+
+    private enum Fetch {
+        case photo(Data, SkylinePhotoCredit)
+        /// No article, no photo, or no licence it may use: draw one (and ask again in 30 days).
+        case noPhoto
+        /// Offline, or Wikimedia was busy: try again next launch.
+        case offline
+    }
+
+    private struct Summary: Decodable {
+        struct Image: Decodable {
+            let source: String
+            var width: Int?
+        }
+        struct Coordinates: Decodable { var lat: Double? }
+        var type: String?
+        var coordinates: Coordinates?
+        var thumbnail: Image?
+        var originalimage: Image?
+    }
+
+    /// A failure worth asking again about on the next launch (no connection, timeout, rate limit,
+    /// server trouble); any other client error is recorded like a city without a photo.
+    nonisolated private static func transient(_ status: Int) -> Bool {
+        status == 0 || status == 408 || status == 429 || status >= 500
+    }
+
+    nonisolated private static func fetch(titles: [String]) async -> Fetch {
+        do {
+            for title in titles {
+                guard let url = summaryURL(title) else { continue }
+                let (data, status) = try await get(url)
+                if status == 404 || status == 400 { continue }
+                guard status == 200 else { return transient(status) ? .offline : .noPhoto }
+                // A place's article (it has coordinates), not a list of meanings.
+                guard let summary = try? JSONDecoder().decode(Summary.self, from: data),
+                      summary.type != "disambiguation", summary.coordinates != nil else { continue }
+                guard let found = photo(summary), let metaURL = commonsURL(found.file) else { return .noPhoto }
+                let (meta, metaStatus) = try await get(metaURL)
+                guard metaStatus == 200 else { return transient(metaStatus) ? .offline : .noPhoto }
+                guard let credit = credit(meta, file: found.file), isAllowed(credit.license) else { return .noPhoto }
+                let (image, imageStatus) = try await get(found.url)
+                if imageStatus == 404 { return .noPhoto }
+                guard imageStatus == 200, !image.isEmpty else { return transient(imageStatus) ? .offline : .noPhoto }
+                return .photo(image, credit)
+            }
+            return .noPhoto
+        } catch {
+            return .offline
+        }
+    }
+
+    nonisolated private static func get(_ url: URL) async throws -> (Data, Int) {
+        var request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 20)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "Api-User-Agent")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+
+    nonisolated private static let titleCharacters = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~,()'_!*")
+
+    nonisolated private static func summaryURL(_ title: String) -> URL? {
+        let underscored = title.replacingOccurrences(of: " ", with: "_")
+        guard let encoded = underscored.addingPercentEncoding(withAllowedCharacters: titleCharacters) else { return nil }
+        return URL(string: "https://en.wikipedia.org/api/rest_v1/page/summary/" + encoded)
+    }
+
+    /// The photo to download (about 1000 px wide) and its file name on Commons; nil when the
+    /// article's image isn't on Commons (local files are usually not free) or is a drawing.
+    nonisolated private static func photo(_ summary: Summary) -> (url: URL, file: String)? {
+        guard let original = summary.originalimage ?? summary.thumbnail,
+              original.source.contains("/wikipedia/commons/"),
+              let originalURL = URL(string: original.source) else { return nil }
+        let lower = original.source.lowercased()
+        guard !lower.hasSuffix(".svg"), !lower.hasSuffix(".gif") else { return nil }
+        // The file name: after /commons/a/ab/, or after /commons/thumb/a/ab/ in a thumbnail.
+        let parts = originalURL.pathComponents
+        let file: String
+        if let thumb = parts.firstIndex(of: "thumb"), thumb + 3 < parts.count {
+            file = parts[thumb + 3]
+        } else if let last = parts.last {
+            file = last
+        } else { return nil }
+        guard !file.isEmpty, file != "/" else { return nil }
+
+        // Commons thumbnails come in set widths; 960 is the one near 1000.
+        if let thumbnail = summary.thumbnail, thumbnail.source.contains("/thumb/"),
+           (summary.originalimage?.width ?? 0) > 960,
+           var components = URLComponents(string: thumbnail.source) {
+            var path = components.percentEncodedPath.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+            if let last = path.last, let range = last.range(of: #"^\d+px-"#, options: .regularExpression) {
+                path[path.count - 1] = last.replacingCharacters(in: range, with: "960px-")
+                components.percentEncodedPath = path.joined(separator: "/")
+                if let url = components.url { return (url, file) }
+            }
+        }
+        // Small enough already (or no thumbnail): the original, if it isn't huge.
+        if (summary.originalimage?.width ?? 0) <= 1600 { return (originalURL, file) }
+        return nil
+    }
+
+    nonisolated private static func commonsURL(_ file: String) -> URL? {
+        var components = URLComponents(string: "https://commons.wikimedia.org/w/api.php")
+        components?.queryItems = [
+            URLQueryItem(name: "action", value: "query"),
+            URLQueryItem(name: "titles", value: "File:" + file),
+            URLQueryItem(name: "prop", value: "imageinfo"),
+            URLQueryItem(name: "iiprop", value: "extmetadata"),
+            URLQueryItem(name: "format", value: "json"),
+            URLQueryItem(name: "origin", value: "*"),
+        ]
+        // "+" in a file name would read as a space.
+        if let query = components?.percentEncodedQuery {
+            components?.percentEncodedQuery = query.replacingOccurrences(of: "+", with: "%2B")
+        }
+        return components?.url
+    }
+
+    /// The author, licence and links from Commons' extmetadata.
+    nonisolated private static func credit(_ data: Data, file: String) -> SkylinePhotoCredit? {
+        guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let query = root["query"] as? [String: Any],
+              let pages = query["pages"] as? [String: Any],
+              let page = pages.values.first as? [String: Any],
+              let info = (page["imageinfo"] as? [[String: Any]])?.first,
+              let meta = info["extmetadata"] as? [String: Any]
+        else { return nil }
+        func value(_ key: String) -> String? {
+            guard let raw = (meta[key] as? [String: Any])?["value"] as? String else { return nil }
+            let text = plainText(raw)
+            return text.isEmpty ? nil : text
+        }
+        guard let license = value("LicenseShortName") else { return nil }
+        let pageURL = "https://commons.wikimedia.org/wiki/File:" + file.replacingOccurrences(of: " ", with: "_")
+        let source = pageURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? pageURL
+        return SkylinePhotoCredit(author: value("Artist") ?? value("Credit"), license: license,
+                                  licenseUrl: value("LicenseUrl"), source: source)
+    }
+
+    /// HTML from Commons as plain text.
+    nonisolated private static func plainText(_ html: String) -> String {
+        var text = html.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        for (entity, char) in [("&amp;", "&"), ("&quot;", "\""), ("&#39;", "'"), ("&apos;", "'"),
+                               ("&lt;", "<"), ("&gt;", ">"), ("&nbsp;", " ")] {
+            text = text.replacingOccurrences(of: entity, with: char)
+        }
+        text = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// CC0, public domain, CC BY or CC BY-SA (any version); never NC or ND.
+    nonisolated static func isAllowed(_ license: String?) -> Bool {
+        guard let license else { return false }
+        let l = license.lowercased().replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+        if l.hasPrefix("cc0") || l.hasPrefix("public domain") || l == "pd" || l.hasPrefix("pd ") { return true }
+        if l.contains(" nc") || l.contains(" nd") { return false }
+        if l == "cc by" || l == "cc by sa" { return true }
+        return l.range(of: #"^cc by( sa)? \d"#, options: .regularExpression) != nil
+    }
+}
+
+/// Small copies of the cards' photos for the widgets, which can't read the app's asset catalog or
+/// Caches: one ~600×300 JPEG per city on the list in the App Group container (Skylines/<slug>.jpg)
+/// and Skylines/index.json naming each city's file (see WidgetSkylines). Rewritten only when a
+/// city's photo changes; the widgets reload when anything did.
+@MainActor
+enum WidgetPhotoExport {
+    private struct Job {
+        let id: String
+        let entry: WidgetSkylines.Entry
+        let image: UIImage
+    }
+
+    private static var task: Task<Void, Never>?
+    /// The cities the large widget shows, whose downloaded photos are asked for even off screen.
+    private static let widgetCities = 5
+
+    static func sync(_ places: [Place], downloads: Bool) {
+        // Screenshot mode never writes to the shared folder: the in-app widget previews read the
+        // bundled photos straight from the app instead.
+        if Screenshots.isActive {
+            WidgetSkylines.inAppImage = { c in
+                SkylineArt.photo(for: Place(name: c.name, timeZoneID: c.timeZoneID), downloaded: nil)?.image.cgImage
+            }
+            return
+        }
+        guard let dir = WidgetSkylines.directory else { return }
+        var jobs: [Job] = []
+        var ids = Set<String>()
+        // Cities whose downloaded photo hasn't loaded yet: their widget copies are kept meanwhile.
+        var pending = Set<String>()
+        for (i, place) in places.enumerated() {
+            let id = WidgetSkylines.id(name: place.name, timeZoneID: place.timeZoneID)
+            guard ids.insert(id).inserted else { continue }
+            if downloads && i < widgetCities { CityPhotos.shared.request(place) }
+            let downloaded = downloads ? CityPhotos.shared.image(for: place) : nil
+            guard let photo = SkylineArt.photo(for: place, downloaded: downloaded) else {
+                if downloads, SkylineArt.key(for: place) == nil { pending.insert(id) }
+                continue
+            }
+            jobs.append(Job(id: id, entry: WidgetSkylines.Entry(file: SkylineArt.slug(for: place) + ".jpg", source: photo.id),
+                            image: photo.image))
+        }
+        let previous = task
+        previous?.cancel()
+        task = Task.detached(priority: .utility) {
+            _ = await previous?.value
+            guard !Task.isCancelled else { return }
+            if write(jobs, pending: pending, dir: dir) {
+                await MainActor.run { WidgetCenter.shared.reloadAllTimelines() }
+            }
+        }
+    }
+
+    /// Writes the photos that changed and the index; removes photos no city uses. True if anything changed.
+    /// Cities in `pending` keep their earlier downloaded copy until their photo has loaded.
+    nonisolated private static func write(_ jobs: [Job], pending: Set<String>, dir: URL) -> Bool {
+        let fm = FileManager.default
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let old = WidgetSkylines.readIndex()
+        var index: [String: WidgetSkylines.Entry] = [:]
+        var changed = false
+        for job in jobs {
+            let url = dir.appendingPathComponent(job.entry.file)
+            if old[job.id] == job.entry, fm.fileExists(atPath: url.path) {
+                index[job.id] = job.entry
+                continue
+            }
+            guard let data = jpeg(job.image) else { continue }
+            if (try? data.write(to: url, options: .atomic)) != nil {
+                index[job.id] = job.entry
+                changed = true
+            }
+        }
+        for id in pending where index[id] == nil {
+            if let entry = old[id], entry.source.hasPrefix("d:"),
+               fm.fileExists(atPath: dir.appendingPathComponent(entry.file).path) {
+                index[id] = entry
+            }
+        }
+        if index != old {
+            changed = true
+            if let json = try? JSONEncoder().encode(index), let url = WidgetSkylines.indexURL {
+                try? json.write(to: url, options: .atomic)
+            }
+        }
+        // Photos no city on the list uses any more.
+        let keep = Set(index.values.map(\.file))
+        if let files = try? fm.contentsOfDirectory(atPath: dir.path) {
+            for file in files where file.hasSuffix(".jpg") && !keep.contains(file) {
+                try? fm.removeItem(at: dir.appendingPathComponent(file))
+            }
+        }
+        return changed
+    }
+
+    /// The photo filling 600×300 (cropped from its centre, as the cards crop it), JPEG at 0.6.
+    nonisolated private static func jpeg(_ image: UIImage) -> Data? {
+        let size = CGSize(width: 600, height: 300)
+        let iw = image.size.width, ih = image.size.height
+        guard iw > 0, ih > 0 else { return nil }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let scale = max(size.width / iw, size.height / ih)
+        let w = iw * scale, h = ih * scale
+        return UIGraphicsImageRenderer(size: size, format: format).jpegData(withCompressionQuality: 0.6) { _ in
+            image.draw(in: CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h))
+        }
+    }
+}
+
+/// The card's background: the city's photo filling it, shaded for the time of day there, or a
+/// skyline drawn for it on that time of day's sky.
+struct SkylineBackdrop: View {
+    let seed: String
+    let photo: SkylinePhoto?
+    let phase: Sky.Phase
+
+    var body: some View {
+        Color.clear
+            .overlay { art }
+            .clipped()
+            .animation(.easeInOut(duration: 0.6), value: phase)
+            .animation(.easeInOut(duration: 0.4), value: photo?.id)
+    }
+
+    @ViewBuilder private var art: some View {
+        if let photo {
+            Image(uiImage: photo.image)
+                .resizable()
+                .scaledToFill()
+                .saturation(SkylineArt.saturation(phase))
+                .colorMultiply(SkylineArt.shade(phase))
+                .transition(.opacity)
+        } else {
+            DrawnSkyline(seed: seed, phase: phase)
+                .transition(.opacity)
+        }
+    }
 }
 
 /// The same "random" numbers every time for the same city name, so its drawn skyline stays put.
@@ -118,32 +764,6 @@ struct SeededRandom {
     mutating func next() -> CGFloat {
         x = x &* 1_664_525 &+ 1_013_904_223
         return CGFloat(x) / 4_294_967_296
-    }
-}
-
-/// The banner across a card's top: the city's photo (filling it, shaded for the time of day
-/// there), or a skyline drawn for it on that time of day's sky.
-struct SkylineBanner: View {
-    let place: Place
-    let phase: Sky.Phase
-
-    var body: some View {
-        Color.clear
-            .overlay { art }
-            .clipped()
-            .animation(.easeInOut(duration: 0.6), value: phase)
-    }
-
-    @ViewBuilder private var art: some View {
-        if let photo = SkylineArt.photo(for: place.name) {
-            Image(uiImage: photo)
-                .resizable()
-                .scaledToFill()
-                .saturation(SkylineArt.saturation(phase))
-                .colorMultiply(SkylineArt.shade(phase))
-        } else {
-            DrawnSkyline(seed: place.name, phase: phase)
-        }
     }
 }
 
@@ -244,35 +864,40 @@ struct DrawnSkyline: View {
     }
 }
 
-/// Whether the banner is bright or dark behind the time (its bottom-left corner, about 55% of its
-/// width and half its height), as shaded for the time of day there: dark digits outlined in white
-/// go on a bright corner, white digits outlined in black on a dark one.
+/// Whether the card is bright or dark behind the time (the area the time actually covers, as the
+/// card shades it for the time of day there and darkens it with its scrim): dark digits outlined
+/// in white go on a bright area, white digits outlined in black on a dark one.
 enum BannerInk {
     /// Brighter than this (relative luminance, 0 to 1) takes dark digits.
     static let threshold: Double = 0.40
 
-    /// Recent answers, by photo (or drawn city and size) and phase, so scrubbing stays fast.
+    /// Recent answers, by photo (or drawn city and size), phase and area, so scrubbing stays fast.
     private static var cache: [String: Bool] = [:]
 
-    static func isBright(place: Place, phase: Sky.Phase, size: CGSize) -> Bool {
+    /// `region` is the area behind the time in the card's unit square (0...1 each way, top-left
+    /// origin); `size` is the card's.
+    static func isBright(photo: SkylinePhoto?, seed: String, phase: Sky.Phase, size: CGSize, region: CGRect) -> Bool {
         guard size.width > 1, size.height > 1 else { return false }
-        let photoKey = SkylineArt.key(for: place.name)
+        let area = region.isNull ? CGRect.zero : region.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+        guard !area.isNull, area.width > 0.001, area.height > 0.001 else { return false }
+        // A twentieth of the card is close enough for the area, a quarter for a photo's shape.
+        func q(_ v: CGFloat) -> Int { Int((v * 20).rounded()) }
+        let areaKey = "\(q(area.minX)),\(q(area.minY)),\(q(area.width)),\(q(area.height))"
         let key: String
-        if let photoKey {
-            // A photo's crop depends only on the banner's shape; a step of a quarter is close enough.
+        if let photo {
             let aspect = (size.width / size.height * 4).rounded() / 4
-            key = "photo|\(photoKey)|\(phase)|\(aspect)"
+            key = "photo|\(photo.id)|\(phase)|\(aspect)|\(areaKey)"
         } else {
-            key = "drawn|\(place.name)|\(phase)|\(Int(size.width.rounded()))x\(Int(size.height.rounded()))"
+            key = "drawn|\(seed)|\(phase)|\(Int(size.width.rounded()))x\(Int(size.height.rounded()))|\(areaKey)"
         }
         if let hit = cache[key] { return hit }
-        if cache.count > 200 { cache.removeAll() }
+        if cache.count > 300 { cache.removeAll() }
 
         let luminance: Double?
-        if photoKey != nil, let photo = SkylineArt.photo(for: place.name) {
-            luminance = photoLuminance(photo, phase: phase, size: size)
+        if let photo {
+            luminance = photoLuminance(photo.image, phase: phase, size: size, region: area)
         } else {
-            luminance = drawnLuminance(seed: place.name, phase: phase, size: size)
+            luminance = drawnLuminance(seed: seed, phase: phase, size: size, region: area)
         }
         let bright = (luminance ?? 0) > threshold
         cache[key] = bright
@@ -299,9 +924,10 @@ enum BannerInk {
 
     // MARK: Photos
 
-    /// The photo's corner behind the time, as the banner crops it (filling it, centred), drawn into a
-    /// small bitmap, then saturated and tinted as the banner shades it, and averaged.
-    private static func photoLuminance(_ photo: UIImage, phase: Sky.Phase, size: CGSize) -> Double? {
+    /// The photo's area behind the time, as the card crops it (filling it, centred), drawn into a
+    /// small bitmap, then saturated and tinted as the card shades it, darkened by the scrim, and
+    /// averaged.
+    private static func photoLuminance(_ photo: UIImage, phase: Sky.Phase, size: CGSize, region: CGRect) -> Double? {
         guard let cg = photo.cgImage else { return nil }
         let iw = CGFloat(cg.width), ih = CGFloat(cg.height)
         guard iw > 0, ih > 0 else { return nil }
@@ -314,11 +940,11 @@ enum BannerInk {
             let vh = iw / aspect
             visible = CGRect(x: 0, y: (ih - vh) / 2, width: iw, height: vh)
         }
-        // Bottom-left: 55% of the width, the lower half (image rows run top to bottom).
-        let region = CGRect(x: visible.minX, y: visible.minY + visible.height * 0.5,
-                            width: visible.width * 0.55, height: visible.height * 0.5).integral
+        // Image rows run top to bottom, as the card's unit square does.
+        let crop = CGRect(x: visible.minX + visible.width * region.minX, y: visible.minY + visible.height * region.minY,
+                          width: visible.width * region.width, height: visible.height * region.height).integral
             .intersection(CGRect(x: 0, y: 0, width: iw, height: ih))
-        guard !region.isEmpty, let crop = cg.cropping(to: region) else { return nil }
+        guard !crop.isNull, !crop.isEmpty, let part = cg.cropping(to: crop) else { return nil }
 
         let w = 24, h = 12
         guard let space = CGColorSpace(name: CGColorSpace.sRGB),
@@ -326,35 +952,42 @@ enum BannerInk {
                                   space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
         else { return nil }
         ctx.interpolationQuality = .medium
-        ctx.draw(crop, in: CGRect(x: 0, y: 0, width: w, height: h))
+        ctx.draw(part, in: CGRect(x: 0, y: 0, width: w, height: h))
         guard let data = ctx.data else { return nil }
         let px = data.bindMemory(to: UInt8.self, capacity: w * h * 4)
 
         let saturation = SkylineArt.saturation(phase)
         let tint = components(SkylineArt.shade(phase))
         var total = 0.0
-        for i in 0..<(w * h) {
-            let a = Double(px[i * 4 + 3]) / 255
-            guard a > 0 else { continue }
-            var r = Double(px[i * 4]) / 255 / a
-            var g = Double(px[i * 4 + 1]) / 255 / a
-            var b = Double(px[i * 4 + 2]) / 255 / a
-            // .saturation: towards (or away from) the pixel's grey.
-            let grey = 0.2126 * r + 0.7152 * g + 0.0722 * b
-            r = min(max(grey + (r - grey) * saturation, 0), 1)
-            g = min(max(grey + (g - grey) * saturation, 0), 1)
-            b = min(max(grey + (b - grey) * saturation, 0), 1)
-            // .colorMultiply: the time of day's tint.
-            total += luminance(r * tint.r, g * tint.g, b * tint.b)
+        for row in 0..<h {
+            let v = Double(region.minY) + Double(region.height) * (Double(row) + 0.5) / Double(h)
+            for col in 0..<w {
+                let i = row * w + col
+                let u = Double(region.minX) + Double(region.width) * (Double(col) + 0.5) / Double(w)
+                let a = Double(px[i * 4 + 3]) / 255
+                guard a > 0 else { continue }
+                var r = Double(px[i * 4]) / 255 / a
+                var g = Double(px[i * 4 + 1]) / 255 / a
+                var b = Double(px[i * 4 + 2]) / 255 / a
+                // .saturation: towards (or away from) the pixel's grey.
+                let grey = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                r = min(max(grey + (r - grey) * saturation, 0), 1)
+                g = min(max(grey + (g - grey) * saturation, 0), 1)
+                b = min(max(grey + (b - grey) * saturation, 0), 1)
+                // .colorMultiply (the time of day's tint), then the scrim over it.
+                let k = CardScrim.remaining(u: u, v: v)
+                total += luminance(r * tint.r * k, g * tint.g * k, b * tint.b * k)
+            }
         }
         return total / Double(w * h)
     }
 
     // MARK: Drawn skylines
 
-    /// The drawn skyline's corner behind the time, sampled on a small grid: its buildings in their
-    /// ink, the paler row behind at 55% over the sky, and the sky's gradient elsewhere.
-    private static func drawnLuminance(seed: String, phase: Sky.Phase, size: CGSize) -> Double {
+    /// The drawn skyline's area behind the time, sampled on a small grid: its buildings in their
+    /// ink, the paler row behind at 55% over the sky, and the sky's gradient elsewhere, darkened
+    /// by the scrim.
+    private static func drawnLuminance(seed: String, phase: Sky.Phase, size: CGSize, region: CGRect) -> Double {
         let layout = DrawnSkyline.layout(seed: seed, size: size)
         let sky = SkylineArt.sky(phase).map { components($0) }
         let ink = components(SkylineArt.ink(phase))
@@ -363,20 +996,22 @@ enum BannerInk {
         let cols = 24, rows = 12
         var total = 0.0
         for row in 0..<rows {
-            let t = 0.5 + 0.5 * (Double(row) + 0.5) / Double(rows)
+            let t = Double(region.minY) + Double(region.height) * (Double(row) + 0.5) / Double(rows)
             let y = size.height * CGFloat(t)
             let sr = top.r + (bottom.r - top.r) * t
             let sg = top.g + (bottom.g - top.g) * t
             let sb = top.b + (bottom.b - top.b) * t
             for col in 0..<cols {
-                let x = size.width * 0.55 * CGFloat((Double(col) + 0.5) / Double(cols))
-                let p = CGPoint(x: x, y: y)
+                let u = Double(region.minX) + Double(region.width) * (Double(col) + 0.5) / Double(cols)
+                let p = CGPoint(x: size.width * CGFloat(u), y: y)
+                let k = CardScrim.remaining(u: u, v: t)
                 if layout.front.contains(where: { $0.contains(p) }) {
-                    total += luminance(ink.r, ink.g, ink.b)
+                    total += luminance(ink.r * k, ink.g * k, ink.b * k)
                 } else if layout.back.contains(where: { $0.contains(p) }) {
-                    total += luminance(sr + (ink.r - sr) * 0.55, sg + (ink.g - sg) * 0.55, sb + (ink.b - sb) * 0.55)
+                    total += luminance((sr + (ink.r - sr) * 0.55) * k, (sg + (ink.g - sg) * 0.55) * k,
+                                       (sb + (ink.b - sb) * 0.55) * k)
                 } else {
-                    total += luminance(sr, sg, sb)
+                    total += luminance(sr * k, sg * k, sb * k)
                 }
             }
         }
@@ -384,26 +1019,32 @@ enum BannerInk {
     }
 }
 
-/// A soft gradient in the banner's bottom-left corner, under the time, so it reads on any sky:
-/// dark under white digits, light under dark ones.
-struct BannerScrim: View {
-    var bright = false
+/// The card's scrim, so the text along its bottom reads on any sky: black at 55% along the bottom
+/// edge, gone by 55% of the way up, and a lighter one from the left (35%, gone by 60% across).
+struct CardScrim: View {
+    static let bottomOpacity = 0.55
+    static let bottomReach = 0.55
+    static let leftOpacity = 0.35
+    static let leftReach = 0.6
+
+    /// How much of the photo shows through at a point of the card's unit square (top-left origin).
+    static func remaining(u: Double, v: Double) -> Double {
+        let up = bottomOpacity * max(0, 1 - (1 - v) / bottomReach)
+        let across = leftOpacity * max(0, 1 - u / leftReach)
+        return (1 - up) * (1 - across)
+    }
 
     var body: some View {
-        let tone = bright ? Color.white : Color.black
-        let corner: Double = bright ? 0.45 : 0.55
-        let middle: Double = bright ? 0.2 : 0.25
-        EllipticalGradient(
-            stops: [
-                Gradient.Stop(color: tone.opacity(corner), location: 0),
-                Gradient.Stop(color: tone.opacity(middle), location: 0.375),
-                Gradient.Stop(color: tone.opacity(0), location: 0.625),
-            ],
-            center: .bottomLeading,
-            startRadiusFraction: 0,
-            endRadiusFraction: 1.2
-        )
-        .animation(.easeInOut(duration: 0.6), value: bright)
+        ZStack {
+            LinearGradient(stops: [
+                Gradient.Stop(color: Color.black.opacity(Self.bottomOpacity), location: 0),
+                Gradient.Stop(color: Color.black.opacity(0), location: Self.bottomReach),
+            ], startPoint: .bottom, endPoint: .top)
+            LinearGradient(stops: [
+                Gradient.Stop(color: Color.black.opacity(Self.leftOpacity), location: 0),
+                Gradient.Stop(color: Color.black.opacity(0), location: Self.leftReach),
+            ], startPoint: .leading, endPoint: .trailing)
+        }
         .allowsHitTesting(false)
     }
 }
@@ -577,11 +1218,12 @@ struct WorkStatus {
 }
 
 /// A city's working status as a small outlined capsule: an icon and the status in its colour, with
-/// the detail after a dot in tall cards.
+/// the detail after a dot in tall cards. On a photo it sits on a translucent dark backing.
 struct StatusPill: View {
     let status: WorkStatus
     var showDetail = false
     var scale: CGFloat = 1
+    var backed = false
 
     var body: some View {
         HStack(spacing: 4) {
@@ -594,6 +1236,9 @@ struct StatusPill: View {
         .foregroundStyle(status.color)
         .padding(.horizontal, 7)
         .padding(.vertical, 2)
+        .background {
+            if backed { Capsule().fill(Color.black.opacity(0.35)) }
+        }
         .overlay(Capsule().strokeBorder(status.color.opacity(0.35), lineWidth: 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(status.spoken)
@@ -606,30 +1251,61 @@ struct StatusPill: View {
     }
 }
 
-/// Settings → About → Photo Credits: where the skyline photos come from.
+/// Settings → About → Photo Credits: where the skyline photos come from, built in and downloaded,
+/// with each one's author, licence and a link to it on Wikimedia Commons.
 struct PhotoCreditsView: View {
+    @ObservedObject private var photos = CityPhotos.shared
+
     var body: some View {
+        let downloaded = photos.credits
         Form {
             Section {
-                ForEach(SkylineArt.credits, id: \.city) { credit in
-                    Link(destination: credit.url) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(credit.city).foregroundStyle(.white)
-                            Text(credit.file)
-                                .font(.system(size: 13))
-                                .foregroundStyle(Color.white.opacity(Theme.Op.caption))
-                        }
-                    }
-                }
+                ForEach(SkylineArt.bundledCredits) { credit in creditRow(credit) }
+            } header: {
+                caption("Built In")
             } footer: {
-                Text("Skyline photos from Wikimedia Commons. Tap one to see its author and licence there. Other cities show a skyline drawn by Meridian.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                caption("Skyline photos from Wikimedia Commons. Tap one to see it there. Cities without a photo show a skyline drawn by Meridian.")
             }
             .meridianSection()
+            if !downloaded.isEmpty {
+                Section {
+                    ForEach(downloaded) { credit in creditRow(credit) }
+                } header: {
+                    caption("Downloaded")
+                } footer: {
+                    caption("Downloaded once from Wikimedia Commons and kept on this iPhone.")
+                }
+                .meridianSection()
+            }
         }
         .meridianForm()
         .navigationTitle("Photo Credits")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder private func creditRow(_ credit: PhotoCreditItem) -> some View {
+        if let url = credit.source {
+            Link(destination: url) { creditText(credit) }
+        } else {
+            creditText(credit)
+        }
+    }
+
+    private func creditText(_ credit: PhotoCreditItem) -> some View {
+        let line = [credit.author, credit.license].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " \u{00B7} ")
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(credit.city).foregroundStyle(.white)
+            Text(line.isEmpty ? (credit.fallback ?? "Wikimedia Commons") : line)
+                .font(.system(size: 13))
+                .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                .lineLimit(2)
+        }
+    }
+
+    private func caption(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13))
+            .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+            .textCase(nil)
     }
 }

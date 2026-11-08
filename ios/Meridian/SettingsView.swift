@@ -28,6 +28,8 @@ struct SettingsView: View {
                         .tint(Theme.switchOn)
                     Toggle("Group by Continent", isOn: $store.continentGroups)
                         .tint(Theme.switchOn)
+                    Toggle("Download City Photos", isOn: $store.downloadCityPhotos)
+                        .tint(Theme.switchOn)
                     NavigationLink {
                         GroupsList()
                     } label: {
@@ -39,7 +41,10 @@ struct SettingsView: View {
                         }
                     }
                 } header: { header("Cities", "location") } footer: {
-                    footer("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone. Cities are grouped by continent automatically when your list spans two or more.")
+                    VStack(alignment: .leading, spacing: 6) {
+                        footer("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your iPhone. Cities are grouped by continent automatically when your list spans two or more.")
+                        footer("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on this phone. Only the city's name is sent.")
+                    }
                 }
                 .meridianSection()
                 Section {

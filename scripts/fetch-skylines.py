@@ -190,6 +190,17 @@ def score_candidate(title: str, info: dict) -> float | None:
     return score
 
 
+def _fold(text: str) -> str:
+    return "".join(c for c in unicodedata.normalize("NFKD", text).lower() if c.isalnum() or c == " ")
+
+
+def names_city(title: str, city: City) -> bool:
+    """A search hit must name the city (or an alias): "Sydney Skyline" is no photo of Casablanca."""
+    t = _fold(title.replace("_", " "))
+    words = [city.name, city.title.split(",")[0], *city.aliases]
+    return any(len(w) >= 3 and _fold(w) in t for w in words if not (w.isupper() and len(w) == 3))
+
+
 def file_name_from_url(url: str) -> str | None:
     """'.../commons/thumb/a/ab/Foo_bar.jpg/1280px-Foo_bar.jpg' or '.../commons/a/ab/Foo_bar.jpg' -> 'Foo_bar.jpg'."""
     path = urllib.parse.urlparse(url).path
@@ -363,7 +374,7 @@ def choose(f: Fetcher, city: City) -> tuple[str, dict, dict, str] | str:
             reasons.append(f"search '{query}' failed: {e}")
             continue
         for title, info in results:
-            if title in city.excluded:
+            if title in city.excluded or not names_city(title, city):
                 continue
             score = score_candidate(title, info)
             if score is None:

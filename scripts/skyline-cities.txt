@@ -9,7 +9,7 @@ Los Angeles|Los Angeles|America/Los_Angeles|LA;LAX|-File:Los Angeles and skyline
 Seattle|Seattle|America/Los_Angeles|SEA
 San Diego|San Diego|America/Los_Angeles|SAN
 Las Vegas|Las Vegas|America/Los_Angeles|LAS;Vegas
-Portland|Portland, Oregon|America/Los_Angeles|PDX|-File:Skyline Restaurant, 2021 08.jpg
+Portland|Portland, Oregon|America/Los_Angeles|PDX|-File:Skyline Restaurant, 2021 08.jpg;-File:Portland skyline during 2015 Oregon wildfires - Burnside Bridge.jpg
 Vancouver|Vancouver|America/Vancouver|YVR
 Salt Lake City|Salt Lake City|America/Denver|SLC
 Denver|Denver|America/Denver|DEN
@@ -33,7 +33,7 @@ Montreal|Montreal|America/Toronto|Montréal;YUL|-File:Montreal Skyline at Night.
 Havana|Havana|America/Havana|La Habana;HAV
 Panama City|Panama City|America/Panama|Panama;PTY
 Honolulu|Honolulu|Pacific/Honolulu|HNL
-Anchorage|Anchorage, Alaska|America/Anchorage|ANC|-File:Skyline of northern Anchorage, Alaska viewed from Arctic Valley, Tikhatnu Commons in foreground.jpg
+Anchorage|Anchorage, Alaska|America/Anchorage|ANC|-File:Skyline of northern Anchorage, Alaska viewed from Arctic Valley, Tikhatnu Commons in foreground.jpg;-File:Anchorage skyline with Fireworks.jpg
 # South America
 Bogota|Bogotá|America/Bogota|Bogotá;BOG
 Lima|Lima|America/Lima|LIM
@@ -74,7 +74,7 @@ Istanbul|Istanbul|Europe/Istanbul|İstanbul;IST
 Moscow|Moscow|Europe/Moscow|Moskva;SVO
 # Africa
 Cairo|Cairo|Africa/Cairo|CAI
-Casablanca|Casablanca|Africa/Casablanca|CMN|-File:Navire conteneur SKYLINE naviguant en mer de Casablanca.jpg
+Casablanca|Casablanca|Africa/Casablanca|CMN|-File:Navire conteneur SKYLINE naviguant en mer de Casablanca.jpg;-File:Sydney Skyline (2049716731).jpg
 Lagos|Lagos|Africa/Lagos|LOS
 Accra|Accra|Africa/Accra|ACC|-File:Power lines and skyline view from North Dzorwulu (IMG 6833).jpg
 Addis Ababa|Addis Ababa|Africa/Addis_Ababa|ADD
@@ -82,7 +82,7 @@ Nairobi|Nairobi|Africa/Nairobi|NBO
 Johannesburg|Johannesburg|Africa/Johannesburg|JNB;Joburg
 Cape Town|Cape Town|Africa/Johannesburg|CPT
 # Middle East
-Tel Aviv|Tel Aviv|Asia/Jerusalem|TLV|-File:Tel Aviv and Raman gan skyline from TAU.jpg
+Tel Aviv|Tel Aviv|Asia/Jerusalem|TLV|-File:Tel Aviv and Raman gan skyline from TAU.jpg;-File:View of Skyline of Tel Aviv-Yafo from Habima Square.jpg
 Riyadh|Riyadh|Asia/Riyadh|RUH
 Doha|Doha|Asia/Qatar|DOH
 Dubai|Dubai|Asia/Dubai|DXB
@@ -103,7 +103,7 @@ Ho Chi Minh City|Ho Chi Minh City|Asia/Ho_Chi_Minh|Ho Chi Minh;Saigon;SGN
 Kuala Lumpur|Kuala Lumpur|Asia/Kuala_Lumpur|KL;KUL
 Singapore|Singapore|Asia/Singapore|SIN
 Jakarta|Jakarta|Asia/Jakarta|CGK|-File:The Polluters' Fog Jakarta skyline - panoramio.jpg
-Manila|Manila|Asia/Manila|MNL|-File:Skyline in Manila 34.jpg
+Manila|Manila|Asia/Manila|MNL|-File:Skyline in Manila 34.jpg;-File:Skyline in Manila 36.jpg
 Hong Kong|Hong Kong|Asia/Hong_Kong|HK;HKG
 Shenzhen|Shenzhen|Asia/Shanghai|SZX
 Guangzhou|Guangzhou|Asia/Shanghai|Canton;CAN

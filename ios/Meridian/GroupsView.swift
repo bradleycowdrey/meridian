@@ -158,15 +158,16 @@ struct GroupBar: View {
                 Image(systemName: newGroup ? "plus" : "slider.horizontal.3")
                 Text(newGroup ? "New Group" : "Edit Groups")
             }
-            .font(.system(size: 15, weight: .medium))
+            .font(.subheadline.weight(.medium))
             .foregroundStyle(Color.white.opacity(Theme.Op.sub))
             .lineLimit(1)
             .padding(.horizontal, 8)
-            .frame(height: 32)
+            .frame(minHeight: 32)
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .fixedSize()
     }
 }
@@ -281,7 +282,7 @@ struct GroupsList: View {
 
     private func footer(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13))
+            .font(.footnote)
             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
     }
 }
@@ -317,7 +318,7 @@ struct GroupNameForm: View {
                     .onSubmit(create)
             } footer: {
                 Text(problem ?? "Name a group of cities, like your team or family.")
-                    .font(.system(size: 13))
+                    .font(.footnote)
                     .foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
             .meridianSection()
@@ -379,7 +380,7 @@ struct GroupDetailView: View {
             } footer: {
                 if draft != name, let problem = store.groupNameProblem(draft, renaming: name) {
                     Text(problem)
-                        .font(.system(size: 13))
+                        .font(.footnote)
                         .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 }
             }
@@ -400,14 +401,14 @@ struct GroupDetailView: View {
                         Button(allIn ? "Select None" : "Select All") {
                             store.setMembers(allIn ? [] : Set(store.places.map(\.id)), of: name)
                         }
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.footnote.weight(.medium))
                         .foregroundStyle(.white)
                         .textCase(nil)
                     }
                 }
             } footer: {
                 Text("Changes save as you go.")
-                    .font(.system(size: 13))
+                    .font(.footnote)
                     .foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
             .meridianSection()
@@ -445,7 +446,7 @@ struct GroupDetailView: View {
                     Text(place.title).foregroundStyle(.white)
                     if place.person != nil {
                         Text(place.name)
-                            .font(.system(size: 13))
+                            .font(.footnote)
                             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                     }
                 }
@@ -454,7 +455,7 @@ struct GroupDetailView: View {
                     .monospacedDigit()
                     .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 Image(systemName: "checkmark")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                     .opacity(member ? 1 : 0)
             }
@@ -544,7 +545,7 @@ struct GroupPicker: View {
                         Text(g).foregroundStyle(.white)
                         Spacer()
                         Image(systemName: "checkmark")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                             .opacity(on ? 1 : 0)
                     }
@@ -564,7 +565,7 @@ struct GroupPicker: View {
             }
         } footer: {
             Text("Add this card to as many groups as you like.")
-                .font(.system(size: 13))
+                .font(.footnote)
                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
         }
         .meridianSection()

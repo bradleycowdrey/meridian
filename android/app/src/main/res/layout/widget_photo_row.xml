@@ -12,7 +12,7 @@
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
         android:gravity="bottom" android:orientation="horizontal"
         android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="0dp" android:paddingBottom="6dp">
-        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+        <LinearLayout android:id="@+id/text_col" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:layout_marginEnd="6dp" android:orientation="vertical">
             <LinearLayout android:id="@+id/time_light" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:baselineAligned="true" android:orientation="horizontal" android:visibility="visible">
@@ -52,19 +52,21 @@
                     android:textColor="#0A0E1C" android:textSize="12sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
             </LinearLayout>
-            <!-- The name, with a status dot before it in rows too short for the pill (MeridianWidgets.rowFit). -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            <!-- The name (14 sp where the row fits it, 13 or 12 in tight rows: one step above the 12 sp status), with a
+                 status dot before it in rows too short for the pill (MeridianWidgets.rowFit). Its bottom padding is the
+                 gap above the full pill (set in code; 0 for the compact pill, the dot and none). -->
+            <LinearLayout android:id="@+id/name_row" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:gravity="center_vertical" android:orientation="horizontal">
                 <ImageView android:id="@+id/status_dot" android:layout_width="8dp" android:layout_height="8dp"
                     android:layout_marginEnd="4dp" android:padding="1dp" android:background="@drawable/widget_dot_ring"
                     android:src="@drawable/widget_dot" android:visibility="gone" android:importantForAccessibility="no" />
                 <TextView android:id="@+id/name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                     android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
-                    android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="14sp"
                     android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
             </LinearLayout>
             <LinearLayout android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginTop="1dp" android:background="@drawable/widget_pill" android:gravity="center_vertical"
+                android:background="@drawable/widget_pill" android:gravity="center_vertical"
                 android:orientation="horizontal" android:paddingStart="6dp" android:paddingEnd="7dp"
                 android:paddingTop="1dp" android:paddingBottom="1dp" android:visibility="gone">
                 <ImageView android:id="@+id/status_icon" android:layout_width="12dp" android:layout_height="12dp"
@@ -90,6 +92,26 @@
                 android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile2" style="@style/WidgetTile"
                     android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="15sp" android:textSize="15sp" />
+            </FrameLayout>
+        </LinearLayout>
+        <!-- Rows at least 56 dp tall: the same three tiles, taller, with the hour over AM/PM (as the app's tiles and the
+             iPhone widget). Shown instead of [tiles] by MeridianWidgets.tiles; TILE_TALL_HEIGHT matches its height. -->
+        <LinearLayout android:id="@+id/tiles_tall" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1.1"
+            android:orientation="horizontal" android:visibility="gone">
+            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                <TextView android:id="@+id/tile0_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
+                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:textSize="17sp" />
+            </FrameLayout>
+            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                <TextView android:id="@+id/tile1_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
+                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:textSize="17sp" />
+            </FrameLayout>
+            <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                <TextView android:id="@+id/tile2_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
+                    android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:textSize="17sp" />
             </FrameLayout>
         </LinearLayout>
     </LinearLayout>

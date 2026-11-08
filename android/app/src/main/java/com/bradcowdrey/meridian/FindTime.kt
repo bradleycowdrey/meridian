@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -264,6 +265,8 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
             }
         }
     }
+    // The count column grows with the font size, so "10/12" never clips at large text.
+    val countW = (34f * LocalDensity.current.fontScale.coerceAtMost(1.6f)).dp
     GlassCard("Every hour", Icons.Filled.DateRange) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(Modifier.padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -272,7 +275,7 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
                     Text(FindTime.tag(it), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = white(0.6f),
                         textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Clip)
                 }
-                Spacer(Modifier.width(30.dp))
+                Spacer(Modifier.width(countW))
             }
             var i = 0
             while (i < hourly.size) {
@@ -309,14 +312,17 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
 private fun HourRow(store: Store, s: Slot, people: List<Place>, pick: (Slot) -> Unit) {
     val label = FindTime.hourLabel(s.start.atZone(store.home).hour, store.use24h)
     val all = s.working == people.size && people.isNotEmpty()
-    Row(Modifier.fillMaxWidth().alpha(if (s.end <= store.now) 0.35f else 1f).clickable { pick(s) }
+    // Past hours dim their cells only; the hour label and count stay readable (they are still tappable).
+    val past = s.end <= store.now
+    val countW = (34f * LocalDensity.current.fontScale.coerceAtMost(1.6f)).dp
+    Row(Modifier.fillMaxWidth().clickable { pick(s) }
         .semantics(mergeDescendants = true) { contentDescription = "$label, ${s.working} of ${people.size} working" },
         horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.width(62.dp), style = tnum, fontSize = 13.sp, color = if (all) Palette.primary else white(0.6f), maxLines = 1)
         s.states.forEach { state ->
-            Box(Modifier.weight(1f).height(22.dp).clip(RoundedCornerShape(6.dp)).background(state.color))
+            Box(Modifier.weight(1f).height(22.dp).alpha(if (past) 0.35f else 1f).clip(RoundedCornerShape(6.dp)).background(state.color))
         }
-        Text("${s.working}/${people.size}", Modifier.width(30.dp), fontSize = 11.sp, color = white(0.5f), textAlign = TextAlign.End, maxLines = 1)
+        Text("${s.working}/${people.size}", Modifier.width(countW), style = tnum, fontSize = 12.sp, color = white(0.6f), textAlign = TextAlign.End, maxLines = 1, softWrap = false)
     }
 }
 

@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -1019,8 +1020,11 @@ object Skyline {
     /** The scrim's extra strength behind the name column, keyed by photo (day or night), shade and card shape. */
     private val boosts = HashMap<String, Float>()
 
-    /** The brightest a background may be (relative luminance) for the zone's white 85% at 13 sp to keep 4.5:1 (0.13: 4.8:1). */
-    private const val LABEL_MAX = 0.13
+    /**
+     * The brightest a background may be (relative luminance) behind the name, zone and status: 0.09 keeps the
+     * zone's white 85% at 13 sp at about 6:1, a margin over 4.5:1 without darkening day photos more than needed.
+     */
+    private const val LABEL_MAX = 0.09
     /** The share of the label rectangle's samples that must be no brighter than [LABEL_MAX] (all but the brightest 5%). */
     private const val LABEL_QUANTILE = 0.95f
     /** The grid a region of a photo is sampled at. */
@@ -1055,6 +1059,13 @@ object Skyline {
 
     /** How a photo's card is drawn: the scrim's [boost] behind the name column, and whether the time's spot is [bright]. */
     data class CardLook(val boost: Float, val bright: Boolean)
+
+    /**
+     * The look a photo is drawn with until its own is measured: white ink, and the full boost behind the
+     * name column on a day photo (night photos are dark there), so the text is readable from the first frame.
+     */
+    fun provisionalLook(nightPhoto: Boolean): CardLook =
+        CardLook(boost = if (nightPhoto || Diag.has("scrim")) 0f else BOOST_MAX, bright = false)
 
     private fun stepOf(width: Int, height: Int): Int = (width.toFloat() / height * 20f).roundToInt().coerceAtLeast(1)
     private fun boostKey(id: String, shade: Shade, width: Int, height: Int) = "$id/${shade.name}/${stepOf(width, height)}"
@@ -1100,7 +1111,7 @@ object Skyline {
     /**
      * How much stronger the scrim is behind the name column on this photo (0 to [BOOST_MAX], in steps of 0.05):
      * enough that the 95th-percentile pixel over the whole name, zone and status rectangle, after the shading
-     * and the scrim as drawn at each spot, is no brighter than [LABEL_MAX], so the text keeps 4.5:1 on bright day photos.
+     * and the scrim as drawn at each spot, is no brighter than [LABEL_MAX], so the text keeps about 6:1 on bright day photos.
      */
     fun scrimBoost(id: String, bitmap: ImageBitmap, biasY: Float, shade: Shade, width: Int, height: Int): Float {
         if (width <= 0 || height <= 0) return 0f
@@ -1111,21 +1122,29 @@ object Skyline {
             // Every sample over the whole label rectangle, each under the scrim as drawn at its own spot (the
             // left scrim eases out across the column, so the right end of a long name sits on the lightest part).
             val lums = regionSamples(bitmap.asAndroidBitmap(), biasY, gain(shade), step / 20f, LABELS)
-            fun behind(b: Float): Double {
-                val under = DoubleArray(lums.size)
-                for (i in lums.indices) {
-                    val x = LABELS.x0 + (i % SAMPLES_W + 0.5f) / SAMPLES_W * (LABELS.x1 - LABELS.x0)
-                    val y = LABELS.y0 + (i / SAMPLES_W + 0.5f) / SAMPLES_H * (LABELS.y1 - LABELS.y0)
-                    under[i] = lums[i] * Math.pow(1.0 - scrimAlpha(x, y, b), 2.2)
-                }
-                under.sort()
-                return under[((under.size - 1) * LABEL_QUANTILE).roundToInt()]
+            val n = lums.size
+            // Each sample's spot, worked out once.
+            val xs = FloatArray(n) { i -> LABELS.x0 + (i % SAMPLES_W + 0.5f) / SAMPLES_W * (LABELS.x1 - LABELS.x0) }
+            val ys = FloatArray(n) { i -> LABELS.y0 + (i / SAMPLES_W + 0.5f) / SAMPLES_H * (LABELS.y1 - LABELS.y0) }
+            // The 95th-percentile sample (sorted index q) is brighter than LABEL_MAX exactly when at least n - q samples
+            // are: so count instead of sorting.
+            val q = ((n - 1) * LABEL_QUANTILE).roundToInt()
+            fun tooBright(b: Float): Boolean {
+                var above = 0
+                for (i in 0 until n) if (lums[i] * Math.pow(1.0 - scrimAlpha(xs[i], ys[i], b), 2.2) > LABEL_MAX) above++
+                return above >= n - q
             }
-            // The least boost (in steps of 0.05) that brings the 95th-percentile pixel down to LABEL_MAX.
-            var steps = 0
+            // The least boost (in steps of 0.05) that brings the 95th-percentile pixel down to LABEL_MAX: more boost
+            // only darkens, so a binary search over the steps (about 4 tries rather than up to 12).
             val most = (BOOST_MAX * 20).roundToInt()
-            if (lums.isNotEmpty()) while (steps < most && behind(steps / 20f) > LABEL_MAX) steps++
-            steps / 20f
+            var lo = 0
+            var hi = most
+            if (n == 0) hi = 0
+            while (lo < hi) {
+                val mid = (lo + hi) / 2
+                if (tooBright(mid / 20f)) lo = mid + 1 else hi = mid
+            }
+            lo / 20f
         } catch (e: Exception) {
             0f
         }
@@ -1471,6 +1490,17 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
             val b = Skyline.cachedBitmap(resId, widthPx) ?: withContext(Dispatchers.IO) { Skyline.bitmap(context, resId, widthPx) }
             decoded = b?.let { resId to it }
         }
+        // Then the other half (day or night) is decoded too, in the background, so a time jump (travel, Go to a Time)
+        // past sunrise or sunset swaps photo to photo instead of waiting on a decode.
+        val otherResId = when {
+            resId == 0 || nightResId == 0 -> 0
+            resId == nightResId -> photo?.resId ?: 0
+            else -> nightResId
+        }
+        LaunchedEffect(otherResId, widthPx, decoded?.first == resId) {
+            if (otherResId != 0 && decoded?.first == resId && Skyline.cachedBitmap(otherResId, widthPx) == null)
+                withContext(Dispatchers.IO) { Skyline.bitmap(context, otherResId, widthPx) }
+        }
         // While the other half (day or night) of the same city's photo is read, the one shown stays.
         val bundled: Pair<Int, ImageBitmap>? = if (resId == 0) null else Skyline.cachedBitmap(resId, widthPx)?.let { resId to it }
             ?: decoded?.takeIf { it.first == resId || it.first == photo?.resId || (nightResId != 0 && it.first == nightResId) }
@@ -1497,12 +1527,18 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         }
         val look = if (bitmap == null) null else Skyline.cachedLook(id, shade, widthPx, heightPx, region)
             ?: measured?.takeIf { it.first == lookKey }?.second
-        // What's drawn: the photo once it and its look are both ready (the ink and scrim switch in the same frame
-        // the photo fades in); while a new one is measured, the last one stays; before any, the drawn skyline.
+        // What's drawn: the photo as soon as it's decoded. While its look is measured, the last photo shown stays;
+        // with none yet, the new photo shows at once with a safe look (full boost on a day photo, white ink) that the
+        // measured one replaces in place (only the scrim and ink change). The drawn skyline only while nothing is decoded.
         val last = remember(city, place.zoneId) { arrayOfNulls<ShownPhoto>(1) }
-        val shown = if (bitmap != null && look != null) ShownPhoto(bitmap, shade, look).also { last[0] = it }
-            else if (bitmap != null) last[0] else null
-        val boost = shown?.look?.boost ?: 0f
+        val shown = when {
+            bitmap == null -> null
+            look != null -> ShownPhoto(bitmap, shade, look).also { last[0] = it }
+            else -> last[0] ?: ShownPhoto(bitmap, shade, Skyline.provisionalLook(nightPhoto = nightShown))
+        }
+        // The boost eases (0.25 s) from the provisional look to the measured one, so the name column never flashes dark.
+        val boostTarget = shown?.look?.boost ?: 0f
+        val boost by animateFloatAsState(boostTarget, tween(250), label = "scrim boost")
         val bright = shown?.look?.bright ?: Skyline.drawnIsBright(phase)
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
             if (shown != null) {
@@ -1790,7 +1826,9 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
         val digitsH = 18f * grow
         val suffixH = 14f * grow
         val dayH = 12f * grow
-        val showSuffix = suffix != null && (weekday == null || digitsH + suffixH + dayH <= room)
+        // Three lines (12 / AM / WED) only with at least 4 dp clear above and below, like the other tiles; else the
+        // day replaces AM/PM ("12" over "WED": the day divider already says it's the morning).
+        val showSuffix = suffix != null && (weekday == null || digitsH + suffixH + dayH + 8f <= room)
         val showDay = weekday != null && digitsH + (if (showSuffix) suffixH else 0f) + dayH <= room
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(digits, style = tnum, fontSize = (17f * shrink / cap).sp, lineHeight = (18f / cap).sp,
@@ -2054,18 +2092,24 @@ fun TimeRuler(store: Store) {
         val side = ((maxWidth - tick) / 2).coerceAtLeast(0.dp)
         LazyRow(state = listState, flingBehavior = fling, contentPadding = PaddingValues(horizontal = side),
             modifier = Modifier.fillMaxSize()
-                // Fade the ends (a mask, so it works over the translucent bar).
-                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                .drawWithContent {
-                    drawContent()
-                    drawRect(Brush.horizontalGradient(0f to Color.Transparent, 0.12f to Color.Black,
-                        0.88f to Color.Black, 1f to Color.Transparent), blendMode = BlendMode.DstIn)
-                }
                 .semantics { stateDescription = if (store.isNow) "Now" else relative(store) }) {
             items(4 * span + 1) { k ->
                 val index = base + k
+                // The ends fade per item, never through a label: each label fades whole (by how far its box is from
+                // the ruler's edge, gone before it would touch it), so a clipped "12 PM" can never read as "2 PM".
+                // Read in the draw layer only (no recomposition while it scrolls).
+                val fade: (Float) -> Float = { half ->
+                    val info = listState.layoutInfo
+                    val item = info.visibleItemsInfo.firstOrNull { it.index == k }
+                    if (item == null) 0f else {
+                        val w = (info.viewportEndOffset - info.viewportStartOffset).toFloat()
+                        val x = item.offset - info.viewportStartOffset + item.size / 2f
+                        if (w <= 0f) 1f else ((minOf(x, w - x) - half) / (w * 0.12f)).coerceIn(0f, 1f)
+                    }
+                }
                 RulerTick(java.time.Instant.ofEpochSecond(index * 900L).atZone(store.home), store.use24h,
-                    centre = (index - centered) in -2..1, modifier = Modifier.width(tick).fillMaxHeight().clickable { scope.launch { listState.animateScrollToItem(k) } })
+                    centre = (index - centered) in -2..1, fade = fade,
+                    modifier = Modifier.width(tick).fillMaxHeight().clickable { scope.launch { listState.animateScrollToItem(k) } })
             }
         }
         // The fixed line: where you are in time.
@@ -2080,10 +2124,14 @@ fun TimeRuler(store: Store) {
  * capsule shows, in your time zone) at full white.
  */
 @Composable
-private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, centre: Boolean, modifier: Modifier) {
+private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, centre: Boolean, fade: (Float) -> Float, modifier: Modifier) {
     val hour = at.hour; val minute = at.minute
+    // Half the label's width (px), so the whole label is faded out before its box reaches the ruler's edge.
+    var labelHalf by remember { mutableFloatStateOf(0f) }
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.height(14.dp).wrapContentWidth(unbounded = true), contentAlignment = Alignment.Center) {
+        Box(Modifier.height(14.dp).wrapContentWidth(unbounded = true)
+            .onSizeChanged { labelHalf = it.width / 2f }
+            .graphicsLayer { alpha = fade(labelHalf) }, contentAlignment = Alignment.Center) {
             if (minute == 0) Text(
                 if (hour == 0) at.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH).uppercase()
                 else if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}${TimeMath.THIN}${if (hour < 12) "AM" else "PM"}",
@@ -2093,6 +2141,7 @@ private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, centre: Bool
         }
         Spacer(Modifier.height(3.dp))
         Box(Modifier.width(if (minute == 0) 1.5.dp else 1.dp)
+            .graphicsLayer { alpha = fade(0f) }
             .height(if (minute == 0) 14.dp else if (minute == 30) 9.dp else 5.dp)
             .background(white(if (minute == 0) 0.6f else if (minute == 30) 0.35f else 0.25f)))
     }

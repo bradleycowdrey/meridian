@@ -75,6 +75,17 @@ final class CityStore: ObservableObject {
     /// Demo mode (App Store screenshots): fixed cities, nothing saved.
     private let demo: Bool
 
+    /// Your time zone, for the time ruler and Find a Time: the device's; in demo mode San Francisco's
+    /// (the first card and the status bar's 9:41, as on Android), whatever zone the Simulator runs in.
+    var home: TimeZone { demo ? (TimeZone(identifier: "America/Los_Angeles") ?? .current) : .current }
+
+    /// A Gregorian calendar on your time zone.
+    var homeCalendar: Calendar {
+        var cal = Calendar.current
+        cal.timeZone = home
+        return cal
+    }
+
     init(demo: Bool = false) {
         self.demo = demo
         if demo { now = Self.demoDate }

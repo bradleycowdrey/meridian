@@ -115,7 +115,7 @@ object Holidays {
 
 /** Time arithmetic and labels, in the same style as the Mac and iPhone apps. */
 object TimeMath {
-    const val THIN = " "   // thin space before AM/PM
+    const val THIN = "\u202F"   // narrow no-break space before AM/PM: "11:30 PM" never splits across lines
 
     fun offsetSeconds(zone: ZoneId, at: Instant): Int = zone.rules.getOffset(at).totalSeconds
 

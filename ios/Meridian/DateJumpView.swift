@@ -15,7 +15,8 @@ struct DateJumpView: View {
     @State private var typed = ""
     @State private var invalid = false
 
-    private var calendar: Calendar { Calendar.current }
+    /// Your clock, as on the ruler and in Find a Time (the demo's San Francisco in screenshots).
+    private var calendar: Calendar { store.homeCalendar }
 
     /// The chosen moment: the day at hour:minute on your clock.
     private var moment: Date {
@@ -33,8 +34,10 @@ struct DateJumpView: View {
                         DatePicker("Day", selection: $day, displayedComponents: .date)
                             .datePickerStyle(.graphical)
                             .labelsHidden()
-                            // Not white: the selected day's number is drawn in white on this.
-                            .tint(Theme.pickerAccent)
+                            .environment(\.timeZone, store.home)
+                            // Not white. UIKit draws today, when selected, white on a solid disc of the tint
+                            // (switchOn keeps that legible); any other selected day in the tint on a light disc of it.
+                            .tint(store.homeCalendar.isDateInToday(day) ? Theme.switchOn : Theme.pickerAccent)
                     }
                     .glassCard()
                     VStack(alignment: .leading, spacing: 10) {
@@ -97,8 +100,8 @@ struct DateJumpView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .contentTransition(.numericText())
-            Text("\(Self.day.string(from: moment)) · \(Self.relative(from: store.now, to: moment))")
-                .font(.system(size: 17, weight: .medium))
+            Text("\(TimeMath.fullDay(moment, in: store.home)) · \(Self.relative(from: store.now, to: moment))")
+                .font(.body.weight(.medium))
                 .foregroundStyle(Color.white.opacity(Theme.Op.body))
         }
         .frame(maxWidth: .infinity)
@@ -157,7 +160,7 @@ struct DateJumpView: View {
             ForEach(store.places) { place in
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(place.name).font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                        Text(place.name).font(.body.weight(.medium)).foregroundStyle(.white)
                         if let off = store.showWorkHours ? WorkWeek.offLabel(place, at: moment, start: store.workStart, end: store.workEnd) : nil {
                             Label {
                                 Text(off)
@@ -165,7 +168,7 @@ struct DateJumpView: View {
                                 Image(systemName: "moon.zzz.fill").foregroundStyle(Theme.moon)
                             }
                             .labelStyle(StatusLabelStyle())
-                            .font(.system(size: 13))
+                            .font(.footnote)
                             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                         }
                     }
@@ -173,11 +176,11 @@ struct DateJumpView: View {
                     Spacer(minLength: 8)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
-                            .font(.system(size: 20, weight: .light)).monospacedDigit().foregroundStyle(.white)
+                            .font(.title3.weight(.light)).monospacedDigit().foregroundStyle(.white)
                         let shift = TimeMath.dayShift(moment, zone: place.timeZone)
                         if shift != 0 {
                             Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.footnote.weight(.medium))
                                 .monospacedDigit()
                                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                         }
@@ -197,7 +200,7 @@ struct DateJumpView: View {
             dismiss()
         } label: {
             Text("Go to This Time")
-                .font(.system(size: 17, weight: .medium))
+                .font(.body.weight(.medium))
                 .frame(maxWidth: .infinity, minHeight: 50)
                 .background(Capsule().fill(Color.white))
                 .foregroundStyle(Color.black)
@@ -207,6 +210,14 @@ struct DateJumpView: View {
         .padding(.horizontal, Card.margin)
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, ignoresSafeAreaEdges: .bottom)
+        // A short fade above the bar, so a card scrolled under it reads as "more below", not as cut off.
+        .background(alignment: .top) {
+            LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                .frame(height: 24)
+                .offset(y: -24)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
         .environment(\.colorScheme, .dark)
     }
@@ -238,14 +249,6 @@ struct DateJumpView: View {
     private var pmBinding: Binding<Bool> {
         Binding(get: { hour >= 12 }, set: { pm in hour = hour % 12 + (pm ? 12 : 0) })
     }
-
-    /// "Tue 9 Jun", as everywhere else in the app.
-    private static let day: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEE d MMM"
-        return f
-    }()
 
     /// "Now", "In 3 d 2 hr", "5 hr ago".
     static func relative(from now: Date, to date: Date) -> String {

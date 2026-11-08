@@ -1568,7 +1568,7 @@ struct PhotoCreditsView: View {
         return VStack(alignment: .leading, spacing: 2) {
             Text(credit.city).foregroundStyle(.white)
             Text(line.isEmpty ? (credit.fallback ?? "Wikimedia Commons") : line)
-                .font(.system(size: 13))
+                .font(.footnote)
                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 .lineLimit(2)
         }
@@ -1576,7 +1576,7 @@ struct PhotoCreditsView: View {
 
     private func caption(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13))
+            .font(.footnote)
             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
             .textCase(nil)
     }

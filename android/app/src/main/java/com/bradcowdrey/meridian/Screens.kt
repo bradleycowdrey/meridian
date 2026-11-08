@@ -681,7 +681,8 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
     Screen("Go to a Time", onDone) { padding ->
         // Top inset only: the Go bar below reaches under the navigation bar.
         Column(Modifier.padding(top = padding.calculateTopPadding()).fillMaxSize()) {
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+          Box(Modifier.weight(1f)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // The answer: the chosen time, large and thin, with its day and how far away it is.
                 Column(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -742,8 +743,13 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                         if (i < store.places.size - 1) HorizontalDivider(color = white(0.2f))
                     }
                 }
-                Spacer(Modifier.height(6.dp))
+                // Room to scroll the last card clear of the fade below.
+                Spacer(Modifier.height(24.dp))
             }
+            // A 24 dp fade into the bar (one two-colour band), so a card under it reads as "more below", not cut off.
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(24.dp)
+                .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Palette.barBg.copy(alpha = 0f), Palette.barBg))))
+          }
             // Go, in a bar at the bottom as in Two Degrees.
             Column(Modifier.fillMaxWidth().background(Palette.barBg).navigationBarsPadding()) {
                 HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))

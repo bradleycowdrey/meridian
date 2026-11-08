@@ -14,7 +14,8 @@ struct FindTimeView: View {
     @State private var slot: Slot?
 
     private static let lengths = [30, 60, 90, 120]
-    private var calendar: Calendar { Calendar.current }
+    /// Your clock (the device's time zone; San Francisco's in screenshot mode, as on the ruler).
+    private var calendar: Calendar { store.homeCalendar }
 
     /// The cards in the meeting, one per time zone and city (a person counts as their own).
     private var people: [Place] { store.places.filter { chosen.contains($0.id) } }
@@ -63,7 +64,7 @@ struct FindTimeView: View {
             HStack(spacing: 8) {
                 ForEach(0..<14, id: \.self) { i in
                     let date = calendar.date(byAdding: .day, value: i, to: calendar.startOfDay(for: store.now)) ?? store.now
-                    PillChip(title: i == 0 ? "Today" : i == 1 ? "Tomorrow" : Self.dayChip.string(from: date),
+                    PillChip(title: i == 0 ? "Today" : i == 1 ? "Tomorrow" : chipDay(date),
                              isOn: calendar.isDate(date, inSameDayAs: day)) {
                         day = date
                     }
@@ -150,7 +151,7 @@ struct FindTimeView: View {
                         "checkmark.circle")
             if runs.isEmpty {
                 Text(people.isEmpty ? "Tap the cities and people above." : "Try another day, or fewer people.")
-                    .font(.system(size: 15)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                    .font(.subheadline).foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
             VStack(spacing: 0) {
                 ForEach(shown, id: \.offset) { index, run in
@@ -159,13 +160,13 @@ struct FindTimeView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(range(run[0].start, run.last!.end))
-                                    .font(.system(size: 20)).monospacedDigit().foregroundStyle(.white)
+                                    .font(.title3).monospacedDigit().foregroundStyle(.white)
                                 Text(run.count == 1 ? "Your time" : "Your time · start any time from \(time(run[0].start)) to \(time(run.last!.start))")
-                                    .font(.system(size: 13)).foregroundStyle(Color.white.opacity(Theme.Op.sub))
+                                    .font(.footnote).foregroundStyle(Color.white.opacity(Theme.Op.sub))
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.footnote.weight(.medium))
                                 .foregroundStyle(Color.white.opacity(0.5))
                         }
                         .frame(minHeight: 48)
@@ -182,54 +183,13 @@ struct FindTimeView: View {
     /// when they're off, dark at night where they are; the best run outlined.
     private var grid: some View {
         let hourly = slots.enumerated().filter { $0.offset % 2 == 0 }.map(\.element)
-        let run = bestRun(in: hourly)
         return VStack(alignment: .leading, spacing: 10) {
             CardCaption("Every hour", "tablecells")
-            VStack(spacing: 4) {
-                HStack(spacing: 2) {
-                    Text("You").frame(width: 62, alignment: .leading)
-                    ForEach(people) { p in Text(Self.tag(p)).frame(maxWidth: .infinity) }
-                    Text("").frame(width: 30)
-                }
-                .font(.system(size: 11, weight: .medium)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
-                VStack(spacing: 2) {
-                    ForEach(hourly) { s in
-                        Button { slot = s } label: {
-                            HStack(spacing: 2) {
-                                Text(Self.hourLabel(s.start, use24h: store.use24h))
-                                    .font(.system(size: 13)).monospacedDigit()
-                                    .foregroundStyle(Color.white.opacity(s.working == people.count && !people.isEmpty ? 1 : Theme.Op.caption))
-                                    .frame(width: 62, alignment: .leading)
-                                ForEach(Array(s.states.enumerated()), id: \.offset) { _, state in
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .fill(state.color)
-                                        .frame(maxWidth: .infinity)
-                                }
-                                Text("\(s.working)/\(people.count)")
-                                    .font(.system(size: 11)).monospacedDigit().foregroundStyle(Color.white.opacity(0.5))
-                                    .frame(width: 30, alignment: .trailing)
-                            }
-                            .frame(height: Self.cell)
-                            .opacity(s.end <= store.now ? 0.35 : 1)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(Self.hourLabel(s.start, use24h: store.use24h)), \(s.working) of \(people.count) working")
-                    }
-                }
-                // The best hours, outlined (rows are a fixed pitch, so its place is exact).
-                .overlay(alignment: .top) {
-                    if let run {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .strokeBorder(Color.white, lineWidth: 1.5)
-                            .frame(height: CGFloat(run.count) * Self.cell + CGFloat(run.count - 1) * 2 + 4)
-                            .padding(.horizontal, -2)
-                            .offset(y: CGFloat(run.lowerBound) * (Self.cell + 2) - 2)
-                            .allowsHitTesting(false)
-                            .accessibilityHidden(true)
-                    }
-                }
-            }
+            // Rows are a fixed pitch (the best run's outline depends on it), so the grid grows with the
+            // reader's text size up to accessibility1 (its hour and count columns widen with it).
+            HourGrid(hourly: hourly, people: people, run: bestRun(in: hourly), now: store.now, use24h: store.use24h,
+                     calendar: calendar) { slot = $0 }
+                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             HStack(spacing: 14) {
                 legend(Slot.State.working.color, "Working")
                 legend(Slot.State.off.color, "Off")
@@ -239,8 +199,6 @@ struct FindTimeView: View {
         }
         .glassCard()
     }
-
-    private static let cell: CGFloat = 22
 
     /// The first run of hours, still to come, where the most people are working.
     private func bestRun(in hourly: [Slot]) -> Range<Int>? {
@@ -257,11 +215,11 @@ struct FindTimeView: View {
     private func legend(_ color: Color, _ text: String) -> some View {
         HStack(spacing: 5) {
             RoundedRectangle(cornerRadius: 3, style: .continuous).fill(color).frame(width: 11, height: 11)
-            Text(text).font(.system(size: 12)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+            Text(text).font(.caption).foregroundStyle(Color.white.opacity(Theme.Op.caption))
         }
     }
 
-    private func time(_ date: Date) -> String { TimeMath.time(date, in: .current, use24h: store.use24h) }
+    private func time(_ date: Date) -> String { TimeMath.time(date, in: store.home, use24h: store.use24h) }
     private func range(_ a: Date, _ b: Date) -> String { "\(time(a))–\(time(b))" }
 
     static func quarter(_ date: Date) -> Date { Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / 900).rounded(.down) * 900) }
@@ -270,9 +228,15 @@ struct FindTimeView: View {
 
     static func tag(_ place: Place) -> String { String(place.title.filter(\.isLetter).prefix(3)).uppercased() }
 
-    static func hourLabel(_ date: Date, use24h: Bool) -> String {
-        let h = Calendar.current.component(.hour, from: date)
+    static func hourLabel(_ date: Date, use24h: Bool, calendar: Calendar = .current) -> String {
+        let h = calendar.component(.hour, from: date)
         return use24h ? String(format: "%02d:00", h) : "\(h % 12 == 0 ? 12 : h % 12)\u{2009}\(h < 12 ? "AM" : "PM")"
+    }
+
+    /// "Tue 9", on your clock (as the day chips are counted).
+    private func chipDay(_ date: Date) -> String {
+        Self.dayChip.timeZone = store.home
+        return Self.dayChip.string(from: date)
     }
 
     private static let dayChip: DateFormatter = {
@@ -281,6 +245,89 @@ struct FindTimeView: View {
         f.dateFormat = "EEE d"
         return f
     }()
+}
+
+/// Find a Time's hour-by-hour grid, a view of its own so its row pitch and columns follow the text
+/// size it is capped at. Past hours dim only their cells: their hour and count stay readable (a
+/// past hour still opens its time).
+private struct HourGrid: View {
+    let hourly: [Slot]
+    let people: [Place]
+    /// The best run of rows, outlined.
+    let run: Range<Int>?
+    let now: Date
+    let use24h: Bool
+    let calendar: Calendar
+    let open: (Slot) -> Void
+
+    @ScaledMetric(relativeTo: .footnote) private var cell: CGFloat = 22
+    @ScaledMetric(relativeTo: .footnote) private var labelWidth: CGFloat = 62
+    @ScaledMetric(relativeTo: .caption) private var countWidth: CGFloat = 32
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 2) {
+                Text("You").frame(width: labelWidth, alignment: .leading)
+                ForEach(people) { p in Text(FindTimeView.tag(p)).frame(maxWidth: .infinity) }
+                Text("").frame(width: countWidth)
+            }
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            VStack(spacing: 2) {
+                ForEach(hourly) { s in
+                    row(s)
+                }
+            }
+            // The best hours, outlined (rows are a fixed pitch, so its place is exact).
+            .overlay(alignment: .top) {
+                if let run {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.white, lineWidth: 1.5)
+                        .frame(height: CGFloat(run.count) * cell + CGFloat(run.count - 1) * 2 + 4)
+                        .padding(.horizontal, -2)
+                        .offset(y: CGFloat(run.lowerBound) * (cell + 2) - 2)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+    }
+
+    private func row(_ s: Slot) -> some View {
+        let past = s.end <= now
+        let label = FindTimeView.hourLabel(s.start, use24h: use24h, calendar: calendar)
+        let everyone = s.working == people.count && !people.isEmpty
+        let ink: Double = everyone ? 1 : (past ? Theme.Op.caption : Theme.Op.sub)
+        return Button { open(s) } label: {
+            HStack(spacing: 2) {
+                Text(label)
+                    .font(.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.white.opacity(ink))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(width: labelWidth, alignment: .leading)
+                ForEach(Array(s.states.enumerated()), id: \.offset) { _, state in
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(state.color.opacity(past ? 0.4 : 1))
+                        .frame(maxWidth: .infinity)
+                }
+                Text("\(s.working)/\(people.count)")
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .frame(width: countWidth, alignment: .trailing)
+            }
+            .frame(height: cell)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(label), \(s.working) of \(people.count) working\(past ? ", past" : "")")
+    }
 }
 
 /// One possible meeting time and how it is for each person in it.
@@ -322,6 +369,8 @@ private struct SlotView: View {
     let places: [Place]
     @State private var start: Date
     @State private var addingEvent = false
+    /// The chosen time, large; grows with the reader's text size (it shrinks to fit one line).
+    @ScaledMetric(relativeTo: .largeTitle) private var rangeSize: CGFloat = 44
 
     init(slot: Slot, length: Int, places: [Place]) {
         self.slot = slot
@@ -337,11 +386,11 @@ private struct SlotView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(TimeMath.time(start, in: .current, use24h: store.use24h))–\(TimeMath.time(end, in: .current, use24h: store.use24h))")
-                            .font(.system(size: 44, weight: .thin)).monospacedDigit().foregroundStyle(.white)
+                        Text("\(TimeMath.time(start, in: store.home, use24h: store.use24h))–\(TimeMath.time(end, in: store.home, use24h: store.use24h))")
+                            .font(.system(size: rangeSize, weight: .thin)).monospacedDigit().foregroundStyle(.white)
                             .lineLimit(1).minimumScaleFactor(0.7)
-                        Text("\(TimeMath.fullDay(start, in: .current)) · your time · \(FindTimeView.lengthLabel(length))")
-                            .font(.system(size: 15)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                        Text("\(TimeMath.fullDay(start, in: store.home)) · your time · \(FindTimeView.lengthLabel(length))")
+                            .font(.subheadline).foregroundStyle(Color.white.opacity(Theme.Op.caption))
                     }
                     .padding(.vertical, 6)
                     Stepper("Start", onIncrement: { start = start.addingTimeInterval(900) }, onDecrement: { start = start.addingTimeInterval(-900) })
@@ -352,13 +401,13 @@ private struct SlotView: View {
                     ForEach(places) { place in
                         HStack(spacing: 10) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(place.title).font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
-                                Text(status(place)).font(.system(size: 13)).foregroundStyle(Color.white.opacity(Theme.Op.sub))
+                                Text(place.title).font(.body.weight(.medium)).foregroundStyle(.white)
+                                Text(status(place)).font(.footnote).foregroundStyle(Color.white.opacity(Theme.Op.sub))
                             }
                             .lineLimit(1)
                             Spacer(minLength: 8)
                             Text("\(TimeMath.time(start, in: place.timeZone, use24h: store.use24h))–\(TimeMath.time(end, in: place.timeZone, use24h: store.use24h))")
-                                .font(.system(size: 15)).monospacedDigit().foregroundStyle(.white).fixedSize()
+                                .font(.subheadline).monospacedDigit().foregroundStyle(.white).fixedSize()
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -366,7 +415,7 @@ private struct SlotView: View {
                 .meridianSection()
                 Section {
                     Button { addingEvent = true } label: { Label("Add to Calendar", systemImage: "calendar.badge.plus") }
-                    ShareLink(item: invite, subject: Text("Meeting, \(TimeMath.fullDay(start, in: .current))")) {
+                    ShareLink(item: invite, subject: Text("Meeting, \(TimeMath.fullDay(start, in: store.home))")) {
                         Label("Share Invite…", systemImage: "square.and.arrow.up")
                     }
                     Button { UIPasteboard.general.string = invite } label: { Label("Copy Invite", systemImage: "doc.on.doc") }
@@ -375,7 +424,7 @@ private struct SlotView: View {
                         dismiss()
                     } label: { Label("Go to This Time", systemImage: "clock.arrow.circlepath") }
                 }
-                .font(.system(size: 17))
+                .font(.body)
                 .foregroundStyle(.white)
                 .meridianSection()
             }

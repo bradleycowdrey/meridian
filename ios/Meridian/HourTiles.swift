@@ -284,7 +284,9 @@ private struct TileLabel: View {
         VStack(spacing: 0) {
             hourLine(inlineMinutes: inlineMinutes)
             if minute != 0 && !inlineMinutes { minuteText }
-            if suffix, !use24h {
+            // Where a new day starts the weekday takes AM's line ("12" over "WED"; the day divider
+            // already says it's the morning), so the tile keeps the same insets as its neighbours.
+            if suffix, !use24h, weekday == nil {
                 Text(hour < 12 ? "AM" : "PM")
                     .font(.system(size: smallSize, weight: .semibold))
                     .tracking(0.3)

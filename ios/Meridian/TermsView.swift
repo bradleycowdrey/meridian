@@ -16,6 +16,20 @@ struct TermsView: View {
 
     /// As Two Degrees' terms screen: the mark, a large title, the summary, and a white I Agree.
     var body: some View {
+        // Scrolls only when the reader's text size makes it taller than the screen (nothing is cut off).
+        GeometryReader { geo in
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity, minHeight: geo.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .background(Theme.bg.ignoresSafeArea())
+        .environment(\.colorScheme, .dark)
+        .preferredColorScheme(.dark)
+    }
+
+    private var content: some View {
         VStack(spacing: 20) {
             Spacer()
             Image("Mark")
@@ -24,20 +38,20 @@ struct TermsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .accessibilityHidden(true)
             Text(Terms.changed ? "The Terms of Use and Privacy have changed" : "Terms of Use and Privacy")
-                .font(.system(size: 28, weight: .semibold))
+                .font(.title.weight(.semibold))
                 .tracking(-0.4)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your iPhone. If you allow it, your location is used only to name the city you're in.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.")
-                .font(.system(size: 17))
+                .font(.body)
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
             Button(action: onAgree) {
                 Text("I Agree")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: 50)
                     .foregroundStyle(Color.black)
                     .background(Capsule().fill(Theme.cream))
@@ -46,7 +60,7 @@ struct TermsView: View {
             .buttonStyle(.plain)
             Link(destination: Theme.legal) {
                 Text("Read the Terms")
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.body.weight(.medium))
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .foregroundStyle(.white)
             }
@@ -54,9 +68,5 @@ struct TermsView: View {
         .padding(.horizontal, 24)
         .padding(.bottom, 12)
         .frame(maxWidth: 520)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg.ignoresSafeArea())
-        .environment(\.colorScheme, .dark)
-        .preferredColorScheme(.dark)
     }
 }

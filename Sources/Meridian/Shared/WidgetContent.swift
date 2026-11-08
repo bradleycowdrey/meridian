@@ -766,8 +766,10 @@ struct AccessoryClockView: View {
         if words.count > 1 { return String(words.prefix(3).compactMap(\.first)).uppercased() }
         return String(city.name.filter(\.isLetter).prefix(3)).uppercased()
     }
-    private func time(_ city: WidgetSnapshot.City) -> String {
-        WidgetClockView.time(date, zone: zone(city), use24h: snapshot.use24h, compact: true)
+    /// "12:41 PM" (a regular space) or "14:05".
+    private func inlineTime(_ city: WidgetSnapshot.City) -> String {
+        let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
+        return suffix.map { clock + " " + $0 } ?? clock
     }
     private func shift(_ city: WidgetSnapshot.City) -> String {
         let d = WidgetClockView.dayShift(date, zone: zone(city))
@@ -782,9 +784,14 @@ struct AccessoryClockView: View {
     var body: some View {
         switch family {
         case .accessoryInline:
-            // One line above the Lock Screen clock: "LON 14:05 · TYO 22:05".
-            Text(snapshot.cities.filter { $0 != snapshot.cities.first || snapshot.cities.count == 1 }
-                .prefix(2).map { "\(tag($0)) \(time($0))" }.joined(separator: " · "))
+            // One line above the Lock Screen clock: "LON 14:05 · TYO 22:05", or "NY 12:41 PM · LON 5:41 PM"
+            // with a full space before AM/PM (the thin space collapsed there to "12:41PM"), as everywhere else.
+            // Falls back to the first city alone where both don't fit ("LON 5:41…" never shows).
+            let list = snapshot.cities.filter { $0 != snapshot.cities.first || snapshot.cities.count == 1 }
+            ViewThatFits {
+                Text(list.prefix(2).map { "\(tag($0)) \(inlineTime($0))" }.joined(separator: " · "))
+                Text(list.prefix(1).map { "\(tag($0)) \(inlineTime($0))" }.joined())
+            }
         case .accessoryCircular:
             if let city = featured {
                 // "SF", the digits (22 pt, never under 17.6) and AM/PM under them at 12 pt, so
@@ -832,6 +839,9 @@ struct AccessoryClockView: View {
                 }
                 if snapshot.cities.isEmpty { Text("Add cities in Meridian").font(.system(size: 13)) }
             }
+            // AM/PM kept 2 pt off the trailing edge (accessoryRectangular has no system inset there;
+            // its ink ran to 1.3 pt from the bound).
+            .padding(.trailing, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -957,8 +967,8 @@ enum WidgetSkylines {
 
     /// What the scrim behind a card's text has to do: `boost`, a flat layer of extra black over the
     /// name, status and time (bottom-left, feathered 12 pt above and to the right, as Android's
-    /// clear()) so the white text keeps at least 5:1 against the brightest tenth of the photo behind
-    /// it, and `bright`, whether the area behind the time is still too bright for white and bright on
+    /// clear()) so the white text keeps at least 5:1 against the brightest twentieth (p95), sampled
+    /// 6 pt past the glyphs, of the photo behind it, and `bright`, whether the area behind the time is still too bright for white and bright on
     /// average (the time then switches to dark ink, as the app's, and the boost covers the name only).
     struct Backing: Equatable {
         var boost = WidgetScrim.Boost()
@@ -983,33 +993,46 @@ enum WidgetSkylines {
                                      featherV: min(Double(boostFeather) / h, top),
                                      featherH: min(Double(boostFeather) / w, 1 - right))
         }
+        // Sampled (and boosted) 6 pt past the glyphs on every side, so the halo around the name and
+        // the digits counts too (bright brick right beside "9:41" measured 4.35:1 when it didn't).
+        func padded(_ region: CGRect) -> CGRect {
+            let grown = region.insetBy(dx: CGFloat(-6 / w), dy: CGFloat(-6 / h))
+                .intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+            return grown.isNull || grown.isEmpty ? region : grown
+        }
+        let textRegion = padded(textRegion), timeRegion = padded(timeRegion)
         var boost = shaped(textRegion.union(timeRegion), amount: 0)
         guard let photo else {
             // No photo: the drawn sky alone (white text drops under 4.5:1 above 0.183).
             return Backing(boost: boost, bright: skyLuminance(phase, region: timeRegion) > 0.183)
         }
-        // The smallest boost (of a few steps, up to 0.55) that brings the brightest tenth behind the
-        // name and status under 0.16 (white text 5:1); a dark night photo needs none. Sized for the
-        // name, not the time, so a day photo still looks like day.
+        // The smallest boost (of a few steps, up to 0.55) that brings the brightest twentieth behind
+        // the name and status under 0.16 (white text 5:1; was the brightest tenth, which left the
+        // worst pixels near 4.1:1); a dark night photo needs none. Sized for the name, not the time,
+        // so a day photo still looks like day.
         for step in WidgetScrim.boostSteps {
             boost.amount = step
-            let text = photoLuminance(photo, phase: phase, aspect: aspect, region: textRegion, boost: boost)?.p90 ?? 0
+            let text = photoLuminance(photo, phase: phase, aspect: aspect, region: textRegion, boost: boost)?.p95 ?? 0
             if text <= 0.16 { break }
         }
         var time = photoLuminance(photo, phase: phase, aspect: aspect, region: timeRegion, boost: boost)
         // A partly lit area behind the time (a few bright facades on a dark backdrop) keeps white
-        // ink: step the boost on (within the same cap) until white reaches 4.5:1 on its brightest tenth.
-        if let t = time, t.p90 > 0.183, t.mean <= 0.40 {
-            for step in WidgetScrim.boostSteps where step > boost.amount {
+        // ink: step the boost on (up to 0.65 for the time on a night photo, 0.55 on a day photo so it
+        // still looks like day; the dark-ink fallback below takes a time that is still too bright)
+        // until white reaches 5:1 on its brightest twentieth (was 4.5:1 on the brightest tenth: no
+        // margin, and SF's "9:41" measured 4.35:1).
+        if let t = time, t.p95 > 0.16, t.mean <= 0.40 {
+            for step in (photo.isNight ? WidgetScrim.timeBoostSteps : WidgetScrim.boostSteps) where step > boost.amount {
                 boost.amount = step
                 time = photoLuminance(photo, phase: phase, aspect: aspect, region: timeRegion, boost: boost)
-                if (time?.p90 ?? 0) <= 0.183 { break }
+                if (time?.p95 ?? 0) <= 0.16 { break }
             }
         }
-        // Dark ink only where white still can't reach 4.5:1 and the area is bright on average
-        // (mean over 0.40 behind the time, as the app's rule). The boost then covers the name and
-        // status only, so the dark time and its halo sit on the un-darkened photo.
-        if let t = time, t.p90 > 0.183 {
+        // Dark ink only where white still can't reach 4.5:1 (0.183: above it dark ink beats white)
+        // and the area is bright on average (mean over 0.40 behind the time, as the app's rule). The
+        // boost then covers the name and status only, so the dark time and its halo sit on the
+        // un-darkened photo.
+        if let t = time, t.p95 > 0.183 {
             let textOnly = shaped(textRegion, amount: boost.amount)
             let unboosted = photoLuminance(photo, phase: phase, aspect: aspect, region: timeRegion, boost: textOnly)
             if (unboosted?.mean ?? t.mean) > 0.40 {
@@ -1027,12 +1050,12 @@ enum WidgetSkylines {
         0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
     }
 
-    private static var brightness: [String: (mean: Double, p90: Double)] = [:]
+    private static var brightness: [String: (mean: Double, p95: Double)] = [:]
 
-    /// The region's mean and 90th-percentile luminance as the card shows it: the photo filling the
+    /// The region's mean and 95th-percentile luminance as the card shows it: the photo filling the
     /// card, tinted as WidgetSky.look says and darkened by the scrim (with `boost`).
     private static func photoLuminance(_ photo: Photo, phase: WidgetSky.Phase, aspect: CGFloat, region: CGRect,
-                                       boost: WidgetScrim.Boost) -> (mean: Double, p90: Double)? {
+                                       boost: WidgetScrim.Boost) -> (mean: Double, p95: Double)? {
         let image = photo.image
         let iw = CGFloat(image.width), ih = CGFloat(image.height)
         guard iw > 0, ih > 0, aspect > 0 else { return nil }
@@ -1089,7 +1112,7 @@ enum WidgetSkylines {
         guard !values.isEmpty else { return nil }
         values.sort()
         let result = (mean: values.reduce(0, +) / Double(values.count),
-                      p90: values[min(values.count - 1, Int(Double(values.count) * 0.9))])
+                      p95: values[min(values.count - 1, Int(Double(values.count) * 0.95))])
         lock.lock()
         if brightness.count > 120 { brightness.removeAll() }
         brightness[cacheKey] = result
@@ -1292,8 +1315,11 @@ struct WidgetScrim: View {
     /// The boost's feather, eased (smoothstep at quarters).
     static let featherStops: [(Double, Double)] = [(0, 0), (0.25, 0.156), (0.5, 0.5), (0.75, 0.844), (1, 1)]
     /// The boosts tried, smallest first (up to 0.55: enough for the white name on a day sky without
-    /// turning the photo night-dark; a bright time switches to dark ink instead).
+    /// turning the photo night-dark (0.65 for a night time, timeBoostSteps); a bright time switches
+    /// to dark ink instead).
     static let boostSteps: [Double] = [0, 0.15, 0.3, 0.45, 0.55]
+    /// For white digits on a partly lit area: one step further (0.65), covering the name and time.
+    static let timeBoostSteps: [Double] = boostSteps + [0.65]
 
     /// The boost: `amount` of black, full from `top` (unit, top-left origin) down to the bottom and
     /// from the left edge to `right`, eased in over `featherV` above and `featherH` to the right.

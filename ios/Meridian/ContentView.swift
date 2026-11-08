@@ -289,7 +289,7 @@ struct ContentView: View {
 
     private var searchHint: some View {
         Text("Type a city, an airport code like SFO, a time zone like PST, or an offset like UTC+5:30." + addingTo)
-            .font(.system(size: 15))
+            .font(.subheadline)
             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -325,7 +325,7 @@ struct ContentView: View {
     @ViewBuilder private var searchResults: some View {
         if !store.canAdd {
             Text("You can keep up to \(CityStore.maxPlaces) cities. Remove one to add another.")
-                .font(.system(size: 15))
+                .font(.subheadline)
                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -333,7 +333,7 @@ struct ContentView: View {
         let results = CityDirectory.search(query)
         if results.isEmpty {
             Text("No places match “\(query)”. Try a city, an airport code like SFO, a time zone like PST, or UTC+5:30.")
-                .font(.system(size: 15))
+                .font(.subheadline)
                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -401,13 +401,13 @@ struct ContentView: View {
     private func emptyGroup(_ group: String) -> some View {
         VStack(spacing: 14) {
             Text("No cities in \(group) yet.")
-                .font(.system(size: 15))
+                .font(.subheadline)
                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 .multilineTextAlignment(.center)
             HStack(spacing: 10) {
                 Button { groupsRoute = .detail(group) } label: {
                     Text("Add Cities")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.subheadline.weight(.medium))
                         .padding(.horizontal, 16).frame(height: 34)
                         .background(Capsule().fill(Color.white))
                         .foregroundStyle(Color.black)
@@ -416,7 +416,7 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 Button { withAnimation(.snappy) { store.groupFilter = nil } } label: {
                     Text("Show All")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.subheadline.weight(.medium))
                         .padding(.horizontal, 16).frame(height: 34)
                         .background(Capsule().fill(Color.white.opacity(Theme.Op.fill)))
                         .foregroundStyle(Color.white)
@@ -435,20 +435,20 @@ struct ContentView: View {
     private func clockNotice(_ change: ClockChange) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "clock.arrow.2.circlepath")
-                .font(.system(size: 17, weight: .medium))
+                .font(.body.weight(.medium))
                 .foregroundStyle(Theme.notice)
             VStack(alignment: .leading, spacing: 3) {
                 Text(change.headline(use24h: store.use24h))
-                    .font(.system(size: 17, weight: .semibold)).foregroundStyle(.white)
+                    .font(.headline).foregroundStyle(.white)
                 if let detail = change.detail {
-                    Text(detail).font(.system(size: 13)).foregroundStyle(Color.white.opacity(0.75))
+                    Text(detail).font(.footnote).foregroundStyle(Color.white.opacity(0.75))
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             Button { withAnimation(.snappy) { store.dismiss(change) } } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.title2)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                     .frame(width: 44, height: 44).contentShape(Rectangle()).padding(-11)
@@ -596,7 +596,7 @@ struct ContentView: View {
                       preview: SharePreview("Meridian: every time zone at a glance", image: Image("Mark"))) {
                 Label("Share Meridian…", systemImage: "square.and.arrow.up")
             }
-            ShareLink(item: store.momentText, subject: Text("Times for \(TimeMath.fullMoment(store.moment, in: .current, use24h: store.use24h))"),
+            ShareLink(item: store.momentText, subject: Text("Times for \(TimeMath.fullMoment(store.moment, in: store.home, use24h: store.use24h))"),
                       preview: SharePreview("This moment in every city")) {
                 Label("Share This Moment…", systemImage: "clock")
             }
@@ -627,9 +627,9 @@ struct ContentView: View {
 
     private var emptyState: some View {
         VStack(spacing: 10) {
-            Text("No cities yet").font(.system(size: 20, weight: .medium)).foregroundStyle(.white)
+            Text("No cities yet").font(.title3.weight(.medium)).foregroundStyle(.white)
             Text("Tap + at the top to add one: a city, an airport code like SFO, or a time zone like PST.")
-                .font(.system(size: 15)).foregroundStyle(Color.white.opacity(Theme.Op.caption)).multilineTextAlignment(.center)
+                .font(.subheadline).foregroundStyle(Color.white.opacity(Theme.Op.caption)).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
@@ -643,7 +643,7 @@ struct ContentView: View {
             Link("Made by Bradley Cowdrey. Free. Forever. · bradcowdrey.com\u{00A0}↗", destination: Theme.website)
             Link("Terms & Privacy", destination: Theme.legal)
         }
-        .font(.system(size: 13))
+        .font(.footnote)
         .multilineTextAlignment(.center)
         .foregroundStyle(Color.white.opacity(Theme.Op.caption))
         .tint(Color.white.opacity(Theme.Op.caption))
@@ -687,7 +687,7 @@ struct ContentView: View {
 private struct CopiedPill: View {
     var body: some View {
         Label("Copied", systemImage: "checkmark.circle.fill")
-            .font(.system(size: 13, weight: .medium))
+            .font(.footnote.weight(.medium))
             .foregroundStyle(.white)
             .padding(.horizontal, 12).padding(.vertical, 6)
             .background(.ultraThinMaterial, in: Capsule())
@@ -819,6 +819,9 @@ private struct TimeRuler: View {
     private var nowIndex: Int { Self.index(store.now, rounded: .down) }
     private var selectedIndex: Int { store.isNow ? nowIndex : Self.index(store.moment, rounded: .toNearestOrAwayFromZero) }
 
+    /// Hours on your clock, as on the first card and Find a Time (San Francisco's in screenshot mode).
+    private var calendar: Calendar { store.homeCalendar }
+
     var body: some View {
         let center = nowIndex
         GeometryReader { geo in
@@ -826,7 +829,7 @@ private struct TimeRuler: View {
                 LazyHStack(spacing: 0) {
                     ForEach((center - Self.span)...(center + Self.span), id: \.self) { i in
                         RulerTick(date: Self.date(i), isNow: i == center, use24h: store.use24h,
-                                  labelHeight: labelHeight)
+                                  labelHeight: labelHeight, calendar: calendar, rulerWidth: geo.size.width)
                             .frame(width: tick, height: height)
                             .contentShape(Rectangle())
                             .onTapGesture { withAnimation(.snappy) { position = i } }
@@ -848,9 +851,8 @@ private struct TimeRuler: View {
             .padding(.top, labelHeight)
             .allowsHitTesting(false)
         }
-        .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12),
-                                     .init(color: .black, location: 0.88), .init(color: .clear, location: 1)],
-                             startPoint: .leading, endPoint: .trailing))
+        // No mask over the whole ruler: the ticks fade towards its ends and each hour label fades as
+        // a whole before it reaches an end (RulerTick), so no label is ever cut mid-glyph.
         .onAppear { position = selectedIndex }
         .onChange(of: position) { _, new in
             guard let new, new != selectedIndex else { return }
@@ -877,9 +879,13 @@ private struct RulerTick: View {
     let isNow: Bool
     let use24h: Bool
     let labelHeight: CGFloat
+    /// Your clock (`CityStore.home`).
+    let calendar: Calendar
+    /// The ruler's visible width, for fading towards its ends.
+    let rulerWidth: CGFloat
 
     var body: some View {
-        let parts = Calendar.current.dateComponents([.hour, .minute, .weekday], from: date)
+        let parts = calendar.dateComponents([.hour, .minute, .weekday], from: date)
         let hour = parts.hour ?? 0, minute = parts.minute ?? 0
         VStack(spacing: 3) {
             Group {
@@ -889,6 +895,9 @@ private struct RulerTick: View {
                         .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : Theme.Op.body))
                         .monospacedDigit()
                         .fixedSize()
+                        .visualEffect { [rulerWidth] content, proxy in
+                            content.opacity(Self.labelOpacity(proxy.frame(in: .scrollView), width: rulerWidth))
+                        }
                 } else {
                     Text(" ").font(.footnote)
                 }
@@ -897,8 +906,26 @@ private struct RulerTick: View {
             Capsule()
                 .fill(Color.white.opacity(minute == 0 ? Theme.Op.caption : (minute == 30 ? Theme.Op.faint : 0.25)))
                 .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))
+                .visualEffect { [rulerWidth] content, proxy in
+                    content.opacity(Self.tickOpacity(proxy.frame(in: .scrollView), width: rulerWidth))
+                }
             Spacer(minLength: 0)
         }
+    }
+
+    /// An hour label is whole or not there: fully shown until it comes within 16 pt of an end, then
+    /// faded as one piece, gone 4 pt before its edge would reach the end (never half a label).
+    nonisolated static func labelOpacity(_ frame: CGRect, width: CGFloat) -> Double {
+        guard width > 0 else { return 1 }
+        let room = min(frame.minX, width - frame.maxX)
+        return Double(min(max((room - 4) / 12, 0), 1))
+    }
+
+    /// The ticks fade out over the outer 12% at each end, as the ruler's old edge fade.
+    nonisolated static func tickOpacity(_ frame: CGRect, width: CGFloat) -> Double {
+        guard width > 0 else { return 1 }
+        let room = min(frame.midX, width - frame.midX)
+        return Double(min(max(room / (width * 0.12), 0), 1))
     }
 
     private func label(hour: Int, weekday: Int) -> String {
@@ -1134,14 +1161,6 @@ struct CityRow: View {
         return parts.joined(separator: " \u{00B7} ")
     }
 
-    /// "Tue 9 Jun", as everywhere else in the app.
-    private static let day: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
-        f.dateFormat = "EEE d MMM"
-        return f
-    }()
-
     /// ", tomorrow there" for VoiceOver.
     private func dayNote(_ moment: Date) -> String {
         switch TimeMath.dayShift(moment, zone: place.timeZone) {
@@ -1163,13 +1182,13 @@ struct CityRow: View {
 
     private func relation(_ moment: Date) -> String {
         let utc = place.offsetLabel(at: moment)
-        let diff = place.timeZone.secondsFromGMT(for: moment) - TimeZone.current.secondsFromGMT(for: moment)
+        let diff = place.timeZone.secondsFromGMT(for: moment) - store.home.secondsFromGMT(for: moment)
         if diff == 0 {
             // Your own city on another day (a date you went to) shows that date instead.
-            if place.timeZone.identifier == TimeZone.current.identifier, !Calendar.current.isDate(moment, inSameDayAs: store.now) {
-                return "\(Self.day.string(from: moment)) · \(utc)"
+            if place.timeZone.identifier == store.home.identifier, !store.homeCalendar.isDate(moment, inSameDayAs: store.now) {
+                return "\(TimeMath.fullDay(moment, in: store.home)) · \(utc)"
             }
-            return "\(place.timeZone.identifier == TimeZone.current.identifier ? "Your time" : "Same time") · \(utc)"
+            return "\(place.timeZone.identifier == store.home.identifier ? "Your time" : "Same time") · \(utc)"
         }
         let h = abs(diff) / 3600, m = abs(diff) % 3600 / 60
         return "\(diff > 0 ? "+" : "−")\(h)\(m > 0 ? ":\(String(format: "%02d", m))" : "") hr · \(utc)"
@@ -1185,17 +1204,17 @@ private struct SearchResultRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.name).font(.system(size: 17, weight: .semibold)).foregroundStyle(.white)
+                Text(entry.name).font(.headline).foregroundStyle(.white)
                 Text(WorkWeek.countryName(zoneID: entry.timeZoneID) ?? entry.region.replacingOccurrences(of: "_", with: " "))
-                    .font(.system(size: 14)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                    .font(.subheadline).foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
             Spacer()
             if let zone = TimeZone(identifier: entry.timeZoneID) {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(TimeMath.time(store.now, in: zone, use24h: store.use24h))
-                        .font(.system(size: 17)).foregroundStyle(.white).monospacedDigit()
+                        .font(.body).foregroundStyle(.white).monospacedDigit()
                     Text(TimeMath.offsetLabel(seconds: zone.secondsFromGMT(for: store.now)))
-                        .font(.system(size: 13)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                        .font(.footnote).foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 }
             }
             // As Two Degrees: a quiet check on a city already in the list, nothing on a new one.

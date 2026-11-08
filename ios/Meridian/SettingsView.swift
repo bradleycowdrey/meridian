@@ -49,7 +49,7 @@ struct SettingsView: View {
                 .meridianSection()
                 Section {
                     Text("Touch and hold your Home Screen, tap Edit, then Add Widget and choose Meridian. For the Lock Screen, touch and hold it, tap Customize, then add Meridian to the widget area.")
-                        .font(.system(size: 13))
+                        .font(.footnote)
                         .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 } header: { header("Widgets", "square.grid.2x2") }
                 .meridianSection()
@@ -72,7 +72,7 @@ struct SettingsView: View {
                 .meridianSection()
                 Section {
                     Text("Made by Bradley Cowdrey. Free. Forever.")
-                        .font(.system(size: 13))
+                        .font(.footnote)
                         .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                         .frame(maxWidth: .infinity)
                         .listRowBackground(Color.clear)
@@ -93,7 +93,7 @@ struct SettingsView: View {
 
     private func footer(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 13))
+            .font(.footnote)
             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
     }
 }

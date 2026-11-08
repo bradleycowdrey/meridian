@@ -563,7 +563,7 @@ fun TermsScreen(changed: Boolean = false, onAgree: () -> Unit) {
                 fontSize = 17.sp, lineHeight = 24.sp, color = white(0.85f), textAlign = TextAlign.Center)
             Spacer(Modifier.weight(1f))
             Button(onClick = onAgree, shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Palette.cream, contentColor = Palette.bg),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                 modifier = Modifier.fillMaxWidth().height(50.dp)) {
                 Text("I Agree", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             }

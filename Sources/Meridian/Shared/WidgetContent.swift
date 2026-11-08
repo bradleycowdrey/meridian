@@ -82,9 +82,27 @@ struct WidgetSnapshot: Codable, Equatable {
     }
 }
 
-/// Sky through the day in bradcowdrey.com tones: warm black at night, warm greys at twilight,
-/// cream in daylight.
+/// Sky through the day. iPhone: Two Degrees' sky (navy night, blue dawn and dusk, sky blue by day).
+/// Mac: bradcowdrey.com tones (warm black at night, warm greys at twilight, cream in daylight).
 enum DayColor {
+    #if os(iOS)
+    private static let stops: [(Double, UInt32)] = [
+        (0, 0x0A0E1C),
+        (5, 0x141E3C),
+        (6.5, 0x24384F),
+        (8, 0x1C3A5E),
+        (9.5, 0x3D74B0),
+        (12, 0x4F78A3),
+        (15, 0x4F78A3),
+        (17.5, 0x3D74B0),
+        (19, 0x1C3A5E),
+        (20.5, 0x24384F),
+        (22, 0x141E3C),
+        (24, 0x0A0E1C),
+    ]
+    /// The lifted widget tiles' floor (Two Degrees' partly-cloudy bottom).
+    private static let liftFloor: UInt32 = 0x24384F
+    #else
     private static let stops: [(Double, UInt32)] = [
         (0, 0x161412),
         (5, 0x1A1816),
@@ -99,16 +117,23 @@ enum DayColor {
         (22, 0x1C1A17),
         (24, 0x161412),
     ]
+    private static let liftFloor: UInt32 = 0x2E2A26
+    #endif
 
     /// On a widget, night tiles are lifted just above the widget's own background so every hour
     /// reads as a tile (the darkest hours otherwise vanish into it).
     static func style(at hour: Double, lifted: Bool) -> (fill: Color, text: Color) {
         guard lifted else { return style(at: hour) }
         var rgb = rgbAt(hour)
-        let floor = components(0x2E2A26)
+        let floor = components(liftFloor)
         rgb = (max(rgb.0, floor.0), max(rgb.1, floor.1), max(rgb.2, floor.2))
+        #if os(iOS)
+        // Every sky tone is dark enough for white text (the brightest, #4F78A3, is 4.6:1).
+        return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), Color.white)
+        #else
         let luminance = 0.299 * rgb.0 + 0.587 * rgb.1 + 0.114 * rgb.2
         return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), luminance > 0.45 ? WidgetTone.bg : WidgetTone.secondary)
+        #endif
     }
 
     private static func rgbAt(_ hour: Double) -> (Double, Double, Double) {
@@ -135,8 +160,13 @@ enum DayColor {
             rgb = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t)
             break
         }
+        #if os(iOS)
+        // Every sky tone is dark enough for white text (the brightest, #4F78A3, is 4.6:1).
+        let text = Color.white
+        #else
         let luminance = 0.299 * rgb.0 + 0.587 * rgb.1 + 0.114 * rgb.2
         let text = luminance > 0.55 ? WidgetTone.bg : WidgetTone.secondary
+        #endif
         return (Color(red: rgb.0, green: rgb.1, blue: rgb.2), text)
     }
 
@@ -146,7 +176,27 @@ enum DayColor {
 }
 
 /// The brand palette, restated here so the widget extension doesn't need the app's Palette.
+/// iPhone: Two Degrees' black, white at its opacities and its sunrise accent; Mac: bradcowdrey.com.
 enum WidgetTone {
+    #if os(iOS)
+    static let bg = Color.black
+    static let primary = Color.white
+    static let secondary = Color.white.opacity(0.78)
+    static let muted = Color.white.opacity(0.6)
+    static let faint = Color.white.opacity(0.4)
+    static let cream = Color.white
+    /// The new-day marker on the hour tiles (Two Degrees' TileAccent.sunrise).
+    static let midnight = tone(0xF2C66D)
+    /// No crimson on iPhone: kept as a name for shared code, it is the midnight accent.
+    static let crimson = midnight
+    /// The hairline between widget cells (Two Degrees' WidgetTone.divider).
+    static let divider = Color.white.opacity(0.18)
+    /// Two Degrees' neutral evening sky (its widget background with no weather).
+    static let skyTop = tone(0x262A33)
+    static let skyBottom = tone(0x111317)
+    /// Dark ink for a time drawn on a bright photo (Two Degrees' darkest navy).
+    static let ink = tone(0x0A0E1C)
+    #else
     static let bg = tone(0x1A1816)
     static let primary = Color.white
     static let secondary = tone(0xE0D8D0)
@@ -154,6 +204,8 @@ enum WidgetTone {
     static let faint = tone(0x807870)
     static let cream = tone(0xFFF1E5)
     static let crimson = tone(0x990F3D)
+    static let midnight = crimson
+    #endif
 
     private static func tone(_ hex: UInt32) -> Color {
         let c = DayColor.components(hex)
@@ -161,16 +213,21 @@ enum WidgetTone {
     }
 }
 
-/// The widget's background: warm near-black with the crimson rule, which steps aside in tinted and
-/// clear modes (as Two Degrees does). The system's content margins keep the face clear of it.
+/// The widget's background. iPhone: Two Degrees' neutral evening sky. Mac: warm near-black with the
+/// crimson rule, which steps aside in tinted and clear modes (as Two Degrees does). The system's
+/// content margins keep the face clear of it.
 struct MeridianWidgetBackground: View {
     @Environment(\.widgetRenderingMode) var renderingMode
 
     var body: some View {
+        #if os(iOS)
+        LinearGradient(colors: [WidgetTone.skyTop, WidgetTone.skyBottom], startPoint: .top, endPoint: .bottom)
+        #else
         ZStack(alignment: .top) {
             WidgetTone.bg
             if renderingMode == .fullColor { WidgetTone.crimson.frame(height: 3) }
         }
+        #endif
     }
 }
 
@@ -248,7 +305,11 @@ struct WidgetClockView: View {
     }
 
     /// The hairline between the two medium cells and under the large header.
+    #if os(iOS)
+    private static let ruleTone = WidgetTone.divider
+    #else
     private static let ruleTone = Color(red: 58.0 / 255, green: 53.0 / 255, blue: 48.0 / 255)   // #3A3530
+    #endif
     private var rule: Color { tinted ? Color.primary.opacity(0.3) : Self.ruleTone }
     /// "Now" labels and outlines: cream in full colour.
     private var nowTone: Color { tinted ? Color.primary : WidgetTone.cream }
@@ -506,7 +567,7 @@ struct WidgetClockView: View {
             .overlay(alignment: .leading) {
                 // A new day starts at midnight.
                 if newDay {
-                    Capsule().fill(tinted ? Color.primary : WidgetTone.crimson)
+                    Capsule().fill(tinted ? Color.primary : WidgetTone.midnight)
                         .frame(width: 2).padding(.vertical, 6).offset(x: -3)
                 }
             }
@@ -831,8 +892,8 @@ enum WidgetSky {
     /// The photo's tint: darker and cooler at night, warmer in twilight, as it is by day.
     static func shadeComponents(_ phase: Phase) -> (Double, Double, Double) {
         switch phase {
-        case .night: return (0.42, 0.45, 0.55)
-        case .twilight: return (0.95, 0.84, 0.72)
+        case .night: return (0.400, 0.459, 0.522)      // #667585, Two Degrees' overcast-day top
+        case .twilight: return (0.941, 0.820, 0.714)   // #F0D1B6, its moon and sunset accents
         case .day: return (1, 1, 1)
         }
     }
@@ -853,9 +914,9 @@ enum WidgetSky {
     /// The sky drawn when a city has no photo, top to bottom.
     static func skyHex(_ phase: Phase) -> (UInt32, UInt32) {
         switch phase {
-        case .day: return (0x4A80BD, 0xA9CBEA)
-        case .twilight: return (0x2B3A6B, 0xF08A5D)
-        case .night: return (0x0B1022, 0x1A2340)
+        case .day: return (0x3D74B0, 0x1C3A5E)        // Two Degrees' clear day
+        case .twilight: return (0x4F78A3, 0x24384F)   // its partly cloudy day
+        case .night: return (0x141E3C, 0x0A0E1C)      // its clear night
         }
     }
 
@@ -878,10 +939,10 @@ struct WidgetWorkStatus {
     var color: Color {
         let hex: UInt32
         switch kind {
-        case .working: hex = 0x9FE3A6
-        case .offHours: hex = 0xB9B2A8
-        case .weekend, .dayOff: hex = 0xF4C47A
-        case .holiday: hex = 0xF29BB5
+        case .working: hex = 0x9AD3A8            // Two Degrees' mild green
+        case .offHours: hex = 0xB9C3CF           // TileAccent.cloud
+        case .weekend, .dayOff: hex = 0xF2C66D   // TileAccent.sunrise
+        case .holiday: hex = 0xF39A72            // TileAccent.sunset
         }
         let c = DayColor.components(hex)
         return Color(red: c.0, green: c.1, blue: c.2)
@@ -1039,7 +1100,7 @@ struct WidgetBannerClock: View {
             .foregroundStyle(bright ? Color.white : Color.black)
             .compositingGroup()
             .opacity(bright ? 0.85 : 0.6)
-            t.foregroundStyle(bright ? Color(red: 0x14 / 255.0, green: 0x12 / 255.0, blue: 0x10 / 255.0) : Color.white)
+            t.foregroundStyle(bright ? WidgetTone.ink : Color.white)
         }
     }
 }
@@ -1211,7 +1272,7 @@ struct WidgetPhotoTile: View {
         .background(shape.fill(style.fill.opacity(dim ? 0.72 : 1)))
         .overlay(alignment: .leading) {
             if newDay {
-                Capsule().fill(WidgetTone.crimson)
+                Capsule().fill(WidgetTone.midnight)
                     .frame(width: 2).padding(.vertical, 6).offset(x: -(WidgetPhotoRows.tileGap / 2 + 1))
             }
         }

@@ -195,11 +195,11 @@ object MeridianWidgets {
 
     /** What a city is doing now, for the pill under its name: the cards' colours and icons. */
     private enum class Status(val color: Int, val icon: Int) {
-        WORKING(0xFF9FE3A6.toInt(), R.drawable.ic_briefcase),
-        OFF_HOURS(0xFFB9B2A8.toInt(), R.drawable.ic_moon),
-        WEEKEND(0xFFF4C47A.toInt(), R.drawable.ic_sun),
-        DAY_OFF(0xFFF4C47A.toInt(), R.drawable.ic_sun),
-        HOLIDAY(0xFFF29BB5.toInt(), R.drawable.ic_star),
+        WORKING(0xFF9AD3A8.toInt(), R.drawable.ic_briefcase),
+        OFF_HOURS(0xFFB9C3CF.toInt(), R.drawable.ic_moon),
+        WEEKEND(0xFFF2C66D.toInt(), R.drawable.ic_sun),
+        DAY_OFF(0xFFF2C66D.toInt(), R.drawable.ic_sun),
+        HOLIDAY(0xFFF39A72.toInt(), R.drawable.ic_star),
     }
 
     /** "Working", "Off hours", "Weekend", "Day off" or the holiday's name, as the cards work it out. */
@@ -286,7 +286,7 @@ object MeridianWidgets {
             val cut = label.indexOfFirst { it == 'A' || it == 'P' }
             if (cut > 0) text.setSpan(android.text.style.RelativeSizeSpan(0.68f), cut, label.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             v.setTextViewText(id, text)
-            v.setTextColor(id, if (DayColor.isLight(color)) 0xFF1A1816.toInt() else 0xFFE0D8D0.toInt())
+            v.setTextColor(id, 0xFFFFFFFF.toInt())
             val dim = work.show && !WorkWeek.isWorking(place, at.toInstant().plusSeconds(1800), work.start, work.end)
             val fill = if (dim) (color and 0x00FFFFFF) or (0xB8 shl 24) else color
             if (Build.VERSION.SDK_INT >= 31) v.setColorStateList(id, "setBackgroundTintList", ColorStateList.valueOf(fill))
@@ -378,16 +378,16 @@ private object WidgetSky {
 
     /** The cards' shading: night about 45% darker and a little cooler; dawn and dusk a little warmer; day as taken. */
     private fun gain(phase: Phase): FloatArray? = when (phase) {
-        Phase.NIGHT -> floatArrayOf(0.40f, 0.44f, 0.54f)
-        Phase.TWILIGHT -> floatArrayOf(0.93f, 0.84f, 0.72f)
+        Phase.NIGHT -> floatArrayOf(0.400f, 0.459f, 0.522f)
+        Phase.TWILIGHT -> floatArrayOf(0.941f, 0.820f, 0.714f)
         Phase.DAY -> null
     }
 
     /** The drawn sky's top and bottom, and its buildings. */
     private fun drawnColors(phase: Phase): Triple<Int, Int, Int> = when (phase) {
-        Phase.DAY -> Triple(0xFF4A80BD.toInt(), 0xFFA9CBEA.toInt(), 0xFF22324A.toInt())
-        Phase.TWILIGHT -> Triple(0xFF2B3A6B.toInt(), 0xFFF08A5D.toInt(), 0xFF1A1A2A.toInt())
-        Phase.NIGHT -> Triple(0xFF0B1022.toInt(), 0xFF1A2340.toInt(), 0xFF06080F.toInt())
+        Phase.DAY -> Triple(0xFF3D74B0.toInt(), 0xFF1C3A5E.toInt(), 0xFF0A0E1C.toInt())
+        Phase.TWILIGHT -> Triple(0xFF4F78A3.toInt(), 0xFF24384F.toInt(), 0xFF0A0E1C.toInt())
+        Phase.NIGHT -> Triple(0xFF141E3C.toInt(), 0xFF0A0E1C.toInt(), 0xFF000000.toInt())
     }
 
     /**
@@ -460,9 +460,9 @@ private object WidgetSky {
         c.drawRect(0f, 0f, w, h, paint)
         paint.shader = null
         when (phase) {
-            Phase.NIGHT -> { paint.color = 0xE6F4F1E6.toInt(); c.drawCircle(w * 0.86f, h * 0.28f, 9 * u, paint) }
-            Phase.TWILIGHT -> { paint.color = 0xD9FFC27A.toInt(); c.drawCircle(w * 0.88f, h * 0.82f, 22 * u, paint) }
-            Phase.DAY -> { paint.color = 0xF2FFF6D8.toInt(); c.drawCircle(w * 0.86f, h * 0.25f, 12 * u, paint) }
+            Phase.NIGHT -> { paint.color = 0xE6EFE3CC.toInt(); c.drawCircle(w * 0.86f, h * 0.28f, 9 * u, paint) }
+            Phase.TWILIGHT -> { paint.color = 0xD9F39A72.toInt(); c.drawCircle(w * 0.88f, h * 0.82f, 22 * u, paint) }
+            Phase.DAY -> { paint.color = 0xF2FFFFFF.toInt(); c.drawCircle(w * 0.86f, h * 0.25f, 12 * u, paint) }
         }
         val seed = city.lowercase().hashCode().toLong()
         // The far buildings, fainter.
@@ -490,7 +490,7 @@ private object WidgetSky {
                     var wx = x + 2 * u
                     while (wx < x + bw - 2 * u) {
                         if (r.nextFloat() < lit) {
-                            window.color = (((0.6f + r.nextFloat() * 0.4f) * 255).toInt() shl 24) or 0xFFD98A
+                            window.color = (((0.6f + r.nextFloat() * 0.4f) * 255).toInt() shl 24) or 0xF2C66D
                             c.drawRect(wx, y, wx + 1.6f * u, y + 2 * u, window)
                         }
                         wx += 4 * u

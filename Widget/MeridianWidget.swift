@@ -72,7 +72,7 @@ struct ClockEntryView: View {
         .environment(\.colorScheme, .dark)
     }
 
-    /// The system's content margins keep the face clear of the edges and the crimson rule. On
+    /// The system's content margins keep the face clear of the edges (and, on the Mac, the crimson rule). On
     /// iPhone the small widget's background is its city's skyline photo (WidgetContainerBackground).
     private var clock: some View {
         WidgetClockView(snapshot: entry.snapshot, date: entry.date, family: family)

@@ -686,9 +686,9 @@ struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
     let goToTime: () -> Void
 
-    /// Cream ink (#F5F0EA) and the dark ink (#141210) set on it.
-    private static let cream = Color(red: 245 / 255, green: 240 / 255, blue: 234 / 255)
-    private static let ink = Color(red: 20 / 255, green: 18 / 255, blue: 16 / 255)
+    /// White, and the black set on it (as a selected chip).
+    private static let light = Color.white
+    private static let ink = Color.black
 
     var body: some View {
         VStack(spacing: 4) {
@@ -721,7 +721,7 @@ struct TimeShifter: View {
     }
 
     /// Now as a large pill: light ink on faint glass while the list shows the current time, and
-    /// filled cream with dark ink once the time has moved, so it reads as the way back. Not
+    /// filled white with black ink once the time has moved, so it reads as the way back. Not
     /// `.disabled` at now, which would dim it; the tap simply does nothing then.
     private var nowButton: some View {
         Button { if !store.isNow { store.backToNow() } } label: {
@@ -731,8 +731,8 @@ struct TimeShifter: View {
                 .fixedSize()
                 .padding(.horizontal, 18)
                 .frame(minWidth: 68, minHeight: 44)
-                .foregroundStyle(store.isNow ? Self.cream : Self.ink)
-                .background(Capsule().fill(store.isNow ? Color.white.opacity(0.14) : Self.cream))
+                .foregroundStyle(store.isNow ? Self.light : Self.ink)
+                .background(Capsule().fill(store.isNow ? Color.white.opacity(0.14) : Self.light))
                 .overlay(Capsule().strokeBorder(Color.white.opacity(store.isNow ? 0.25 : 0), lineWidth: 0.5))
                 .contentShape(Capsule())
         }
@@ -1061,7 +1061,7 @@ struct CityRow: View {
             if zone {
                 Text(zoneText(moment))
                     .font(cardFont(13))
-                    .foregroundStyle(Theme.rgb(0xE0D8D0))
+                    .foregroundStyle(Theme.secondary)
                     .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -1084,7 +1084,7 @@ struct CityRow: View {
             if store.isHere(place) {
                 Image(systemName: "location.fill")
                     .font(cardFont(9, .medium))
-                    .foregroundStyle(Theme.rgb(0xE0D8D0))
+                    .foregroundStyle(Theme.secondary)
             }
         }
         .shadow(color: Color.black.opacity(0.6), radius: 1.5, x: 0, y: 1)

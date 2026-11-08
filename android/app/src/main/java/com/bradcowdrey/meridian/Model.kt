@@ -180,12 +180,12 @@ object TimeMath {
     fun quarter(at: Instant): Instant = Instant.ofEpochSecond(Math.floorDiv(at.epochSecond, 900L) * 900L)
 }
 
-/** Sky through the day in bradcowdrey.com tones: warm black at night, warm greys at twilight, cream by day. */
+/** Sky through the day in Two Degrees tones: night navy, dawn and dusk blue-greys, sky blue by day. */
 object DayColor {
     private val stops = listOf(
-        0.0 to 0x161412, 5.0 to 0x1A1816, 6.5 to 0x4A4540, 8.0 to 0xB0A898, 9.5 to 0xE0D8D0,
-        12.0 to 0xFFF1E5, 15.0 to 0xFFF1E5, 17.5 to 0xE0D8D0, 19.0 to 0x807870, 20.5 to 0x34302B,
-        22.0 to 0x1C1A17, 24.0 to 0x161412,
+        0.0 to 0x0A0E1C, 5.0 to 0x141E3C, 6.5 to 0x24384F, 8.0 to 0x1C3A5E, 9.5 to 0x3D74B0,
+        12.0 to 0x4F78A3, 15.0 to 0x4F78A3, 17.5 to 0x3D74B0, 19.0 to 0x1C3A5E, 20.5 to 0x24384F,
+        22.0 to 0x141E3C, 24.0 to 0x0A0E1C,
     )
 
     /** ARGB colour of the sky at an hour of the day (0–24). */
@@ -203,16 +203,10 @@ object DayColor {
         return 0xFF000000.toInt() or stops.first().second
     }
 
-    /** Light enough that dark text reads on it. */
-    /** For widgets: no darker than just above the widget's background (#2E2A26). */
+    /** For widgets: no darker than the Two Degrees dawn blue-grey (#24384F). */
     fun lifted(rgb: Int): Int {
-        val r = maxOf((rgb shr 16) and 0xFF, 0x2E); val g = maxOf((rgb shr 8) and 0xFF, 0x2A); val b = maxOf(rgb and 0xFF, 0x26)
+        val r = maxOf((rgb shr 16) and 0xFF, 0x24); val g = maxOf((rgb shr 8) and 0xFF, 0x38); val b = maxOf(rgb and 0xFF, 0x4F)
         return (rgb.toLong() and 0xFF000000L).toInt() or (r shl 16) or (g shl 8) or b
-    }
-
-    fun isLight(argb: Int): Boolean {
-        val r = (argb shr 16) and 0xFF; val g = (argb shr 8) and 0xFF; val b = argb and 0xFF
-        return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.45
     }
 }
 

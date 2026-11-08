@@ -103,8 +103,8 @@ struct Scrub: ViewModifier {
 }
 
 /// A city's hours as five day-and-night tiles, as in Meridian for Mac: each tile the colour of
-/// the day at that hour there (warm black at night, greys at dawn and dusk, cream by day), dimmed
-/// outside working hours, with the weekday and a crimson mark where a new day starts, and the outer
+/// the day at that hour there (navy at night, deep blues at dawn and dusk, sky blue by day), dimmed
+/// outside working hours, with the weekday and a gold mark where a new day starts, and the outer
 /// tiles fading into the panel (not on a city card's photo). The middle column (the hour holding
 /// the moment shown) is marked by one capsule down the whole list (`NowCapsule`), which finds the
 /// middle tiles through `NowTileAnchors`. Tap a tile to go to that hour; drag to scrub.
@@ -194,10 +194,10 @@ struct HourTiles: View {
         // Outside working hours the tile lets a little of the panel through, as on the Mac.
         .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous).fill(style.fill.opacity(dim ? 0.72 : 1)))
         .overlay(alignment: .leading) {
-            // Midnight: a crimson mark centred in the gap before the new day, as on the Mac.
+            // Midnight: a sunrise-gold mark centred in the gap before the new day, as on the Mac.
             if newDay {
                 Capsule()
-                    .fill(Theme.crimson)
+                    .fill(Theme.midnight)
                     .frame(width: 2)
                     .padding(.vertical, 8)
                     .offset(x: -(TileGrid.gap / 2 + 1))

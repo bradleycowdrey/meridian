@@ -1,18 +1,18 @@
 import SwiftUI
 
-/// bradcowdrey.com colours (shared with the widgets through WidgetTone) and links.
+/// Two Degrees' iPhone colours (black, white at opacities, the sky blues and its tile accents) and links.
 enum Theme {
-    static let bg = WidgetTone.bg
-    static let tile = Color(red: 0x23 / 255, green: 0x20 / 255, blue: 0x1D / 255)
-    static let border = Color(red: 0x3A / 255, green: 0x35 / 255, blue: 0x30 / 255)
-    static let primary = WidgetTone.primary
-    static let secondary = WidgetTone.secondary
-    static let muted = WidgetTone.muted
-    static let faint = WidgetTone.faint
-    /// Widgets and the Terms "I Agree" capsule only; the rest of the app is white, as in Two Degrees.
-    static let cream = WidgetTone.cream
-    /// Widgets and the app icon only.
-    static let crimson = WidgetTone.crimson
+    /// Screens, forms and the navigation bar: black, as Two Degrees' city list.
+    static let bg = Color.black
+    /// A card before its photo loads, and panels: Two Degrees' `Color(white: 0.15)` (#262626).
+    static let tile = Color(white: 0.15)
+    static let border = Color.white.opacity(0.15)
+    static let primary = Color.white
+    static let secondary = Color.white.opacity(0.85)
+    static let muted = Color.white.opacity(0.6)
+    static let faint = Color.white.opacity(0.4)
+    /// The Terms "I Agree" capsule: white, as Two Degrees.
+    static let cream = Color.white
 
     /// A colour from 0xRRGGBB (the iOS app has no `Color(hex:)`).
     static func rgb(_ hex: UInt32) -> Color {
@@ -25,12 +25,18 @@ enum Theme {
 
     /// Clock-change notices.
     static let notice = rgb(0xF2A65A)
-    static let sun = rgb(0xF4B860)
-    static let moon = rgb(0xE9DCC8)
+    /// Two Degrees' sunrise accent.
+    static let sun = rgb(0xF2C66D)
+    /// Two Degrees' moon accent.
+    static let moon = rgb(0xEFE3CC)
+    /// The midnight mark between days on the hour tiles (Two Degrees' sunrise accent).
+    static let midnight = rgb(0xF2C66D)
+    /// The time on a bright photo: Two Degrees' darkest navy.
+    static let bannerInk = rgb(0x0A0E1C)
     /// The calendar's selected day (the clear-day sky).
     static let pickerAccent = rgb(0x3D74B0)
-    /// Switches, which would be white (and lose their knob) under the app's white tint.
-    static let switchOn = rgb(0x30D158)
+    /// Switches, which would be white (and lose their knob) under the app's white tint: the clear-day sky.
+    static let switchOn = rgb(0x3D74B0)
 
     /// White on dark, in steps.
     enum Op {

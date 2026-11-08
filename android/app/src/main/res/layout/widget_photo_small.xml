@@ -31,19 +31,19 @@
                 android:baselineAligned="true" android:orientation="horizontal" android:visibility="gone">
                 <TextClock android:id="@+id/clock_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
-                    android:letterSpacing="-0.02" android:textColor="#141210" android:textSize="20sp" android:maxLines="1"
+                    android:letterSpacing="-0.02" android:textColor="#0A0E1C" android:textSize="20sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
                 <TextView android:id="@+id/clock_static_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
-                    android:letterSpacing="-0.02" android:textColor="#141210" android:textSize="20sp" android:maxLines="1"
+                    android:letterSpacing="-0.02" android:textColor="#0A0E1C" android:textSize="20sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
                 <TextClock android:id="@+id/ampm_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
-                    android:textColor="#141210" android:textSize="9sp" android:maxLines="1"
+                    android:textColor="#0A0E1C" android:textSize="9sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
                 <TextView android:id="@+id/ampm_static_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
-                    android:textColor="#141210" android:textSize="9sp" android:maxLines="1"
+                    android:textColor="#0A0E1C" android:textSize="9sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
             </LinearLayout>
             <TextView android:id="@+id/name" android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -58,7 +58,7 @@
                     android:src="@drawable/ic_briefcase" android:importantForAccessibility="no" />
                 <TextView android:id="@+id/status_text" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="3dp" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
-                    android:fontFamily="sans-serif-medium" android:textColor="#9FE3A6" android:textSize="9.5sp" />
+                    android:fontFamily="sans-serif-medium" android:textColor="#9AD3A8" android:textSize="9.5sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

@@ -14,7 +14,7 @@ enum Terms {
 struct TermsView: View {
     let onAgree: () -> Void
 
-    /// As Two Degrees' terms screen: the mark, a large title, the summary, and a cream I Agree.
+    /// As Two Degrees' terms screen: the mark, a large title, the summary, and a white I Agree.
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -39,7 +39,7 @@ struct TermsView: View {
                 Text("I Agree")
                     .font(.system(size: 17, weight: .semibold))
                     .frame(maxWidth: .infinity, minHeight: 50)
-                    .foregroundStyle(Theme.bg)
+                    .foregroundStyle(Color.black)
                     .background(Capsule().fill(Theme.cream))
                     .contentShape(Capsule())
             }

@@ -130,19 +130,17 @@ import androidx.compose.ui.res.painterResource
 import java.time.Instant
 import kotlin.math.roundToInt
 
-/** bradcowdrey.com colours, shared with the widgets, and the Two Degrees tones the app uses inside. */
+/** The Two Degrees colours the app and widgets use: black, white at opacities, sky blues and its accents. */
 object Palette {
-    val bg = Color(0xFF1A1816)
-    val tile = Color(0xFF23201D)
-    val border = Color(0xFF3A3530)
+    val bg = Color(0xFF000000)
+    val tile = Color(0xFF262626)
+    val border = Color(0x26FFFFFF)
     val primary = Color.White
-    val secondary = Color(0xFFE0D8D0)
-    val muted = Color(0xFFB0A898)
-    val faint = Color(0xFF807870)
-    /** Widgets, the app icon, the Terms button and the "+1 d" badge (as on the Mac). */
-    val cream = Color(0xFFFFF1E5)
-    /** Widgets, the app icon and the midnight mark between hour tiles (as on the Mac). */
-    val crimson = Color(0xFF990F3D)
+    val secondary = Color(0xD9FFFFFF)
+    val muted = Color(0x99FFFFFF)
+    val faint = Color(0x66FFFFFF)
+    /** The midnight mark between hour tiles: the Two Degrees sunrise accent. */
+    val midnight = Color(0xFFF2C66D)
     val black = Color.Black
     val notice = Color(0xFFF2A65A)
     val destructive = Color(0xFFE5484D)
@@ -152,13 +150,13 @@ object Palette {
     val chipOff = Color(0x1FFFFFFF)
     /** The Two Degrees bottom bar. */
     // Nearly opaque: Android has no blur behind a bar, so cards must not show through the ruler.
-    val barBg = Color(0xFF0B0C0F)
+    val barBg = Color(0xFF101216)
     /** The Two Degrees search field. */
     val searchBg = Color(0xFF1E1E22)
-    val sun = Color(0xFFF4B860)
-    val moon = Color(0xFFE9DCC8)
+    val sun = Color(0xFFF2C66D)
+    val moon = Color(0xFFEFE3CC)
     val pickerAccent = Color(0xFF3D74B0)
-    val switchOn = Color(0xFF30D158)
+    val switchOn = Color(0xFF3D74B0)
     const val WEBSITE = "https://bradcowdrey.com"
     const val APP_PAGE = "https://bradcowdrey.com/meridian"
     const val LEGAL = "https://bradcowdrey.com/legal"
@@ -257,7 +255,7 @@ class MainActivity : ComponentActivity() {
         this.store = store
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(
-                // White highlights inside the app, as in Two Degrees (crimson stays on the widgets and icon).
+                // White highlights inside the app, as in Two Degrees.
                 background = Palette.bg, surface = Palette.bg, primary = Color.White, onPrimary = Color.Black,
                 surfaceContainer = Palette.tile, surfaceContainerHigh = Palette.tile, onSurface = Palette.primary,
                 onSurfaceVariant = Palette.muted, outlineVariant = Palette.cardBorder,
@@ -375,7 +373,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
     val customFilter = store.groupFilter?.takeIf { it in store.chipGroups && !store.isContinent(it) }
 
     Scaffold(
-        // The list sits on Meridian's own warm dark, as on the Mac.
+        // The list sits on black, as in Two Degrees.
         containerColor = Palette.bg,
         topBar = {
             Column(Modifier.fillMaxWidth().background(Palette.black).statusBarsPadding()) {
@@ -765,27 +763,27 @@ fun TimeShifter(store: Store, goToTime: () -> Unit) {
 
 /**
  * Now: a large, readable pill. At now, light text on a faint glass fill with a hairline edge (and off);
- * moved through time, filled cream with dark text, the action that brings you back.
+ * moved through time, filled white with black text (as a selected chip), the action that brings you back.
  */
 @Composable
 fun NowButton(store: Store) {
     val atNow = store.isNow
     val shape = RoundedCornerShape(50)
     Box(Modifier.defaultMinSize(minWidth = 68.dp, minHeight = 44.dp).height(44.dp).clip(shape)
-        .background(if (atNow) white(0.14f) else NowCream)
+        .background(if (atNow) white(0.14f) else NowFill)
         .then(if (atNow) Modifier.border(0.5.dp, white(0.25f), shape) else Modifier)
         .clickable(enabled = !atNow, onClickLabel = "Back to now") { store.backToNow() }
         .semantics { contentDescription = if (atNow) "Now" else "Back to now" }
         .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center) {
-        Text("Now", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (atNow) NowCream else NowInk,
+        Text("Now", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (atNow) NowFill else NowInk,
             maxLines = 1, softWrap = false)
     }
 }
 
-/** The Now button's cream and the dark ink on it. */
-private val NowCream = Color(0xFFF5F0EA)
-private val NowInk = Color(0xFF141210)
+/** The Now button's white and the black ink on it (as a selected chip). */
+private val NowFill = Color(0xFFFFFFFF)
+private val NowInk = Color(0xFF000000)
 
 /**
  * The city list's geometry, as the Mac panel's strip: shared by every row and the Now capsule down the
@@ -842,7 +840,7 @@ object Rows {
 
 /** What a city is doing now, for the pill under its name. */
 enum class StatusKind(val color: Color) {
-    WORKING(Color(0xFF9FE3A6)), OFF_HOURS(Color(0xFFB9B2A8)), WEEKEND(Color(0xFFF4C47A)), DAY_OFF(Color(0xFFF4C47A)), HOLIDAY(Color(0xFFF29BB5))
+    WORKING(Color(0xFF9AD3A8)), OFF_HOURS(Color(0xFFB9C3CF)), WEEKEND(Color(0xFFF2C66D)), DAY_OFF(Color(0xFFF2C66D)), HOLIDAY(Color(0xFFF39A72))
 }
 
 /** "Working" with "until 6 PM", "Off hours" with "back 9 AM Mon", or a holiday's name. */
@@ -922,8 +920,8 @@ object Skyline {
     )))
 
     /** Night: darker (about 45%) and a little cooler; dawn and dusk: a little warmer, about 15% darker; day as taken. */
-    private val nightGain = floatArrayOf(0.40f, 0.44f, 0.54f)
-    private val twilightGain = floatArrayOf(0.93f, 0.84f, 0.72f)
+    private val nightGain = floatArrayOf(0.400f, 0.459f, 0.522f)
+    private val twilightGain = floatArrayOf(0.941f, 0.820f, 0.714f)
     private val dayGain = floatArrayOf(1f, 1f, 1f)
     private val night = scale(nightGain)
     private val twilight = scale(twilightGain)
@@ -977,7 +975,7 @@ object Skyline {
      * The drawn skyline: the bottom-left of the banner, behind the time, is mostly its (dark) buildings,
      * not its sky, so weigh the lower sky against the ink by how much the buildings cover. The near
      * buildings (opaque, 18-60% of the height, overlapping) cover ~85% of the bottom half and the far ones
-     * add more, so even by day (#A9CBEA sky over #22324A ink) this comes to ~0.11: dark in every phase.
+     * add more, so even by day (#1C3A5E sky over #0A0E1C ink) this comes to ~0.11: dark in every phase.
      */
     fun drawnIsBright(phase: Sky.Phase): Boolean {
         val (_, sky, ink) = drawnColors(phase)
@@ -1029,9 +1027,9 @@ object Skyline {
 
     /** The drawn skyline's sky (top, bottom) and buildings. */
     fun drawnColors(phase: Sky.Phase): Triple<Color, Color, Color> = when (phase) {
-        Sky.Phase.DAY -> Triple(Color(0xFF4A80BD), Color(0xFFA9CBEA), Color(0xFF22324A))
-        Sky.Phase.TWILIGHT -> Triple(Color(0xFF2B3A6B), Color(0xFFF08A5D), Color(0xFF1A1A2A))
-        Sky.Phase.NIGHT -> Triple(Color(0xFF0B1022), Color(0xFF1A2340), Color(0xFF06080F))
+        Sky.Phase.DAY -> Triple(Color(0xFF3D74B0), Color(0xFF1C3A5E), Color(0xFF0A0E1C))
+        Sky.Phase.TWILIGHT -> Triple(Color(0xFF4F78A3), Color(0xFF24384F), Color(0xFF0A0E1C))
+        Sky.Phase.NIGHT -> Triple(Color(0xFF141E3C), Color(0xFF0A0E1C), Color(0xFF000000))
     }
 }
 
@@ -1052,9 +1050,9 @@ private fun DrawnSkyline(city: String, phase: Sky.Phase, modifier: Modifier) {
         val u = 1.dp.toPx()
         drawRect(Brush.verticalGradient(listOf(top, bottom)))
         when (phase) {
-            Sky.Phase.NIGHT -> drawCircle(Color(0xFFF4F1E6).copy(alpha = 0.9f), 9 * u, Offset(w * 0.86f, h * 0.28f))
-            Sky.Phase.TWILIGHT -> drawCircle(Color(0xFFFFC27A).copy(alpha = 0.85f), 22 * u, Offset(w * 0.88f, h * 0.82f))
-            Sky.Phase.DAY -> drawCircle(Color(0xFFFFF6D8).copy(alpha = 0.95f), 12 * u, Offset(w * 0.86f, h * 0.25f))
+            Sky.Phase.NIGHT -> drawCircle(Color(0xFFEFE3CC).copy(alpha = 0.9f), 9 * u, Offset(w * 0.86f, h * 0.28f))
+            Sky.Phase.TWILIGHT -> drawCircle(Color(0xFFF39A72).copy(alpha = 0.85f), 22 * u, Offset(w * 0.88f, h * 0.82f))
+            Sky.Phase.DAY -> drawCircle(Color(0xFFFFFFFF).copy(alpha = 0.95f), 12 * u, Offset(w * 0.86f, h * 0.25f))
         }
         // The far buildings, fainter.
         val back = java.util.Random(seed xor 0x5DEECE66DL)
@@ -1067,7 +1065,7 @@ private fun DrawnSkyline(city: String, phase: Sky.Phase, modifier: Modifier) {
         // The near buildings, with windows lit at dusk and at night.
         val r = java.util.Random(seed)
         val lit = when (phase) { Sky.Phase.NIGHT -> 0.35f; Sky.Phase.TWILIGHT -> 0.18f; Sky.Phase.DAY -> 0f }
-        val window = Color(0xFFFFD98A)
+        val window = Color(0xFFF2C66D)
         var x = 0f
         while (x < w) {
             val bw = (8 + r.nextFloat() * 18) * u
@@ -1120,7 +1118,7 @@ private fun BannerTime(digits: String, suffix: String?, compact: Boolean, bright
     val fontScale = density.fontScale
     val grow = (1f + (fontScale - 1f) * 0.35f).coerceIn(1f, 1.2f)
     val size = ((if (compact) 26f else 38f) * grow / fontScale).sp
-    val ink = if (bright) Color(0xFF141210) else Color.White
+    val ink = if (bright) Color(0xFF0A0E1C) else Color.White
     val outline = if (bright) Color.White.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.60f)
     // The outline shows about 1 dp at 26, 1.5 dp at 38: the stroke straddles the glyph's edge and the fill
     // covers its inner half, so it is drawn twice as wide. The AM/PM gets one in proportion to its size.
@@ -1370,8 +1368,8 @@ object NowCapsule {
 
 /**
  * A city's hours as five tiles, two before the selected hour and two after, as on the Mac panel:
- * each tile the colour of the day there at that hour (warm black at night, greys at dawn and dusk,
- * cream by day), dimmed outside working hours, the day's name and a mark where a new day starts,
+ * each tile the colour of the day there at that hour (navy at night, blue-greys at dawn and dusk,
+ * sky blue by day), dimmed outside working hours, the day's name and a mark where a new day starts,
  * shown whole with a soft shadow under them (over a photo). The Now
  * capsule over the selected hour is drawn down the whole list.
  * Tap a tile to go to that hour; drag to move through time in quarter-hours.
@@ -1434,13 +1432,13 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
                     HourTile(store, place, start, center = i == 2, newDay = newDay(start), modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
-            // Midnight: a crimson mark in the gap before the tile where a new day starts, as on the Mac.
+            // Midnight: a sunrise-gold mark in the gap before the tile where a new day starts, as on the Mac.
             Canvas(Modifier.matchParentSize()) {
                 val pitchPx = (size.width + Strip.gap.toPx()) / 5
                 val inset = 8.dp.toPx()
                 for (i in 1..4) {
                     if (!newDay(starts[i])) continue
-                    drawRoundRect(Palette.crimson, topLeft = Offset(i * pitchPx - Strip.gap.toPx() / 2 - 1.dp.toPx(), inset),
+                    drawRoundRect(Palette.midnight, topLeft = Offset(i * pitchPx - Strip.gap.toPx() / 2 - 1.dp.toPx(), inset),
                         size = Size(2.dp.toPx(), size.height - 2 * inset), cornerRadius = CornerRadius(1.dp.toPx()))
                 }
             }
@@ -1460,7 +1458,7 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val hour = z.hour
     val minute = z.minute
     val fill = DayColor.at(hour + minute / 60.0)
-    val text = if (DayColor.isLight(fill)) Palette.bg else Palette.secondary
+    val text = Color.White
     val fillColor by animateColorAsState(Color(fill), tween(250), label = "tile")
     val textColor by animateColorAsState(text, tween(250), label = "tile text")
     // Outside working hours, as on the Mac: the tile a little quieter.
@@ -1492,12 +1490,12 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     }
 }
 
-/** The widgets' hour tiles: the sky colour kept visible at night (never darker than the border tone), and dimmed halfway to the background. */
+/** The widgets' hour tiles: the sky colour kept visible at night (never darker than #24384F), and dimmed halfway toward black. */
 fun tone(argb: Int, dim: Boolean): Int {
     var r = (argb shr 16) and 0xFF; var g = (argb shr 8) and 0xFF; var b = argb and 0xFF
     val lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
-    if (lum < 0.2126 * 0x3A + 0.7152 * 0x35 + 0.0722 * 0x30) { r = 0x3A; g = 0x35; b = 0x30 }
-    if (dim) { r = (r + 0x1A) / 2; g = (g + 0x18) / 2; b = (b + 0x16) / 2 }
+    if (lum < 0.2126 * 0x24 + 0.7152 * 0x38 + 0.0722 * 0x4F) { r = 0x24; g = 0x38; b = 0x4F }
+    if (dim) { r = r / 2; g = g / 2; b = b / 2 }
     return (0xFF shl 24) or (r shl 16) or (g shl 8) or b
 }
 

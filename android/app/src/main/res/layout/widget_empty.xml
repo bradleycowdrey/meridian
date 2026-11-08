@@ -7,5 +7,5 @@
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:text="No cities yet" android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="13sp" />
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="Add cities in Meridian" android:fontFamily="sans-serif-medium" android:textColor="#B0A898" android:textSize="11sp" />
+        android:text="Add cities in Meridian" android:fontFamily="sans-serif-medium" android:textColor="#99FFFFFF" android:textSize="11sp" />
 </LinearLayout>

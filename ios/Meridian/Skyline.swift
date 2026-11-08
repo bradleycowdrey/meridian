@@ -222,8 +222,8 @@ enum SkylineArt {
     /// little darker in twilight, as it is by day.
     static func shade(_ phase: Sky.Phase) -> Color {
         switch phase {
-        case .night: return Color(red: 0.42, green: 0.45, blue: 0.55)
-        case .twilight: return Color(red: 0.95, green: 0.84, blue: 0.72)
+        case .night: return Color(red: 0.400, green: 0.459, blue: 0.522)
+        case .twilight: return Color(red: 0.941, green: 0.820, blue: 0.714)
         case .day: return .white
         }
     }
@@ -239,18 +239,18 @@ enum SkylineArt {
     /// The drawn skyline's sky, top to bottom.
     static func sky(_ phase: Sky.Phase) -> [Color] {
         switch phase {
-        case .day: return [Theme.rgb(0x4A80BD), Theme.rgb(0xA9CBEA)]
-        case .twilight: return [Theme.rgb(0x2B3A6B), Theme.rgb(0xF08A5D)]
-        case .night: return [Theme.rgb(0x0B1022), Theme.rgb(0x1A2340)]
+        case .day: return [Theme.rgb(0x3D74B0), Theme.rgb(0x1C3A5E)]
+        case .twilight: return [Theme.rgb(0x4F78A3), Theme.rgb(0x24384F)]
+        case .night: return [Theme.rgb(0x141E3C), Theme.rgb(0x0A0E1C)]
         }
     }
 
     /// The drawn buildings' colour.
     static func ink(_ phase: Sky.Phase) -> Color {
         switch phase {
-        case .day: return Theme.rgb(0x22324A)
-        case .twilight: return Theme.rgb(0x1A1A2A)
-        case .night: return Theme.rgb(0x06080F)
+        case .day: return Theme.rgb(0x0A0E1C)
+        case .twilight: return Theme.rgb(0x0A0E1C)
+        case .night: return Color.black
         }
     }
 
@@ -792,11 +792,11 @@ struct DrawnSkyline: View {
         let glowColor: Color
         switch phase {
         case .night:
-            glowCenter = CGPoint(x: w * 0.86, y: h * 0.28); glowRadius = 9; glowColor = Theme.rgb(0xF4F1E6).opacity(0.9)
+            glowCenter = CGPoint(x: w * 0.86, y: h * 0.28); glowRadius = 9; glowColor = Theme.moon.opacity(0.9)
         case .twilight:
-            glowCenter = CGPoint(x: w * 0.88, y: h * 0.82); glowRadius = 22; glowColor = Theme.rgb(0xFFC27A).opacity(0.85)
+            glowCenter = CGPoint(x: w * 0.88, y: h * 0.82); glowRadius = 22; glowColor = Theme.rgb(0xF39A72).opacity(0.85)
         case .day:
-            glowCenter = CGPoint(x: w * 0.86, y: h * 0.25); glowRadius = 12; glowColor = Theme.rgb(0xFFF6D8).opacity(0.95)
+            glowCenter = CGPoint(x: w * 0.86, y: h * 0.25); glowRadius = 12; glowColor = Color.white.opacity(0.95)
         }
         let halo = glowRadius * 2.2
         context.fill(Path(ellipseIn: CGRect(x: glowCenter.x - halo, y: glowCenter.y - halo, width: halo * 2, height: halo * 2)),
@@ -836,7 +836,7 @@ struct DrawnSkyline: View {
 
         context.fill(back, with: .color(ink.opacity(0.55)))
         context.fill(front, with: .color(ink))
-        context.fill(windows, with: .color(Theme.rgb(0xFFD98A).opacity(0.8)))
+        context.fill(windows, with: .color(Theme.sun.opacity(0.8)))
     }
 
     /// The buildings for a city's seed at a size: the front row left to right, and the paler row
@@ -1068,7 +1068,7 @@ struct BannerClock: View {
                 CGSize(width: -d, height: d), CGSize(width: d, height: d)]
     }()
 
-    private var fillColor: Color { bright ? Theme.rgb(0x141210) : .white }
+    private var fillColor: Color { bright ? Theme.bannerInk : .white }
 
     var body: some View {
         let parts = clockParts
@@ -1137,10 +1137,10 @@ struct WorkStatus {
 
     var color: Color {
         switch kind {
-        case .working: return Theme.rgb(0x9FE3A6)
-        case .offHours: return Theme.rgb(0xB9B2A8)
-        case .weekend, .dayOff: return Theme.rgb(0xF4C47A)
-        case .holiday: return Theme.rgb(0xF29BB5)
+        case .working: return Theme.rgb(0x9AD3A8)
+        case .offHours: return Theme.rgb(0xB9C3CF)
+        case .weekend, .dayOff: return Theme.rgb(0xF2C66D)
+        case .holiday: return Theme.rgb(0xF39A72)
         }
     }
 

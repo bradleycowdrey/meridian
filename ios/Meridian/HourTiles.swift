@@ -181,10 +181,10 @@ struct HourTiles: View {
             .foregroundStyle(style.text)
             .padding(.horizontal, 2)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Outside working hours the tile lets a little of the panel through, as on the Mac; only
-            // a little (0.88), so a photo's lit windows never show behind the numbers.
+            // Outside working hours the tile is the same sky, deeper (opaque, so a photo never shows
+            // behind the numbers): working hours stand out from the rest at a glance.
             .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
-                .fill(Self.legible(style.fill).opacity(dim ? 0.88 : 1)))
+                .fill(dim ? Self.offHours(style.fill) : Self.legible(style.fill)))
             .overlay(alignment: .leading) {
                 // Midnight: a sunrise-gold mark centred in the gap before the new day, as on the Mac.
                 if newDay {
@@ -201,9 +201,23 @@ struct HourTiles: View {
     /// The brightest a tile may be (relative luminance): white text on it stays at least 5.5:1.
     static let maxLuminance = 0.14
 
+    /// An hour outside working hours: the tile's sky at 55% of its (capped) luminance, never darker
+    /// than the night tile (#0A0E1C), so it still reads as a tile on a dark photo.
+    static let offHoursFactor = 0.55
+    static let offHoursFloor = 0.0048
+
+    static func offHours(_ fill: Color) -> Color {
+        scaled(legible(fill)) { l in max(min(l, offHoursFloor), l * offHoursFactor) }
+    }
+
     /// The tile's sky colour, kept to its hue but darkened where the ramp is brightest (midday and
     /// early evening), so white numbers on it always read.
     static func legible(_ fill: Color) -> Color {
+        scaled(fill) { l in min(l, maxLuminance) }
+    }
+
+    /// `fill` with its relative luminance mapped by `target`, keeping its hue.
+    private static func scaled(_ fill: Color, _ target: (Double) -> Double) -> Color {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         guard UIColor(fill).getRed(&r, green: &g, blue: &b, alpha: &a) else { return fill }
         func linear(_ c: CGFloat) -> Double {
@@ -215,15 +229,17 @@ struct HourTiles: View {
         }
         let lr = linear(r), lg = linear(g), lb = linear(b)
         let luminance = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
-        guard luminance > maxLuminance else { return fill }
-        let k = maxLuminance / luminance
+        guard luminance > 0 else { return fill }
+        let goal = target(luminance)
+        guard abs(goal - luminance) > 1e-6 else { return fill }
+        let k = goal / luminance
         return Color(.sRGB, red: encoded(lr * k), green: encoded(lg * k), blue: encoded(lb * k), opacity: Double(a))
     }
 }
 
 /// One tile's words, as on the widgets: the hour in large tabular digits with AM or PM under it,
 /// the minutes in half-hour zones, and the weekday where a new day starts. Sizes follow the
-/// reader's text size (never below 17 pt digits and 11 pt labels, up to the tiles' xxLarge cap).
+/// reader's text size (never below 17 pt digits and 12 pt labels, up to the tiles' xxLarge cap).
 /// In half-hour zones the minutes always sit on their own line under the hour, so the layout never
 /// depends on how wide a tile's digits are. When a tile can't hold everything it drops AM/PM, rather
 /// than shrinking the type.
@@ -236,11 +252,11 @@ private struct TileLabel: View {
 
     @ScaledMetric(relativeTo: .body) private var digitMetric: CGFloat = 17
     @ScaledMetric(relativeTo: .caption) private var minuteMetric: CGFloat = 12
-    @ScaledMetric(relativeTo: .caption2) private var smallMetric: CGFloat = 11
+    @ScaledMetric(relativeTo: .caption2) private var smallMetric: CGFloat = 12
 
     private var digitSize: CGFloat { min(max(digitMetric, 17), 21) }
     private var minuteSize: CGFloat { min(max(minuteMetric, 12), 15) }
-    private var smallSize: CGFloat { min(max(smallMetric, 11), 14) }
+    private var smallSize: CGFloat { min(max(smallMetric, 12), 14) }
 
     var body: some View {
         ViewThatFits {

@@ -95,7 +95,7 @@ struct DateJumpView: View {
                 .tracking(-2)
                 .foregroundStyle(.white)
                 .lineLimit(1)
-                .minimumScaleFactor(0.5)
+                .minimumScaleFactor(0.7)
                 .contentTransition(.numericText())
             Text("\(Self.day.string(from: moment)) · \(Self.relative(from: store.now, to: moment))")
                 .font(.system(size: 17, weight: .medium))

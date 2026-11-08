@@ -4,6 +4,9 @@ import SwiftUI
 enum Theme {
     /// Screens, forms and the navigation bar: black, as Two Degrees' city list.
     static let bg = Color.black
+    /// The group chips and the time ruler's bars: Two Degrees' near-black, fully opaque, so nothing
+    /// in the list (a card's name, its tiles, the Now capsule) ever shows through behind their text.
+    static let bar = rgb(0x101216)
     /// A card before its photo loads, and panels: Two Degrees' `Color(white: 0.15)` (#262626).
     static let tile = Color(white: 0.15)
     static let border = Color.white.opacity(0.15)

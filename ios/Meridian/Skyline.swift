@@ -1483,7 +1483,7 @@ struct StatusPill: View {
         .padding(.vertical, 2)
         .background {
             // Dark enough that the status reads over a bright day photo too.
-            if backed { Capsule().fill(Color.black.opacity(0.5)) }
+            if backed { Capsule().fill(Color.black.opacity(0.55)) }
         }
         .overlay(Capsule().strokeBorder(status.color.opacity(0.5), lineWidth: 1))
         .accessibilityElement(children: .ignore)

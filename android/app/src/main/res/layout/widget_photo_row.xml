@@ -11,7 +11,7 @@
         android:scaleType="fitXY" android:importantForAccessibility="no" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
         android:gravity="bottom" android:orientation="horizontal"
-        android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="3dp" android:paddingBottom="6dp">
+        android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="0dp" android:paddingBottom="6dp">
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
             android:layout_marginEnd="6dp" android:orientation="vertical">
             <LinearLayout android:id="@+id/time_light" android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -26,11 +26,11 @@
                     android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
                 <TextClock android:id="@+id/ampm" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
-                    android:textColor="#FFFFFF" android:textSize="11sp" android:maxLines="1"
+                    android:textColor="#FFFFFF" android:textSize="12sp" android:maxLines="1"
                     android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
                 <TextView android:id="@+id/ampm_static" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
-                    android:textColor="#FFFFFF" android:textSize="11sp" android:maxLines="1"
+                    android:textColor="#FFFFFF" android:textSize="12sp" android:maxLines="1"
                     android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
             </LinearLayout>
             <LinearLayout android:id="@+id/time_dark" android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -45,19 +45,26 @@
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
                 <TextClock android:id="@+id/ampm_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
-                    android:textColor="#0A0E1C" android:textSize="11sp" android:maxLines="1"
+                    android:textColor="#0A0E1C" android:textSize="12sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
                 <TextView android:id="@+id/ampm_static_d" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
-                    android:textColor="#0A0E1C" android:textSize="11sp" android:maxLines="1"
+                    android:textColor="#0A0E1C" android:textSize="12sp" android:maxLines="1"
                     android:shadowColor="#E6FFFFFF" android:shadowDx="0" android:shadowDy="0" android:shadowRadius="3" />
             </LinearLayout>
-            <TextView android:id="@+id/name" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="1dp" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
-                android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="12sp"
-                android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+            <!-- The name, with a status dot before it in rows too short for the pill (MeridianWidgets.rowFit). -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="center_vertical" android:orientation="horizontal">
+                <ImageView android:id="@+id/status_dot" android:layout_width="8dp" android:layout_height="8dp"
+                    android:layout_marginEnd="4dp" android:padding="1dp" android:background="@drawable/widget_dot_ring"
+                    android:src="@drawable/widget_dot" android:visibility="gone" android:importantForAccessibility="no" />
+                <TextView android:id="@+id/name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
+                    android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="12sp"
+                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+            </LinearLayout>
             <LinearLayout android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginTop="3dp" android:background="@drawable/widget_pill" android:gravity="center_vertical"
+                android:layout_marginTop="2dp" android:background="@drawable/widget_pill" android:gravity="center_vertical"
                 android:orientation="horizontal" android:paddingStart="6dp" android:paddingEnd="7dp"
                 android:paddingTop="1dp" android:paddingBottom="1dp" android:visibility="gone">
                 <ImageView android:id="@+id/status_icon" android:layout_width="11dp" android:layout_height="11dp"

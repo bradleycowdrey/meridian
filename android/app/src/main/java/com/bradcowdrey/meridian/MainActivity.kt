@@ -41,6 +41,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.snapshotFlow
@@ -255,6 +257,8 @@ class MainActivity : ComponentActivity() {
         val screen = intent.getStringExtra("screen") ?: "main"
         // CI diagnostics only (screenshot mode): switch single parts of the city cards off.
         if (demo) Diag.off = intent.getStringExtra("off")?.split(',')?.map { it.trim() }?.toSet() ?: emptySet()
+        // Screenshot mode never reads, fetches or exports photos for the widgets (the first frame waits on nothing).
+        CityPhotos.demo = demo
         val store = Store(applicationContext, demo = demo && screen != "terms")
         this.store = store
         setContent {
@@ -918,10 +922,56 @@ object Skyline {
         else -> -0.1f
     }
 
-    private val bitmaps = HashMap<Int, ImageBitmap>()
+    /** Which built-in photo a city has (or none), once looked up: by "city|zone". */
+    class Lookup(val photo: SkylineManifest.Photo?)
+    private val lookups = java.util.concurrent.ConcurrentHashMap<String, Lookup>()
 
-    fun bitmap(context: android.content.Context, id: Int): ImageBitmap = synchronized(bitmaps) {
-        bitmaps.getOrPut(id) { android.graphics.BitmapFactory.decodeResource(context.resources, id).asImageBitmap() }
+    /** The lookup for a city in this zone, if it's been done (a map read: safe in composition). */
+    fun knownPhoto(city: String, zoneId: String): Lookup? = lookups["$city|$zoneId"]
+
+    /** Looks up a city's built-in photo (the manifest and the resources). Call off the main thread. */
+    fun lookUp(context: android.content.Context, city: String, zoneId: String): Lookup {
+        knownPhoto(city, zoneId)?.let { return it }
+        val found = Lookup(runCatching { photo(context, city, zoneId) }.getOrNull())
+        // Kept only once the data files can be read (before that, the next card asks again).
+        if (DataFiles.ready) lookups["$city|$zoneId"] = found
+        return found
+    }
+
+    /** Decoded photos by drawable, at most about 48 MB (a 1000 x 500 photo is about 2 MB). */
+    private val bitmaps = object : android.util.LruCache<Int, ImageBitmap>(48 * 1024) {
+        override fun sizeOf(key: Int, value: ImageBitmap): Int = (value.width * value.height * 4 / 1024).coerceAtLeast(1)
+    }
+
+    /** Drawables decoded at full size (sample 1): no wider copy exists, so any card can use them. */
+    private val fullSize: MutableSet<Int> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+
+    /** Whether a cached copy is wide enough for a card [minWidth] px wide (a narrow card's copy isn't). */
+    private fun wideEnough(id: Int, b: ImageBitmap, minWidth: Int): Boolean =
+        minWidth <= 0 || b.width >= minWidth || id in fullSize
+
+    /** A photo already decoded at least [minWidth] px wide (a cache read: safe in composition), or null. */
+    fun cachedBitmap(id: Int, minWidth: Int = 0): ImageBitmap? =
+        if (id == 0) null else bitmaps.get(id)?.takeIf { wideEnough(id, it, minWidth) }
+
+    /**
+     * A built-in photo, decoded once and kept, sampled down (by powers of two) to no less than [maxWidth]
+     * px wide but near it. A copy kept from a narrower card is decoded again wider (the wider one is kept).
+     * Reads and decodes the resource: call off the main thread (never in composition).
+     */
+    fun bitmap(context: android.content.Context, id: Int, maxWidth: Int): ImageBitmap? {
+        if (id == 0) return null
+        cachedBitmap(id, maxWidth)?.let { return it }
+        var sample = 1
+        val decoded = runCatching {
+            val res = context.resources
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeResource(res, id, bounds)
+            if (maxWidth > 0 && bounds.outWidth > 0) while (bounds.outWidth / (sample * 2) >= maxWidth) sample *= 2
+            android.graphics.BitmapFactory.decodeResource(res, id, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+        }.getOrNull() ?: return null
+        if (sample == 1) fullSize.add(id)
+        return decoded.asImageBitmap().also { bitmaps.put(id, it) }
     }
 
     private fun scale(m: FloatArray) = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
@@ -971,6 +1021,30 @@ object Skyline {
 
     /** The brightest a background may be (relative luminance) for white text at 0.85 to keep 4.5:1, with a little room. */
     private const val LABEL_MAX = 0.15
+    /** The most the scrim is boosted behind the name column (black at the left edge), for skies at luma 200 and up. */
+    private const val BOOST_MAX = 0.55f
+
+    /** How a photo's card is drawn: the scrim's [boost] behind the name column, and whether the time's spot is [bright]. */
+    data class CardLook(val boost: Float, val bright: Boolean)
+
+    private fun stepOf(width: Int, height: Int): Int = (width.toFloat() / height * 20f).roundToInt().coerceAtLeast(1)
+    private fun boostKey(id: String, shade: Shade, width: Int, height: Int) = "$id/${shade.name}/${stepOf(width, height)}"
+    private fun brightKey(id: String, shade: Shade, width: Int, height: Int, region: TimeRegion, boost: Float) =
+        "$id/${shade.name}/${stepOf(width, height)}/$boost/${region.key}"
+
+    /** The card's look if it's been measured (map reads only: safe in composition), else null. */
+    fun cachedLook(id: String, shade: Shade, width: Int, height: Int, region: TimeRegion): CardLook? {
+        if (width <= 0 || height <= 0) return null
+        val boost = if (Diag.has("scrim")) 0f else synchronized(boosts) { boosts[boostKey(id, shade, width, height)] } ?: return null
+        val bright = synchronized(brightness) { brightness[brightKey(id, shade, width, height, region, boost)] } ?: return null
+        return CardLook(boost, bright)
+    }
+
+    /** Measures the card's look on its photo (crops, scales and sorts pixels): call off the main thread. */
+    fun look(id: String, bitmap: ImageBitmap, biasY: Float, shade: Shade, width: Int, height: Int, region: TimeRegion): CardLook {
+        val boost = if (Diag.has("scrim")) 0f else scrimBoost(id, bitmap, biasY, shade, width, height)
+        return CardLook(boost, photoIsBright(id, bitmap, biasY, shade, width, height, region, boost))
+    }
 
     /**
      * Whether a photo is bright (relative luminance over 0.40) behind the time: the [region] of the card
@@ -979,8 +1053,8 @@ object Skyline {
      */
     fun photoIsBright(id: String, bitmap: ImageBitmap, biasY: Float, shade: Shade, width: Int, height: Int, region: TimeRegion, boost: Float = 0f): Boolean {
         if (width <= 0 || height <= 0) return false
-        val step = (width.toFloat() / height * 20f).roundToInt().coerceAtLeast(1)
-        val key = "$id/${shade.name}/$step/$boost/${region.key}"
+        val step = stepOf(width, height)
+        val key = brightKey(id, shade, width, height, region, boost)
         synchronized(brightness) { brightness[key]?.let { return it } }
         val bright = try {
             val lum = regionLuminance(bitmap.asAndroidBitmap(), biasY, gain(shade), step / 20f, region)
@@ -995,14 +1069,14 @@ object Skyline {
     }
 
     /**
-     * How much stronger the scrim is behind the name column on this photo (0 to 0.35, in steps of 0.05):
+     * How much stronger the scrim is behind the name column on this photo (0 to [BOOST_MAX], in steps of 0.05):
      * enough that the 90th-percentile pixel behind the city's name, zone and status, after the shading and
      * the scrim, is no brighter than [LABEL_MAX], so the white text keeps 4.5:1 on bright day photos.
      */
     fun scrimBoost(id: String, bitmap: ImageBitmap, biasY: Float, shade: Shade, width: Int, height: Int): Float {
         if (width <= 0 || height <= 0) return 0f
-        val step = (width.toFloat() / height * 20f).roundToInt().coerceAtLeast(1)
-        val key = "$id/${shade.name}/$step"
+        val step = stepOf(width, height)
+        val key = boostKey(id, shade, width, height)
         synchronized(boosts) { boosts[key]?.let { return it } }
         val boost = try {
             val l90 = regionLuminance(bitmap.asAndroidBitmap(), biasY, gain(shade), step / 20f, LABELS, quantile = 0.9f)
@@ -1014,7 +1088,7 @@ object Skyline {
                 // The extra black needed there, then the boost that gives it there (it fades to nothing by 55%).
                 val e = 1.0 - Math.pow(LABEL_MAX / behind, 1 / 2.2)
                 val atLeft = e / (1.0 - x / 0.55)
-                (kotlin.math.ceil(atLeft * 20) / 20).toFloat().coerceIn(0f, 0.35f)
+                (kotlin.math.ceil(atLeft * 20) / 20).toFloat().coerceIn(0f, BOOST_MAX)
             }
         } catch (e: Exception) {
             0f
@@ -1174,6 +1248,9 @@ data class TimeRegion(val x0: Float, val y0: Float, val x1: Float, val y1: Float
     }
 }
 
+/** A card's photo as drawn: the bitmap, its time-of-day shade, and its measured look (scrim boost and ink). */
+data class ShownPhoto(val bitmap: ImageBitmap, val shade: Skyline.Shade, val look: Skyline.CardLook)
+
 /** How much a card's time grows with large text: a third of the font scale's growth, up to 1.3x. */
 object BannerGrow {
     fun of(fontScale: Float): Float = (1f + (fontScale - 1f) * 0.35f).coerceIn(1f, 1.3f)
@@ -1301,13 +1378,25 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
     val phase = Sky.phase(place, moment)
     // Night (and after sunset): the city's night photo, as taken, where it has one.
     val wantsNight = Sky.look(place, moment) == Sky.Look.NIGHT
-    val photo = remember(city, place.zoneId) { Skyline.photo(context, city, place.zoneId) }
+    // Which built-in photo the city has: looked up off the main thread (the manifest and the resources), once per city;
+    // until then (null) the card shows its drawn skyline, so the first frame never waits for a photo.
+    var lookup by remember(city, place.zoneId) { mutableStateOf(Skyline.knownPhoto(city, place.zoneId)) }
+    LaunchedEffect(city, place.zoneId) {
+        // (Only once the data files can be read, so a city is never taken for one without a photo too early.)
+        while (lookup == null) {
+            val found = withContext(Dispatchers.IO) { if (DataFiles.ready) Skyline.lookUp(context, city, place.zoneId) else null }
+            if (found != null) lookup = found else delay(250)
+        }
+    }
+    val photo = lookup?.photo
     val slug = remember(city, place.zoneId) { CityPhotos.slug(city, place.zoneId) }
     val download = store.downloadPhotos
-    if (photo == null && !store.demo) {
-        LaunchedEffect(slug, download) { CityPhotos.request(context, city, place.zoneId, place.country, download) }
+    // No built-in photo: a downloaded one (never in screenshot mode). Its night photo is read only when it's night there.
+    val useDownload = lookup != null && photo == null && !store.demo
+    if (useDownload) {
+        LaunchedEffect(slug, download, wantsNight) { CityPhotos.request(context, city, place.zoneId, place.country, download, night = wantsNight) }
     }
-    val downloaded = if (photo == null && !store.demo) CityPhotos.bitmap(slug) else null
+    val downloaded = if (useDownload) CityPhotos.bitmap(slug) else null
     // Where the time is on the card, for the adaptive ink (measured once it's laid out).
     var region by remember { mutableStateOf(TimeRegion.DEFAULT) }
     val card = remember { arrayOfNulls<LayoutCoordinates>(1) }
@@ -1320,33 +1409,59 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         }) {
         val widthPx = constraints.maxWidth
         val heightPx = constraints.maxHeight
-        val bundled: ImageBitmap? = if (photo != null) remember(photo.resId) { Skyline.bitmap(context, photo.resId) } else null
-        // The night photo is read only when it's wanted (built in: decoded once and kept; downloaded: read with the day one).
-        val bundledNight: ImageBitmap? = if (wantsNight && photo != null && photo.nightResId != 0) {
-            remember(photo.nightResId) { Skyline.bitmap(context, photo.nightResId) }
-        } else null
-        val downloadedNight = if (wantsNight && photo == null && !store.demo) CityPhotos.nightBitmap(slug) else null
-        val dayBitmap = if (Diag.has("photos")) null else bundled ?: downloaded
-        val nightBitmap = if (dayBitmap == null) null else bundledNight ?: downloadedNight
-        val bitmap = nightBitmap ?: dayBitmap
-        val shade = Skyline.shadeFor(phase, nightPhoto = nightBitmap != null)
+        val usePhotos = !Diag.has("photos")
+        // The one built-in photo the card shows: the night one when it's night there and the city has one, else the
+        // day one. Decoded off the main thread (never both); the photo shown stays until the next one is ready.
+        val nightResId = photo?.nightResId ?: 0
+        val resId = when {
+            photo == null || !usePhotos -> 0
+            wantsNight && nightResId != 0 -> nightResId
+            else -> photo?.resId ?: 0
+        }
+        var decoded by remember(city, place.zoneId) { mutableStateOf<Pair<Int, ImageBitmap>?>(null) }
+        LaunchedEffect(resId, widthPx) {
+            if (resId == 0) { decoded = null; return@LaunchedEffect }
+            val b = Skyline.cachedBitmap(resId, widthPx) ?: withContext(Dispatchers.IO) { Skyline.bitmap(context, resId, widthPx) }
+            decoded = b?.let { resId to it }
+        }
+        // While the other half (day or night) of the same city's photo is read, the one shown stays.
+        val bundled: Pair<Int, ImageBitmap>? = if (resId == 0) null else Skyline.cachedBitmap(resId, widthPx)?.let { resId to it }
+            ?: decoded?.takeIf { it.first == resId || it.first == photo?.resId || (nightResId != 0 && it.first == nightResId) }
+        val downloadedNight = if (useDownload && wantsNight && usePhotos && downloaded != null) CityPhotos.nightBitmap(slug) else null
+        val bitmap: ImageBitmap? = when {
+            !usePhotos -> null
+            photo != null -> bundled?.second
+            else -> downloadedNight ?: downloaded
+        }
+        val nightShown = if (photo != null) bundled != null && nightResId != 0 && bundled.first == nightResId
+            else downloadedNight != null
+        val shade = Skyline.shadeFor(phase, nightPhoto = nightShown)
         val biasY = Skyline.biasY(photo?.key)
-        val id = (if (photo != null) "res:${photo.key}" else "dl:$slug") + if (nightBitmap != null) ":night" else ""
-        // The scrim's extra strength behind the name column on a bright photo, so the white name and zone keep 4.5:1.
-        val boost = if (bitmap != null && !Diag.has("scrim")) {
-            remember(id, bitmap, shade, widthPx, heightPx) { Skyline.scrimBoost(id, bitmap, biasY, shade, widthPx, heightPx) }
-        } else 0f
-        // Adaptive ink: dark numbers on a bright photo, white ones on a dark one (measured after the shading and scrim).
-        val bright = if (bitmap != null) {
-            remember(id, bitmap, shade, widthPx, heightPx, region, boost) {
-                Skyline.photoIsBright(id, bitmap, biasY, shade, widthPx, heightPx, region, boost)
-            }
-        } else Skyline.drawnIsBright(phase)
+        val id = (if (photo != null) "res:${photo.key}" else "dl:$slug") + if (nightShown) ":night" else ""
+        // The scrim's boost behind the name column (so the white name, zone and status keep 4.5:1) and the adaptive
+        // ink for the time (dark numbers on a bright photo), measured off the main thread after the shading and scrim.
+        val lookKey = "$id/${shade.name}"
+        var measured by remember(city, place.zoneId) { mutableStateOf<Pair<String, Skyline.CardLook>?>(null) }
+        if (bitmap != null) LaunchedEffect(id, bitmap, shade, widthPx, heightPx, region) {
+            val b = bitmap
+            val got = Skyline.cachedLook(id, shade, widthPx, heightPx, region)
+                ?: withContext(Dispatchers.Default) { Skyline.look(id, b, biasY, shade, widthPx, heightPx, region) }
+            measured = lookKey to got
+        }
+        val look = if (bitmap == null) null else Skyline.cachedLook(id, shade, widthPx, heightPx, region)
+            ?: measured?.takeIf { it.first == lookKey }?.second
+        // What's drawn: the photo once it and its look are both ready (the ink and scrim switch in the same frame
+        // the photo fades in); while a new one is measured, the last one stays; before any, the drawn skyline.
+        val last = remember(city, place.zoneId) { arrayOfNulls<ShownPhoto>(1) }
+        val shown = if (bitmap != null && look != null) ShownPhoto(bitmap, shade, look).also { last[0] = it }
+            else if (bitmap != null) last[0] else null
+        val boost = shown?.look?.boost ?: 0f
+        val bright = shown?.look?.bright ?: Skyline.drawnIsBright(phase)
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
-            if (bitmap != null) {
-                // Day to night (and back) crossfades over 0.6 s.
-                Crossfade(targetState = bitmap to shade, modifier = Modifier.matchParentSize(), animationSpec = tween(600), label = "skyline") { (shown, how) ->
-                    Image(shown, contentDescription = null, contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, biasY),
+            if (shown != null) {
+                // Photo to photo (day to night, and back) crossfades over 0.3 s; the first photo just appears.
+                Crossfade(targetState = shown.bitmap to shown.shade, modifier = Modifier.matchParentSize(), animationSpec = tween(300), label = "skyline") { (pic, how) ->
+                    Image(pic, contentDescription = null, contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, biasY),
                         colorFilter = if (Diag.has("shade")) null else Skyline.filter(how), modifier = Modifier.fillMaxSize())
                 }
             } else {
@@ -1395,7 +1510,9 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                         val h = parent.size.height.toFloat()
                         if (w <= 0f || h <= 0f) return@onGloballyPositioned
                         val r = parent.localBoundingBoxOf(coords, false)
-                        region = TimeRegion.of(r.left / w, r.top / h, r.right / w, r.bottom / h)
+                        // Written only when it moves (by 0.05 of the card), so measuring never loops.
+                        val moved = TimeRegion.of(r.left / w, r.top / h, r.right / w, r.bottom / h)
+                        if (moved != region) region = moved
                     })
                 if (!Diag.has("texts")) Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(place.title, style = LocalTextStyle.current.copy(shadow = textShadow), fontSize = (17f / cap).sp, lineHeight = (21f / cap).sp,
@@ -1546,7 +1663,7 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
             Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.spacedBy(Strip.gap)) {
                 starts.forEachIndexed { i, start ->
-                    HourTile(store, place, start, center = i == 2, newDay = newDay(start), modifier = Modifier.weight(1f).fillMaxHeight())
+                    HourTile(store, place, start, center = i == 2, newDay = newDay(start), height = tileHeight, modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
             // Midnight: a sunrise-gold mark in the gap before the tile where a new day starts, as on the Mac.
@@ -1570,13 +1687,13 @@ private object TileShadow {
 
 /**
  * One hour tile, as on the Mac: the day's colour there at that hour, flat, with the hour in white on it.
- * The hour on one line (17 sp, ":30" at 12 sp, tabular), AM/PM under it (11 sp semibold), and the day's
+ * The hour on one line (17 sp, ":30" at 12 sp, tabular), AM/PM under it (12 sp semibold), and the day's
  * name under that where a new day starts. Large text grows up to 1.3x; then the hour shrinks to fit the
  * tile (to 80%); AM/PM never shrinks. With too little height, a new day's tile drops AM/PM (the day's
  * name and the gold mark say midnight), then the day's name.
  */
 @Composable
-private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, modifier: Modifier) {
+private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, height: Dp, modifier: Modifier) {
     val z = start.atZone(place.zone)
     val hour = z.hour
     val minute = z.minute
@@ -1599,12 +1716,13 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     }
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
     val weekday = if (newDay) TimeMath.weekday(start, place.zone).uppercase() else null
-    BoxWithConstraints(modifier.clip(shape).background(fillColor.copy(alpha = if (dim) 0.88f else 1f)).padding(horizontal = if (minute != 0) 0.dp else 2.dp),
+    // A plain Box (the tile's height comes from HourTiles): no subcomposition per tile, so a card's first frame is quick.
+    Box(modifier.clip(shape).background(fillColor.copy(alpha = if (dim) 0.88f else 1f)).padding(horizontal = if (minute != 0) 0.dp else 2.dp),
         contentAlignment = Alignment.Center) {
         // The lines' heights (dp) at this text size, against the tile's.
-        val room = maxHeight.value - 2f
+        val room = height.value - 2f
         val digitsH = 18f * grow
-        val suffixH = 13f * grow
+        val suffixH = 14f * grow
         val dayH = 12f * grow
         val showSuffix = suffix != null && (weekday == null || digitsH + suffixH + dayH <= room)
         val showDay = weekday != null && digitsH + (if (showSuffix) suffixH else 0f) + dayH <= room
@@ -1613,7 +1731,8 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
                 color = textColor, maxLines = 1, softWrap = false,
                 onTextLayout = { if (it.didOverflowWidth && shrink > 0.8f) shrink = (shrink - 0.05f).coerceAtLeast(0.8f) })
-            if (showSuffix && suffix != null) Text(suffix, style = tnum, fontSize = (11f / cap).sp, lineHeight = (13f / cap).sp,
+            // AM/PM at 12 sp (Material's smallest comfortable label; it never shrinks with the hour).
+            if (showSuffix && suffix != null) Text(suffix, style = tnum, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
                 fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = textColor.copy(alpha = 0.95f), maxLines = 1, softWrap = false)
             if (showDay && weekday != null) Text(weekday, fontSize = (11f / cap).sp, lineHeight = (12f / cap).sp,
                 fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false)

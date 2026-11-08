@@ -339,7 +339,7 @@ private struct SlotView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(TimeMath.time(start, in: .current, use24h: store.use24h))–\(TimeMath.time(end, in: .current, use24h: store.use24h))")
                             .font(.system(size: 44, weight: .thin)).monospacedDigit().foregroundStyle(.white)
-                            .lineLimit(1).minimumScaleFactor(0.5)
+                            .lineLimit(1).minimumScaleFactor(0.7)
                         Text("\(TimeMath.fullDay(start, in: .current)) · your time · \(FindTimeView.lengthLabel(length))")
                             .font(.system(size: 15)).foregroundStyle(Color.white.opacity(Theme.Op.caption))
                     }

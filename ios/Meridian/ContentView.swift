@@ -32,9 +32,11 @@ struct ContentView: View {
     @State private var groupPickerFor: Place?
     /// Groups: the list, one group, or a new one.
     @State private var groupsRoute: GroupsRoute?
-    /// The list's visible height (between the top bar and the bottom bar), which up to five
-    /// city cards share.
-    @State private var listHeight: CGFloat = 600
+    /// The list's size and safe-area insets, and the bottom bar's own height: what's left between
+    /// the top bar and the bottom bar is what up to five city cards share (`listHeight`).
+    @State private var listSize: CGFloat = 700
+    @State private var listInsets = EdgeInsets()
+    @State private var barHeight: CGFloat = 0
     /// Each clock-change notice's height, taken out of what the cards share.
     @State private var noticeHeights: [String: CGFloat] = [:]
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -125,9 +127,8 @@ struct ContentView: View {
         cityList
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { listWidth = $0 }
             // What shows between the bars (recomputed on rotation, size and bar changes).
-            .onGeometryChange(for: CGFloat.self) { proxy in
-                proxy.size.height - proxy.safeAreaInsets.top - proxy.safeAreaInsets.bottom
-            } action: { listHeight = max(0, $0) }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { listSize = $0 }
+            .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { listInsets = $0 }
             .environment(\.defaultMinListRowHeight, 0)
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -145,6 +146,15 @@ struct ContentView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
     }
 
+    /// The height between the top bar and the bottom bar. The bottom bar is taken out by its own
+    /// measured height whenever the list's bottom inset doesn't already hold it, so the last of
+    /// five cards always ends above the bar rather than under it.
+    private var listHeight: CGFloat {
+        let bar = showBar ? barHeight : 0
+        let bottom = listInsets.bottom >= bar ? listInsets.bottom : listInsets.bottom + bar
+        return max(0, listSize - listInsets.top - bottom)
+    }
+
     /// The bars, while the cards show (not while adding a city or editing the list).
     private var showBar: Bool { !adding && !editMode.isEditing && !store.places.isEmpty }
     /// The group chips: once there's a group to pick (a custom one, or two continents).
@@ -157,7 +167,8 @@ struct ContentView: View {
                 GroupBar(open: { groupsRoute = $0 }, openSettings: { showingSettings = true })
             }
             .frame(maxWidth: .infinity)
-            .background(.ultraThinMaterial)
+            // Opaque, so a photo scrolled under the chips never shows through behind their labels.
+            .background(Theme.bar)
             .overlay(alignment: .bottom) {
                 Rectangle().fill(Color.white.opacity(Theme.Op.track)).frame(height: 0.5)
             }
@@ -177,8 +188,12 @@ struct ContentView: View {
                     .padding(.top, 6)
                     .padding(.bottom, 2)
                     .frame(maxWidth: .infinity)
-                    // Near-opaque black, so the ruler's hours never sit over a photo.
-                    .background(Color.black.opacity(0.85), ignoresSafeAreaEdges: .bottom)
+                    // Opaque, down to the screen's bottom edge, so nothing in the list (the last
+                    // card's name and tiles, the Now capsule) shows through behind the hint, Now
+                    // and the ruler's hours.
+                    .background(Theme.bar, ignoresSafeAreaEdges: .bottom)
+                    // Its height (hint, Now and ruler, not the brief Copied pill), for `listHeight`.
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
                     .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
                     .environment(\.colorScheme, .dark)
             }
@@ -685,6 +700,7 @@ private struct CopiedPill: View {
 /// middle, and Go to a Time (the calendar) at the right end. The tiles drag too.
 struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
+    @Environment(\.dynamicTypeSize) private var typeSize
     let goToTime: () -> Void
 
     /// White, and the black set on it (as a selected chip).
@@ -694,16 +710,18 @@ struct TimeShifter: View {
     var body: some View {
         VStack(spacing: 4) {
             if !store.hasScrubbed {
-                // Wraps rather than shrinks; shown only until the first drag.
-                Text("Drag the hours or the ruler to change the time.")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(Theme.Op.sub))
+                // One line up to .xxLarge (it may shrink to 90% rather than truncate); from .xxxLarge
+                // up it may wrap to two, so it never ends in an ellipsis on a 320 pt-wide iPhone SE.
+                // Shown only until the first drag.
+                Text("Drag the hours or the ruler.")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Color.white.opacity(Theme.Op.label))
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(typeSize >= .xxxLarge ? 2 : 1)
+                    .minimumScaleFactor(0.9)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
-                    .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
             }
             HStack(spacing: 10) {
                 nowButton
@@ -729,7 +747,7 @@ struct TimeShifter: View {
     private var nowButton: some View {
         Button { if !store.isNow { store.backToNow() } } label: {
             Text("Now")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.headline)
                 .lineLimit(1)
                 .fixedSize()
                 .padding(.horizontal, 18)
@@ -740,7 +758,7 @@ struct TimeShifter: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         .animation(.snappy, value: store.isNow)
         .accessibilityLabel(store.isNow ? "Now" : "Back to now")
         .accessibilityHint(store.isNow ? "" : "Returns every city to the current time.")
@@ -818,10 +836,10 @@ private struct TimeRuler: View {
         // The fixed line: where you are in time.
         .overlay {
             VStack(spacing: 0) {
-                Capsule().fill(Color.white).frame(width: 2, height: 24)
+                Capsule().fill(Color.white).frame(width: 2, height: 22)
                 Spacer(minLength: 0)
             }
-            .padding(.top, 14)
+            .padding(.top, 16)
             .allowsHitTesting(false)
         }
         .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.12),
@@ -860,15 +878,15 @@ private struct RulerTick: View {
             Group {
                 if minute == 0 {
                     Text(label(hour: hour, weekday: parts.weekday ?? 1))
-                        .font(.system(size: 12, weight: hour == 0 ? .semibold : .medium))
-                        .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : 0.75))
+                        .font(.system(size: 13, weight: hour == 0 ? .semibold : .medium))
+                        .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : Theme.Op.body))
                         .monospacedDigit()
                         .fixedSize()
                 } else {
-                    Text(" ").font(.system(size: 12))
+                    Text(" ").font(.system(size: 13))
                 }
             }
-            .frame(height: 14)
+            .frame(height: 16)
             Capsule()
                 .fill(Color.white.opacity(minute == 0 ? Theme.Op.caption : (minute == 30 ? Theme.Op.faint : 0.25)))
                 .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))

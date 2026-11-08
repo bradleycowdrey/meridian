@@ -56,6 +56,8 @@ object SkylineManifest {
     @Volatile private var loaded: List<Entry>? = null
     @Volatile private var index: Map<String, List<Entry>> = emptyMap()
     private val resIds = HashMap<String, Int>()
+    /** Anything but a-z, 0-9 and _ in a key, for its drawable's name (made once, not per lookup). */
+    private val NON_ALNUM = Regex("[^a-z0-9_]")
 
     /** Every built-in photo's entry: the manifest's, then any of the original four it leaves out. */
     val entries: List<Entry>
@@ -104,7 +106,7 @@ object SkylineManifest {
     /** The drawable for a key ("skyline_<key>", or "skyline_<key>_night" with [night]), or 0 if it isn't in this build. */
     fun resId(context: Context, key: String, night: Boolean = false): Int = synchronized(resIds) {
         resIds.getOrPut(if (night) "$key|night" else key) {
-            val name = "skyline_" + key.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9_]"), "_") + if (night) "_night" else ""
+            val name = "skyline_" + key.lowercase(Locale.ROOT).replace(NON_ALNUM, "_") + if (night) "_night" else ""
             context.resources.getIdentifier(name, "drawable", context.packageName)
         }
     }
@@ -161,6 +163,13 @@ object CityPhotos {
     private val asked = HashSet<String>()
     /** Decoded photos by slug: state, so a card redraws when its photo arrives. */
     private val bitmaps = mutableStateMapOf<String, ImageBitmap>()
+    /**
+     * Screenshot mode (set by the app at launch): nothing is read, fetched or exported for the widgets, so the
+     * first frame never waits on disk or network and the widgets aren't redrawn with demo cities.
+     */
+    @Volatile var demo = false
+    /** Anything but a-z and 0-9, for a slug (made once). */
+    private val NON_SLUG = Regex("[^a-z0-9]+")
     /** Bumped when a photo is saved, so Photo Credits reads the list again. */
     var saved by mutableIntStateOf(0)
         private set
@@ -169,7 +178,7 @@ object CityPhotos {
 
     /** A file name for a city in a zone ("lisbon-1234567"). */
     fun slug(city: String, zoneId: String): String {
-        val name = city.trim().lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40).ifEmpty { "city" }
+        val name = city.trim().lowercase(Locale.ROOT).replace(NON_SLUG, "-").trim('-').take(40).ifEmpty { "city" }
         return name + "-" + (city.trim().lowercase(Locale.ROOT) + "|" + zoneId).hashCode().toLong().and(0xFFFFFFFFL).toString(16)
     }
 
@@ -198,12 +207,14 @@ object CityPhotos {
 
     /**
      * Shows a city's photo if it's on the phone; otherwise, when [download] is on, fetches it in the
-     * background (unless a try in the last 30 days found none). Never blocks; safe offline.
+     * background (unless a try in the last 30 days found none). Never blocks; safe offline. The night photo
+     * on the phone is read only when [night] (it's night there), so a card never decodes both.
      */
-    fun request(context: Context, city: String, zoneId: String, countryCode: String?, download: Boolean) {
+    fun request(context: Context, city: String, zoneId: String, countryCode: String?, download: Boolean, night: Boolean = false) {
+        if (demo) return
         val slug = slug(city, zoneId)
-        if (bitmaps.containsKey(slug) && bitmaps.containsKey(slug + NIGHT)) return
-        val key = "$slug|$download"
+        if (bitmaps.containsKey(slug) && (!night || bitmaps.containsKey(slug + NIGHT))) return
+        val key = "$slug|$download|$night"
         synchronized(asked) { if (!asked.add(key)) return }
         val app = context.applicationContext
         scope.launch {
@@ -211,7 +222,7 @@ object CityPhotos {
                 val image = File(dir(app), "$slug.jpg")
                 val nightImage = File(dir(app), "$slug$NIGHT.jpg")
                 if (image.exists() && !bitmaps.containsKey(slug)) decode(image)?.let { bitmaps[slug] = it }
-                if (nightImage.exists() && !bitmaps.containsKey(slug + NIGHT)) decode(nightImage)?.let { bitmaps[slug + NIGHT] = it }
+                if (night && nightImage.exists() && !bitmaps.containsKey(slug + NIGHT)) decode(nightImage)?.let { bitmaps[slug + NIGHT] = it }
                 if (!download) return@launch
                 mutex.withLock {
                     if (!image.exists()) {
@@ -338,7 +349,7 @@ object CityPhotos {
                 .put("licenseUrl", credit.licenseUrl ?: "").put("source", credit.source).toString())
             decode(image)?.let { bitmaps[name] = it }
             saved++
-            MeridianWidgets.updateAll(context)
+            if (!demo) MeridianWidgets.updateAll(context)
             return
         }
         markNone(context, name, city)
@@ -370,8 +381,8 @@ object CityPhotos {
                 .put("licenseUrl", credit.licenseUrl ?: "").put("source", credit.source).toString())
             decode(image)?.let { bitmaps[slug] = it }
             saved++
-            // The widgets show it too: their small copy is made, then they redraw.
-            MeridianWidgets.updateAll(context)
+            // The widgets show it too: their small copy is made (on the widgets' worker, off the main thread), then they redraw.
+            if (!demo) MeridianWidgets.updateAll(context)
             return
         }
         markNone(context, slug, city)

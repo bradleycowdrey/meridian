@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Every home screen widget: the cities' photo rows (or the one city's photo, for the small widget) in
      [content], and over them one Now capsule down the centre (Now) tile column of every row. The overlay
-     has the same insets and weights as widget_photo_row, so its image lines up with the hour tiles. -->
+     has the same side insets and weights as widget_photo_row, so its image lines up with the hour tiles; it
+     spans the full height, so the capsule can reach past the last row's tiles and clear their corners. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -20,8 +21,6 @@
         android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp"
         android:visibility="gone">
         <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
             android:layout_marginEnd="6dp" />

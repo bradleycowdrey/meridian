@@ -330,10 +330,10 @@ struct WidgetClockView: View {
     #if os(iOS)
     private static let labelSize: CGFloat = 11
     private static let tileSize: CGFloat = 13
-    private static let tileSmallSize: CGFloat = 11
-    private static let tileMinuteSize: CGFloat = 11
+    private static let tileSmallSize: CGFloat = 12
+    private static let tileMinuteSize: CGFloat = 12
     private static let tileSmallWeight: Font.Weight = .semibold
-    private static let tileMinScale: CGFloat = 0.85
+    private static let tileMinScale: CGFloat = 0.85   // digits only; AM/PM never shrinks
     /// City names and zone captions never scale under 11 pt on iPhone.
     private static let nameMinScale: CGFloat = 0.85
     private static let largeNameMinScale: CGFloat = 0.85
@@ -555,7 +555,8 @@ struct WidgetClockView: View {
                         .padding(.trailing, 6)
 
                         ForEach(-half...half, id: \.self) { k in
-                            tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
+                            tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone,
+                                 stacked: !snapshot.use24h && rowHeight >= 34)
                                 .frame(width: pitch - gap, height: rowHeight)
                                 .frame(width: pitch)
                         }
@@ -574,7 +575,8 @@ struct WidgetClockView: View {
         }
     }
 
-    private func tile(_ moment: Date, zone: TimeZone) -> some View {
+    /// `stacked` (iPhone, tiles tall enough): AM/PM under the hour; the Mac ignores it.
+    private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false) -> some View {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         let hour = calendar.component(.hour, from: moment)
@@ -582,30 +584,7 @@ struct WidgetClockView: View {
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60, lifted: true)
         let newDay = !calendar.isDate(moment, inSameDayAs: moment.addingTimeInterval(-3600))
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
-        let label: Text = {
-            var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
-            // Half-hour and 45-minute zones: "05:30" reads "05" + small ":30".
-            if minute != 0 {
-                text = text + Text(":\(String(format: "%02d", minute))")
-                    .font(.system(size: Self.tileMinuteSize, weight: .medium))
-            }
-            if !snapshot.use24h {
-                // iPhone: no thin space before AM/PM when ":30" is shown, so "12:30 PM" fits small tiles.
-                #if os(iOS)
-                let gap = minute != 0 ? "" : "\u{2009}"
-                #else
-                let gap = "\u{2009}"
-                #endif
-                text = text + Text(gap + (hour < 12 ? "AM" : "PM"))
-                    .font(.system(size: Self.tileSmallSize, weight: Self.tileSmallWeight))
-            }
-            return text
-        }()
-        return label
-            .font(.system(size: Self.tileSize, weight: .medium))
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
+        return tileLabel(hour: hour, minute: minute, stacked: stacked)
             .foregroundStyle(tinted ? Color.primary : style.text)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
@@ -625,10 +604,94 @@ struct WidgetClockView: View {
             }
     }
 
-    /// iPhone: labels that carry both ":30" and AM/PM may shrink further rather than truncate.
+    /// The tile's hour. iPhone: only the digits may shrink; AM/PM stays 12 pt, after the hour or,
+    /// when `stacked`, under it, with the label clear of the tile's rounded corners.
+    @ViewBuilder
+    private func tileLabel(hour: Int, minute: Int, stacked: Bool) -> some View {
+        #if os(iOS)
+        let suffix: String? = snapshot.use24h ? nil : (hour < 12 ? "AM" : "PM")
+        if stacked, let suffix {
+            VStack(spacing: -1) {
+                tileDigits(hour: hour, minute: minute)
+                    .font(.system(size: Self.tileSize + 2, weight: .medium))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
+                Text(suffix)
+                    .font(.system(size: Self.tileSmallSize, weight: Self.tileSmallWeight))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 4)
+        } else if minute != 0, let suffix {
+            // "12:30PM" on a 22 pt medium tile (tinted modes) can't stack: all of it shrinks together
+            // rather than truncate.
+            (tileDigits(hour: hour, minute: minute) + Text(suffix)
+                .font(.system(size: Self.tileSmallSize, weight: Self.tileSmallWeight)))
+                .font(.system(size: Self.tileSize, weight: .medium))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 2)
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                tileDigits(hour: hour, minute: minute)
+                    .font(.system(size: Self.tileSize, weight: .medium))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
+                if let suffix {
+                    Text("\u{2009}" + suffix)
+                        .font(.system(size: Self.tileSmallSize, weight: Self.tileSmallWeight))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+            .padding(.horizontal, 3)
+        }
+        #else
+        let label: Text = {
+            var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
+            // Half-hour and 45-minute zones: "05:30" reads "05" + small ":30".
+            if minute != 0 {
+                text = text + Text(":\(String(format: "%02d", minute))")
+                    .font(.system(size: Self.tileMinuteSize, weight: .medium))
+            }
+            if !snapshot.use24h {
+                // iPhone: no thin space before AM/PM when ":30" is shown, so "12:30 PM" fits small tiles.
+                #if os(iOS)
+                let gap = minute != 0 ? "" : "\u{2009}"
+                #else
+                let gap = "\u{2009}"
+                #endif
+                text = text + Text(gap + (hour < 12 ? "AM" : "PM"))
+                    .font(.system(size: Self.tileSmallSize, weight: Self.tileSmallWeight))
+            }
+            return text
+        }()
+        label
+            .font(.system(size: Self.tileSize, weight: .medium))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
+        #endif
+    }
+
+    #if os(iOS)
+    /// "9" or "09", with ":30" smaller in half-hour zones.
+    private func tileDigits(hour: Int, minute: Int) -> Text {
+        var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
+        if minute != 0 {
+            text = text + Text(":\(String(format: "%02d", minute))")
+                .font(.system(size: Self.tileMinuteSize, weight: .medium))
+        }
+        return text
+    }
+    #endif
+
+    /// iPhone: half-hour digits ("12:30") may shrink further rather than truncate.
     private static func tileScale(minute: Int, use24h: Bool) -> CGFloat {
         #if os(iOS)
-        return minute != 0 && !use24h ? 0.7 : tileMinScale
+        return minute != 0 && !use24h ? 0.8 : tileMinScale
         #else
         return tileMinScale
         #endif
@@ -700,16 +763,25 @@ struct AccessoryClockView: View {
                 .prefix(2).map { "\(tag($0)) \(time($0))" }.joined(separator: " · "))
         case .accessoryCircular:
             if let city = featured {
-                VStack(spacing: -1) {
+                // "SF", the digits (22 pt, never under 17.6) and AM/PM under them at 12 pt, so
+                // "12:41 PM" no longer shrinks toward 12 pt to fit the circle.
+                let (clock, suffix) = WidgetClockView.clock(date, zone: zone(city), use24h: snapshot.use24h)
+                VStack(spacing: -2) {
                     Text(tag(city))
                         .font(.system(size: 11, weight: .medium))
-                        .opacity(0.75)
-                    Text(time(city))
-                        .font(.system(size: 20, weight: .semibold))
+                        .opacity(0.85)
+                    Text(clock)
+                        .font(.system(size: 22, weight: .semibold))
                         .monospacedDigit()
                         .widgetAccentable()
-                        .minimumScaleFactor(0.6)
+                        .minimumScaleFactor(0.8)
                         .lineLimit(1)
+                    if let suffix {
+                        Text(suffix)
+                            .font(.system(size: 12, weight: .semibold))
+                            .lineLimit(1)
+                            .widgetAccentable()
+                    }
                 }
                 .padding(4)
             } else {
@@ -1154,7 +1226,8 @@ struct WidgetScrim: View {
     static let leftOpacity = 0.35
     static let leftReach = 0.6
     /// The boosts tried, smallest first.
-    static let boostSteps: [Double] = [0, 0.15, 0.3, 0.45]
+    /// Up to 0.55 (was 0.45), enough for a bright day sky (luma 200+) behind the white name.
+    static let boostSteps: [Double] = [0, 0.15, 0.3, 0.45, 0.55]
 
     var boost: Double = 0
 
@@ -1372,9 +1445,12 @@ struct WidgetPhotoRows: View {
         let backing = WidgetSkylines.backing(photo, phase: phase, aspect: width / max(height, 1),
                                              textRegion: textRegion, timeRegion: timeRegion)
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
-        // "12 PM" inline needs about 37 pt; narrower tiles (the smallest phones) and half-hour
-        // zones ("9:30 AM") put AM/PM under the hour, the same way on all three of the row's tiles.
-        let stacked = !snapshot.use24h && (tileWidth < 39 || zone.secondsFromGMT(for: date) % 3600 != 0)
+        // AM/PM goes under the hour whenever the tile is tall enough (inline "11 AM" filled a 40 pt
+        // tile edge to edge), and always on narrow tiles and in half-hour zones ("9:30" over "AM"),
+        // so every row, Mumbai's included, reads the same two-line way.
+        let halfHour = zone.secondsFromGMT(for: date) % 3600 != 0
+        let stacked = !snapshot.use24h && (tileHeight >= 31 || tileWidth < 39 || halfHour)
+        let digitSize: CGFloat = stacked && tileHeight >= 34 ? 16 : 14
         return ZStack(alignment: .bottomLeading) {
             WidgetCityBackdrop(city: city, date: date, photo: photo, boost: backing.boost)
             HStack(alignment: .bottom, spacing: 6) {
@@ -1395,7 +1471,7 @@ struct WidgetPhotoRows: View {
                     ForEach(-1...1, id: \.self) { k in
                         WidgetPhotoTile(snapshot: snapshot, city: city, zone: zone,
                                         start: anchor.addingTimeInterval(Double(k) * 3600), center: k == 0,
-                                        stacked: stacked)
+                                        stacked: stacked, digitSize: digitSize)
                             .frame(width: tileWidth, height: tileHeight)
                     }
                 }
@@ -1411,8 +1487,8 @@ struct WidgetPhotoRows: View {
 }
 
 /// An hour tile on a photo, as the app's: the day's colour there at that hour (dimmed outside
-/// working hours), the hour with AM/PM after it ("9 AM", as the app and Android set it; under it
-/// when `stacked`: tiles too narrow, or "9:30 AM"), and a mark where a new day starts.
+/// working hours), the hour with AM/PM under it when `stacked` (tiles tall enough, narrow tiles and
+/// "9:30" zones; as the app's), after it ("9 AM") only on short tiles, and a mark where a new day starts.
 struct WidgetPhotoTile: View {
     let snapshot: WidgetSnapshot
     let city: WidgetSnapshot.City
@@ -1420,6 +1496,7 @@ struct WidgetPhotoTile: View {
     let start: Date
     let center: Bool
     var stacked = false
+    var digitSize: CGFloat = 14
 
     var body: some View {
         var calendar = Calendar(identifier: .gregorian)
@@ -1433,20 +1510,23 @@ struct WidgetPhotoTile: View {
         let suffix: String? = snapshot.use24h ? nil : (hour < 12 ? "AM" : "PM")
         return Group {
             if stacked {
-                VStack(spacing: 0) {
+                // The hour over AM/PM, as the app's tiles: only the digits may shrink (to 0.88, 0.85 for half hours);
+                // AM/PM stays 12 pt.
+                VStack(spacing: -1) {
                     label(hour: hour, minute: minute)
                         .monospacedDigit()
                         .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+                        .minimumScaleFactor(minute != 0 ? 0.85 : 0.88)
                     if let suffix {
                         Text(suffix)
                             .font(Self.suffixFont)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                            .minimumScaleFactor(1)
                     }
                 }
             } else {
-                // Inline: "9 AM".
+                // Inline ("9 AM"): 24-hour labels, and the fallback for tiles under 31 pt tall,
+                // where shrinking the whole label (to 0.85) beats truncating it.
                 (suffix.map { label(hour: hour, minute: minute) + Text("\u{2009}" + $0).font(Self.suffixFont) }
                     ?? label(hour: hour, minute: minute))
                     .monospacedDigit()
@@ -1455,7 +1535,8 @@ struct WidgetPhotoTile: View {
             }
         }
         .foregroundStyle(style.text)
-        .padding(.horizontal, 1)
+        // Clear of the tile's rounded corners: 6 pt each side (was 1), 2 pt for "12:30" (digits may shrink to 0.85).
+        .padding(.horizontal, stacked ? (minute != 0 ? 2 : 6) : 3)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Off-hours tiles are dimmed only lightly (0.88, was 0.72), so lit windows in a night photo
         // don't show through behind the numerals.
@@ -1468,15 +1549,15 @@ struct WidgetPhotoTile: View {
         }
     }
 
-    /// AM/PM (11 pt, was 7.5) and half-hour minutes (11 pt, was 8.5): Apple's smallest legible size.
-    private static let suffixFont = Font.system(size: 11, weight: .semibold)
+    /// AM/PM and half-hour minutes: 12 pt (was 11), a step above Apple's 11 pt minimum.
+    private static let suffixFont = Font.system(size: 12, weight: .semibold)
 
-    /// "9" or "09" (14 pt, was 13), with ":30" smaller in half-hour zones.
+    /// "9" or "09" (`digitSize`: 16 pt over AM/PM, else 14), with ":30" at 12 pt in half-hour zones.
     private func label(hour: Int, minute: Int) -> Text {
         var text = Text(snapshot.use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)")
-            .font(.system(size: 14, weight: center ? .semibold : .medium))
+            .font(.system(size: minute != 0 ? 14 : digitSize, weight: center ? .semibold : .medium))
         if minute != 0 {
-            text = text + Text(":" + String(format: "%02d", minute)).font(.system(size: 11, weight: .medium))
+            text = text + Text(":" + String(format: "%02d", minute)).font(.system(size: 12, weight: .medium))
         }
         return text
     }

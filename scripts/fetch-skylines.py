@@ -51,7 +51,9 @@ BANNED_LICENCE = re.compile(r"\b(nc|nd)\b|-nc|-nd|noncommercial|noderiv", re.I)
 SKIP_TITLE = re.compile(
     r"collage|montage|mosaic|\bmap\b|locator|location|flag|coat[ _]of[ _]arms|emblem|seal\b|logo|"
     r"diagram|chart|plan\b|banner|poster|stamp|postcard|drawing|painting|engraving|lithograph|"
-    r"illustration|\bsvg\b|\.svg|\.gif|\.tif|\.tiff",
+    r"illustration|\bsvg\b|\.svg|\.gif|\.tif|\.tiff|"
+    # Things merely named "Skyline": cars, ships, restaurants, hotels.
+    r"nissan|gt-?r\b|\bcar\b|navire|\bship\b|vessel|container|restaurant|hotel|motel|diner|power[ _]lines",
     re.I,
 )
 GOOD_TITLE = re.compile(r"skyline|panorama|cityscape|\bview\b|aerial|downtown|vista", re.I)
@@ -66,6 +68,7 @@ class City:
     zone: str
     aliases: list[str] = field(default_factory=list)
     file_override: str | None = None
+    excluded: set[str] = field(default_factory=set)
 
     @property
     def key(self) -> str:
@@ -103,8 +106,11 @@ def parse_cities(text: str) -> list[City]:
             raise ValueError(f"line {n}: expected 'Name|Wikipedia title|Zone|aliases': {raw!r}")
         name, title, zone = parts[0], parts[1] or parts[0], parts[2]
         aliases = [a.strip() for a in re.split(r"[;,]", parts[3])] if len(parts) > 3 else []
-        override = parts[4] if len(parts) > 4 and parts[4] else None
-        city = City(name, title, zone, [a for a in aliases if a], override)
+        # Field 5: "File:X.jpg" pins that file; "-File:A.jpg;-File:B.jpg" rules those files out of the search.
+        extra = parts[4] if len(parts) > 4 and parts[4] else ""
+        excluded = [e.strip()[1:].strip() for e in extra.split(";") if e.strip().startswith("-")]
+        override = None if (not extra or extra.startswith("-")) else extra
+        city = City(name, title, zone, [a for a in aliases if a], override, set(excluded))
         if not city.key:
             raise ValueError(f"line {n}: {name!r} has no letters for a key")
         if city.key in seen:
@@ -357,6 +363,8 @@ def choose(f: Fetcher, city: City) -> tuple[str, dict, dict, str] | str:
             reasons.append(f"search '{query}' failed: {e}")
             continue
         for title, info in results:
+            if title in city.excluded:
+                continue
             score = score_candidate(title, info)
             if score is None:
                 continue

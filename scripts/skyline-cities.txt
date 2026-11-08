@@ -5,15 +5,15 @@
 #
 # North America
 San Francisco|San Francisco|America/Los_Angeles|SF;SFO;Bay Area
-Los Angeles|Los Angeles|America/Los_Angeles|LA;LAX
+Los Angeles|Los Angeles|America/Los_Angeles|LA;LAX|-File:Los Angeles and skyline at night, California, U.S.jpg
 Seattle|Seattle|America/Los_Angeles|SEA
 San Diego|San Diego|America/Los_Angeles|SAN
 Las Vegas|Las Vegas|America/Los_Angeles|LAS;Vegas
-Portland|Portland, Oregon|America/Los_Angeles|PDX
+Portland|Portland, Oregon|America/Los_Angeles|PDX|-File:Skyline Restaurant, 2021 08.jpg
 Vancouver|Vancouver|America/Vancouver|YVR
 Salt Lake City|Salt Lake City|America/Denver|SLC
 Denver|Denver|America/Denver|DEN
-Phoenix|Phoenix, Arizona|America/Phoenix|PHX
+Phoenix|Phoenix, Arizona|America/Phoenix|PHX|-File:Phoenix Skyline, March 2014 - panoramio.jpg
 Calgary|Calgary|America/Edmonton|YYC
 Austin|Austin, Texas|America/Chicago|AUS
 Dallas|Dallas|America/Chicago|DFW
@@ -23,22 +23,22 @@ Minneapolis|Minneapolis|America/Chicago|MSP
 Mexico City|Mexico City|America/Mexico_City|MEX;Ciudad de México;CDMX
 New York|New York City|America/New_York|New York City;NYC;JFK;LGA;EWR;Manhattan
 Boston|Boston|America/New_York|BOS
-Washington DC|Washington, D.C.|America/New_York|Washington;Washington D.C.;DC;IAD;DCA
+Washington DC|Washington, D.C.|America/New_York|Washington;Washington D.C.;DC;IAD;DCA|-File:Capitol Skyline Hotel aerial view, March 2024 (cropped).jpg
 Philadelphia|Philadelphia|America/New_York|PHL
 Atlanta|Atlanta|America/New_York|ATL
 Miami|Miami|America/New_York|MIA
 Detroit|Detroit|America/Detroit|DTW
 Toronto|Toronto|America/Toronto|YYZ
-Montreal|Montreal|America/Toronto|Montréal;YUL
+Montreal|Montreal|America/Toronto|Montréal;YUL|-File:Montreal Skyline at Night.jpg
 Havana|Havana|America/Havana|La Habana;HAV
 Panama City|Panama City|America/Panama|Panama;PTY
 Honolulu|Honolulu|Pacific/Honolulu|HNL
-Anchorage|Anchorage, Alaska|America/Anchorage|ANC
+Anchorage|Anchorage, Alaska|America/Anchorage|ANC|-File:Skyline of northern Anchorage, Alaska viewed from Arctic Valley, Tikhatnu Commons in foreground.jpg
 # South America
 Bogota|Bogotá|America/Bogota|Bogotá;BOG
 Lima|Lima|America/Lima|LIM
 Santiago|Santiago|America/Santiago|Santiago de Chile;SCL
-Buenos Aires|Buenos Aires|America/Argentina/Buenos_Aires|EZE
+Buenos Aires|Buenos Aires|America/Argentina/Buenos_Aires|EZE|-File:Florida, Buenos Aires Province skyline 2.jpg
 Sao Paulo|São Paulo|America/Sao_Paulo|São Paulo;GRU
 Rio de Janeiro|Rio de Janeiro|America/Sao_Paulo|Rio;GIG
 # Europe
@@ -51,19 +51,19 @@ Lisbon|Lisbon|Europe/Lisbon|Lisboa;LIS
 Madrid|Madrid|Europe/Madrid|MAD
 Barcelona|Barcelona|Europe/Madrid|BCN
 Paris|Paris|Europe/Paris|CDG
-Brussels|Brussels|Europe/Brussels|Bruxelles;BRU
-Amsterdam|Amsterdam|Europe/Amsterdam|AMS
+Brussels|Brussels|Europe/Brussels|Bruxelles;BRU|-File:Nissan Skyline GT-R V-spec, BAS 24, Brussels (P1170369-RR).jpg
+Amsterdam|Amsterdam|Europe/Amsterdam|AMS|-File:Distant view of Amsterdam Skyline at night.jpg
 Frankfurt|Frankfurt|Europe/Berlin|Frankfurt am Main
 Berlin|Berlin|Europe/Berlin|BER
 Munich|Munich|Europe/Berlin|München;MUC
 Zurich|Zürich|Europe/Zurich|Zürich;ZRH
-Geneva|Geneva|Europe/Zurich|Genève;GVA
+Geneva|Geneva, Switzerland|Europe/Zurich|Genève;GVA|-File:Geneva, New York - 06 - Lakefront Park - 20220810 - Skyline.jpg
 Milan|Milan|Europe/Rome|Milano;MXP
 Rome|Rome|Europe/Rome|Roma;FCO
 Vienna|Vienna|Europe/Vienna|Wien;VIE
 Prague|Prague|Europe/Prague|Praha;PRG
 Copenhagen|Copenhagen|Europe/Copenhagen|København;CPH
-Oslo|Oslo|Europe/Oslo|OSL
+Oslo|Oslo|Europe/Oslo|OSL|-File:Oslo Skyline, drone.jpg
 Stockholm|Stockholm|Europe/Stockholm|ARN
 Helsinki|Helsinki|Europe/Helsinki|HEL
 Warsaw|Warsaw|Europe/Warsaw|Warszawa;WAW
@@ -74,15 +74,15 @@ Istanbul|Istanbul|Europe/Istanbul|İstanbul;IST
 Moscow|Moscow|Europe/Moscow|Moskva;SVO
 # Africa
 Cairo|Cairo|Africa/Cairo|CAI
-Casablanca|Casablanca|Africa/Casablanca|CMN
+Casablanca|Casablanca|Africa/Casablanca|CMN|-File:Navire conteneur SKYLINE naviguant en mer de Casablanca.jpg
 Lagos|Lagos|Africa/Lagos|LOS
-Accra|Accra|Africa/Accra|ACC
+Accra|Accra|Africa/Accra|ACC|-File:Power lines and skyline view from North Dzorwulu (IMG 6833).jpg
 Addis Ababa|Addis Ababa|Africa/Addis_Ababa|ADD
 Nairobi|Nairobi|Africa/Nairobi|NBO
 Johannesburg|Johannesburg|Africa/Johannesburg|JNB;Joburg
 Cape Town|Cape Town|Africa/Johannesburg|CPT
 # Middle East
-Tel Aviv|Tel Aviv|Asia/Jerusalem|TLV
+Tel Aviv|Tel Aviv|Asia/Jerusalem|TLV|-File:Tel Aviv and Raman gan skyline from TAU.jpg
 Riyadh|Riyadh|Asia/Riyadh|RUH
 Doha|Doha|Asia/Qatar|DOH
 Dubai|Dubai|Asia/Dubai|DXB
@@ -90,7 +90,7 @@ Abu Dhabi|Abu Dhabi|Asia/Dubai|AUH
 Tehran|Tehran|Asia/Tehran|IKA
 # Asia
 Karachi|Karachi|Asia/Karachi|KHI
-Delhi|Delhi|Asia/Kolkata|New Delhi;DEL
+Delhi|Delhi|Asia/Kolkata|New Delhi;DEL|-File:Delhi-silhouette, a setting sun against a typical historic skyline 01.jpg
 Mumbai|Mumbai|Asia/Kolkata|Bombay;BOM
 Bengaluru|Bengaluru|Asia/Kolkata|Bangalore;BLR
 Hyderabad|Hyderabad|Asia/Kolkata|HYD
@@ -102,8 +102,8 @@ Hanoi|Hanoi|Asia/Ho_Chi_Minh|Hà Nội;HAN
 Ho Chi Minh City|Ho Chi Minh City|Asia/Ho_Chi_Minh|Ho Chi Minh;Saigon;SGN
 Kuala Lumpur|Kuala Lumpur|Asia/Kuala_Lumpur|KL;KUL
 Singapore|Singapore|Asia/Singapore|SIN
-Jakarta|Jakarta|Asia/Jakarta|CGK
-Manila|Manila|Asia/Manila|MNL
+Jakarta|Jakarta|Asia/Jakarta|CGK|-File:The Polluters' Fog Jakarta skyline - panoramio.jpg
+Manila|Manila|Asia/Manila|MNL|-File:Skyline in Manila 34.jpg
 Hong Kong|Hong Kong|Asia/Hong_Kong|HK;HKG
 Shenzhen|Shenzhen|Asia/Shanghai|SZX
 Guangzhou|Guangzhou|Asia/Shanghai|Canton;CAN

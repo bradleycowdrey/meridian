@@ -1839,7 +1839,7 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
     // width and give every tile the same shrink, so "10:30" never draws smaller than "7:30" beside it.
     val use24h = store.use24h
     val fontScale = LocalDensity.current.fontScale
-    val padPx = with(LocalDensity.current) { (2 * 2.dp).toPx() }
+    val padPx = with(LocalDensity.current) { 4.dp.toPx() }
     val measurer = rememberTextMeasurer()
     val digitStyle = tnum.copy(fontWeight = FontWeight.SemiBold)
     val labels = starts.map { val z = it.atZone(place.zone); z.hour to z.minute }

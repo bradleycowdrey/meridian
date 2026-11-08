@@ -17,7 +17,7 @@ Portland|Portland, Oregon|America/Los_Angeles|PDX|-File:Skyline Restaurant, 2021
 Vancouver|Vancouver|America/Vancouver|YVR
 Salt Lake City|Salt Lake City|America/Denver|SLC
 Denver|Denver|America/Denver|DEN
-Phoenix|Phoenix, Arizona|America/Phoenix|PHX|-File:Phoenix Skyline, March 2014 - panoramio.jpg
+Phoenix|Phoenix, Arizona|America/Phoenix|PHX|-File:Phoenix Skyline, March 2014 - panoramio.jpg|-File:Downtown Phoenix at Night (3) (6000947782).jpg
 Calgary|Calgary|America/Edmonton|YYC
 Austin|Austin, Texas|America/Chicago|AUS
 Dallas|Dallas|America/Chicago|DFW
@@ -54,8 +54,8 @@ Reykjavik|Reykjavík|Atlantic/Reykjavik|Reykjavík;KEF
 Lisbon|Lisbon|Europe/Lisbon|Lisboa;LIS
 Madrid|Madrid|Europe/Madrid|MAD
 Barcelona|Barcelona|Europe/Madrid|BCN
-Paris|Paris|Europe/Paris|CDG
-Brussels|Brussels|Europe/Brussels|Bruxelles;BRU|-File:Nissan Skyline GT-R V-spec, BAS 24, Brussels (P1170369-RR).jpg
+Paris|Paris|Europe/Paris|CDG|-File:Skyline in Paris, 12 July 2017.jpg|-File:Las Vegas Paris By Night, 1 December 2007.jpg
+Brussels|Brussels|Europe/Brussels|Bruxelles;BRU|-File:Nissan Skyline GT-R V-spec, BAS 24, Brussels (P1170369-RR).jpg;-File:View of Brussels by Jan Baptist Bonnecroy-.jpg
 Amsterdam|Amsterdam|Europe/Amsterdam|AMS|-File:Distant view of Amsterdam Skyline at night.jpg
 Frankfurt|Frankfurt|Europe/Berlin|Frankfurt am Main
 Berlin|Berlin|Europe/Berlin|BER
@@ -73,7 +73,7 @@ Helsinki|Helsinki|Europe/Helsinki|HEL
 Warsaw|Warsaw|Europe/Warsaw|Warszawa;WAW
 Budapest|Budapest|Europe/Budapest|BUD
 Athens|Athens|Europe/Athens|Athína;ATH
-Kyiv|Kyiv|Europe/Kyiv|Kiev;KBP
+Kyiv|Kyiv|Europe/Kyiv|Kiev;KBP||-File:Volkswagen e-Bora in Kyiv night right-front.jpg
 Istanbul|Istanbul|Europe/Istanbul|İstanbul;IST
 Moscow|Moscow|Europe/Moscow|Moskva;SVO
 # Africa
@@ -82,7 +82,7 @@ Casablanca|Casablanca|Africa/Casablanca|CMN;Hassan II|-File:Navire conteneur SKY
 Lagos|Lagos|Africa/Lagos|LOS
 Accra|Accra|Africa/Accra|ACC|-File:Power lines and skyline view from North Dzorwulu (IMG 6833).jpg
 Addis Ababa|Addis Ababa|Africa/Addis_Ababa|ADD
-Nairobi|Nairobi|Africa/Nairobi|NBO
+Nairobi|Nairobi|Africa/Nairobi|NBO||-File:Monikos Quiz Night in Nairobi.jpg
 Johannesburg|Johannesburg|Africa/Johannesburg|JNB;Joburg
 Cape Town|Cape Town|Africa/Johannesburg|CPT
 # Middle East
@@ -97,8 +97,8 @@ Karachi|Karachi|Asia/Karachi|KHI
 Delhi|Delhi|Asia/Kolkata|New Delhi;DEL|File:Skyline at Rajiv Chowk.JPG
 Mumbai|Mumbai|Asia/Kolkata|Bombay;BOM
 Bengaluru|Bengaluru|Asia/Kolkata|Bangalore;BLR
-Hyderabad|Hyderabad|Asia/Kolkata|HYD
-Chennai|Chennai|Asia/Kolkata|Madras;MAA
+Hyderabad|Hyderabad|Asia/Kolkata|HYD||-File:The terminal station of Hyderabad Deccan Nampally at night 02.jpg
+Chennai|Chennai|Asia/Kolkata|Madras;MAA||-File:Jagannath Temple Chennai night view.jpg
 Kolkata|Kolkata|Asia/Kolkata|Calcutta;CCU
 Dhaka|Dhaka|Asia/Dhaka|DAC
 Bangkok|Bangkok|Asia/Bangkok|BKK

@@ -124,7 +124,7 @@ enum ClockText {
         let main = Text(digits).font(.system(size: size, weight: weight)).monospacedDigit()
         guard let suffix else { return main }
         let small = Text("\u{2009}" + suffix)
-            .font(.system(size: size * 0.42, weight: .medium))
+            .font(.system(size: max(13, size * 0.42), weight: .medium))
             .baselineOffset(size * 0.36)
         return Text("\(main)\(small)")
     }

@@ -1,6 +1,10 @@
 # Cities with a built-in skyline photo (scripts/fetch-skylines.py reads this; CI: .github/workflows/skylines.yml).
-# One per line: Display Name|Wikipedia title|IANA zone|aliases;separated;by;semicolons
-# Optional 5th field: a Commons file title ("File:...jpg") to use instead of searching.
+# One per line: Display Name|Wikipedia title|IANA zone|aliases;separated;by;semicolons|day pins|night pins
+# Optional 5th field (DAY photo): a Commons file title ("File:...jpg") to use instead of searching,
+#   or "-File:A.jpg;-File:B.jpg" to rule those files out of the DAY search.
+# Optional 6th field (NIGHT photo): the same syntax for the NIGHT photo. Leave field 5 empty to set
+#   only field 6: "Oslo|Oslo|Europe/Oslo|OSL||File:Oslo at night.jpg".
+# Each city gets a DAY and (when one is found) a NIGHT photo, told apart by measured brightness.
 # The photo key is the display name's letters, lowercased ("New York" -> newyork); keys must be unique.
 #
 # North America

@@ -177,7 +177,8 @@ struct ContentView: View {
                     .padding(.top, 6)
                     .padding(.bottom, 2)
                     .frame(maxWidth: .infinity)
-                    .background(.ultraThinMaterial, ignoresSafeAreaEdges: .bottom)
+                    // Near-opaque black, so the ruler's hours never sit over a photo.
+                    .background(Color.black.opacity(0.85), ignoresSafeAreaEdges: .bottom)
                     .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
                     .environment(\.colorScheme, .dark)
             }
@@ -693,13 +694,15 @@ struct TimeShifter: View {
     var body: some View {
         VStack(spacing: 4) {
             if !store.hasScrubbed {
+                // Wraps rather than shrinks; shown only until the first drag.
                 Text("Drag the hours or the ruler to change the time.")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.white.opacity(Theme.Op.caption))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(Theme.Op.sub))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 16)
+                    .padding(.horizontal, 16)
                     .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             }
             HStack(spacing: 10) {
@@ -857,15 +860,15 @@ private struct RulerTick: View {
             Group {
                 if minute == 0 {
                     Text(label(hour: hour, weekday: parts.weekday ?? 1))
-                        .font(.system(size: 11, weight: hour == 0 ? .semibold : .medium))
-                        .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : Theme.Op.caption))
+                        .font(.system(size: 12, weight: hour == 0 ? .semibold : .medium))
+                        .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : 0.75))
                         .monospacedDigit()
                         .fixedSize()
                 } else {
-                    Text(" ").font(.system(size: 11))
+                    Text(" ").font(.system(size: 12))
                 }
             }
-            .frame(height: 12)
+            .frame(height: 14)
             Capsule()
                 .fill(Color.white.opacity(minute == 0 ? Theme.Op.caption : (minute == 30 ? Theme.Op.faint : 0.25)))
                 .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))
@@ -943,8 +946,9 @@ struct CityRow: View {
     /// The card's text grows with the reader's text size, up to a point (the card's height is set).
     private var capped: CGFloat { min(max(scale, 0.85), 1.25) }
 
+    /// Small type (13 pt and under) grows with the reader's text size but never shrinks below its size.
     private func cardFont(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-        .system(size: size * capped, weight: weight)
+        .system(size: size * (size <= 13 ? max(capped, 1) : capped), weight: weight)
     }
 
     private var compactRow: some View {
@@ -977,7 +981,10 @@ struct CityRow: View {
         // The time grows only a little with the reader's text size.
         let clockSize = (tall ? RowCard.tallClock : RowCard.compactClock) * min(max(scale, 0.9), 1.15)
         let phase = SkylineArt.phase(for: place, at: moment)
-        let photo = SkylineArt.photo(for: place, downloaded: store.downloadCityPhotos ? photos.image(for: place) : nil)
+        // Its day photo by day, its night photo after dark (when it has one).
+        let photo = SkylineArt.photo(for: place, at: moment,
+                                     downloaded: store.downloadCityPhotos ? photos.image(for: place) : nil,
+                                     downloadedNight: store.downloadCityPhotos ? photos.nightImage(for: place) : nil)
         let size = CGSize(width: cardWidth, height: height)
         // Dark digits where the card is bright behind the time, white ones where it's dark.
         let bright = BannerInk.isBright(photo: photo, seed: place.name, phase: phase, size: size,
@@ -1061,13 +1068,15 @@ struct CityRow: View {
             if zone {
                 Text(zoneText(moment))
                     .font(cardFont(13))
+                    .monospacedDigit()
                     .foregroundStyle(Theme.secondary)
                     .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 1)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.9)
+                    .truncationMode(.middle)
             }
             if let status {
-                StatusPill(status: status, showDetail: tall, scale: capped, backed: true)
+                StatusPill(status: status, showDetail: tall, scale: max(capped, 1), backed: true)
                     .padding(.top, 2)
             }
         }
@@ -1080,10 +1089,10 @@ struct CityRow: View {
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.9)
             if store.isHere(place) {
                 Image(systemName: "location.fill")
-                    .font(cardFont(9, .medium))
+                    .font(cardFont(11, .medium))
                     .foregroundStyle(Theme.secondary)
             }
         }

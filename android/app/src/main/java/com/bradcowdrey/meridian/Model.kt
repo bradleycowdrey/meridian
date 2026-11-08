@@ -10,6 +10,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 import java.util.UUID
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** A city the user tracks. */
 data class Place(
@@ -201,6 +202,28 @@ object DayColor {
             }
         }
         return 0xFF000000.toInt() or stops.first().second
+    }
+
+    /** The brightest an hour tile's fill may be (relative luminance): that of #3F6A97, so white on it is at least 5.6:1. */
+    private const val TILE_MAX = 0.136
+
+    private fun lin(c: Int): Double { val s = c / 255.0; return if (s <= 0.04045) s / 12.92 else Math.pow((s + 0.055) / 1.055, 2.4) }
+    private fun enc(l: Double): Int {
+        val s = if (l <= 0.0031308) l * 12.92 else 1.055 * Math.pow(l, 1 / 2.4) - 0.055
+        return (s * 255.0).roundToInt().coerceIn(0, 255)
+    }
+
+    /**
+     * ARGB of an hour tile at an hour of the day: the sky colour, with the brightest midday and early-evening
+     * steps held to the luminance of #3F6A97 (same hue), so white numbers and AM/PM on them stay at least 5.6:1.
+     */
+    fun tile(hour: Double): Int {
+        val argb = at(hour)
+        val r = lin((argb shr 16) and 0xFF); val g = lin((argb shr 8) and 0xFF); val b = lin(argb and 0xFF)
+        val l = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        if (l <= TILE_MAX) return argb
+        val k = TILE_MAX / l
+        return (0xFF shl 24) or (enc(r * k) shl 16) or (enc(g * k) shl 8) or enc(b * k)
     }
 
     /** For widgets: no darker than the Two Degrees dawn blue-grey (#24384F). */

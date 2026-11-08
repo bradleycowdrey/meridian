@@ -31,14 +31,16 @@ data class PhotoCredit(val author: String, val license: String, val licenseUrl: 
 
 /**
  * The skyline photos built into the app: Resources/Data/skylines.json (written by the photo pipeline:
- * key, names and aliases, time zone, file, credit), each a drawable "skyline_<key>". Until the manifest
- * lands (or for a key it leaves out) the four original photos still work.
+ * key, names and aliases, time zone, file, credit, and from v2 `night`: {file, credit} or null), each a
+ * drawable "skyline_<key>" (the day photo) and, where there is one, "skyline_<key>_night". Until the
+ * manifest lands (or for a key it leaves out) the four original photos still work. A v1 manifest (no
+ * `night`) still reads: a night drawable is found by its name alone.
  */
 object SkylineManifest {
-    data class Entry(val key: String, val names: List<String>, val zone: String?, val credit: PhotoCredit?)
+    data class Entry(val key: String, val names: List<String>, val zone: String?, val credit: PhotoCredit?, val nightCredit: PhotoCredit? = null)
 
-    /** A built-in photo for a card: its key (for how it's cropped) and its drawable. */
-    data class Photo(val key: String, val resId: Int)
+    /** A built-in photo for a card: its key (for how it's cropped), its day drawable, and its night one (0 for none). */
+    data class Photo(val key: String, val resId: Int, val nightResId: Int = 0)
 
     private val fallback = listOf(
         Entry("sanfrancisco", listOf("San Francisco"), "America/Los_Angeles",
@@ -88,17 +90,21 @@ object SkylineManifest {
                 val credit = o.optJSONObject("credit")?.let { c ->
                     PhotoCredit(c.optString("author"), c.optString("license"), c.optString("licenseUrl").ifBlank { null }, c.optString("source"))
                 }
-                Entry(key, names, o.optString("zone").ifBlank { null }, credit)
+                // v2: "night": {file, credit} or null (v1 has no "night").
+                val nightCredit = o.optJSONObject("night")?.optJSONObject("credit")?.let { c ->
+                    PhotoCredit(c.optString("author"), c.optString("license"), c.optString("licenseUrl").ifBlank { null }, c.optString("source"))
+                }
+                Entry(key, names, o.optString("zone").ifBlank { null }, credit, nightCredit)
             }
         }.getOrDefault(emptyList())
     }
 
     fun norm(name: String): String = name.trim().lowercase(Locale.ROOT)
 
-    /** The drawable for a key ("skyline_<key>"), or 0 if it isn't in this build. */
-    fun resId(context: Context, key: String): Int = synchronized(resIds) {
-        resIds.getOrPut(key) {
-            val name = "skyline_" + key.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9_]"), "_")
+    /** The drawable for a key ("skyline_<key>", or "skyline_<key>_night" with [night]), or 0 if it isn't in this build. */
+    fun resId(context: Context, key: String, night: Boolean = false): Int = synchronized(resIds) {
+        resIds.getOrPut(if (night) "$key|night" else key) {
+            val name = "skyline_" + key.lowercase(Locale.ROOT).replace(Regex("[^a-z0-9_]"), "_") + if (night) "_night" else ""
             context.resources.getIdentifier(name, "drawable", context.packageName)
         }
     }
@@ -124,12 +130,15 @@ object SkylineManifest {
             ?: candidates.firstOrNull { it.zone != null && sameZone(it.zone, zoneId) }
             ?: return null
         val id = resId(context, match.key)
-        return if (id != 0) Photo(match.key, id) else null
+        return if (id != 0) Photo(match.key, id, resId(context, match.key, night = true)) else null
     }
 
-    /** The built-in photos in this build, with their credits (Photo Credits). */
+    /** The built-in photos in this build, with their credits (Photo Credits): each day photo, then its night one. */
     fun credited(context: Context): List<Pair<String, PhotoCredit?>> =
-        entries.filter { resId(context, it.key) != 0 }.map { (it.names.firstOrNull() ?: it.key) to it.credit }
+        entries.filter { resId(context, it.key) != 0 }.flatMap { e ->
+            val name = e.names.firstOrNull() ?: e.key
+            listOfNotNull(name to e.credit, if (resId(context, e.key, night = true) != 0) "$name at night" to e.nightCredit else null)
+        }
 }
 
 /**
@@ -137,6 +146,9 @@ object SkylineManifest {
  * Commons, only if it's free to use (CC0, public domain, CC BY, CC BY-SA). Fetched once in the
  * background (never more than once in 30 days), then kept on the phone with its credit. Only the
  * city's name is sent. Until a photo is ready (or with none), the card shows its drawn skyline.
+ * Once a city has its day photo, one night photo is looked for too (a Commons search for
+ * "<city> skyline night": free licence, the title names the city, and dark when measured), kept the
+ * same way as <slug>-night.jpg; with none, the card darkens the day photo at night as before.
  */
 object CityPhotos {
     private const val USER_AGENT = "Meridian/2.0 (https://bradcowdrey.com/meridian)"
@@ -161,13 +173,28 @@ object CityPhotos {
         return name + "-" + (city.trim().lowercase(Locale.ROOT) + "|" + zoneId).hashCode().toLong().and(0xFFFFFFFFL).toString(16)
     }
 
+    /** A night photo's name, after its city's slug ("lisbon-1234567-night"; a slug ends in hex, so never another city's). */
+    private const val NIGHT = "-night"
+    /** The night photo's probe: Commons' 330 px thumbnail, measured before the full photo is fetched. */
+    private const val PROBE_WIDTH = 330
+    /** A night photo is dark: mean relative luminance of the probe at most this. */
+    private const val NIGHT_MAX = 0.10
+    /** At most this many candidates are measured per city, a second apart. */
+    private const val MAX_PROBES = 4
+
     /** The photo for this slug, once it's on the phone and read (a state read: callers redraw when it arrives). */
     fun bitmap(slug: String): ImageBitmap? = bitmaps[slug]
+
+    /** The night photo for this slug, once it's on the phone and read (a state read), or null for none (yet). */
+    fun nightBitmap(slug: String): ImageBitmap? = bitmaps[slug + NIGHT]
 
     private fun dir(context: Context): File = File(context.filesDir, "city-photos").apply { mkdirs() }
 
     /** The downloaded photo for this slug, if it's on the phone (for the widgets' copies). */
     fun file(context: Context, slug: String): File? = File(dir(context), "$slug.jpg").takeIf { it.exists() }
+
+    /** The downloaded night photo for this slug, if it's on the phone (for the widgets' copies). */
+    fun nightFile(context: Context, slug: String): File? = File(dir(context), "$slug$NIGHT.jpg").takeIf { it.exists() }
 
     /**
      * Shows a city's photo if it's on the phone; otherwise, when [download] is on, fetches it in the
@@ -175,21 +202,28 @@ object CityPhotos {
      */
     fun request(context: Context, city: String, zoneId: String, countryCode: String?, download: Boolean) {
         val slug = slug(city, zoneId)
-        if (bitmaps.containsKey(slug)) return
+        if (bitmaps.containsKey(slug) && bitmaps.containsKey(slug + NIGHT)) return
         val key = "$slug|$download"
         synchronized(asked) { if (!asked.add(key)) return }
         val app = context.applicationContext
         scope.launch {
             try {
                 val image = File(dir(app), "$slug.jpg")
-                if (image.exists()) { decode(image)?.let { bitmaps[slug] = it; return@launch } }
+                val nightImage = File(dir(app), "$slug$NIGHT.jpg")
+                if (image.exists() && !bitmaps.containsKey(slug)) decode(image)?.let { bitmaps[slug] = it }
+                if (nightImage.exists() && !bitmaps.containsKey(slug + NIGHT)) decode(nightImage)?.let { bitmaps[slug + NIGHT] = it }
                 if (!download) return@launch
                 mutex.withLock {
-                    if (bitmaps.containsKey(slug)) return@withLock
-                    val meta = File(dir(app), "$slug.json")
-                    val old = runCatching { JSONObject(meta.readText()) }.getOrNull()
-                    if (old != null && System.currentTimeMillis() - old.optLong("fetchedAt") < RETRY_MS && !image.exists()) return@withLock
-                    fetch(app, slug, city, countryCode)
+                    if (!image.exists()) {
+                        val old = runCatching { JSONObject(File(dir(app), "$slug.json").readText()) }.getOrNull()
+                        if (old != null && System.currentTimeMillis() - old.optLong("fetchedAt") < RETRY_MS) return@withLock
+                        fetch(app, slug, city, countryCode)
+                    }
+                    // A night photo only for a city with a day one, and only one try in 30 days.
+                    if (!image.exists() || nightImage.exists()) return@withLock
+                    val oldNight = runCatching { JSONObject(File(dir(app), "$slug$NIGHT.json").readText()) }.getOrNull()
+                    if (oldNight != null && System.currentTimeMillis() - oldNight.optLong("fetchedAt") < RETRY_MS) return@withLock
+                    fetchNight(app, slug, city)
                 }
             } catch (e: IOException) {
                 // Offline or a server hiccup: not marked as tried on disk, so the next launch tries again (asked keeps it out until then).
@@ -207,12 +241,107 @@ object CityPhotos {
         BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
     }.getOrNull()
 
-    /** Marks a city as having no usable photo, so it isn't asked again for 30 days. */
-    private fun markNone(context: Context, slug: String, city: String) {
+    /** Marks a city as having no usable photo (or night photo, for "<slug>-night"), so it isn't asked again for 30 days. */
+    private fun markNone(context: Context, name: String, city: String) {
         runCatching {
-            File(dir(context), "$slug.json").writeText(JSONObject().put("city", city).put("ok", false)
-                .put("fetchedAt", System.currentTimeMillis()).toString())
+            File(dir(context), "$name.json").writeText(JSONObject().put("city", city).put("ok", false)
+                .put("night", name.endsWith(NIGHT)).put("fetchedAt", System.currentTimeMillis()).toString())
         }
+    }
+
+    /** Lower case, without accents, spaces for underscores: for checking a file's title names the city. */
+    private fun fold(text: String): String =
+        java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
+            .replace('_', ' ').lowercase(Locale.ROOT).replace(Regex("\\s+"), " ").trim()
+
+    /** The mean relative luminance of a JPEG (decoded near [PROBE_WIDTH] px wide), or null if it won't decode. */
+    private fun meanLuminance(bytes: ByteArray): Double? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= PROBE_WIDTH) sample *= 2
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
+        try {
+            val w = bitmap.width
+            val h = bitmap.height
+            val row = IntArray(w)
+            fun lin(c: Int): Double { val v = c / 255.0; return if (v <= 0.04045) v / 12.92 else Math.pow((v + 0.055) / 1.055, 2.4) }
+            var sum = 0.0
+            var n = 0
+            for (y in 0 until h step 2) {
+                bitmap.getPixels(row, 0, w, 0, y, w, 1)
+                for (x in 0 until w step 2) {
+                    val c = row[x]
+                    sum += 0.2126 * lin((c shr 16) and 0xFF) + 0.7152 * lin((c shr 8) and 0xFF) + 0.0722 * lin(c and 0xFF)
+                    n++
+                }
+            }
+            return if (n > 0) sum / n else null
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    /**
+     * Looks for one night photo of a city on Commons ("<city> skyline night"): a free-licence JPEG, in
+     * landscape, at least 800 px wide, whose title names the city, and dark when measured (mean luminance
+     * of its 330 px thumbnail at most 0.10). Saved at about 960 px as <slug>-night.jpg, with its credit.
+     */
+    private suspend fun fetchNight(context: Context, slug: String, city: String) {
+        val name = slug + NIGHT
+        val api = "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=10" +
+            "&gsrsearch=" + URLEncoder.encode("$city skyline night", "UTF-8") +
+            "&prop=imageinfo&iiprop=" + URLEncoder.encode("url|size|extmetadata", "UTF-8") + "&iiurlwidth=$PROBE_WIDTH"
+        val pages = getJson(api)?.optJSONObject("query")?.optJSONObject("pages")
+        if (pages == null) { markNone(context, name, city); return }
+        val candidates = pages.keys().asSequence().mapNotNull { pages.optJSONObject(it) }
+            .sortedBy { it.optInt("index", Int.MAX_VALUE) }.toList()
+        val wanted = fold(city)
+        val commons = "https://upload.wikimedia.org/wikipedia/commons/"
+        var probes = 0
+        for (page in candidates) {
+            if (probes >= MAX_PROBES) break
+            val file = page.optString("title").removePrefix("File:")
+            val lower = file.lowercase(Locale.ROOT)
+            if (!(lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) continue
+            if (wanted.isEmpty() || !fold(file).contains(wanted)) continue
+            val info = page.optJSONArray("imageinfo")?.optJSONObject(0) ?: continue
+            val credit = info.optJSONObject("extmetadata")?.let { creditFrom(file, it) } ?: continue
+            val width = info.optInt("width")
+            val height = info.optInt("height")
+            if (width < 800 || width <= height) continue
+            val thumb = info.optString("thumburl").takeIf { it.startsWith(commons) } ?: continue
+            if (probes > 0) kotlinx.coroutines.delay(1000)
+            probes++
+            val probe = getBytes(thumb) ?: continue
+            val lum = meanLuminance(probe) ?: continue
+            if (lum > NIGHT_MAX) continue
+            val url = when {
+                width <= 960 -> info.optString("url")
+                Regex("/\\d+px-").containsMatchIn(thumb) -> thumb.replace(Regex("/\\d+px-"), "/960px-")
+                else -> null
+            }?.takeIf { it.startsWith(commons) } ?: continue
+            kotlinx.coroutines.delay(1000)
+            val bytes = getBytes(url) ?: continue
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) continue
+            val folder = dir(context)
+            val tmp = File(folder, "$name.jpg.part")
+            tmp.writeBytes(bytes)
+            val image = File(folder, "$name.jpg")
+            if (!tmp.renameTo(image)) { tmp.delete(); return }
+            File(folder, "$name.json").writeText(JSONObject().put("city", city).put("ok", true).put("night", true)
+                .put("fetchedAt", System.currentTimeMillis())
+                .put("author", credit.author).put("license", credit.license)
+                .put("licenseUrl", credit.licenseUrl ?: "").put("source", credit.source).toString())
+            decode(image)?.let { bitmaps[name] = it }
+            saved++
+            MeridianWidgets.updateAll(context)
+            return
+        }
+        markNone(context, name, city)
     }
 
     private fun fetch(context: Context, slug: String, city: String, countryCode: String?) {
@@ -288,14 +417,19 @@ object CityPhotos {
         while (keys.hasNext()) {
             val page = pages.optJSONObject(keys.next()) ?: continue
             val meta = page.optJSONArray("imageinfo")?.optJSONObject(0)?.optJSONObject("extmetadata") ?: continue
-            fun value(name: String) = meta.optJSONObject(name)?.optString("value")?.let { plain(it) } ?: ""
-            val license = value("LicenseShortName")
-            if (!freeLicense(license)) return null
-            val author = value("Artist").ifBlank { "Unknown" }
-            val licenseUrl = value("LicenseUrl").ifBlank { null }
-            return PhotoCredit(author, license, licenseUrl, "https://commons.wikimedia.org/wiki/File:" + file.replace(' ', '_'))
+            return creditFrom(file, meta)
         }
         return null
+    }
+
+    /** A file's credit from its Commons extmetadata, if it's free to use (else null). */
+    private fun creditFrom(file: String, meta: JSONObject): PhotoCredit? {
+        fun value(name: String) = meta.optJSONObject(name)?.optString("value")?.let { plain(it) } ?: ""
+        val license = value("LicenseShortName")
+        if (!freeLicense(license)) return null
+        val author = value("Artist").ifBlank { "Unknown" }
+        val licenseUrl = value("LicenseUrl").ifBlank { null }
+        return PhotoCredit(author, license, licenseUrl, "https://commons.wikimedia.org/wiki/File:" + file.replace(' ', '_'))
     }
 
     /** CC0, public domain, CC BY or CC BY-SA (any version); not NC or ND. */
@@ -365,7 +499,8 @@ object CityPhotos {
                 val o = JSONObject(f.readText())
                 if (!o.optBoolean("ok")) return@runCatching null
                 if (!File(f.parentFile, f.name.removeSuffix(".json") + ".jpg").exists()) return@runCatching null
-                Downloaded(o.optString("city"), PhotoCredit(o.optString("author"), o.optString("license"),
+                val city = o.optString("city").let { if (o.optBoolean("night")) "$it at night" else it }
+                Downloaded(city, PhotoCredit(o.optString("author"), o.optString("license"),
                     o.optString("licenseUrl").ifBlank { null }, o.optString("source")))
             }.getOrNull()
         }.sortedBy { it.city.lowercase(Locale.ROOT) }
@@ -374,8 +509,9 @@ object CityPhotos {
 
 /**
  * The home screen widgets' photos: small copies (about 480 px wide, JPEG quality 60) of each listed
- * city's photo, built in or downloaded, in filesDir/widget-skylines/<key>.jpg, with which city uses
- * which (map.json: card id -> key and crop). Made by the app whenever the list changes or a downloaded
+ * city's photo, built in or downloaded, in filesDir/widget-skylines/<key>.jpg, and of its night photo
+ * where it has one, <key>-night.jpg, with which city uses which (map.json: card id -> key, crop and
+ * whether there's a night copy). Made by the app whenever the list changes or a downloaded
  * photo arrives (MeridianWidgets.updateAll does this before it redraws), so a widget only ever decodes
  * a small file and never touches the network.
  */
@@ -385,8 +521,12 @@ object WidgetPhotos {
     private const val MAX_WIDTH = 480
     private const val QUALITY = 60
 
-    /** A card's photo: [key] names the copy; [resId] (built in) or [slug] (downloaded) is where it came from. */
-    data class Ref(val key: String, val biasY: Float, val resId: Int = 0, val slug: String? = null)
+    /**
+     * A card's photo: [key] names the copy; [resId] (built in) or [slug] (downloaded) is where it came from.
+     * [night]: the city has a night photo too (copied as <key>-night.jpg; built in from [nightResId]).
+     */
+    data class Ref(val key: String, val biasY: Float, val resId: Int = 0, val slug: String? = null,
+        val nightResId: Int = 0, val night: Boolean = false)
 
     fun dir(context: Context): File = File(context.filesDir, DIR).apply { mkdirs() }
 
@@ -405,9 +545,11 @@ object WidgetPhotos {
     /** The photo for a card (built in, else downloaded and on the phone), or null for none (a drawn sky). */
     fun ref(context: Context, place: Place): Ref? {
         val city = city(context, place)
-        SkylineManifest.photo(context, city, place.zoneId)?.let { return Ref(it.key, biasY(it.key), resId = it.resId) }
+        SkylineManifest.photo(context, city, place.zoneId)?.let {
+            return Ref(it.key, biasY(it.key), resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0)
+        }
         val slug = CityPhotos.slug(city, place.zoneId)
-        if (CityPhotos.file(context, slug) != null) return Ref("dl-$slug", biasY(null), slug = slug)
+        if (CityPhotos.file(context, slug) != null) return Ref("dl-$slug", biasY(null), slug = slug, night = CityPhotos.nightFile(context, slug) != null)
         return null
     }
 
@@ -425,35 +567,40 @@ object WidgetPhotos {
         val folder = dir(context)
         val refs = refs(context, places)
         val installed = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)
-        for (ref in refs.values.distinctBy { it.key }) {
-            val out = File(folder, ref.key + ".jpg")
-            val source = ref.slug?.let { CityPhotos.file(context, it) }
-            val newer = source?.lastModified() ?: if (ref.resId != 0) installed else 0L
-            if (out.exists() && newer <= out.lastModified()) continue
+        /** Writes <name>.jpg from a drawable or a downloaded file, unless the copy is already as new. */
+        fun copy(name: String, resId: Int, source: File?) {
+            val out = File(folder, "$name.jpg")
+            val newer = source?.lastModified() ?: if (resId != 0) installed else 0L
+            if (out.exists() && newer <= out.lastModified()) return
             runCatching {
                 val bitmap = when {
-                    ref.resId != 0 -> decodeResource(context, ref.resId, MAX_WIDTH)
+                    resId != 0 -> decodeResource(context, resId, MAX_WIDTH)
                     source != null -> decodeFile(source, MAX_WIDTH)
                     else -> null
                 } ?: return@runCatching
                 val scaled = if (bitmap.width > MAX_WIDTH) {
                     Bitmap.createScaledBitmap(bitmap, MAX_WIDTH, (bitmap.height * MAX_WIDTH / bitmap.width).coerceAtLeast(1), true)
                 } else bitmap
-                val tmp = File(folder, ref.key + ".jpg.part")
+                val tmp = File(folder, "$name.jpg.part")
                 tmp.outputStream().use { scaled.compress(Bitmap.CompressFormat.JPEG, QUALITY, it) }
                 if (!tmp.renameTo(out)) tmp.delete()
                 if (scaled !== bitmap) scaled.recycle()
                 bitmap.recycle()
             }
         }
+        for (ref in refs.values.distinctBy { it.key }) {
+            // The day photo (<key>.jpg), then the night one where there is one (<key>-night.jpg).
+            copy(ref.key, ref.resId, ref.slug?.let { CityPhotos.file(context, it) })
+            if (ref.night) copy(ref.key + "-night", ref.nightResId, ref.slug?.let { CityPhotos.nightFile(context, it) })
+        }
         runCatching {
             val map = JSONObject()
-            refs.forEach { (id, r) -> map.put(id, JSONObject().put("key", r.key).put("biasY", r.biasY.toDouble())) }
+            refs.forEach { (id, r) -> map.put(id, JSONObject().put("key", r.key).put("biasY", r.biasY.toDouble()).put("night", r.night)) }
             val tmp = File(folder, "$MAP.part")
             tmp.writeText(map.toString())
             if (!tmp.renameTo(File(folder, MAP))) tmp.delete()
         }
-        val used = refs.values.map { it.key + ".jpg" }.toSet()
+        val used = refs.values.flatMap { listOfNotNull(it.key + ".jpg", if (it.night) it.key + "-night.jpg" else null) }.toSet()
         folder.listFiles { f -> f.name.endsWith(".jpg") && f.name !in used }?.forEach { it.delete() }
         return refs
     }
@@ -464,7 +611,7 @@ object WidgetPhotos {
         o.keys().asSequence().mapNotNull { id ->
             val e = o.optJSONObject(id) ?: return@mapNotNull null
             val key = e.optString("key").ifBlank { return@mapNotNull null }
-            id to Ref(key, e.optDouble("biasY", -0.1).toFloat())
+            id to Ref(key, e.optDouble("biasY", -0.1).toFloat(), night = e.optBoolean("night"))
         }.toMap()
     }.getOrDefault(emptyMap())
 
@@ -477,6 +624,17 @@ object WidgetPhotos {
         if (copy.exists()) decodeFile(copy, maxWidth)?.let { return@runCatching it }
         if (ref.resId != 0) decodeResource(context, ref.resId, maxWidth)?.let { return@runCatching it }
         ref.slug?.let { CityPhotos.file(context, it) }?.let { decodeFile(it, maxWidth) }
+    }.getOrNull()
+
+    /**
+     * A card's night photo for a widget, at most [maxWidth] px wide: its small copy (<key>-night.jpg), else
+     * the original night photo, downsampled. Null when the city has none: the widget then shades the day photo.
+     */
+    fun loadNight(context: Context, ref: Ref, maxWidth: Int = 600): Bitmap? = runCatching {
+        val copy = File(dir(context), ref.key + "-night.jpg")
+        if (copy.exists()) decodeFile(copy, maxWidth)?.let { return@runCatching it }
+        if (ref.nightResId != 0) decodeResource(context, ref.nightResId, maxWidth)?.let { return@runCatching it }
+        ref.slug?.let { CityPhotos.nightFile(context, it) }?.let { decodeFile(it, maxWidth) }
     }.getOrNull()
 
     /** The power-of-two sample size that keeps the decoded width at or above [maxWidth] but near it. */

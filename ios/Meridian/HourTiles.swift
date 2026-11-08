@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The five hour columns every row shares (two hours back, the hour holding the selected moment,
 /// two ahead), as in Meridian for Mac. Column 0 always holds the moment.
@@ -174,50 +175,120 @@ struct HourTiles: View {
         // A new day starts in this tile (usually 00:00, but some clock changes skip midnight).
         let newDay = !cal.isDate(start, inSameDayAs: start.addingTimeInterval(-3600))
         let dim = store.showWorkHours && !store.isWorking(place, at: start.addingTimeInterval(1800))
-        return VStack(spacing: 1) {
-            label(hour: hour, minute: minute, center: k == 0)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .contentTransition(.numericText())
-            if newDay {
-                Text(TimeMath.weekday(start, in: place.timeZone))
-                    .font(.system(size: 9, weight: .medium))
-                    .tracking(0.5)
-                    .textCase(.uppercase)
-                    .lineLimit(1)
+        return TileLabel(hour: hour, minute: minute, use24h: store.use24h, center: k == 0,
+                         weekday: newDay ? TimeMath.weekday(start, in: place.timeZone) : nil)
+            .contentTransition(.numericText())
+            .foregroundStyle(style.text)
+            .padding(.horizontal, 2)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Outside working hours the tile lets a little of the panel through, as on the Mac; only
+            // a little (0.88), so a photo's lit windows never show behind the numbers.
+            .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
+                .fill(Self.legible(style.fill).opacity(dim ? 0.88 : 1)))
+            .overlay(alignment: .leading) {
+                // Midnight: a sunrise-gold mark centred in the gap before the new day, as on the Mac.
+                if newDay {
+                    Capsule()
+                        .fill(Theme.midnight)
+                        .frame(width: 2)
+                        .padding(.vertical, 8)
+                        .offset(x: -(TileGrid.gap / 2 + 1))
+                        .allowsHitTesting(false)
+                }
             }
+    }
+
+    /// The brightest a tile may be (relative luminance): white text on it stays at least 5.5:1.
+    static let maxLuminance = 0.14
+
+    /// The tile's sky colour, kept to its hue but darkened where the ramp is brightest (midday and
+    /// early evening), so white numbers on it always read.
+    static func legible(_ fill: Color) -> Color {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        guard UIColor(fill).getRed(&r, green: &g, blue: &b, alpha: &a) else { return fill }
+        func linear(_ c: CGFloat) -> Double {
+            let c = Double(min(max(c, 0), 1))
+            return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
         }
-        .foregroundStyle(style.text)
-        .padding(.horizontal, 2)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Outside working hours the tile lets a little of the panel through, as on the Mac.
-        .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous).fill(style.fill.opacity(dim ? 0.72 : 1)))
-        .overlay(alignment: .leading) {
-            // Midnight: a sunrise-gold mark centred in the gap before the new day, as on the Mac.
-            if newDay {
-                Capsule()
-                    .fill(Theme.midnight)
-                    .frame(width: 2)
-                    .padding(.vertical, 8)
-                    .offset(x: -(TileGrid.gap / 2 + 1))
-                    .allowsHitTesting(false)
+        func encoded(_ l: Double) -> Double {
+            l <= 0.0031308 ? l * 12.92 : 1.055 * pow(l, 1 / 2.4) - 0.055
+        }
+        let lr = linear(r), lg = linear(g), lb = linear(b)
+        let luminance = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
+        guard luminance > maxLuminance else { return fill }
+        let k = maxLuminance / luminance
+        return Color(.sRGB, red: encoded(lr * k), green: encoded(lg * k), blue: encoded(lb * k), opacity: Double(a))
+    }
+}
+
+/// One tile's words, as on the widgets: the hour in large tabular digits with AM or PM under it,
+/// the minutes in half-hour zones, and the weekday where a new day starts. Sizes follow the
+/// reader's text size (never below 17 pt digits and 11 pt labels, up to the tiles' xxLarge cap).
+/// In half-hour zones the minutes always sit on their own line under the hour, so the layout never
+/// depends on how wide a tile's digits are. When a tile can't hold everything it drops AM/PM, rather
+/// than shrinking the type.
+private struct TileLabel: View {
+    let hour: Int
+    let minute: Int
+    let use24h: Bool
+    let center: Bool
+    let weekday: String?
+
+    @ScaledMetric(relativeTo: .body) private var digitMetric: CGFloat = 17
+    @ScaledMetric(relativeTo: .caption) private var minuteMetric: CGFloat = 12
+    @ScaledMetric(relativeTo: .caption2) private var smallMetric: CGFloat = 11
+
+    private var digitSize: CGFloat { min(max(digitMetric, 17), 21) }
+    private var minuteSize: CGFloat { min(max(minuteMetric, 12), 15) }
+    private var smallSize: CGFloat { min(max(smallMetric, 11), 14) }
+
+    var body: some View {
+        ViewThatFits {
+            // "5", ":30", "PM". Minutes always get their own line, so every tile in a row has
+            // the same layout whatever the width of its own digits ("1:30" next to "12:30").
+            variant(inlineMinutes: false, suffix: true)
+            // Digits only (AM/PM is the least needed: the neighbouring tiles carry it).
+            variant(inlineMinutes: false, suffix: false)
+            // Last resort: the hour line may shrink a little (never below 90%).
+            VStack(spacing: 0) {
+                hourLine(inlineMinutes: true)
+                    .minimumScaleFactor(0.9)
+                if let weekday { weekdayText(weekday) }
             }
+            .monospacedDigit()
+            .lineLimit(1)
         }
     }
 
-    /// "9", "09", "9 AM", "5:30 PM" (minutes and AM/PM set small).
-    private func label(hour: Int, minute: Int, center: Bool) -> Text {
-        let use24h = store.use24h
-        var text = Text(use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)")
-            .font(.system(size: 16, weight: center ? .semibold : .medium))
-        if minute != 0 {
-            text = text + Text(":" + String(format: "%02d", minute)).font(.system(size: 11, weight: .medium))
+    private func variant(inlineMinutes: Bool, suffix: Bool) -> some View {
+        VStack(spacing: 0) {
+            hourLine(inlineMinutes: inlineMinutes)
+            if minute != 0 && !inlineMinutes { minuteText }
+            if suffix, !use24h {
+                Text(hour < 12 ? "AM" : "PM")
+                    .font(.system(size: smallSize, weight: .semibold))
+                    .tracking(0.3)
+            }
+            if let weekday { weekdayText(weekday) }
         }
-        if !use24h {
-            text = text + Text("\u{2009}" + (hour < 12 ? "AM" : "PM")).font(.system(size: minute != 0 ? 8 : 9, weight: .medium))
-        }
-        return text
+        .monospacedDigit()
+        .lineLimit(1)
+    }
+
+    private func hourLine(inlineMinutes: Bool) -> Text {
+        let digits = Text(use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)")
+            .font(.system(size: digitSize, weight: center ? .semibold : .medium))
+        return (minute != 0 && inlineMinutes) ? digits + minuteText : digits
+    }
+
+    private var minuteText: Text {
+        Text(":" + String(format: "%02d", minute)).font(.system(size: minuteSize, weight: .semibold))
+    }
+
+    private func weekdayText(_ weekday: String) -> Text {
+        Text(weekday.uppercased())
+            .font(.system(size: smallSize, weight: .medium))
+            .tracking(0.3)
     }
 }
 
@@ -246,11 +317,10 @@ struct NowCapsule: View {
         GeometryReader { proxy in
             if let frame = Self.capsuleFrame(anchors.map { proxy[$0] }, in: proxy.size) {
                 let shape = Capsule(style: .continuous)
+                // A stroke only: no fill or glow over the middle tiles, so they keep their own
+                // colour and their numbers' contrast.
                 shape
-                    .fill(LinearGradient(colors: [Color.white.opacity(0.07), Color.white.opacity(0.025)],
-                                         startPoint: .top, endPoint: .bottom))
-                    .overlay(shape.strokeBorder(Color.white.opacity(0.62), lineWidth: Self.stroke))
-                    .shadow(color: Color.white.opacity(0.18), radius: 8)
+                    .strokeBorder(Color.white.opacity(0.62), lineWidth: Self.stroke)
                     .frame(width: frame.width, height: frame.height)
                     .position(x: frame.midX, y: frame.midY)
             }

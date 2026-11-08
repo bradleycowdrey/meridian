@@ -37,7 +37,7 @@ import kotlin.math.roundToInt
  * time, the name and what it's doing), medium (two) and large (five) as rows, each its city's photo
  * (shaded for the time of day there, with the cards' scrims) with the time (a live TextClock in the
  * city's zone, so it never goes stale), name and status bottom-left and the hour before, now and the
- * hour after as tiles bottom-right, and one Now capsule down the centre tiles of every row. The photos
+ * hour after as tiles bottom-right (the day photo by day, the night photo by night where the city has one), and one Now capsule down the centre tiles of every row. The photos
  * are small copies the app keeps for them (WidgetPhotos); the widgets never use the network. The
  * pictures and tiles refresh on the hour, and when the time, the zone, the list or the widget's size
  * changes.
@@ -64,6 +64,16 @@ object MeridianWidgets {
     private const val TILES_WEIGHT = 1.1f
     private const val ROW_RADIUS = 12f
     private const val SMALL_RADIUS = 22f
+    /** The smallest AM/PM, status or tile text (sp). */
+    private const val AMPM_MIN_SP = 11f
+    /** The tiles' AM/PM: a fixed AMPM_MIN_SP (11 sp, about 0.8 of a 14 sp hour), so auto-size never shrinks it below. */
+    /**
+     * Tile fills no lighter than this relative luminance (that of #3F6A97, as the app's tiles, DayColor.tile),
+     * so white numbers and AM/PM on them are at least 5.6:1 (1.05 / 0.186).
+     */
+    private const val TILE_MAX_LUMINANCE = 0.136
+    /** Outside working hours a tile is its colour 28% of the way to the night ink (#0A0E1C), opaque, so no photo shows through. */
+    private const val DIM_MIX = 0.28f
 
     /** One worker, so photos are decoded and pictures drawn off the main thread, one update at a time. */
     private val worker = Executors.newSingleThreadExecutor()
@@ -158,6 +168,7 @@ object MeridianWidgets {
             val place = cities.first()
             root.addView(R.id.content, cell(context, R.layout.widget_photo_small, place, refs[place.id], use24h, now, live,
                 w.toFloat(), h.toFloat(), SMALL_RADIUS, maxPx = 400, region = RectF(0f, 0.4f, 0.7f, 0.72f),
+                labels = RectF(0f, 0.66f, 0.85f, 0.94f), column = 0.85f,
                 timeSp = 34f, nameSp = 13f, showStatus = true, tiles = false, work = work))
         } else {
             root.setViewPadding(R.id.content, pad, pad, pad, pad)
@@ -165,14 +176,15 @@ object MeridianWidgets {
             val innerW = w - 2 * PAD
             val innerH = h - 2 * PAD
             val rowH = ((innerH - (n - 1) * ROW_GAP) / n).coerceAtLeast(1f)
-            // Shorter rows: a smaller time, and the status gives way.
-            val showStatus = rowH >= 64f
+            // Shorter rows: a smaller time, and the status gives way (it needs about 66 dp at 11 sp under a 20 sp time).
+            val showStatus = rowH >= 66f
             val timeSp = when { rowH >= 56f -> 20f; rowH >= 46f -> 18f; else -> 15f }
             val nameSp = if (rowH >= 44f) 12f else 11f
             cities.forEachIndexed { i, place ->
                 if (i > 0) root.addView(R.id.content, RemoteViews(context.packageName, R.layout.widget_row_gap))
                 root.addView(R.id.content, cell(context, R.layout.widget_photo_row, place, refs[place.id], use24h, now, live,
                     innerW, rowH, ROW_RADIUS, maxPx = 480, region = RectF(0f, 0.25f, 0.4f, 0.7f),
+                    labels = RectF(0f, 0.42f, 0.47f, 0.95f), column = 0.47f,
                     timeSp = timeSp, nameSp = nameSp, showStatus = showStatus, tiles = true, work = work))
             }
             // One Now capsule down the centre tiles of every row, over the tile column.
@@ -218,12 +230,13 @@ object MeridianWidgets {
 
     private fun cell(
         context: Context, layout: Int, place: Place, ref: WidgetPhotos.Ref?, use24h: Boolean, now: Instant, live: Boolean,
-        wDp: Float, hDp: Float, cornerDp: Float, maxPx: Int, region: RectF,
+        wDp: Float, hDp: Float, cornerDp: Float, maxPx: Int, region: RectF, labels: RectF, column: Float,
         timeSp: Float, nameSp: Float, showStatus: Boolean, tiles: Boolean, work: Work,
     ): RemoteViews {
         val v = RemoteViews(context.packageName, layout)
         val phase = WidgetSky.phase(place, now)
-        val art = WidgetSky.background(context, ref, WidgetPhotos.city(context, place), phase, wDp, hDp, cornerDp, maxPx, region)
+        val art = WidgetSky.background(context, ref, WidgetPhotos.city(context, place), phase, WidgetSky.evening(place, now),
+            wDp, hDp, cornerDp, maxPx, region, labels, column)
         v.setImageViewBitmap(R.id.bg, art.bitmap)
         // Adaptive ink: dark numbers with a white outline on a bright photo, white ones with a dark one otherwise.
         val ink = if (art.bright) darkInk else lightInk
@@ -246,10 +259,10 @@ object MeridianWidgets {
         return v
     }
 
-    /** The time, with AM/PM at 0.45 of its size, as on the cards. */
+    /** The time, with AM/PM at 0.45 of its size, as on the cards, but never under 11 sp. */
     private fun clock(v: RemoteViews, ids: TimeIds, zone: ZoneId, use24h: Boolean, now: Instant, live: Boolean, size: Float) {
         listOf(ids.clock, ids.clockStatic).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, size) }
-        listOf(ids.ampm, ids.ampmStatic).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, size * 0.45f) }
+        listOf(ids.ampm, ids.ampmStatic).forEach { v.setTextViewTextSize(it, TypedValue.COMPLEX_UNIT_SP, maxOf(size * 0.45f, AMPM_MIN_SP)) }
         if (live) {
             v.setViewVisibility(ids.clockStatic, View.GONE)
             v.setViewVisibility(ids.ampmStatic, View.GONE)
@@ -279,25 +292,43 @@ object MeridianWidgets {
         val hourStart = now.atZone(zone).withMinute(0).withSecond(0).withNano(0)
         listOf(R.id.tile0 to -1L, R.id.tile1 to 0L, R.id.tile2 to 1L).forEach { (id, k) ->
             val at = hourStart.plusHours(k)
-            val color = DayColor.at(at.hour + at.minute / 60.0)
-            // "10 AM" with a smaller AM, as on the iPhone, so it fits its tile.
+            val color = capped(DayColor.at(at.hour + at.minute / 60.0))
+            // "10 AM" with a smaller AM, as on the iPhone, so it fits its tile (about 11 sp on a 14 sp tile).
             val label = TimeMath.hourLabel(at.hour, use24h)
             val text = android.text.SpannableString(label)
             val cut = label.indexOfFirst { it == 'A' || it == 'P' }
-            if (cut > 0) text.setSpan(android.text.style.RelativeSizeSpan(0.68f), cut, label.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (cut > 0) text.setSpan(android.text.style.AbsoluteSizeSpan(AMPM_MIN_SP.roundToInt(), true), cut, label.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             v.setTextViewText(id, text)
             v.setTextColor(id, 0xFFFFFFFF.toInt())
             val dim = work.show && !WorkWeek.isWorking(place, at.toInstant().plusSeconds(1800), work.start, work.end)
-            val fill = if (dim) (color and 0x00FFFFFF) or (0xB8 shl 24) else color
+            // Opaque either way: the dimmed tile is darker, not see-through, so photo highlights never sit under its text.
+            val fill = if (dim) mix(color, 0xFF0A0E1C.toInt(), DIM_MIX) else color
             if (Build.VERSION.SDK_INT >= 31) v.setColorStateList(id, "setBackgroundTintList", ColorStateList.valueOf(fill))
             else v.setInt(id, "setBackgroundColor", fill)
         }
     }
 
+    /** [rgb] with its linear light scaled down (same hue) so its relative luminance is at most [TILE_MAX_LUMINANCE]. */
+    private fun capped(rgb: Int): Int {
+        fun lin(v: Int): Double { val c = v / 255.0; return if (c <= 0.04045) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4) }
+        fun enc(l: Double): Int { val c = if (l <= 0.0031308) l * 12.92 else 1.055 * Math.pow(l, 1 / 2.4) - 0.055; return (c * 255).roundToInt().coerceIn(0, 255) }
+        val r = lin((rgb shr 16) and 0xFF); val g = lin((rgb shr 8) and 0xFF); val b = lin(rgb and 0xFF)
+        val l = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        if (l <= TILE_MAX_LUMINANCE) return rgb
+        val k = TILE_MAX_LUMINANCE / l
+        return (0xFF shl 24) or (enc(r * k) shl 16) or (enc(g * k) shl 8) or enc(b * k)
+    }
+
+    /** Opaque [a] moved [t] of the way to [b]. */
+    private fun mix(a: Int, b: Int, t: Float): Int {
+        fun ch(shift: Int) = ((((a shr shift) and 0xFF) * (1 - t) + ((b shr shift) and 0xFF) * t).roundToInt()).coerceIn(0, 255)
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    }
+
     /**
      * The Now capsule, as on the cards: through the centre tile of every row, from a little above the
-     * first row's tile to a little below the last's, a little wider than the tile; white 62% outline, a
-     * faint glass fill and a soft glow. Drawn for the tile column ([blockWDp] by [heightDp]), which the
+     * first row's tile to a little below the last's, a little wider than the tile; a white 62% outline only
+     * (no glass fill or glow, which lightened the Now tile under its text). Drawn for the tile column ([blockWDp] by [heightDp]), which the
      * layout stretches to fit, so it stays on the tiles if the launcher's size is a little off.
      */
     private fun capsule(density: Float, blockWDp: Float, heightDp: Float, n: Int, rowHDp: Float): Bitmap? {
@@ -320,18 +351,6 @@ object MeridianWidgets {
         val radius = rect.width() / 2f
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         fun white(alpha: Float) = ((alpha * 255).roundToInt().coerceIn(0, 255) shl 24) or 0xFFFFFF
-        // The glow: wider, fainter strokes behind.
-        paint.style = Paint.Style.STROKE
-        for ((spread, alpha) in listOf(10f to 0.035f, 7f to 0.05f, 4f to 0.07f)) {
-            paint.strokeWidth = spread * s
-            paint.color = white(alpha)
-            c.drawRoundRect(rect, radius, radius, paint)
-        }
-        // The glass.
-        paint.style = Paint.Style.FILL
-        paint.shader = LinearGradient(0f, top, 0f, bottom, white(0.07f), white(0.025f), Shader.TileMode.CLAMP)
-        c.drawRoundRect(rect, radius, radius, paint)
-        paint.shader = null
         // The outline, 2 dp.
         val stroke = 2f * s
         paint.style = Paint.Style.STROKE
@@ -353,10 +372,12 @@ object MeridianWidgets {
 }
 
 /**
- * A widget's photo, drawn as the cards draw theirs: cropped to fill (a little above centre), shaded for
- * the time of day there (night darker and cooler, dawn and dusk warmer, day as taken), under the cards'
- * scrims (darkest at the bottom and the left), with rounded corners; or, with no photo, a sky for the
- * time of day with a skyline drawn for the city.
+ * A widget's photo, drawn as the cards draw theirs: cropped to fill (a little above centre), the city's
+ * day photo by day and its night photo (the app's <key>-night.jpg copy) by night and after sunset, each
+ * as taken; dawn is the day photo a little warmer, and a city with no night photo has its day photo
+ * darkened and cooled as before. Under the scrims (the bottom and the text column), strengthened where
+ * the photo is bright so the white text keeps 4.5:1, with rounded corners; or, with no photo, a sky for
+ * the time of day with a skyline drawn for the city.
  */
 private object WidgetSky {
     enum class Phase { DAY, TWILIGHT, NIGHT }
@@ -376,7 +397,10 @@ private object WidgetSky {
         return if (now) Phase.DAY else Phase.NIGHT
     }
 
-    /** The cards' shading: night about 45% darker and a little cooler; dawn and dusk a little warmer; day as taken. */
+    /** After midday on the city's clock: twilight then is dusk (night photo), before it dawn (day photo). */
+    fun evening(place: Place, at: Instant): Boolean = at.atZone(place.zone).hour >= 12
+
+    /** The fallback shading, for a city with no night photo: night about 45% darker and a little cooler; dawn and dusk a little warmer; day as taken. */
     private fun gain(phase: Phase): FloatArray? = when (phase) {
         Phase.NIGHT -> floatArrayOf(0.400f, 0.459f, 0.522f)
         Phase.TWILIGHT -> floatArrayOf(0.941f, 0.820f, 0.714f)
@@ -395,8 +419,8 @@ private object WidgetSky {
      * a widget's pictures stay small. [region] is where the time is, as fractions of the card.
      */
     fun background(
-        context: Context, ref: WidgetPhotos.Ref?, city: String, phase: Phase,
-        wDp: Float, hDp: Float, cornerDp: Float, maxPx: Int, region: RectF,
+        context: Context, ref: WidgetPhotos.Ref?, city: String, phase: Phase, evening: Boolean,
+        wDp: Float, hDp: Float, cornerDp: Float, maxPx: Int, region: RectF, labels: RectF, column: Float,
     ): Art {
         val density = context.resources.displayMetrics.density
         val scale = minOf(density, maxPx / wDp.coerceAtLeast(1f)).coerceAtLeast(0.25f)
@@ -406,7 +430,10 @@ private object WidgetSky {
         val c = Canvas(out)
         val w = bw.toFloat()
         val h = bh.toFloat()
-        val photo = ref?.let { WidgetPhotos.load(context, it, minOf(bw, 600)) }
+        // Night, and dusk: the night photo as taken. Else (or with no night photo) the day photo, shaded as before.
+        val wantsNight = phase == Phase.NIGHT || (phase == Phase.TWILIGHT && evening)
+        val night = if (wantsNight && ref != null) WidgetPhotos.loadNight(context, ref, minOf(bw, 600)) else null
+        val photo = night ?: ref?.let { WidgetPhotos.load(context, it, minOf(bw, 600)) }
         if (photo != null && ref != null) {
             // Crop to fill, then a little above centre, as the cards.
             val iw = photo.width.toFloat()
@@ -417,7 +444,7 @@ private object WidgetSky {
             val offX = (w - dw) / 2f
             val offY = (h - dh) / 2f * (1f + ref.biasY)
             val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
-            gain(phase)?.let { g ->
+            (if (night != null) null else gain(phase))?.let { g ->
                 paint.colorFilter = ColorMatrixColorFilter(ColorMatrix(floatArrayOf(
                     g[0], 0f, 0f, 0f, 0f,
                     0f, g[1], 0f, 0f, 0f,
@@ -430,15 +457,40 @@ private object WidgetSky {
         } else {
             drawn(c, w, h, phase, city, scale)
         }
-        // The cards' scrim: black 55% at the bottom fading to nothing by 55% of the height, and black 35%
-        // at the left fading to nothing by 60% of the width.
+        // The scrims, each a two-colour gradient over its own band: black 60% at the bottom fading to nothing
+        // by half the height, and black 55% at the left fading to nothing across the text column.
         val scrim = Paint()
-        scrim.shader = LinearGradient(0f, 0f, 0f, h, intArrayOf(0, 0, 0x33000000, 0x8C000000.toInt()),
-            floatArrayOf(0f, 0.45f, 0.7f, 1f), Shader.TileMode.CLAMP)
-        c.drawRect(0f, 0f, w, h, scrim)
-        scrim.shader = LinearGradient(0f, 0f, w * 0.6f, 0f, 0x59000000, 0, Shader.TileMode.CLAMP)
-        c.drawRect(0f, 0f, w, h, scrim)
+        scrim.shader = LinearGradient(0f, h * 0.5f, 0f, h, 0, 0x99000000.toInt(), Shader.TileMode.CLAMP)
+        c.drawRect(0f, h * 0.5f, w, h, scrim)
+        scrim.shader = LinearGradient(0f, 0f, w * column, 0f, 0x8C000000.toInt(), 0, Shader.TileMode.CLAMP)
+        c.drawRect(0f, 0f, w * column, h, scrim)
+        scrim.shader = null
+        // Darken a text area until its 90th-percentile pixel is at most WHITE_MAX (white text 4.5:1): a black
+        // layer from the area's top to the bottom, feathered above and to the right (two-colour gradients
+        // over exact bands). A black layer at alpha a scales sRGB by (1 - a), so linear light by about (1 - a)^2.2.
+        fun clear(area: RectF) {
+            val high = percentile(out, area, 0.9f)
+            if (high <= WHITE_MAX) return
+            val a = (1.0 - Math.pow((WHITE_MAX / high).toDouble(), 1 / 2.2)).toFloat().coerceIn(0f, 0.7f)
+            val k = (a * 255).roundToInt().coerceIn(0, 255) shl 24
+            val t = area.top * h
+            val r = minOf(area.right * w, w)
+            val feather = 0.12f * maxOf(w, h)
+            val layer = Paint()
+            layer.color = k
+            c.drawRect(0f, t, r, h, layer)
+            // Opaque paint: the shader carries the alpha (else the feathers peak at a squared, a visible step).
+            layer.color = 0xFF000000.toInt()
+            layer.shader = LinearGradient(0f, t - feather, 0f, t, 0, k, Shader.TileMode.CLAMP)
+            c.drawRect(0f, maxOf(t - feather, 0f), r, t, layer)
+            layer.shader = LinearGradient(r, 0f, r + feather, 0f, k, 0, Shader.TileMode.CLAMP)
+            c.drawRect(r, t, minOf(r + feather, w), h, layer)
+        }
+        // The name and status are always white.
+        clear(labels)
+        // Adaptive ink: dark numbers where the photo behind the time is still bright; else white ones, cleared too.
         val bright = luminance(out, region) > 0.40f
+        if (!bright) clear(RectF(labels).apply { union(region) })
         // Rounded corners: clear outside them (anti-aliased).
         if (cornerDp > 0f) {
             val r = cornerDp * scale
@@ -502,23 +554,35 @@ private object WidgetSky {
         }
     }
 
-    private fun linear(c: Float): Double =
-        if (c <= 0.04045f) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
+    /** The brightest a background behind white text may be (relative luminance) for 4.5:1: 1.05 / 4.5 - 0.05. */
+    private const val WHITE_MAX = 0.183f
 
-    /** The mean relative luminance of the picture in [region] (fractions), sampled on a 16 by 8 grid. */
-    private fun luminance(b: Bitmap, region: RectF): Float {
-        var sum = 0.0
+    /** The [q] quantile of relative luminance in [region] (fractions), sampled on a 16 by 8 grid. */
+    private fun percentile(b: Bitmap, region: RectF, q: Float): Float {
+        val values = samples(b, region)
+        values.sort()
+        return values[((values.size - 1) * q).roundToInt().coerceIn(0, values.size - 1)].toFloat()
+    }
+
+    private fun samples(b: Bitmap, region: RectF): DoubleArray {
         val cols = 16
         val rows = 8
+        val out = DoubleArray(cols * rows)
         for (j in 0 until rows) for (i in 0 until cols) {
             val x = ((region.left + region.width() * (i + 0.5f) / cols) * b.width).toInt().coerceIn(0, b.width - 1)
             val y = ((region.top + region.height() * (j + 0.5f) / rows) * b.height).toInt().coerceIn(0, b.height - 1)
             val p = b.getPixel(x, y)
-            sum += 0.2126 * linear(((p shr 16) and 0xFF) / 255f) + 0.7152 * linear(((p shr 8) and 0xFF) / 255f) +
+            out[j * cols + i] = 0.2126 * linear(((p shr 16) and 0xFF) / 255f) + 0.7152 * linear(((p shr 8) and 0xFF) / 255f) +
                 0.0722 * linear((p and 0xFF) / 255f)
         }
-        return (sum / (cols * rows)).toFloat()
+        return out
     }
+
+    private fun linear(c: Float): Double =
+        if (c <= 0.04045f) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
+
+    /** The mean relative luminance of the picture in [region] (fractions), sampled on a 16 by 8 grid. */
+    private fun luminance(b: Bitmap, region: RectF): Float = samples(b, region).average().toFloat()
 }
 
 /** Hourly alarm, and the phone's time, time zone or date changing: redraw the widgets. */

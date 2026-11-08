@@ -74,7 +74,7 @@ Istanbul|Istanbul|Europe/Istanbul|İstanbul;IST
 Moscow|Moscow|Europe/Moscow|Moskva;SVO
 # Africa
 Cairo|Cairo|Africa/Cairo|CAI
-Casablanca|Casablanca|Africa/Casablanca|CMN|-File:Navire conteneur SKYLINE naviguant en mer de Casablanca.jpg;-File:Sydney Skyline (2049716731).jpg
+Casablanca|Casablanca|Africa/Casablanca|CMN;Hassan II|-File:Navire conteneur SKYLINE naviguant en mer de Casablanca.jpg;-File:Sydney Skyline (2049716731).jpg;-File:Casablanca (203660919).jpeg
 Lagos|Lagos|Africa/Lagos|LOS
 Accra|Accra|Africa/Accra|ACC|-File:Power lines and skyline view from North Dzorwulu (IMG 6833).jpg
 Addis Ababa|Addis Ababa|Africa/Addis_Ababa|ADD
@@ -90,7 +90,7 @@ Abu Dhabi|Abu Dhabi|Asia/Dubai|AUH
 Tehran|Tehran|Asia/Tehran|IKA
 # Asia
 Karachi|Karachi|Asia/Karachi|KHI
-Delhi|Delhi|Asia/Kolkata|New Delhi;DEL|-File:Delhi-silhouette, a setting sun against a typical historic skyline 01.jpg
+Delhi|Delhi|Asia/Kolkata|New Delhi;DEL|File:Skyline at Rajiv Chowk.JPG
 Mumbai|Mumbai|Asia/Kolkata|Bombay;BOM
 Bengaluru|Bengaluru|Asia/Kolkata|Bangalore;BLR
 Hyderabad|Hyderabad|Asia/Kolkata|HYD
@@ -103,7 +103,7 @@ Ho Chi Minh City|Ho Chi Minh City|Asia/Ho_Chi_Minh|Ho Chi Minh;Saigon;SGN
 Kuala Lumpur|Kuala Lumpur|Asia/Kuala_Lumpur|KL;KUL
 Singapore|Singapore|Asia/Singapore|SIN
 Jakarta|Jakarta|Asia/Jakarta|CGK|-File:The Polluters' Fog Jakarta skyline - panoramio.jpg
-Manila|Manila|Asia/Manila|MNL|-File:Skyline in Manila 34.jpg;-File:Skyline in Manila 36.jpg
+Manila|Manila|Asia/Manila|MNL;Makati|-File:Skyline in Manila 34.jpg;-File:Skyline in Manila 36.jpg;-File:Skyline in Manila 16.jpg
 Hong Kong|Hong Kong|Asia/Hong_Kong|HK;HKG
 Shenzhen|Shenzhen|Asia/Shanghai|SZX
 Guangzhou|Guangzhou|Asia/Shanghai|Canton;CAN

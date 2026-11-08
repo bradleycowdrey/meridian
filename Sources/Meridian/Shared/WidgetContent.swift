@@ -174,11 +174,15 @@ enum DayColor {
     }
 
     #if os(iOS)
-    /// An hour outside working hours, as the app's tiles (HourTiles.offHours): the hour's sky at 55%
-    /// of its luminance (never darker than the night tile, #0A0E1C), same hue, fully opaque, so the
-    /// photo never shows through behind the numerals.
-    static let offHoursFactor = 0.55
+    /// An hour outside working hours, as the app's tiles (HourTiles.offHours): the hour's sky at 30%
+    /// of its luminance (was 55%), capped at `offHoursCap` and never darker than the night tile
+    /// (#0A0E1C), same hue, fully opaque, so the photo never shows through behind the numerals. At 55%
+    /// a midday off tile (42,76,116) sat 1.48:1 from the working tile (58,102,153); now (10,24,41) is
+    /// 3.2:1 (WCAG 1.4.11), white on it 17.8:1. The cap is 0.006, as the app's HourTiles.offHoursCap,
+    /// so the midday working tile (0.127) stands 3.2:1 from it.
+    static let offHoursFactor = 0.30
     static let offHoursFloor = 0.0048
+    static let offHoursCap = 0.006
 
     static func offHoursFill(at hour: Double) -> Color {
         let rgb = rgbAt(hour)
@@ -192,7 +196,7 @@ enum DayColor {
         let lr = linear(rgb.0), lg = linear(rgb.1), lb = linear(rgb.2)
         let luminance = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb
         guard luminance > 0 else { return Color(red: rgb.0, green: rgb.1, blue: rgb.2) }
-        let k = max(min(luminance, offHoursFloor), luminance * offHoursFactor) / luminance
+        let k = min(max(min(luminance, offHoursFloor), luminance * offHoursFactor), offHoursCap) / luminance
         return Color(red: encoded(lr * k), green: encoded(lg * k), blue: encoded(lb * k))
     }
     #endif
@@ -928,13 +932,12 @@ enum WidgetSkylines {
     static var inAppImage: ((WidgetSnapshot.City) -> CGImage?)?
     static var inAppNightImage: ((WidgetSnapshot.City) -> CGImage?)?
 
-    /// The photo the city shows at `date`: its night photo once the sun has set there (until the
-    /// hour before sunrise), otherwise, or when it has none, its day photo (which WidgetSky.look
-    /// then tints for the time of day, as before). Nil: the widget draws its sky.
+    /// The photo the city shows at `date`: by day its day photo (which WidgetSky.look then tints for
+    /// the time of day); after dark (once the sun has set there, until the hour before sunrise) its
+    /// night photo, or nil (the drawn night sky) when it has none; a day photo is never darkened to
+    /// stand in for night. Nil: the widget draws its sky. Matches the app's Skyline.photo(for:at:).
     static func photo(for city: WidgetSnapshot.City, at date: Date) -> Photo? {
-        if WidgetSky.wantsNightPhoto(city, at: date), let night = image(for: city, night: true) {
-            return night
-        }
+        if WidgetSky.wantsNightPhoto(city, at: date) { return image(for: city, night: true) }
         return image(for: city, night: false)
     }
 
@@ -989,7 +992,7 @@ enum WidgetSkylines {
     }
 
     /// What the scrim behind a card's text has to do: `boost`, a flat layer of extra black over the
-    /// name, status and time (bottom-left, feathered 12 pt above and to the right, as Android's
+    /// name, status and time (bottom-left, feathered 12 pt above and wide to the right, as Android's
     /// clear()) so the white name and status keep about 7.5:1 (p95 at most WidgetScrim.labelMax) and the time 5:1 against the brightest twentieth (p95), sampled
     /// 6 pt past the glyphs, of the photo behind it, and `bright`, whether the area behind the time is still too bright for white and bright on
     /// average (the time then switches to dark ink, as the app's, and the boost covers the name only).
@@ -998,8 +1001,13 @@ enum WidgetSkylines {
         var bright = false
     }
 
-    /// The feather around the boost, in points.
+    /// The feather above the boost, in points.
     static let boostFeather: CGFloat = 12
+    /// The feather to the right of the boost, as a fraction of the card's longer side (Android's
+    /// clear() uses 0.20 with a linear ramp; this eased ramp is steeper in its middle, so 0.30). It
+    /// was 12 pt, which ended the boost in a visible seam on a bright day sky (NY: 96 to 171 in
+    /// 8 pt); over about 100 pt on a medium row the steepest 8 pt changes by at most about 10 levels.
+    static let boostFeatherAcross: Double = 0.30
 
     /// `textRegion` and `timeRegion` are areas of a card of `size` in its unit square (top-left
     /// origin): where the name and status sit, and where the time does. The boost covers both.
@@ -1008,13 +1016,13 @@ enum WidgetSkylines {
         let w = max(Double(size.width), 1), h = max(Double(size.height), 1)
         let aspect = CGFloat(w / h)
         // The boost's shape: full over `region` and everything below and left of it, feathered
-        // 12 pt above and to the right.
+        // 12 pt above and 30% of the card's longer side to the right.
         func shaped(_ region: CGRect, amount: Double) -> WidgetScrim.Boost {
             let top = min(max(Double(region.minY), 0), 1)
             let right = min(max(Double(region.maxX), 0), 1)
             return WidgetScrim.Boost(amount: amount, top: top, right: right,
                                      featherV: min(Double(boostFeather) / h, top),
-                                     featherH: min(Double(boostFeather) / w, 1 - right))
+                                     featherH: min(boostFeatherAcross * max(w, h) / w, 1 - right))
         }
         // Sampled (and boosted) 6 pt past the glyphs on every side, so the halo around the name and
         // the digits counts too (bright brick right beside "9:41" measured 4.35:1 when it didn't).
@@ -1749,8 +1757,8 @@ struct WidgetPhotoTile: View {
             }
         }
         .foregroundStyle(style.text)
-        // Clear of the tile's rounded corners: 6 pt each side (was 1), 2 pt for "12:30" (digits may shrink to 0.85).
-        .padding(.horizontal, stacked ? (minute != 0 ? 2 : 6) : 3)
+        // Clear of the tile's rounded corners: 6 pt each side (was 1), 3 pt for "10:30" (was 2; digits step down a size first, then may shrink to 0.85).
+        .padding(.horizontal, stacked ? (minute != 0 ? 3 : 6) : 3)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Off-hours tiles are darkened, never see-through (was 88% opacity: the photo showed
         // through behind the numerals), as the app's.
@@ -1774,13 +1782,15 @@ struct WidgetPhotoTile: View {
         use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)"
     }
 
-    /// `digits` (`size`, default `digitSize`: 16 pt over AM/PM, else 14), with ":30" at 12 pt in
-    /// half-hour zones.
+    /// `digits` (`size`, default `digitSize`: 16 pt over AM/PM, else 14), with ":30" at 0.8x the
+    /// digits (11 to 12 pt, never under Apple's 11 pt) in half-hour zones.
     private func label(_ digits: String, minute: Int, size: CGFloat? = nil, weight: Font.Weight? = nil) -> Text {
+        let digitPoints = size ?? (minute != 0 ? 14 : digitSize)
         var text = Text(digits)
-            .font(.system(size: size ?? (minute != 0 ? 14 : digitSize), weight: weight ?? (center ? .semibold : .medium)))
+            .font(.system(size: digitPoints, weight: weight ?? (center ? .semibold : .medium)))
         if minute != 0 {
-            text = text + Text(":" + String(format: "%02d", minute)).font(.system(size: min(12, size ?? 12), weight: .medium))
+            text = text + Text(":" + String(format: "%02d", minute))
+                .font(.system(size: min(12, max(11, digitPoints * 0.8)), weight: .medium))
         }
         return text.monospacedDigit()
     }

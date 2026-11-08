@@ -29,16 +29,19 @@ struct DateJumpView: View {
                 VStack(spacing: 10) {
                     answer
                     quickPicks
+                    // The time first, right under the answer: on a 6.1-inch phone its wheel sat under
+                    // the Go bar at first open. Now the whole wheel and the month's title and first
+                    // weeks show before any scroll.
+                    VStack(alignment: .leading, spacing: 10) {
+                        CardCaption("Time", "clock")
+                        timePicker
+                    }
+                    .glassCard()
                     VStack(alignment: .leading, spacing: 10) {
                         CardCaption("Date", "calendar")
                         // Our own month, not DatePicker(.graphical): UIKit draws its weekday row in a gray
                         // that measured 2.45:1 on the card. Here every letter and number is 6.6:1 or more.
                         MonthGrid(day: $day, calendar: calendar, today: store.now)
-                    }
-                    .glassCard()
-                    VStack(alignment: .leading, spacing: 10) {
-                        CardCaption("Time", "clock")
-                        timePicker
                     }
                     .glassCard()
                     if !store.places.isEmpty {
@@ -54,14 +57,8 @@ struct DateJumpView: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
-            // A 24 pt fade at the foot of the scroll, just above the bar (the scroll view's frame ends
-            // where the bar's inset begins), so a card scrolled under it reads as "more below", not cut off.
-            .overlay(alignment: .bottom) {
-                LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg.opacity(0.85)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 24)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
+            // No fade above the bar: content faded under it showed as ghost digits (1.1:1). The bar is
+            // opaque with a hairline edge, so what scrolls under it is simply hidden.
             .safeAreaInset(edge: .bottom, spacing: 0) { goButton }
             .navigationTitle("Go to a Time")
             .navigationBarTitleDisplayMode(.inline)
@@ -98,8 +95,10 @@ struct DateJumpView: View {
     private var answer: some View {
         let parts = ClockText.parts(hour: calendar.component(.hour, from: moment), minute: calendar.component(.minute, from: moment), use24h: store.use24h)
         return VStack(spacing: 4) {
-            ClockText.text(parts.digits, suffix: parts.suffix, size: answerSize, weight: .thin)
-                .tracking(-2)
+            // Medium, as the cards' times (Thin's 3 pt strokes blurred at arm's length); AM/PM is
+            // one step lighter (Regular), so the digits stay the heaviest part.
+            ClockText.text(parts.digits, suffix: parts.suffix, size: answerSize, weight: .medium)
+                .tracking(-1)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -130,8 +129,10 @@ struct DateJumpView: View {
                     .accessibilityLabel("Type hours from now")
             }
             .padding(.horizontal, Card.margin)
+            .padding(.trailing, 24 - Card.margin)
         }
-        // Runs to the screen's edges, so a cut-off chip reads as "scroll for more".
+        // Runs to the screen's edges, and a chip cut there fades out: "scroll for more".
+        .chipRowFade()
         .padding(.horizontal, -Card.margin)
     }
 
@@ -213,8 +214,11 @@ struct DateJumpView: View {
         .buttonStyle(.plain)
         .padding(.horizontal, Card.margin)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial, ignoresSafeAreaEdges: .bottom)
-        .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
+        // Opaque, as the main screen's bars: nothing shows through behind the button.
+        .background(Theme.bar, ignoresSafeAreaEdges: .bottom)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Color.white.opacity(Theme.Op.track)).frame(height: 0.5).accessibilityHidden(true)
+        }
         .environment(\.colorScheme, .dark)
     }
 

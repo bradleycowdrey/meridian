@@ -130,7 +130,8 @@ enum ClockText {
         let main = Text(digits).font(.system(size: size, weight: weight)).monospacedDigit()
         guard let suffix else { return main }
         let small = Text("\u{2009}" + suffix)
-            .font(.system(size: max(13, size * 0.42), weight: .medium))
+            // One step lighter than the digits (they are Medium or heavier), so the time leads.
+            .font(.system(size: max(13, size * 0.42), weight: .regular))
             .baselineOffset(size * 0.36)
         return Text("\(main)\(small)")
     }
@@ -153,8 +154,9 @@ struct CardCaption: View {
     }
 
     var body: some View {
+        // Footnote (13 pt), not caption: in capitals its cap height is ~9.2 pt (was 8.5 pt).
         Label(title.uppercased(), systemImage: symbol)
-            .font(.caption.weight(.semibold))
+            .font(.footnote.weight(.semibold))
             .foregroundStyle(Color.white.opacity(Theme.Op.caption))
     }
 }
@@ -198,6 +200,19 @@ extension View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: Card.radius, style: .continuous))
             .environment(\.colorScheme, .dark)
+    }
+
+    /// A horizontal chip row: its trailing `width` fades to clear (one two-colour band), so a chip
+    /// cut by the edge reads as "more to scroll", never as a clipped word ("Sat 1", "+ Ne"). Give
+    /// the row's content at least `width` of trailing padding, so its last chip ends clear.
+    func chipRowFade(_ width: CGFloat = 24) -> some View {
+        mask {
+            HStack(spacing: 0) {
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: width)
+            }
+        }
     }
 
     /// A form section's rows: a faint white fill on the sheet's background.

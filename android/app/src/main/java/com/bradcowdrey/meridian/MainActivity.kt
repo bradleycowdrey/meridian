@@ -210,7 +210,8 @@ val tnum: TextStyle
 fun clockText(digits: String, suffix: String?): AnnotatedString = buildAnnotatedString {
     withStyle(SpanStyle(fontFeatureSettings = "tnum")) { append(digits) }
     if (suffix != null) {
-        withStyle(SpanStyle(fontSize = 0.42.em, baselineShift = BaselineShift(0.5f), fontWeight = FontWeight.Medium)) {
+        // One step lighter than the digits (Go to a Time's Medium answer), so the time leads, as on the iPhone.
+        withStyle(SpanStyle(fontSize = 0.42.em, baselineShift = BaselineShift(0.5f), fontWeight = FontWeight.Normal)) {
             append(TimeMath.THIN + suffix)
         }
     }
@@ -675,7 +676,8 @@ fun GroupBar(store: Store, open: (String) -> Unit) {
     }
     LazyRow(state = state, contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().selectableGroup().semantics { contentDescription = "Groups" }) {
+        // The trailing 24 dp fades while there's more to scroll, so a cut chip ("+ Ne") reads as "more", not a clipped word.
+        modifier = Modifier.fillMaxWidth().fadeEnd(state).selectableGroup().semantics { contentDescription = "Groups" }) {
         item(key = "__all") {
             GroupChip("All", filter == null, "All, ${cityCount(store.places.size)}", emptyList(), onClick = { select(null) }) { _ -> }
         }
@@ -787,8 +789,10 @@ fun ClockNotice(change: ClockChange, use24h: Boolean, onClose: () -> Unit) {
 fun TimeShifter(store: Store, goToTime: () -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         if (!store.hasScrubbed) {
-            Text("Drag the hours or the ruler to change the time.", fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
-                color = white(0.7f), textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            // The iPhone's words; two lines allowed at large text (1.3x and up), so it never ends in an ellipsis.
+            Text("Drag the hours or the ruler.", fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
+                color = white(0.7f), textAlign = TextAlign.Center, maxLines = if (LocalDensity.current.fontScale >= 1.3f) 2 else 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 16.dp, end = 16.dp).heightIn(min = 17.dp))
         }
         // Now on the left, the ruler filling the middle, Go to a Time at the far right.
@@ -1598,6 +1602,10 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         val nightShown = if (photo != null) bundled != null && nightResId != 0 && bundled.first == nightResId
             else downloadedNight != null
         val shade = Skyline.shadeFor(phase, nightPhoto = nightShown)
+        // Night with no night photo for this city (built in without one, or a download whose night search found none
+        // or is still on its way): the drawn night skyline, not the day photo darkened. Drawing only: the photos above
+        // still load and prefetch as before, so a jump back to day shows the day photo at once.
+        val drawnNight = shade == Skyline.Shade.NIGHT && (photo == null || nightResId == 0)
         val biasY = Skyline.biasY(photo?.key)
         val id = (if (photo != null) "res:${photo.key}" else "dl:$slug") + if (nightShown) ":night" else ""
         // The scrim's boost behind the name column (so the white name, zone and status keep 4.5:1) and the adaptive
@@ -1623,18 +1631,21 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
             else -> last[0] ?: ShownPhoto(bitmap, shade, Skyline.provisionalLook(nightPhoto = nightShown))
         }
         // The boost eases (0.25 s) from the provisional look to the measured one, so the name column never flashes dark.
-        val boostTarget = shown?.look?.boost ?: 0f
+        val boostTarget = if (drawnNight) 0f else shown?.look?.boost ?: 0f
         val boost by animateFloatAsState(boostTarget, tween(250), label = "scrim boost")
-        val bright = shown?.look?.bright ?: Skyline.drawnIsBright(phase)
+        val bright = if (drawnNight) Skyline.drawnIsBright(phase) else shown?.look?.bright ?: Skyline.drawnIsBright(phase)
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
-            if (shown != null) {
-                // Photo to photo (day to night, and back) crossfades over 0.3 s; the first photo just appears.
-                Crossfade(targetState = shown.bitmap to shown.shade, modifier = Modifier.matchParentSize(), animationSpec = tween(300), label = "skyline") { (pic, how) ->
-                    Image(pic, contentDescription = null, contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, biasY),
-                        colorFilter = if (Diag.has("shade")) null else Skyline.filter(how), modifier = Modifier.fillMaxSize())
+            // Photo to drawn skyline (a city with no night photo at sunset, and back at sunrise) fades over 0.3 s too.
+            Crossfade(targetState = shown != null && !drawnNight, modifier = Modifier.matchParentSize(), animationSpec = tween(300), label = "drawn night") { photoShown ->
+                if (photoShown && shown != null) {
+                    // Photo to photo (day to night, and back) crossfades over 0.3 s; the first photo just appears.
+                    Crossfade(targetState = shown.bitmap to shown.shade, modifier = Modifier.matchParentSize(), animationSpec = tween(300), label = "skyline") { (pic, how) ->
+                        Image(pic, contentDescription = null, contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, biasY),
+                            colorFilter = if (Diag.has("shade")) null else Skyline.filter(how), modifier = Modifier.fillMaxSize())
+                    }
+                } else {
+                    DrawnSkyline(city, phase, Modifier.matchParentSize())
                 }
-            } else {
-                DrawnSkyline(city, phase, Modifier.matchParentSize())
             }
             // The scrim, the only darkening over a photo that's shown as taken: black 60% at the bottom fading
             // to 25% at 72% of the height and nothing by half of it, and black 50% held over the left 34% then
@@ -1884,7 +1895,7 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val fill = DayColor.tile(hour + minute / 60.0)
     val text = Color.White
     // Outside working hours, as on the Mac: the tile a little quieter, and opaque (its colour mixed toward the
-    // night ink, as the widget does, via TileDim), so no photo shows through behind the numbers.
+    // sky at 30% of its luminance, via TileDim), so no photo shows through behind the numbers.
     val dim = store.showWorkHours && !store.isWorking(place, start.plusSeconds(1800))
     val fillColor by animateColorAsState(Color(if (dim) TileDim.opaque(fill) else fill), tween(250), label = "tile")
     val textColor by animateColorAsState(text, tween(250), label = "tile text")
@@ -1911,12 +1922,13 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
         val room = height.value - 2f
         val digitsH = 18f * grow
         val suffixH = 14f * grow
-        val dayH = 12f * grow
+        val dayH = 11f * grow
         // AM/PM always: a bare "12" could be noon or midnight, and every neighbouring tile has its AM/PM. The day
-        // (12 / AM / WED) only where all three lines fit with 4 dp clear top and bottom (2 for two lines); else the day
-        // divider beside the tile marks the new day.
+        // (12 / AM / WED, as on the iPhone) where all three lines fit with 3 dp clear top and bottom (2 for two lines):
+        // 18 + 14 + 11 + 6 = 49 dp fits the 52 dp card tile at default text size (it needed 52 + 2 and never showed).
+        // Else the day divider beside the tile marks the new day.
         val showSuffix = suffix != null
-        val showDay = weekday != null && digitsH + (if (showSuffix) suffixH else 0f) + dayH + (if (showSuffix) 8f else 4f) <= room
+        val showDay = weekday != null && digitsH + (if (showSuffix) suffixH else 0f) + dayH + (if (showSuffix) 6f else 4f) <= room
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(digits, style = tnum, fontSize = (17f * shrink / cap).sp, lineHeight = (18f / cap).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
@@ -1925,28 +1937,37 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
             // AM/PM at 12 sp (Material's smallest comfortable label; it never shrinks with the hour).
             if (showSuffix && suffix != null) Text(suffix, style = tnum, fontSize = (12f / cap).sp, lineHeight = (14f / cap).sp,
                 fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = textColor.copy(alpha = 0.95f), maxLines = 1, softWrap = false)
-            if (showDay && weekday != null) Text(weekday, fontSize = (11f / cap).sp, lineHeight = (12f / cap).sp,
+            if (showDay && weekday != null) Text(weekday, fontSize = (11f / cap).sp, lineHeight = (11f / cap).sp,
                 fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp, color = textColor, maxLines = 1, softWrap = false)
         }
     }
 }
 
 /**
- * An hour tile outside working hours, for the app and the widget alike: its colour [MIX] of the way to the
- * night ink (#0A0E1C), opaque, so it reads quieter without letting the photo through behind the numbers.
+ * An hour tile outside working hours, as on the iPhone (HourTiles.offHours): the hour's sky at [FACTOR] of its
+ * luminance, never brighter than [CAP] and never darker than the night tile ([FLOOR], #0A0E1C), same hue, opaque,
+ * so no photo shows through behind the numbers. The midday working tile (#3F6A97-like, L 0.136) now stands 3.3:1
+ * from an off tile (was 1.6:1 when mixed 28% toward the night ink), so who is working reads at a glance.
  */
 object TileDim {
-    const val MIX = 0.28f
-    const val INK = 0xFF0A0E1C.toInt()
+    const val FACTOR = 0.30
+    const val CAP = 0.006
+    const val FLOOR = 0.0048
 
-    /** Opaque [a] moved [t] of the way to [b]. */
-    fun mix(a: Int, b: Int, t: Float): Int {
-        fun ch(shift: Int) = ((((a shr shift) and 0xFF) * (1 - t) + ((b shr shift) and 0xFF) * t).roundToInt()).coerceIn(0, 255)
-        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    private fun lin(c: Int): Double { val s = c / 255.0; return if (s <= 0.04045) s / 12.92 else Math.pow((s + 0.055) / 1.055, 2.4) }
+    private fun enc(l: Double): Int {
+        val s = if (l <= 0.0031308) l * 12.92 else 1.055 * Math.pow(l, 1 / 2.4) - 0.055
+        return (s * 255.0).roundToInt().coerceIn(0, 255)
     }
 
     /** [argb] as a dimmed (off-hours) tile: opaque. */
-    fun opaque(argb: Int): Int = mix(argb, INK, MIX)
+    fun opaque(argb: Int): Int {
+        val r = lin((argb shr 16) and 0xFF); val g = lin((argb shr 8) and 0xFF); val b = lin(argb and 0xFF)
+        val l = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        if (l <= 0.0) return argb or (0xFF shl 24)
+        val k = maxOf(minOf(l, FLOOR), minOf(l * FACTOR, CAP)) / l
+        return (0xFF shl 24) or (enc(r * k) shl 16) or (enc(g * k) shl 8) or enc(b * k)
+    }
 }
 
 /** The widgets' hour tiles: the sky colour kept visible at night (never darker than #24384F), and dimmed halfway toward black. */
@@ -2123,10 +2144,10 @@ fun EditRow(store: Store, place: Place) {
             Text(TimeMath.time(store.now, place.zone, store.use24h), style = tnum, fontSize = 17.sp, color = Palette.primary, maxLines = 1)
         }
         IconButton(onClick = { store.move(place, -1) }, enabled = place != store.places.first()) {
-            Icon(Icons.Filled.KeyboardArrowUp, "Move ${place.title} up", tint = if (place != store.places.first()) Palette.primary else white(0.35f))
+            Icon(Icons.Filled.KeyboardArrowUp, "Move ${place.title} up", tint = if (place != store.places.first()) Palette.primary else white(0.38f))
         }
         IconButton(onClick = { store.move(place, 1) }, enabled = place != store.places.last()) {
-            Icon(Icons.Filled.KeyboardArrowDown, "Move ${place.title} down", tint = if (place != store.places.last()) Palette.primary else white(0.35f))
+            Icon(Icons.Filled.KeyboardArrowDown, "Move ${place.title} down", tint = if (place != store.places.last()) Palette.primary else white(0.38f))
         }
     }
 }
@@ -2240,7 +2261,9 @@ private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, centre: Bool
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.height(14.dp).wrapContentWidth(unbounded = true)
             .onSizeChanged { labelHalf = it.width / 2f }
-            .graphicsLayer { alpha = fade(labelHalf) }, contentAlignment = Alignment.Center) {
+            // A label shows whole (alpha 1) or not at all: only while its whole box sits inside the ruler with 8 dp clear.
+            // A part-faded label read as a ghost ("4 PM" at 1.1:1 at the edge); the ticks below keep the gradual fade.
+            .graphicsLayer { alpha = if (fade(labelHalf + 8.dp.toPx()) > 0f) 1f else 0f }, contentAlignment = Alignment.Center) {
             if (minute == 0) Text(
                 if (hour == 0) at.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH).uppercase()
                 else if (use24h) "%02d".format(hour) else "${if (hour % 12 == 0) 12 else hour % 12}${TimeMath.THIN}${if (hour < 12) "AM" else "PM"}",

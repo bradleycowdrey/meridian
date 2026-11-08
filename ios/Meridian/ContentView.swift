@@ -1042,7 +1042,8 @@ struct CityRow: View {
         // Its day photo by day, its night photo after dark (when it has one).
         let photo = SkylineArt.photo(for: place, at: moment,
                                      downloaded: store.downloadCityPhotos ? photos.image(for: place) : nil,
-                                     downloadedNight: store.downloadCityPhotos ? photos.nightImage(for: place) : nil)
+                                     downloadedNight: store.downloadCityPhotos ? photos.nightImage(for: place) : nil,
+                                     nightSearched: store.downloadCityPhotos && photos.nightSearched(for: place))
         let size = CGSize(width: cardWidth, height: height)
         // Dark digits where the card is bright behind the time, white ones where it's dark.
         let bright = BannerInk.isBright(photo: photo, seed: place.name, phase: phase, size: size,

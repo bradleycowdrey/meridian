@@ -103,7 +103,10 @@ struct GroupBar: View {
                     trailingButton(newGroup: custom.isEmpty)
                 }
                 .padding(.horizontal, Card.margin)
+                // The fade's width past the last chip, so at the row's end it is clear.
+                .padding(.trailing, 24 - Card.margin)
             }
+            .chipRowFade()
             .onAppear { proxy.scrollTo(store.groupFilter ?? Self.allID, anchor: .center) }
             .onChange(of: store.groupFilter) { _, new in
                 withAnimation(.snappy) { proxy.scrollTo(new ?? Self.allID, anchor: .center) }

@@ -195,7 +195,7 @@ enum SkylineArt {
 
     /// The card's night photo, paired with its day photo: a bundled day photo takes only its own
     /// bundled night photo ("Skyline-<key>-night"), a downloaded one the night photo downloaded
-    /// for it. nil when the city has none (its day photo is then darkened at night, as before).
+    /// for it. nil when the city has none (the card then draws its skyline on the night sky).
     static func nightPhoto(for place: Place, downloaded: UIImage?) -> SkylinePhoto? {
         if let key = key(for: place), UIImage(named: "Skyline-\(key)") != nil {
             return UIImage(named: "Skyline-\(key)-night").map { SkylinePhoto(id: "b:" + key + "-night", image: $0, night: true) }
@@ -215,12 +215,17 @@ enum SkylineArt {
         }
     }
 
-    /// The card's photo at a moment: the night photo after dark when the city has one, else the
-    /// day photo (bundled, else downloaded); nil to draw one.
-    static func photo(for place: Place, at date: Date, downloaded: UIImage?, downloadedNight: UIImage?) -> SkylinePhoto? {
+    /// The card's photo at a moment: by day its day photo (bundled, else downloaded); after dark its
+    /// night photo when it has one. Until then (no bundled night photo, or the night search still
+    /// running) the day photo stays, darkened for night, so the photo always fills the card, as the
+    /// widget's. Only a downloaded city whose night search has finished with nothing
+    /// (`nightSearched`) draws its skyline on the night sky. nil to draw one.
+    static func photo(for place: Place, at date: Date, downloaded: UIImage?, downloadedNight: UIImage?,
+                      nightSearched: Bool = false) -> SkylinePhoto? {
         guard let day = photo(for: place, downloaded: downloaded) else { return nil }
-        guard wantsNight(place, at: date), let night = nightPhoto(for: place, downloaded: downloadedNight) else { return day }
-        return night
+        guard wantsNight(place, at: date) else { return day }
+        if let night = nightPhoto(for: place, downloaded: downloadedNight) { return night }
+        return day.id.hasPrefix("d:") && nightSearched ? nil : day
     }
 
     /// A file-safe name for a card's downloaded photo: its city and time zone.
@@ -391,6 +396,12 @@ final class CityPhotos: ObservableObject {
         images[SkylineArt.slug(for: place) + Self.nightSuffix]
     }
 
+    /// Whether the card's night search has finished, this launch, without a night photo.
+    func nightSearched(for place: Place) -> Bool {
+        let slug = SkylineArt.slug(for: place) + Self.nightSuffix
+        return images[slug] == nil && tried.contains(slug)
+    }
+
     /// Downloaded photos' credits (day and night), A to Z by city.
     var credits: [PhotoCreditItem] {
         records.compactMap { (slug, record) -> PhotoCreditItem? in
@@ -404,7 +415,7 @@ final class CityPhotos: ObservableObject {
     }
 
     /// Loads the card's photos from disk, or asks Wikimedia for them (once), in the background:
-    /// the day photo, then (once there is one) a night photo.
+    /// the day photo, then (once there is one) a night photo; after dark there, the night photo first.
     func request(_ place: Place) {
         guard Self.enabled, SkylineArt.bundledPhoto(for: place) == nil else { return }
         let slug = SkylineArt.slug(for: place)
@@ -421,8 +432,14 @@ final class CityPhotos: ObservableObject {
             tried.insert(slug)
         }
         _ = await recordsTask?.value
-        guard await loadDay(slug: slug, place: place) else { return }
-        await loadNight(slug: slug + Self.nightSuffix, place: place)
+        if SkylineArt.wantsNight(place, at: Date()) {
+            // After dark the night photo is the one shown: get it first.
+            await loadNight(slug: slug + Self.nightSuffix, place: place)
+            _ = await loadDay(slug: slug, place: place)
+        } else {
+            guard await loadDay(slug: slug, place: place) else { return }
+            await loadNight(slug: slug + Self.nightSuffix, place: place)
+        }
     }
 
     /// What's on disk for a slug: true once its image is loaded; false when there is nothing to
@@ -477,12 +494,21 @@ final class CityPhotos: ObservableObject {
     }
 
     /// One night photo: a Commons search for "<city> skyline night", checked by its pixels. Without
-    /// one, the day photo is darkened at night as before.
+    /// one, the card draws its skyline on the night sky after dark.
     private func loadNight(slug: String, place: Place) async {
         guard images[slug] == nil else { return }
-        if await loadFromDisk(slug) != nil { return }
+        if let found = await loadFromDisk(slug) {
+            // Searched within 30 days and nothing found: done.
+            if !found { tried.insert(slug) }
+            return
+        }
         guard Self.enabled else { return }
-        _ = await keep(Self.fetchNight(city: place.name), slug: slug, name: place.name)
+        let result = await Self.fetchNight(city: place.name)
+        let offline: Bool
+        if case .offline = result { offline = true } else { offline = false }
+        let found = await keep(result, slug: slug, name: place.name)
+        // Finished without a photo (not offline): the card may draw its night sky.
+        if !found && !offline { tried.insert(slug) }
     }
 
     // MARK: Disk

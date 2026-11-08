@@ -684,16 +684,19 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
           Box(Modifier.weight(1f)) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // The answer: the chosen time, large and thin, with its day and how far away it is.
+                // The answer: the chosen time, large, with its day and how far away it is.
                 Column(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     val (clock, suffix) = TimeMath.clock(moment, zone, store.use24h)
-                    Text(clockText(clock, suffix), fontSize = 72.sp, lineHeight = 76.sp, fontWeight = FontWeight.Thin,
-                        letterSpacing = (-2).sp, color = Palette.primary, maxLines = 1, softWrap = false,
+                    // Medium, as the cards' times and the iPhone (Thin's hairline strokes blurred at arm's length);
+                    // AM/PM is one step lighter (Normal, in clockText), so the digits stay the heaviest part.
+                    Text(clockText(clock, suffix), fontSize = 72.sp, lineHeight = 76.sp, fontWeight = FontWeight.Medium,
+                        letterSpacing = (-1).sp, color = Palette.primary, maxLines = 1, softWrap = false,
                         modifier = Modifier.semantics { contentDescription = TimeMath.time(moment, zone, store.use24h) })
                     Text("${moment.atZone(zone).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM", java.util.Locale.ENGLISH))} · ${relativeSpan(store.now, moment)}",
                         fontSize = 17.sp, fontWeight = FontWeight.Medium, color = white(0.85f), textAlign = TextAlign.Center)
                 }
-                Row(Modifier.bleed(16.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                val picks = rememberScrollState()
+                Row(Modifier.bleed(16.dp).fadeEnd(picks).horizontalScroll(picks).padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PillChip("Tomorrow $nine", false, selectable = false) { set(store.now.atZone(zone).toLocalDate().plusDays(1).atTime(9, 0).atZone(zone).toInstant()) }
                     PillChip("Monday $nine", false, selectable = false) {
@@ -702,14 +705,8 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                     PillChip("In a Week", false, selectable = false) { set(store.now.plusSeconds(7 * 86_400L)) }
                     PillChip("123", false, description = "Type hours from now", selectable = false) { typing = true }
                 }
-                GlassCard("Date", Icons.Filled.DateRange) {
-                    // To the card's edges: the calendar keeps its own margins.
-                    DatePicker(state = dateState, modifier = Modifier.bleed(14.dp), title = null, headline = null, showModeToggle = false,
-                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent, selectedDayContainerColor = Palette.pickerAccent,
-                            selectedDayContentColor = Color.White, todayDateBorderColor = Palette.pickerAccent, todayContentColor = Color.White,
-                            dayContentColor = Color.White, weekdayContentColor = white(0.6f), navigationContentColor = Color.White,
-                            titleContentColor = Color.White, headlineContentColor = Color.White))
-                }
+                // The time first, right under the answer (as on the iPhone): below the month it sat under the Go bar
+                // at first open, its TIME header cut in half; now both the time and the month's first weeks show unscrolled.
                 GlassCard("Time", Glyphs.clock) {
                     // Hour, then the quarter-hour: it can only land on :00, :15, :30 or :45.
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -724,6 +721,14 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         (0..3).forEach { q -> PillChip(":%02d".format(q * 15), q == quarter, Modifier.weight(1f)) { quarter = q } }
                     }
+                }
+                GlassCard("Date", Icons.Filled.DateRange) {
+                    // To the card's edges: the calendar keeps its own margins.
+                    DatePicker(state = dateState, modifier = Modifier.bleed(14.dp), title = null, headline = null, showModeToggle = false,
+                        colors = DatePickerDefaults.colors(containerColor = Color.Transparent, selectedDayContainerColor = Palette.pickerAccent,
+                            selectedDayContentColor = Color.White, todayDateBorderColor = Palette.pickerAccent, todayContentColor = Color.White,
+                            dayContentColor = Color.White, weekdayContentColor = white(0.6f), navigationContentColor = Color.White,
+                            titleContentColor = Color.White, headlineContentColor = Color.White))
                 }
                 if (store.places.isNotEmpty()) GlassCard("In your cities", Icons.Filled.LocationOn, spacing = 0.dp) {
                     // Every city at the chosen moment, with whether it's working there.
@@ -743,12 +748,11 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
                         if (i < store.places.size - 1) HorizontalDivider(color = white(0.2f))
                     }
                 }
-                // Room to scroll the last card clear of the fade below.
+                // Room below the last card, above the bar.
                 Spacer(Modifier.height(24.dp))
             }
-            // A 24 dp fade into the bar (one two-colour band), so a card under it reads as "more below", not cut off.
-            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(24.dp)
-                .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Palette.barBg.copy(alpha = 0f), Palette.barBg))))
+            // No fade above the bar: content faded under it showed as ghost text (the TIME header, ~1.1:1). The bar is
+            // opaque with a 0.5 dp hairline, so what scrolls under it is simply hidden.
           }
             // Go, in a bar at the bottom as in Two Degrees.
             Column(Modifier.fillMaxWidth().background(Palette.barBg).navigationBarsPadding()) {

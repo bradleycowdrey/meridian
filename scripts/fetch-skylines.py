@@ -73,6 +73,9 @@ QUERIES = {
 DAY_MIN_SKY, DAY_MIN_WHOLE = 0.25, 0.15
 NIGHT_MAX_WHOLE, NIGHT_MAX_SKY = 0.10, 0.08
 NIGHT_BRIGHT_LUM, NIGHT_MIN_BRIGHT = 0.6, 0.005
+# Second chance for a city with no strict night photo: a "night" title that is still clearly dark
+# (blue-hour and well-lit downtown shots that the strict test turns away).
+NIGHT_RELAXED_WHOLE, NIGHT_RELAXED_SKY, NIGHT_RELAXED_BRIGHT = 0.20, 0.15, 0.002
 NIGHT_TITLE = re.compile(r"night|nocturn|\bnuit\b|\bnoche\b|\bnacht\b", re.I)
 NOT_DAY_TITLE = re.compile(r"night|nocturn|dusk|sunset|twilight|blue[ _]hour|evening", re.I)
 
@@ -625,6 +628,16 @@ def choose(f: Fetcher, prober: Prober, city: City, kind: str) -> Pick | str:
     picked = try_ranked(ranked)
     if picked:
         return picked
+    if kind == NIGHT:  # second chance: titled as night and clearly dark, if a little brighter
+        for title, (score, info, credit, query) in ranked:
+            if not NIGHT_TITLE.search(title):
+                continue
+            l = prober.luma(title, info)
+            if isinstance(l, str):
+                continue
+            if (l.whole <= NIGHT_RELAXED_WHOLE and l.sky <= NIGHT_RELAXED_SKY and l.bright >= NIGHT_RELAXED_BRIGHT
+                    and classify(l) != DAY):
+                return Pick(title, info, credit, f"search '{query}' (score {score:g}, relaxed night)", l)
     tried = len(ranked)
     if kind == DAY:  # last resort: the city's Wikipedia lead image, if it is a usable daytime photo
         try:

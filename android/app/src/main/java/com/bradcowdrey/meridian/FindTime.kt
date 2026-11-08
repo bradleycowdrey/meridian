@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.layout.layout
@@ -34,6 +36,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -60,10 +68,13 @@ class Slot(val start: Instant, val end: Instant, val states: List<Slot.State>) {
 
         val color: Color
             get() = when (this) {
-                WORKING -> white(0.85f)
-                OFF -> white(0.3f)
-                // 0.12, not 0.08: clearly its own step against the card as well as below Off.
-                NIGHT -> white(0.12f)
+                // As on the iPhone: working a pale sky blue (#DDEAFA, the hour tiles' hue, a little brighter than the old white 0.85),
+                // off a mid grey, night near the card with a hairline edge and a small moon (SlotCell), so night never
+                // depends on brightness alone. On the card (#141414): working 3.7:1 against off, off 3.3:1 against night (off
+                // against night was 1.9:1 at white 0.30 / 0.12), the night cell's edge 3.9:1 against the card.
+                WORKING -> Color(0xFFDDEAFA)
+                OFF -> white(0.42f)
+                NIGHT -> white(0.08f)
             }
     }
 
@@ -145,7 +156,8 @@ fun FindTimeScreen(store: Store, onDone: () -> Unit) {
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
             .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // The day: today, tomorrow, then two weeks.
-            Row(Modifier.padding(top = 8.dp).bleed(16.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+            val days = rememberScrollState()
+            Row(Modifier.padding(top = 8.dp).bleed(16.dp).fadeEnd(days).horizontalScroll(days).padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 (0 until 14).forEach { i ->
                     val date = today.plusDays(i.toLong())
@@ -190,7 +202,8 @@ private fun Who(store: Store, chosen: Set<String>, set: (Set<String>) -> Unit) {
         // The chips' groups in the same order, leaving out empty ones.
         val groups = store.chipGroups.filter { store.groupCount(it) > 0 }
         if (groups.isNotEmpty()) {
-            Row(Modifier.bleed(14.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val scroll = rememberScrollState()
+            Row(Modifier.bleed(14.dp).fadeEnd(scroll).horizontalScroll(scroll).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val everyone = store.places.map { it.id }.toSet()
                 PillChip("Everyone", chosen == everyone) { set(everyone) }
                 groups.forEach { group ->
@@ -249,6 +262,7 @@ private fun BestTimes(store: Store, slots: List<Slot>, count: Int, pick: (Slot) 
  * The day hour by hour (your time): a cell per person, bright while they're working, dim when
  * they're off, dark at night where they are.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick: (Slot) -> Unit) {
     val hourly = slots.filterIndexed { i, _ -> i % 2 == 0 }
@@ -271,12 +285,21 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
     // The count column grows with the font size, so "10/12" never clips at large text.
     val countW = (34f * LocalDensity.current.fontScale.coerceAtMost(1.6f)).dp
     GlassCard("Every hour", Glyphs.grid) {
+        // The key first, right under the title, where the eye starts (it sat below the grid, under the fold).
+        // A FlowRow, so at large text "Night" moves to a second line instead of clipping (iOS falls back to a VStack).
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Legend(Slot.State.WORKING, "Working")
+            Legend(Slot.State.OFF, "Off")
+            Legend(Slot.State.NIGHT, "Night")
+        }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            // The column names at 12 sp, white 0.7 (were 11 sp at 0.6: Material's floor), the grid's only key to who is who.
             Row(Modifier.padding(bottom = 2.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("You", Modifier.width(62.dp), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = white(0.6f))
+                Text("You", Modifier.width(62.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = white(0.7f))
                 people.forEach {
-                    Text(FindTime.tag(it), Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = white(0.6f),
-                        textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Clip)
+                    // 11 sp once the cells get narrow (7+ people), and never cut mid-letter.
+                    Text(FindTime.tag(it), Modifier.weight(1f), fontSize = if (people.size > 6) 11.sp else 12.sp, fontWeight = FontWeight.Medium,
+                        color = white(0.7f), textAlign = TextAlign.Center, maxLines = 1, softWrap = false, overflow = TextOverflow.Visible)
                 }
                 Spacer(Modifier.width(countW))
             }
@@ -302,16 +325,11 @@ private fun HourGrid(store: Store, slots: List<Slot>, people: List<Place>, pick:
                 }
             }
         }
-        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Legend(Slot.State.WORKING.color, "Working")
-            Legend(Slot.State.OFF.color, "Off")
-            Legend(Slot.State.NIGHT.color, "Night")
-        }
     }
 }
 
-/** How strong a past hour's cells are in the Every hour grid: 0.7, as on iOS, so working stays about 3.4:1 against off. */
-private const val PAST_ALPHA = 0.7f
+/** How strong a past hour's cells are in the Every hour grid: 0.9, as on iOS (working 3.5:1 against off, off 3.0:1 (2.96) against night, plus night's edge and moon). */
+private const val PAST_ALPHA = 0.9f
 
 /** One hour of the grid: your hour, a cell per person, and how many are working. */
 @Composable
@@ -326,20 +344,31 @@ private fun HourRow(store: Store, s: Slot, people: List<Place>, pick: (Slot) -> 
         horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.width(62.dp), style = tnum, fontSize = 13.sp, color = if (all) Palette.primary else white(0.6f), maxLines = 1)
         s.states.forEach { state ->
-            // Past cells at 70% (not 35%), as on iOS, so Working still stands out from Off by 3:1 in a past row (about 3.4:1;
-            // 35% left 2.5:1), still a visible step down from the hours to come.
-            Box(Modifier.weight(1f).height(22.dp).alpha(if (past) PAST_ALPHA else 1f).clip(RoundedCornerShape(6.dp)).background(state.color))
+            // Past cells a little dimmer (the hour label marks past too); who was working still reads.
+            SlotCell(state, Modifier.weight(1f).height(22.dp).alpha(if (past) PAST_ALPHA else 1f))
         }
         Text("${s.working}/${people.size}", Modifier.width(countW), style = tnum, fontSize = 12.sp, color = white(0.6f), textAlign = TextAlign.End, maxLines = 1, softWrap = false)
     }
 }
 
+/** One person's cell in an hour of the grid (and in its key): Night with a hairline edge and a small moon, as on the iPhone. */
 @Composable
-private fun Legend(color: Color, text: String) {
+private fun SlotCell(state: Slot.State, modifier: Modifier, moon: androidx.compose.ui.unit.Dp = 10.dp) {
+    val shape = RoundedCornerShape(6.dp)
+    Box(modifier.clip(shape).background(state.color)
+        .then(if (state == Slot.State.NIGHT) Modifier.border(0.75.dp, white(0.35f), shape) else Modifier),
+        contentAlignment = Alignment.Center) {
+        if (state == Slot.State.NIGHT) Image(painterResource(R.drawable.ic_moon), contentDescription = null,
+            colorFilter = ColorFilter.tint(white(0.5f)), modifier = Modifier.size(moon))
+    }
+}
+
+@Composable
+private fun Legend(state: Slot.State, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(11.dp).clip(RoundedCornerShape(3.dp)).background(color))
+        SlotCell(state, Modifier.size(14.dp), moon = 9.dp)
         Spacer(Modifier.width(5.dp))
-        Text(text, fontSize = 12.sp, color = white(0.6f))
+        Text(text, fontSize = 13.sp, color = white(0.7f))
     }
 }
 
@@ -380,7 +409,8 @@ private fun SlotScreen(store: Store, slot: Slot, length: Int, places: List<Place
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
             .padding(start = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             GlassCard(null, null, spacing = 4.dp) {
-                Text(range, fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.Thin, color = Palette.primary,
+                // Regular, not Thin (hairline 2 pt strokes blurred at arm's length), as on the iPhone.
+                Text(range, fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.Normal, color = Palette.primary,
                     modifier = Modifier.semantics { contentDescription = "${TimeMath.time(start, home, store.use24h)} to ${TimeMath.time(end, home, store.use24h)}" })
                 Text("${TimeMath.fullDay(start, home)} · your time · ${FindTime.lengthLabel(length)}", fontSize = 15.sp, color = white(0.6f))
                 Spacer(Modifier.height(6.dp))
@@ -450,6 +480,22 @@ private fun ActionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
         Text(label, fontSize = 17.sp, color = Palette.primary)
     }
 }
+
+/**
+ * A horizontal chip row's trailing 24 dp fades to clear (one two-colour band, only while there is more to scroll), so a
+ * chip cut by the screen's edge reads as "more", never as a clipped word ("Sat 1", "Asi", "+ Ne"). As iOS chipRowFade.
+ * Put it after [bleed] and before the scroll modifier, so it covers the row's full width.
+ */
+fun Modifier.fadeEnd(state: ScrollableState, width: androidx.compose.ui.unit.Dp = 24.dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        if (!state.canScrollForward) return@drawWithContent
+        val w = width.toPx().coerceAtMost(size.width)
+        val x0 = size.width - w
+        drawRect(Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = x0, endX = size.width),
+            topLeft = Offset(x0, 0f), size = Size(w, size.height), blendMode = BlendMode.DstIn)
+    }
 
 /**
  * Lets a horizontally scrolling row run to the screen's edges from inside padded content, so a

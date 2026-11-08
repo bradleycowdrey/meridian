@@ -81,7 +81,8 @@ object MeridianWidgets {
     /** The compact pill's text (sp), one step down, so five rows on the large widget keep their status words. */
     private const val STATUS_COMPACT_SP = 12f
     private const val STATUS_ICON = 12f
-    private const val PILL_GAP = 1f
+    /** 2 dp (was 1): about 4.4 dp clear between the name's glyphs and the pill, so time, name and status read as three steps; fits the 67 dp rows of the 2-row widget with the full pill at font scale 1 with about 0.74 dp to spare for rounding. */
+    private const val PILL_GAP = 2f
     private const val PILL_PAD_V = 1f
     /** The tiles' share of a row's width beside the name column's 1 (layout weights). */
     private const val TILES_WEIGHT = 1.1f
@@ -96,8 +97,9 @@ object MeridianWidgets {
      * so white numbers and AM/PM on them are at least 5.6:1 (1.05 / 0.186).
      */
     private const val TILE_MAX_LUMINANCE = 0.136
-    /** Outside working hours a tile is its colour 28% of the way to the night ink (#0A0E1C), opaque, so no photo shows through. */
-    private const val DIM_MIX = 0.28f
+    // Outside working hours a tile is dimmed exactly as the app's tiles, via TileDim.opaque (MainActivity.kt): same hue,
+    // opaque so no photo shows through, 30% of its luminance, no lighter than 0.006 and no darker than the #0A0E1C night
+    // tile (0.0048). A working day tile (0.136) against the brightest off one (0.006) is 3.3:1 (WCAG 1.4.11).
 
     /** One worker, so photos are decoded and pictures drawn off the main thread, one update at a time. */
     private val worker = Executors.newSingleThreadExecutor()
@@ -479,7 +481,7 @@ object MeridianWidgets {
             v.setTextColor(id, 0xFFFFFFFF.toInt())
             val dim = work.show && !WorkWeek.isWorking(place, at.toInstant().plusSeconds(1800), work.start, work.end)
             // Opaque either way: the dimmed tile is darker, not see-through, so photo highlights never sit under its text.
-            val fill = if (dim) mix(color, 0xFF0A0E1C.toInt(), DIM_MIX) else color
+            val fill = if (dim) TileDim.opaque(color) else color
             if (Build.VERSION.SDK_INT >= 31) v.setColorStateList(id, "setBackgroundTintList", ColorStateList.valueOf(fill))
             else v.setInt(id, "setBackgroundColor", fill)
         }
@@ -494,12 +496,6 @@ object MeridianWidgets {
         if (l <= TILE_MAX_LUMINANCE) return rgb
         val k = TILE_MAX_LUMINANCE / l
         return (0xFF shl 24) or (enc(r * k) shl 16) or (enc(g * k) shl 8) or enc(b * k)
-    }
-
-    /** Opaque [a] moved [t] of the way to [b]. */
-    private fun mix(a: Int, b: Int, t: Float): Int {
-        fun ch(shift: Int) = ((((a shr shift) and 0xFF) * (1 - t) + ((b shr shift) and 0xFF) * t).roundToInt()).coerceIn(0, 255)
-        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
     }
 
     /**

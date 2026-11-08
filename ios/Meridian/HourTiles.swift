@@ -119,14 +119,20 @@ struct HourTiles: View {
     /// Fade the outer tiles into the panel behind (off on a photo).
     var fade = true
     @State private var width: CGFloat = 228
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// The columns shown: all five, or at Accessibility text sizes the hour before, the moment's
+    /// hour and the hour after, so their numbers can keep growing (column 0 is always shown).
+    private var columns: [Int] { typeSize.isAccessibilitySize ? [-1, 0, 1] : TileGrid.columns }
 
     /// One column and its gap.
-    private var pitch: CGFloat { max(1, (width + TileGrid.gap) / CGFloat(TileGrid.columns.count)) }
+    private var pitch: CGFloat { max(1, (width + TileGrid.gap) / CGFloat(columns.count)) }
 
     var body: some View {
         let starts = TileGrid.starts(store.moment)
+        let shown = columns
         HStack(spacing: TileGrid.gap) {
-            ForEach(TileGrid.columns, id: \.self) { k in
+            ForEach(shown, id: \.self) { k in
                 tile(k, start: starts[k + 2])
                     .frame(maxWidth: .infinity)
                     .anchorPreference(key: NowTileAnchors.self, value: .bounds) { anchor in
@@ -141,12 +147,12 @@ struct HourTiles: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .contentShape(Rectangle())
         .onTapGesture { location in
-            let k = min(max(Int(location.x / pitch), 0), TileGrid.columns.count - 1) - 2
+            let k = columns[min(max(Int(location.x / pitch), 0), columns.count - 1)]
             guard k != 0 || !store.isNow else { return }
             store.jump(to: TileGrid.starts(store.moment)[k + 2])
         }
         .modifier(Scrub(pointsPerHour: pitch))
-        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Hours in \(place.title)")
         .accessibilityValue(accessibilityValue)
@@ -176,6 +182,7 @@ struct HourTiles: View {
         let newDay = !cal.isDate(start, inSameDayAs: start.addingTimeInterval(-3600))
         let dim = store.showWorkHours && !store.isWorking(place, at: start.addingTimeInterval(1800))
         return TileLabel(hour: hour, minute: minute, use24h: store.use24h, center: k == 0,
+                         large: typeSize.isAccessibilitySize,
                          weekday: newDay ? TimeMath.weekday(start, in: place.timeZone) : nil)
             .contentTransition(.numericText())
             .foregroundStyle(style.text)
@@ -205,13 +212,16 @@ struct HourTiles: View {
     /// The brightest a tile may be (relative luminance): white text on it stays at least 5.5:1.
     static let maxLuminance = 0.14
 
-    /// An hour outside working hours: the tile's sky at 55% of its (capped) luminance, never darker
-    /// than the night tile (#0A0E1C), so it still reads as a tile on a dark photo.
-    static let offHoursFactor = 0.55
+    /// An hour outside working hours: the tile's sky at 30% of its (capped) luminance and never
+    /// brighter than `offHoursCap`, so the midday working tile (#3A6699, 0.127) stands 3.2:1 from
+    /// it (was 1.6:1 at 55%) and who is working reads at a glance; never darker than the night tile
+    /// (#0A0E1C), so it still reads as a tile on a dark photo (with its hairline).
+    static let offHoursFactor = 0.30
+    static let offHoursCap = 0.006
     static let offHoursFloor = 0.0048
 
     static func offHours(_ fill: Color) -> Color {
-        scaled(legible(fill)) { l in max(min(l, offHoursFloor), l * offHoursFactor) }
+        scaled(legible(fill)) { l in max(min(l, offHoursFloor), min(l * offHoursFactor, offHoursCap)) }
     }
 
     /// The tile's sky colour, kept to its hue but darkened where the ramp is brightest (midday and
@@ -243,7 +253,8 @@ struct HourTiles: View {
 
 /// One tile's words, as on the widgets: the hour in large tabular digits with AM or PM under it,
 /// the minutes in half-hour zones, and the weekday where a new day starts. Sizes follow the
-/// reader's text size (never below 17 pt digits and 12 pt labels, up to the tiles' xxLarge cap).
+/// reader's text size (never below 17 pt digits and 12 pt labels; at Accessibility sizes, where the
+/// row shows three tiles, up to 26 pt digits and 16 pt labels).
 /// In half-hour zones the minutes always sit on their own line under the hour, so the layout never
 /// depends on how wide a tile's digits are. When a tile can't hold everything it drops AM/PM, rather
 /// than shrinking the type.
@@ -252,15 +263,17 @@ private struct TileLabel: View {
     let minute: Int
     let use24h: Bool
     let center: Bool
+    /// Three wide tiles (Accessibility text sizes): the type may grow further.
+    var large = false
     let weekday: String?
 
     @ScaledMetric(relativeTo: .body) private var digitMetric: CGFloat = 17
     @ScaledMetric(relativeTo: .caption) private var minuteMetric: CGFloat = 12
     @ScaledMetric(relativeTo: .caption2) private var smallMetric: CGFloat = 12
 
-    private var digitSize: CGFloat { min(max(digitMetric, 17), 21) }
-    private var minuteSize: CGFloat { min(max(minuteMetric, 12), 15) }
-    private var smallSize: CGFloat { min(max(smallMetric, 12), 14) }
+    private var digitSize: CGFloat { min(max(digitMetric, 17), large ? 26 : 21) }
+    private var minuteSize: CGFloat { min(max(minuteMetric, 12), large ? 17 : 15) }
+    private var smallSize: CGFloat { min(max(smallMetric, 12), large ? 16 : 14) }
 
     var body: some View {
         ViewThatFits {

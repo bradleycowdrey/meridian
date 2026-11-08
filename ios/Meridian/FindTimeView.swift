@@ -71,8 +71,10 @@ struct FindTimeView: View {
                 }
             }
             .padding(.horizontal, Card.margin)
+            .padding(.trailing, 24 - Card.margin)
         }
-        // Runs to the screen's edges, so a cut-off chip reads as "scroll for more".
+        // Runs to the screen's edges, and a chip cut there fades out: "scroll for more", never "Sat 1".
+        .chipRowFade()
         .padding(.horizontal, -Card.margin)
         .padding(.top, 4)
     }
@@ -103,8 +105,10 @@ struct FindTimeView: View {
                         }
                     }
                     .padding(.horizontal, Card.padding)
+                    .padding(.trailing, 24 - Card.padding)
                 }
-                // To the card's edges.
+                // To the card's edges; a group chip cut there fades out ("As" read as a word).
+                .chipRowFade()
                 .padding(.horizontal, -Card.padding)
             }
             // The chips' 44 pt touch areas overlap a little, so the visible rows sit 8 pt apart.
@@ -184,20 +188,44 @@ struct FindTimeView: View {
     private var grid: some View {
         let hourly = slots.enumerated().filter { $0.offset % 2 == 0 }.map(\.element)
         return VStack(alignment: .leading, spacing: 10) {
-            CardCaption("Every hour", "tablecells")
+            // The key beside the title, where the eye starts (it sat below the grid, under the fold).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    CardCaption("Every hour", "tablecells")
+                    Spacer(minLength: 4)
+                    gridKey
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    CardCaption("Every hour", "tablecells")
+                    // Under the title the key wraps: one row if it fits, else one legend per line.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) { legends }
+                        VStack(alignment: .leading, spacing: 4) { legends }
+                    }
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                }
+            }
             // Rows are a fixed pitch (the best run's outline depends on it), so the grid grows with the
             // reader's text size up to accessibility1 (its hour and count columns widen with it).
             HourGrid(hourly: hourly, people: people, run: bestRun(in: hourly), now: store.now, use24h: store.use24h,
                      calendar: calendar) { slot = $0 }
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-            HStack(spacing: 14) {
-                legend(Slot.State.working.color, "Working")
-                legend(Slot.State.off.color, "Off")
-                legend(Slot.State.night.color, "Night")
-            }
-            .padding(.top, 2)
         }
         .glassCard()
+    }
+
+    /// Working, Off and Night, each as its cell looks in the grid, on one line beside the title.
+    /// Capped at accessibility1, as the grid it explains.
+    private var gridKey: some View {
+        HStack(spacing: 10) { legends }
+            .fixedSize()
+            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    }
+
+    @ViewBuilder private var legends: some View {
+        legend(.working, "Working")
+        legend(.off, "Off")
+        legend(.night, "Night")
     }
 
     /// The first run of hours, still to come, where the most people are working.
@@ -212,11 +240,14 @@ struct FindTimeView: View {
         return first..<end
     }
 
-    private func legend(_ color: Color, _ text: String) -> some View {
-        HStack(spacing: 5) {
-            RoundedRectangle(cornerRadius: 3, style: .continuous).fill(color).frame(width: 11, height: 11)
-            Text(text).font(.caption).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+    private func legend(_ state: Slot.State, _ text: String) -> some View {
+        HStack(spacing: 4) {
+            // A small cell in the grid cells' proportions (wide, gently rounded).
+            SlotCell(state: state, past: false, glyph: 8, radius: 3)
+                .frame(width: 18, height: 13)
+            Text(text).font(.footnote).foregroundStyle(Color.white.opacity(Theme.Op.sub))
         }
+        .accessibilityElement(children: .combine)
     }
 
     private func time(_ date: Date) -> String { TimeMath.time(date, in: store.home, use24h: store.use24h) }
@@ -279,8 +310,9 @@ private struct HourGrid: View {
                 ForEach(people) { p in Text(FindTimeView.tag(p)).frame(maxWidth: .infinity) }
                 Text("").frame(width: countWidth)
             }
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+            // Footnote (13 pt), not caption2 (11 pt): the column names are the grid's smallest text.
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(Color.white.opacity(Theme.Op.sub))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             VStack(spacing: 2) {
@@ -318,10 +350,7 @@ private struct HourGrid: View {
                     .minimumScaleFactor(0.8)
                     .frame(width: labelWidth, alignment: .leading)
                 ForEach(Array(s.states.enumerated()), id: \.offset) { _, state in
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        // Past hours dim to 0.7, not 0.4: working stays 3.4:1 against off (164 vs 78
-                        // on the card), so who was working still reads at a glance; the hour label marks past.
-                        .fill(state.color.opacity(past ? 0.7 : 1))
+                    SlotCell(state: state, past: past)
                         .frame(maxWidth: .infinity)
                 }
                 Text("\(s.working)/\(people.count)")
@@ -340,15 +369,49 @@ private struct HourGrid: View {
     }
 }
 
+/// One person's cell in an hour of the grid (and in its key). Working is a pale sky blue (the hour
+/// tiles' hue, as bright as the old white), Off a mid grey, Night near the card with a hairline
+/// edge and a small moon, so night never depends on brightness alone. On the card (~#1F1F1F):
+/// working 3.4:1 against off (was 4.5), off 3.2:1 against night (was 1.9); past hours (cells at
+/// 0.9, was 0.7) 3.2:1 and 2.9:1 (were 3.4 and 1.5), the night edge 3.8:1 on the card.
+private struct SlotCell: View {
+    let state: Slot.State
+    let past: Bool
+    /// The moon's size.
+    var glyph: CGFloat = 9
+    /// The corner radius (the key's small swatches use less).
+    var radius: CGFloat = 6
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        shape
+            .fill(state.color)
+            .overlay {
+                if state == .night {
+                    ZStack {
+                        shape.strokeBorder(Color.white.opacity(0.35), lineWidth: 0.75)
+                        Image(systemName: "moon.fill")
+                            .font(.system(size: glyph, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.5))
+                    }
+                }
+            }
+            // Past hours dim a little (the hour label marks past too); who was working still reads.
+            .opacity(past ? 0.9 : 1)
+            .accessibilityHidden(true)
+    }
+}
+
 /// One possible meeting time and how it is for each person in it.
 struct Slot: Identifiable {
     enum State {
         case working, off, night
         var color: Color {
             switch self {
-            case .working: return Color.white.opacity(0.85)
-            case .off: return Color.white.opacity(0.3)
-            case .night: return Color.white.opacity(0.12)
+            // #DDEAFA: L 0.81, as bright as the old white 0.85, with the hour tiles' sky-blue hue.
+            case .working: return Theme.rgb(0xDDEAFA)
+            case .off: return Color.white.opacity(0.42)
+            case .night: return Color.white.opacity(0.08)
             }
         }
     }
@@ -397,7 +460,7 @@ private struct SlotView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(TimeMath.time(start, in: store.home, use24h: store.use24h))–\(TimeMath.time(end, in: store.home, use24h: store.use24h))")
-                            .font(.system(size: rangeSize, weight: .thin)).monospacedDigit().foregroundStyle(.white)
+                            .font(.system(size: rangeSize, weight: .regular)).monospacedDigit().foregroundStyle(.white)
                             .lineLimit(1).minimumScaleFactor(0.7)
                         Text("\(TimeMath.fullDay(start, in: store.home)) · your time · \(FindTimeView.lengthLabel(length))")
                             .font(.subheadline).foregroundStyle(Color.white.opacity(Theme.Op.caption))

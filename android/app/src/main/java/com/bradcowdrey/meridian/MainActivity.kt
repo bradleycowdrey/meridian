@@ -251,6 +251,8 @@ class MainActivity : ComponentActivity() {
         // Screenshot mode (CI): --ez screenshots true --es screen main|travel|add|edit|settings|date|find|widgets|terms
         val demo = intent.getBooleanExtra("screenshots", false)
         val screen = intent.getStringExtra("screen") ?: "main"
+        // CI diagnostics only (screenshot mode): switch single parts of the city cards off.
+        if (demo) Diag.off = intent.getStringExtra("off")?.split(',')?.map { it.trim() }?.toSet() ?: emptySet()
         val store = Store(applicationContext, demo = demo && screen != "terms")
         this.store = store
         setContent {
@@ -525,7 +527,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                         val shape = RoundedCornerShape(Rows.radius)
                         val count = rows.size
                         // One Now capsule down the list: each card's item draws its slice over itself (not in Edit List).
-                        val capsule = if (editing) Modifier else Modifier.drawWithContent {
+                        val capsule = if (editing || Diag.has("capsule")) Modifier else Modifier.drawWithContent {
                             drawContent()
                             drawNowCapsule(i, count, rowHeight, first)
                         }
@@ -1144,7 +1146,14 @@ private fun BannerTime(digits: String, suffix: String?, compact: Boolean, bright
     }
     val wide = with(density) { Shadow(shade.copy(alpha = if (bright) 0.45f else 0.35f), Offset.Zero, 8.dp.toPx()) }
     // The outline (with the wide shadow) under the fill (with the near one): the same text twice, as on the iPhone.
-    Box(modifier) {
+    if (Diag.has("outline")) {
+        Text(fillText, style = base.copy(shadow = if (Diag.has("shadows")) Shadow.None else near), modifier = modifier, maxLines = 1, softWrap = false)
+        return
+    }
+    if (Diag.has("shadows")) Box(modifier) {
+        Text(strokeText, style = base.copy(color = outline, drawStyle = stroke), maxLines = 1, softWrap = false)
+        Text(fillText, style = base.copy(drawStyle = androidx.compose.ui.graphics.drawscope.Fill), maxLines = 1, softWrap = false)
+    } else Box(modifier) {
         Text(strokeText, style = base.copy(color = outline, shadow = wide, drawStyle = stroke), maxLines = 1, softWrap = false)
         Text(fillText, style = base.copy(shadow = near, drawStyle = androidx.compose.ui.graphics.drawscope.Fill),
             maxLines = 1, softWrap = false)
@@ -1225,7 +1234,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
     // Where the time is on the card, for the adaptive ink (measured once it's laid out).
     var region by remember { mutableStateOf(TimeRegion.DEFAULT) }
     val card = remember { arrayOfNulls<LayoutCoordinates>(1) }
-    val textShadow = with(density) { Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 1.dp.toPx()), 3.dp.toPx()) }
+    val textShadow = if (Diag.has("shadows")) Shadow.None else with(density) { Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 1.dp.toPx()), 3.dp.toPx()) }
     BoxWithConstraints(modifier.fillMaxWidth().height(height)
         .onPlaced { card[0] = it }
         .semantics(mergeDescendants = true) {
@@ -1235,7 +1244,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         val widthPx = constraints.maxWidth
         val heightPx = constraints.maxHeight
         val bundled: ImageBitmap? = if (photo != null) remember(photo.resId) { Skyline.bitmap(context, photo.resId) } else null
-        val bitmap = bundled ?: downloaded
+        val bitmap = if (Diag.has("photos")) null else bundled ?: downloaded
         val biasY = Skyline.biasY(photo?.key)
         // Adaptive ink: dark numbers on a bright photo, white ones on a dark one (measured after the shading and scrim).
         val bright = if (bitmap != null) {
@@ -1247,7 +1256,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
             if (bitmap != null) {
                 Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, alignment = BiasAlignment(0f, biasY),
-                    colorFilter = Skyline.shade(phase), modifier = Modifier.matchParentSize())
+                    colorFilter = if (Diag.has("shade")) null else Skyline.shade(phase), modifier = Modifier.matchParentSize())
             } else {
                 DrawnSkyline(city, phase, Modifier.matchParentSize())
             }
@@ -1808,4 +1817,11 @@ object Sky {
         Phase.TWILIGHT -> Color(0xFF4F78A3) to Color(0xFF24384F)
         Phase.NIGHT -> Color(0xFF141E3C) to Color(0xFF0A0E1C)
     }
+}
+
+
+/** CI diagnostics (screenshot mode only): parts of the city cards to leave out, from the "off" extra. */
+object Diag {
+    @Volatile var off: Set<String> = emptySet()
+    fun has(part: String) = part in off
 }

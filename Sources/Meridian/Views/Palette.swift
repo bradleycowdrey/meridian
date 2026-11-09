@@ -2,22 +2,46 @@ import SwiftUI
 import AppKit
 import CoreText
 
-/// bradcowdrey.com design tokens (warm near-black, cream, crimson; Inter-like 400/500 weights),
-/// plus the 8-pt spacing grid and type scale used across the app.
+/// Two Degrees design tokens, as on iPhone: black and near-black surfaces, white text at four
+/// strengths, white hairlines, and a handful of status colours. Plus the 8-pt spacing grid and
+/// type scale used across the app.
 enum Palette {
-    static let bg = Color(hex: 0x1A1816)
-    static let raised = Color(hex: 0x1C1A18)
-    static let subtle = Color(hex: 0x222018)
-    static let border = Color(hex: 0x2A2520)
+    static let bg = Color(hex: 0x0B0C0F)
+    static let raised = Color(hex: 0x0B0C0F)
+    static let subtle = Color(hex: 0x111317)
+    /// Hover fills and quiet secondary fills.
+    static let border = Color.white.opacity(0.12)
     static let textPrimary = Color.white
-    static let cream = Color(hex: 0xFFF1E5)
-    static let textSecondary = Color(hex: 0xE0D8D0)
-    static let textMuted = Color(hex: 0xB0A898)
-    static let textFaint = Color(hex: 0x807870)
-    static let crimson = Color(hex: 0x990F3D)
-    /// Raised tile surface and stronger hover fill, a step up from bg on the same warm scale.
-    static let raisedTile = Color(hex: 0x23201D)
-    static let borderStrong = Color(hex: 0x3A3530)
+    /// The emphasis tone (active segment, Now label, all-working mark). White in this palette;
+    /// the name is kept from the earlier one.
+    static let cream = Color.white
+    static let textSecondary = Color.white.opacity(0.85)
+    /// 7.3:1 on bg.
+    static let textMuted = Color.white.opacity(0.6)
+    /// 4.6:1 on bg and raisedTile. Never on a photo.
+    static let textFaint = Color.white.opacity(0.46)
+    /// Raised tile surface, a step up from bg.
+    static let raisedTile = Color(hex: 0x111317)
+    /// Hairlines, and pressed or stronger hover fills.
+    static let borderStrong = Color.white.opacity(0.2)
+    /// Search field fill.
+    static let field = Color.black
+    /// Search-result hover and pressed fill.
+    static let menu = Color(hex: 0x1E1E22)
+    /// The "Now" dot; status Working.
+    static let now = Color(hex: 0x9AD3A8)
+    /// Update-available dot.
+    static let accent = Color(hex: 0x8CC0F5)
+    /// Midnight mark; status Weekend and Day off.
+    static let midnight = Color(hex: 0xF2C66D)
+    /// Status Off hours.
+    static let offHours = Color(hex: 0xD9DEE6)
+    /// Status for a public holiday; error notices.
+    static let holiday = Color(hex: 0xF39A72)
+    /// Edit mode's remove button.
+    static let destructive = Color(red: 1, green: 0.27, blue: 0.23)
+    /// Photo scrims and the plates behind pills.
+    static let scrim = Color.black
 }
 
 /// The five interface sizes. Everything (type, cells, spacing, popover width) scales together,
@@ -89,7 +113,8 @@ struct Metrics {
 
     /// A font at a scaled size in the chosen family. Inter falls back to SF if it isn't bundled.
     func font(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-        let points = pt(size)
+        // Legibility floor: nothing is set under 11 pt, at any interface size.
+        let points = max(11, pt(size))
         guard family == .inter, FontRegistry.interAvailable else { return .system(size: points, weight: weight) }
         let face: String
         switch weight {
@@ -112,21 +137,47 @@ struct Metrics {
     var meta: Font { font(13) }
     var body: Font { font(15, .semibold) }
     var cell: Font { font(17, .medium) }
-    var cellNow: Font { font(17, .semibold) }
+    var cellNow: Font { font(19, .semibold) }
     var title: Font { font(19, .semibold) }
     var display: Font { font(34, .semibold) }
 
-    // Strip geometry: one even gutter in both directions; the "now" lens's 2pt stroke sits
-    // exactly centred in that gutter, and its corners are concentric with the tiles'.
+    // Strip geometry: one even gutter in both directions. The selected ("Now") tile is drawn
+    // larger than the rest, and one outline runs down every row around those tiles: concentric
+    // with them, its line midway in the clear gap between a Now tile and its neighbour.
     var gutter: CGFloat { 2 * pt(4) }                    // always even: 6 / 8 / 8 / 8 / 10
     var tileRadius: CGFloat { pt(10) }
-    let lensStroke: CGFloat = 2
-    var lensOutset: CGFloat { gutter / 2 + lensStroke / 2 }  // stroke centre on the gutter's midline
-    var lensRadius: CGFloat { tileRadius + lensOutset }      // concentric with the tile corners
+    let nowScale: CGFloat = 1.13
     func tileWidth(compact: Bool) -> CGFloat { pt(compact ? 42 : 46) }
     func cellWidth(compact: Bool) -> CGFloat { tileWidth(compact: compact) + gutter }   // column pitch
-    func rowHeight(compact: Bool) -> CGFloat { pt(compact ? 44 : 48) }
-    func labelWidth(compact: Bool) -> CGFloat { pt(compact ? 152 : 176) }
+    func labelWidth(compact: Bool) -> CGFloat { pt(compact ? 184 : 200) }
+    /// The tall (preferred) row: time, city, and a line for the zone and status.
+    func rowHeight(compact: Bool) -> CGFloat { pt(compact ? 80 : 84) }
+    /// The shortest a row gets: two lines of label.
+    func rowHeightShort(compact: Bool) -> CGFloat { pt(compact ? 56 : 58) }
+    /// Rows share the body's height: tall when they fit, never under short (then the body scrolls).
+    func rowHeight(compact: Bool, rows: Int, room: CGFloat) -> CGFloat {
+        guard rows > 0 else { return rowHeight(compact: compact) }
+        let fit = (room / CGFloat(rows)).rounded(.down) - gutter
+        return min(rowHeight(compact: compact), max(rowHeightShort(compact: compact), fit))
+    }
+    /// Rows this tall or taller use the three-line label.
+    var threeLineRow: CGFloat { pt(76) }
+    func tileHeight(row: CGFloat) -> CGFloat { min(pt(52), row - pt(14)) }
+    /// Space under the tiles inside a row.
+    func tileBottom(row: CGFloat) -> CGFloat { row >= threeLineRow ? pt(10) : pt(7) }
+    /// How far a row's photo card reaches beyond the row's content on each side.
+    var cardOutset: CGFloat { pt(8) }
+    var cardRadius: CGFloat { pt(14) }
+
+    // The Now outline.
+    /// How far the Now tile grows past its cell on each side.
+    func nowGrowX(tile: CGFloat) -> CGFloat { tile * (nowScale - 1) / 2 }
+    /// From the Now tile's edge to the outline's centre line: midway in the clear gap.
+    func lensInset(tile: CGFloat) -> CGFloat { (gutter - nowGrowX(tile: tile)) / 2 }
+    var lensCore: CGFloat { gutter >= 8 ? 2 : 1.5 }
+    var lensEdge: CGFloat { gutter >= 8 ? 1 : 0.5 }
+    /// Concentric with the Now tile's corners.
+    func lensRadius(tile: CGFloat) -> CGFloat { tileRadius * nowScale + lensInset(tile: tile) }
     var tilePadding: CGFloat { pt(20) }
 
     /// Hours shown: two before, now, two after.

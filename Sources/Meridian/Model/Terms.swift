@@ -33,6 +33,8 @@ enum Terms {
         alert.addButton(withTitle: "I Agree")
         alert.addButton(withTitle: "Read the Terms")
         alert.addButton(withTitle: "Quit")
+        // Dark, like the rest of the app.
+        alert.window.appearance = NSAppearance(named: .darkAqua)
         while true {
             switch alert.runModal() {
             case .alertFirstButtonReturn:

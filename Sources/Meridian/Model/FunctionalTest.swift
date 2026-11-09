@@ -22,6 +22,12 @@ final class FunctionalTest {
         self.host = host
     }
 
+    /// A check made outside this class (the self-test's look at its own screenshots), counted
+    /// and listed with the rest. Call before `run()`.
+    func record(_ name: String, _ ok: Bool, _ detail: String = "") {
+        check(name, ok, detail)
+    }
+
     private func check(_ name: String, _ ok: Bool, _ detail: @autoclosure () -> String = "") {
         if ok { passed += 1 } else { failed += 1 }
         let extra = detail()
@@ -219,6 +225,27 @@ final class FunctionalTest {
         MyLocation.remove(from: &list, defaults: scratch)
         check("my location: off leaves your card as it was", list.map(\.name) == ["Tokyo", "Home"] && MyLocation.hostID(defaults: scratch) == nil)
         scratch.removePersistentDomain(forName: "selftest.mylocation")
+
+        // City photos: the manifest, the bundled files, matching, decoding, day or night.
+        check("photos: manifest loads", MacSkylines.credits.count >= 100, "\(MacSkylines.credits.count) credits")
+        check("photos: bundled in the app", MacSkylines.photoCount >= 200, "\(MacSkylines.photoCount) files")
+        let newYorkKey = MacSkylines.key(name: "New York", timeZoneID: "America/New_York")
+        check("photos: New York matches its photo", newYorkKey == "newyork", newYorkKey ?? "nil")
+        let noKey = MacSkylines.key(name: "City 0", timeZoneID: "UTC")
+        check("photos: an unknown city has none", noKey == nil, noKey ?? "nil")
+        let parisDay = MacSkylines.image(name: "Paris", timeZoneID: "Europe/Paris", night: false, maxPixel: 600)
+        check("photos: Paris by day decodes at 600 px", parisDay != nil && (parisDay?.width ?? 0) <= 600,
+              parisDay.map { "\($0.width)x\($0.height)" } ?? "nil")
+        let tokyoNight = MacSkylines.image(name: "Tokyo", timeZoneID: "Asia/Tokyo", night: true, maxPixel: 600)
+        check("photos: Tokyo by night decodes at 600 px", tokyoNight != nil && (tokyoNight?.width ?? 0) <= 600,
+              tokyoNight.map { "\($0.width)x\($0.height)" } ?? "nil")
+        check("photos: Tokyo at 1 AM wants its night photo",
+              MacSkylines.wantsNight(timeZoneID: "Asia/Tokyo", latitude: nil, longitude: nil, at: at("Asia/Tokyo", 2026, 11, 6, 1)))
+        check("photos: Tokyo at 1 PM wants its day photo",
+              !MacSkylines.wantsNight(timeZoneID: "Asia/Tokyo", latitude: nil, longitude: nil, at: at("Asia/Tokyo", 2026, 11, 6, 13)))
+        let widgetCopy = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/PlugIns/MeridianWidget.appex/Contents/Resources/Skylines/skyline_paris.jpg")
+        check("photos: the widget has its own copies", FileManager.default.fileExists(atPath: widgetCopy.path), widgetCopy.path)
     }
 
     // MARK: Interface, at every size and both fonts
@@ -270,10 +297,17 @@ final class FunctionalTest {
                 await click("control-edit", in: window)
                 check("\(tag) Edit on", editing.wrappedValue)
                 let first = store.places[0].name
-                let pitch = Metrics(scale: size.scale, family: font).rowHeight(compact: false) + Metrics(scale: size.scale).gutter
-                await drag("handle-\(first)", by: pitch * 1.1, in: window)
-                check("\(tag) drag handle moves a row down", store.places.firstIndex { $0.name == first } == 1,
-                      store.places.map(\.name).joined(separator: ","))
+                // Rows share the panel's height, so their pitch is measured (one handle to the
+                // next), not worked out from the size.
+                let second = store.places.count > 1 ? store.places[1].name : first
+                let pitch = (TestAnchors.frames["handle-\(second)"]?.midY ?? 0) - (TestAnchors.frames["handle-\(first)"]?.midY ?? 0)
+                if pitch > 0 {
+                    await drag("handle-\(first)", by: pitch * 1.1, in: window)
+                    check("\(tag) drag handle moves a row down", store.places.firstIndex { $0.name == first } == 1,
+                          store.places.map(\.name).joined(separator: ","))
+                } else {
+                    check("\(tag) drag handle moves a row down", false, "handles not found")
+                }
                 let last = store.places[store.places.count - 1].name
                 let count = store.places.count
                 await click("delete-\(last)", in: window)

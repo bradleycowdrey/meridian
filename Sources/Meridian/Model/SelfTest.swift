@@ -43,6 +43,26 @@ enum SelfTest {
             + " expected x \(Int(expected)) (screen \(Int(visible.minX))..\(Int(visible.maxX))) \(ok ? "OK" : "WRONG")"
     }
 
+    /// Whether the bitmap's top row of pixels is free of red: every sample dark in red and with
+    /// red close to blue (the old 3 pt crimson band was red 0.6, blue 0.24).
+    private static func topRowIsNotRed(_ rep: NSBitmapImageRep?) -> (ok: Bool, detail: String) {
+        guard let rep, rep.pixelsWide > 10, rep.pixelsHigh > 2 else { return (false, "no bitmap") }
+        var worst = ""
+        var sampled = 0
+        for step in 1...9 {
+            let x = rep.pixelsWide * step / 10
+            guard let raw = rep.colorAt(x: x, y: 1),
+                  let color = raw.usingColorSpace(.sRGB) ?? raw.usingColorSpace(.deviceRGB) else { continue }
+            sampled += 1
+            let red = color.redComponent, blue = color.blueComponent
+            if !(red < 0.25 && abs(red - blue) < 0.1) && worst.isEmpty {
+                worst = String(format: "x %d: red %.2f blue %.2f", x, Double(red), Double(blue))
+            }
+        }
+        guard sampled > 0 else { return (false, "no pixels read") }
+        return (worst.isEmpty, worst)
+    }
+
     nonisolated static func log(_ message: @autoclosure () -> String) {
         guard isActive else { return }
         FileHandle.standardError.write(Data(("[selftest] " + message() + "\n").utf8))
@@ -55,6 +75,8 @@ enum SelfTest {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let screen = NSScreen.main?.visibleFrame ?? .zero
         var lines = ["screen visible frame \(Int(screen.minX)),\(Int(screen.minY)) \(Int(screen.width))x\(Int(screen.height))"]
+        // The Medium panel as drawn (search closed), for the look check below.
+        var mediumBase: NSBitmapImageRep?
 
         for addingState in [false, true] {
             adding.wrappedValue = addingState
@@ -78,6 +100,7 @@ enum SelfTest {
                 )
                 if let rep = content.bitmapImageRepForCachingDisplay(in: bounds) {
                     content.cacheDisplay(in: bounds, to: rep)
+                    if !addingState && size == .medium { mediumBase = rep }
                     let name = "\(addingState ? "add" : "base")-\(UISize.allCases.firstIndex(of: size)!)-\(size.rawValue).png"
                     try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent(name))
                 }
@@ -103,6 +126,9 @@ enum SelfTest {
         }
         // Every function, at every size and in both fonts.
         let functional = FunctionalTest(store: store, adding: adding, editing: editing, host: host)
+        // The look: the panel's top edge is the near-black surface, with no crimson band across it.
+        let band = topRowIsNotRed(mediumBase)
+        functional.record("panel: no crimson band", band.ok, band.detail)
         let results = await functional.run()
         try? results.joined(separator: "\n").write(to: dir.appendingPathComponent("functional.txt"), atomically: true, encoding: .utf8)
         lines.append(results[0])

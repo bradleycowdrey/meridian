@@ -1,14 +1,15 @@
 import SwiftUI
 import AppKit
 
-/// Day-and-night ribbons, one row per city. Every column is the same instant everywhere,
-/// so "now" (or any travelled-to hour) reads as one straight line down the centre.
+/// Day-and-night ribbons, one row per city, each on a card of the city's own skyline. Every column
+/// is the same instant everywhere, so "now" (or any travelled-to hour) reads as one straight line
+/// down the centre: a larger tile in every row, and one outline around them all.
 struct StripView: View {
     @EnvironmentObject private var store: ZoneStore
     @Environment(\.metrics) private var ui
     var cellWidth: CGFloat = 52
-    var rowHeight: CGFloat = 48
-    var labelWidth: CGFloat = 176
+    var rowHeight: CGFloat = 84
+    var labelWidth: CGFloat = 200
     var editing = false
 
     /// Live drag distance; resets by itself if the gesture is cancelled (panel closed mid-drag).
@@ -30,111 +31,181 @@ struct StripView: View {
             let frac = total - Double(base)
             let anchor = TimeMath.hourAnchor(store.now)
             let moment = base == 0 ? store.now : anchor.addingTimeInterval(Double(base) * 3600)
+            let tile = cellWidth - cellGap
+            let tileHeight = ui.tileHeight(row: rowHeight)
+            let tileBottom = ui.tileBottom(row: rowHeight)
+            let cardWidth = labelWidth + stripWidth + 2 * ui.cardOutset
 
-            HStack(alignment: .top, spacing: 0) {
-                VStack(alignment: .leading, spacing: rowSpacing) {
-                    Color.clear.frame(height: overlapRowHeight)
+            ZStack(alignment: .topLeading) {
+                // Each city's photo (day or night by the sun there at the shown moment), behind
+                // its row and reaching a little past it on both sides.
+                VStack(spacing: rowSpacing) {
                     ForEach(store.places) { place in
-                        PlaceLabel(place: place, moment: moment, editing: editing, pitch: pitch)
-                            .frame(width: labelWidth - ui.l, height: rowHeight, alignment: .leading)
+                        MacSkylineBackdrop(name: place.name, timeZoneID: place.timeZoneID,
+                                           latitude: place.latitude, longitude: place.longitude,
+                                           date: moment, maxPixel: 1000)
+                            .overlay(scrim(cardWidth: cardWidth))
+                            .clipShape(RoundedRectangle(cornerRadius: ui.cardRadius, style: .continuous))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: rowHeight)
                     }
                 }
-                .frame(width: labelWidth, alignment: .leading)
-                // Above the strip, so the city controls (delete, drag handle) always get the click.
-                .zIndex(1)
+                .padding(.top, overlapRowHeight + rowSpacing)
+                .padding(.horizontal, -ui.cardOutset)
+                .frame(width: labelWidth + stripWidth, alignment: .topLeading)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
 
-                ZStack(alignment: .top) {
-                    VStack(spacing: rowSpacing) {
-                        HStack(spacing: cellGap) {
-                            ForEach((base - half)...(base + half), id: \.self) { index in
-                                ColumnHeader(
-                                    hoursFromNow: index,
-                                    isCenter: index == base,
-                                    isOverlap: allWorking(at: anchor.addingTimeInterval(Double(index) * 3600))
-                                )
-                                .frame(width: cellWidth - cellGap, height: overlapRowHeight)
-                            }
-                        }
+                HStack(alignment: .top, spacing: 0) {
+                    VStack(alignment: .leading, spacing: rowSpacing) {
+                        Color.clear.frame(height: overlapRowHeight)
                         ForEach(store.places) { place in
+                            PlaceLabel(place: place, moment: moment, editing: editing, pitch: pitch, rowHeight: rowHeight)
+                                .frame(width: labelWidth - ui.m, height: rowHeight, alignment: .bottomLeading)
+                        }
+                    }
+                    .frame(width: labelWidth, alignment: .leading)
+                    // Above the strip, so the city controls (delete, drag handle) always get the click.
+                    .zIndex(1)
+
+                    ZStack(alignment: .top) {
+                        VStack(spacing: rowSpacing) {
                             HStack(spacing: cellGap) {
                                 ForEach((base - half)...(base + half), id: \.self) { index in
-                                    let date = anchor.addingTimeInterval(Double(index) * 3600)
-                                    HourCell(
-                                        date: date,
-                                        zone: place.timeZone,
-                                        use24h: store.use24h,
-                                        dimmed: store.showWorkHours && !store.isWorking(place, at: date),
+                                    ColumnHeader(
+                                        hoursFromNow: index,
                                         isCenter: index == base,
-                                        hovered: hoverIndex == index && index != base
+                                        isOverlap: allWorking(at: anchor.addingTimeInterval(Double(index) * 3600))
                                     )
-                                    .frame(width: cellWidth - cellGap, height: rowHeight)
-                                    .contentShape(Rectangle())
-                                    .onHover { inside in
-                                        if inside { hoverIndex = index } else if hoverIndex == index { hoverIndex = nil }
+                                    .frame(width: tile, height: overlapRowHeight)
+                                }
+                            }
+                            ForEach(store.places) { place in
+                                HStack(spacing: cellGap) {
+                                    ForEach((base - half)...(base + half), id: \.self) { index in
+                                        let date = anchor.addingTimeInterval(Double(index) * 3600)
+                                        HourCell(
+                                            date: date,
+                                            zone: place.timeZone,
+                                            use24h: store.use24h,
+                                            dimmed: store.showWorkHours && !store.isWorking(place, at: date),
+                                            highlights: store.showWorkHours,
+                                            isCenter: index == base,
+                                            afterCenter: index == base + 1,
+                                            width: tile,
+                                            tileHeight: tileHeight,
+                                            tileBottom: tileBottom,
+                                            hovered: hoverIndex == index && index != base
+                                        )
+                                        // The cell is the whole column of the row, so a click
+                                        // anywhere in it picks that hour; the tile sits inside.
+                                        .frame(width: tile, height: rowHeight)
+                                        .contentShape(Rectangle())
+                                        .onHover { inside in
+                                            if inside { hoverIndex = index } else if hoverIndex == index { hoverIndex = nil }
+                                        }
+                                        .onTapGesture { store.travel(index - store.offsetHours) }
+                                        .accessibilityElement(children: .combine)
+                                        .accessibilityAddTraits(.isButton)
+                                        .testID("hour-\(place.name)-\(index)")
+                                        // The larger Now tile overlaps its neighbours' gutters.
+                                        .zIndex(index == base ? 1 : 0)
                                     }
-                                    .onTapGesture { store.travel(index - store.offsetHours) }
-                                    .accessibilityElement(children: .combine)
-                                    .accessibilityAddTraits(.isButton)
-                                    .testID("hour-\(place.name)-\(index)")
                                 }
                             }
                         }
-                    }
-                    .offset(x: -CGFloat(frac) * cellWidth)
-                    .frame(width: stripWidth)
+                        .offset(x: -CGFloat(frac) * cellWidth)
+                        .frame(width: stripWidth)
 
-                    // The "now" lens.
-                    RoundedRectangle(cornerRadius: ui.lensRadius, style: .continuous)
-                        .fill(.white.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: ui.lensRadius, style: .continuous)
-                                .strokeBorder(.white, lineWidth: ui.lensStroke)
+                        // The Now outline: one line down every row around the Now tiles, shaped
+                        // like them (concentric corners) and midway in the gap to their
+                        // neighbours. A white core with a thin dark edge; no fill.
+                        nowOutline(tile: tile, tileHeight: tileHeight, tileBottom: tileBottom)
+                    }
+                    .frame(width: stripWidth)
+                    .clipped()
+                    // Clipping hides the off-screen hour tiles but doesn't stop them catching clicks;
+                    // limit hit-testing to the visible strip so they can't cover the city column.
+                    .contentShape(Rectangle())
+                    .mask(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0),
+                                .init(color: .black, location: 0.11),
+                                .init(color: .black, location: 0.89),
+                                .init(color: .clear, location: 1),
+                            ],
+                            startPoint: .leading, endPoint: .trailing
                         )
-                        .frame(
-                            width: cellWidth - cellGap + 2 * ui.lensOutset,
-                            height: CGFloat(store.places.count) * pitch - rowSpacing + 2 * ui.lensOutset
-                        )
-                        .padding(.top, overlapRowHeight + rowSpacing - ui.lensOutset)
-                        .allowsHitTesting(false)
-                }
-                .frame(width: stripWidth)
-                .clipped()
-                // Clipping hides the off-screen hour tiles but doesn't stop them catching clicks;
-                // limit hit-testing to the visible strip so they can't cover the city column.
-                .contentShape(Rectangle())
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black, location: 0.11),
-                            .init(color: .black, location: 0.89),
-                            .init(color: .clear, location: 1),
-                        ],
-                        startPoint: .leading, endPoint: .trailing
                     )
-                )
-                .gesture(
-                    DragGesture(minimumDistance: 3)
-                        .updating($drag) { value, state, _ in state = value.translation.width }
-                        .onEnded { value in
-                            let hours = Int((-value.translation.width / cellWidth).rounded())
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                store.offsetHours += hours
+                    .gesture(
+                        DragGesture(minimumDistance: 3)
+                            .updating($drag) { value, state, _ in state = value.translation.width }
+                            .onEnded { value in
+                                let hours = Int((-value.translation.width / cellWidth).rounded())
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    store.offsetHours += hours
+                                }
                             }
-                        }
-                )
-                .onScrollWheel { delta in store.travel(delta) }
+                    )
+                    .onScrollWheel { delta in store.travel(delta) }
+                }
             }
         }
-        .frame(height: overlapRowHeight + CGFloat(store.places.count) * pitch + ui.lensOutset)
+        .frame(height: overlapRowHeight + CGFloat(store.places.count) * pitch)
     }
 
     private func allWorking(at date: Date) -> Bool {
         store.showWorkHours && store.places.count > 1
             && store.places.allSatisfy { store.isWorking($0, at: date) }
     }
+
+    /// Darkens a row's photo: heavily behind the label so white text reads on any sky (a sky of
+    /// luminance 0.5 under 0.70 is still 4.9:1), lightly behind the tiles, a little more at the foot.
+    private func scrim(cardWidth: CGFloat) -> some View {
+        let width = max(cardWidth, 1)
+        let labelEnd = min(max(labelWidth / width, 0.01), 0.9)
+        let fadeEnd = min(max((labelWidth + 1.5 * cellWidth) / width, labelEnd + 0.01), 0.99)
+        return ZStack {
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.scrim.opacity(0.78), location: 0),
+                    .init(color: Palette.scrim.opacity(0.70), location: labelEnd),
+                    .init(color: Palette.scrim.opacity(0.12), location: fadeEnd),
+                    .init(color: Palette.scrim.opacity(0.12), location: 1),
+                ],
+                startPoint: .leading, endPoint: .trailing
+            )
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.scrim.opacity(0.45), location: 0),
+                    .init(color: Palette.scrim.opacity(0), location: 0.6),
+                ],
+                startPoint: .bottom, endPoint: .top
+            )
+        }
+    }
+
+    private func nowOutline(tile: CGFloat, tileHeight: CGFloat, tileBottom: CGFloat) -> some View {
+        let inset = ui.lensInset(tile: tile)
+        let shape = RoundedRectangle(cornerRadius: ui.lensRadius(tile: tile), style: .continuous)
+        let top = overlapRowHeight + rowSpacing + (rowHeight - tileBottom - tileHeight)
+            - tileHeight * (ui.nowScale - 1) / 2 - inset
+        return ZStack {
+            shape.stroke(Color.black.opacity(0.6), lineWidth: ui.lensCore + 2 * ui.lensEdge)
+            shape.stroke(Color.white.opacity(0.85), lineWidth: ui.lensCore)
+        }
+        .frame(
+            width: tile * ui.nowScale + 2 * inset,
+            height: CGFloat(max(store.places.count - 1, 0)) * pitch + tileHeight * ui.nowScale + 2 * inset
+        )
+        .padding(.top, top)
+        .allowsHitTesting(false)
+    }
 }
 
+/// A city's label on its card: the time there (large), the city, then its zone or day shift and
+/// whether it is at work. Tall rows take three lines; short rows fold the same into two.
 private struct PlaceLabel: View {
     @EnvironmentObject private var store: ZoneStore
     @Environment(\.metrics) private var ui
@@ -142,9 +213,12 @@ private struct PlaceLabel: View {
     let moment: Date
     let editing: Bool
     let pitch: CGFloat
+    let rowHeight: CGFloat
 
     @State private var dragStartIndex: Int?
     @State private var handleHovered = false
+
+    private var tall: Bool { rowHeight >= ui.threeLineRow }
 
     var body: some View {
         let shift = TimeMath.dayShift(moment, zone: place.timeZone)
@@ -152,8 +226,9 @@ private struct PlaceLabel: View {
             if editing {
                 Image(systemName: "line.3.horizontal")
                     .font(ui.font(13, .medium))
-                    .foregroundStyle(Palette.textMuted)
+                    .foregroundStyle(Palette.textSecondary)
                     .frame(width: max(24, ui.pt(20)), height: ui.pt(32))
+                    .background(Circle().fill(Palette.scrim.opacity(0.45)))
                     .contentShape(Rectangle())
                     .help("Drag to reorder")
                     .gesture(reorderGesture)
@@ -168,40 +243,15 @@ private struct PlaceLabel: View {
                     // Removed or Edit turned off while hovered: put the cursor back.
                     .onDisappear { if handleHovered { handleHovered = false; NSCursor.pop() } }
             }
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: ui.pt(4)) {
-                    Text(place.name)
-                        .font(ui.body)
-                        .foregroundStyle(Palette.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    if store.isHere(place) {
-                        Image(systemName: "location.fill")
-                            .font(ui.font(9, .medium))
-                            .foregroundStyle(Palette.textMuted)
-                            .accessibilityLabel("My Location")
-                    }
+            VStack(alignment: .leading, spacing: 1) {
+                if tall {
+                    timeText(digits: 22)
+                    nameLine(font: ui.body)
+                    metaLine(shift: shift)
+                } else {
+                    timeAndStatus
+                    nameAndZone(shift: shift)
                 }
-                .help(store.isHere(place) ? "\(place.name) · My Location\(store.hereCity.map { $0 != place.name ? " (\($0))" : "" } ?? "")" : place.name)
-                HStack(spacing: ui.pt(6)) {
-                    Text(TimeMath.time(moment, in: place.timeZone, use24h: store.use24h))
-                        .foregroundStyle(Palette.textSecondary)
-                        .monospacedDigit()
-                    if shift != 0 {
-                        Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
-                            .font(ui.font(11, .medium))
-                            .foregroundStyle(Palette.cream)
-                            .padding(.horizontal, ui.pt(7))
-                            .padding(.vertical, 1)
-                            .background(Capsule().fill(Palette.borderStrong))
-                    } else if !editing {
-                        // Hidden in Edit, where the handle and delete button need the room.
-                        Text(place.offsetLabel(at: moment))
-                            .foregroundStyle(Palette.textMuted)
-                    }
-                }
-                .font(ui.meta)
-                .lineLimit(1)
             }
             Spacer(minLength: 0)
             if editing {
@@ -211,7 +261,7 @@ private struct PlaceLabel: View {
                     Image(systemName: "minus.circle.fill")
                         .font(ui.font(17))
                         .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, Palette.crimson)
+                        .foregroundStyle(.white, Palette.destructive)
                         .frame(width: max(28, ui.pt(28)), height: max(28, ui.pt(28)))
                         .contentShape(Rectangle())
                 }
@@ -221,12 +271,150 @@ private struct PlaceLabel: View {
                 .testID("delete-\(place.name)")
             }
         }
+        .padding(.leading, ui.pt(6))
+        .padding(.bottom, ui.pt(tall ? 9 : 6))
         .contextMenu {
             Button("Show in Menu Bar") {
                 store.menuBarPlaceID = place.id
                 store.menuBarStyle = .cityTime
             }
             Button("Remove", role: .destructive) { store.remove(place) }
+        }
+    }
+
+    // MARK: Lines
+
+    /// The time there: large digits, with AM or PM set small beside them.
+    private func timeText(digits size: CGFloat) -> some View {
+        let clock = WidgetClockView.clock(moment, zone: place.timeZone, use24h: store.use24h)
+        var text = Text(clock.0)
+            .font(ui.font(size, .semibold))
+            .tracking(-0.4)
+        if let suffix = clock.1 {
+            text = text + Text("\u{2009}" + suffix).font(ui.font(11, .semibold))
+        }
+        return text
+            .monospacedDigit()
+            .foregroundStyle(Palette.textPrimary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .shadow(color: .black.opacity(0.55), radius: 1.5, y: 1)
+    }
+
+    private func nameLine(font: Font) -> some View {
+        HStack(spacing: ui.pt(4)) {
+            Text(place.name)
+                .font(font)
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .shadow(color: .black.opacity(0.55), radius: 1.5, y: 1)
+            if store.isHere(place) {
+                Image(systemName: "location.fill")
+                    .font(ui.font(11, .medium))
+                    .foregroundStyle(Palette.textSecondary)
+                    .accessibilityLabel("My Location")
+            }
+        }
+        .help(store.isHere(place) ? "\(place.name) · My Location\(store.hereCity.map { $0 != place.name ? " (\($0))" : "" } ?? "")" : place.name)
+    }
+
+    /// "+1 d" when the city is on another day than you, else its UTC offset (hidden in Edit,
+    /// where the handle and delete button need the room).
+    @ViewBuilder
+    private func zoneOrShift(_ shift: Int) -> some View {
+        if shift != 0 {
+            dayBadge(shift)
+        } else if !editing {
+            Text(place.offsetLabel(at: moment))
+                .font(ui.font(12))
+                .foregroundStyle(Palette.textSecondary)
+                .lineLimit(1)
+        }
+    }
+
+    private func dayBadge(_ shift: Int) -> some View {
+        Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
+            .font(ui.font(11, .medium))
+            .foregroundStyle(Palette.textPrimary)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, ui.pt(7))
+            .padding(.vertical, 1)
+            .background(Capsule().fill(Palette.scrim.opacity(0.5)))
+    }
+
+    /// Working, Off hours, Weekend, Day off, or the holiday's name; nil when working hours aren't shown.
+    private var status: (title: String, color: Color)? {
+        guard store.showWorkHours else { return nil }
+        if store.isWorking(place, at: moment) { return ("Working", Palette.now) }
+        let title = WorkWeek.offLabel(place, at: moment, start: store.workStart, end: store.workEnd) ?? "Off hours"
+        switch title {
+        case "Off hours": return (title, Palette.offHours)
+        case "Weekend", "Day off": return (title, Palette.midnight)
+        default: return (title, Palette.holiday)
+        }
+    }
+
+    /// Third line of a tall row. A long holiday name drops the zone before it would be cut short.
+    @ViewBuilder
+    private func metaLine(shift: Int) -> some View {
+        if let status {
+            let pill = StatusPill(title: status.title, color: status.color)
+            if editing {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: ui.pt(6)) { zoneOrShift(shift); pill }
+                    pill
+                    Color.clear.frame(width: 1, height: max(16, ui.pt(16)))
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: ui.pt(6)) { zoneOrShift(shift); pill }
+                    pill
+                }
+            }
+        } else {
+            zoneOrShift(shift)
+        }
+    }
+
+    /// First line of a short row: the time, and the status beside it when there is room.
+    @ViewBuilder
+    private var timeAndStatus: some View {
+        if let status {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: ui.pt(6)) {
+                    timeText(digits: 20).fixedSize()
+                    StatusPill(title: status.title, color: status.color)
+                }
+                if editing {
+                    timeText(digits: 20)
+                } else {
+                    // Too long to fit (a holiday name): the pill shortens, it never vanishes.
+                    HStack(spacing: ui.pt(6)) {
+                        timeText(digits: 20).fixedSize()
+                        StatusPill(title: status.title, color: status.color)
+                    }
+                }
+            }
+        } else {
+            timeText(digits: 20)
+        }
+    }
+
+    /// Second line of a short row: the city, then its day shift or (dropped first) its zone.
+    @ViewBuilder
+    private func nameAndZone(shift: Int) -> some View {
+        let name = nameLine(font: ui.font(14, .semibold))
+        if shift != 0 {
+            HStack(spacing: ui.pt(6)) { name; dayBadge(shift) }
+        } else if editing {
+            name
+        } else {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: ui.pt(6)) { name; zoneOrShift(shift) }
+                name
+            }
         }
     }
 
@@ -248,13 +436,43 @@ private struct PlaceLabel: View {
     }
 }
 
+/// Whether a city is at work, in a word, in that state's colour on its own dark plate (so it
+/// reads on any photo).
+private struct StatusPill: View {
+    @Environment(\.metrics) private var ui
+    let title: String
+    let color: Color
+
+    var body: some View {
+        Text(title)
+            .font(ui.font(11, .semibold))
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .padding(.horizontal, ui.pt(7))
+            .frame(height: max(16, ui.pt(16)))
+            .background(Capsule().fill(Palette.scrim.opacity(0.5)))
+            .overlay(Capsule().strokeBorder(color.opacity(0.5), lineWidth: 1))
+            .accessibilityLabel(title)
+    }
+}
+
+/// One hour in one city: an opaque tile in that hour's sky colour, inside its (taller) cell. The
+/// selected hour's tile is drawn larger, overflowing its cell evenly on every side.
 private struct HourCell: View {
     @Environment(\.metrics) private var ui
     let date: Date
     let zone: TimeZone
     let use24h: Bool
+    /// Outside working hours there (only when working hours are highlighted).
     let dimmed: Bool
+    /// Working hours are highlighted, so working tiles keep a readable blue.
+    let highlights: Bool
     let isCenter: Bool
+    /// The tile right after the selected one: the gutter before it holds the Now outline.
+    let afterCenter: Bool
+    let width: CGFloat
+    let tileHeight: CGFloat
+    let tileBottom: CGFloat
     var hovered = false
 
     var body: some View {
@@ -263,54 +481,68 @@ private struct HourCell: View {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         let hour = parts.hour ?? 0
         let minute = parts.minute ?? 0
-        let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
+        let h = Double(hour) + Double(minute) / 60
         // A new day starts in this cell (usually 00:00, but some DST changes skip midnight).
         let newDay = !calendar.isDate(date, inSameDayAs: date.addingTimeInterval(-3600))
+        let k: CGFloat = isCenter ? ui.nowScale : 1
+        // Always fully opaque, so the photo never shows through behind the numerals.
+        let fill: Color = dimmed ? DayColor.offHoursFill(at: h)
+            : (highlights ? DayColor.workingFill(at: h) : DayColor.style(at: h).fill)
+        // The darkest tiles get a hairline so they still read as tiles on a night photo.
+        let edged = dimmed || hour < 6 || hour >= 21
+        let shape = RoundedRectangle(cornerRadius: ui.tileRadius * k, style: .continuous)
+        // Under the hour: the weekday where a new day starts, else AM or PM on a 12-hour clock.
+        let caption: String? = newDay ? TimeMath.weekday(date, in: zone) : (use24h ? nil : (hour < 12 ? "AM" : "PM"))
 
-        return VStack(spacing: 1) {
-            hourText(hour: hour, minute: minute)
-                .font(isCenter ? ui.cellNow : ui.cell)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            if newDay {
-                Text(TimeMath.weekday(date, in: zone))
-                    .font(ui.font(10, .medium))
-                    .textCase(.uppercase)
-                    .tracking(0.6)
+        return Color.clear
+            .frame(width: width, height: tileHeight)
+            .overlay {
+                VStack(spacing: 0) {
+                    hourText(hour: hour, minute: minute)
+                        .font(isCenter ? ui.cellNow : ui.cell)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                    if let caption {
+                        Text(caption)
+                            .font(ui.font(11, .semibold))
+                            .textCase(newDay ? .uppercase : nil)
+                            .tracking(newDay ? 0.6 : 0)
+                            .lineLimit(1)
+                    }
+                }
+                .foregroundStyle(Color.white)
+                .padding(.horizontal, 2)
+                .frame(width: width * k, height: tileHeight * k)
+                .background(shape.fill(fill))
+                .overlay {
+                    if hovered {
+                        shape.strokeBorder(Color.white.opacity(0.55), lineWidth: 1)
+                    } else if edged {
+                        shape.strokeBorder(Color.white.opacity(0.32), lineWidth: 1)
+                    }
+                }
+                .overlay(alignment: .leading) {
+                    // Midnight mark: a new day starts here. A 2pt line centred in the gutter
+                    // before the tile; beside the selected tile that gutter holds the Now
+                    // outline, so the mark moves just inside the tile.
+                    if newDay {
+                        Capsule().fill(Palette.midnight).frame(width: 2).padding(.vertical, ui.s)
+                            .offset(x: isCenter || afterCenter ? 3 : -(ui.gutter / 2 + 1))
+                    }
+                }
             }
-        }
-        .foregroundStyle(style.text)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: ui.tileRadius, style: .continuous)
-                .fill(style.fill.opacity(dimmed ? 0.72 : 1))
-        )
-        .overlay(alignment: .leading) {
-            // Midnight divider: a new day starts here.
-            if newDay {
-                // Midnight marker: 2pt crimson line centred in the gutter before the cell.
-                Capsule().fill(Palette.crimson).frame(width: 2).padding(.vertical, ui.s).offset(x: -(ui.gutter / 2 + 1))
-            }
-        }
+            .padding(.bottom, tileBottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
     }
 
+    /// "09" or "9", with half-hour minutes set small after it.
     private func hourText(hour: Int, minute: Int) -> Text {
-        let main: String
-        var suffix = ""
-        if use24h {
-            main = String(format: "%02d", hour)
-        } else {
-            main = "\(hour % 12 == 0 ? 12 : hour % 12)"
-            suffix = hour < 12 ? "AM" : "PM"   // Apple's style: capitals, set small
-        }
+        let main = use24h ? String(format: "%02d", hour) : "\(hour % 12 == 0 ? 12 : hour % 12)"
         var text = Text(main)
         if minute != 0 {
             text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium))
         }
-        // Smaller still after half-hour minutes ("12:30AM"), so it stays on one line.
-        // A thin space (not a full one) between the number and AM/PM.
-        if !suffix.isEmpty { text = text + Text("\u{2009}" + suffix).font(ui.font(minute != 0 ? 8 : 9, .medium)) }
         return text
     }
 }
@@ -332,7 +564,6 @@ private struct ColumnHeader: View {
                 .monospacedDigit()
                 .foregroundStyle(hoursFromNow == 0 ? Palette.cream : (isCenter ? Palette.textPrimary : Palette.textMuted))
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
             OverlapMark(isOverlap: isOverlap)
         }
         .frame(maxHeight: .infinity, alignment: .bottom)

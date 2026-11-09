@@ -8,6 +8,9 @@ struct SettingsView: View {
             AboutView().tabItem { Label("About", systemImage: "info.circle") }
         }
         .frame(width: 480, height: 440)
+        // Dark, with the app's sky blue for switches and selections.
+        .preferredColorScheme(.dark)
+        .tint(Color(hex: 0x3D74B0))
     }
 }
 
@@ -81,7 +84,7 @@ private struct CitiesSettings: View {
                             CityNameField(place: place)
                         }
                         if store.isHere(place) {
-                            Image(systemName: "location.fill").font(.caption).foregroundStyle(.secondary)
+                            Image(systemName: "location.fill").font(.system(size: 11)).foregroundStyle(.secondary)
                                 .help("My Location")
                         }
                         Spacer()
@@ -89,7 +92,7 @@ private struct CitiesSettings: View {
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                         Text(place.offsetLabel(at: store.now))
-                            .font(.caption)
+                            .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                             .frame(width: 64, alignment: .trailing)
                         WorkHoursButton(place: place)
@@ -109,14 +112,15 @@ private struct CitiesSettings: View {
             }
             .listStyle(.bordered)
             Text("Drag to reorder. Click a name to rename it. You can also add, remove and reorder cities with Add and Edit in the menu bar.")
-                .font(.caption)
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Toggle("Show My Location", isOn: $store.useMyLocation)
             Text("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your Mac.")
-                .font(.caption)
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }
         .padding(20)
+        .background(Palette.bg)
     }
 }
 
@@ -147,13 +151,13 @@ private struct GeneralSettings: View {
             Toggle("Highlight working hours", isOn: $store.showWorkHours)
             if store.showWorkHours {
                 Text("Each city follows its country's usual working days and hours. To change a city's, use the briefcase in Cities.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Toggle("Keep desktop window on top", isOn: $store.floatOnTop)
             Toggle("Open at login", isOn: Binding(get: { store.launchAtLogin }, set: { store.launchAtLogin = $0 }))
             Section("Widget") {
                 Text("Add Meridian to your desktop or Notification Center: right-click the desktop, choose Edit Widgets, then search for Meridian. It shows your cities in the same order as here.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
                 LabeledContent("Not in Edit Widgets?") {
                     Button(widgetRefreshed ? "Done" : "Refresh Widgets") {
                         WidgetRegistration.refresh(restartService: true) { widgetRefreshed = true }
@@ -165,6 +169,8 @@ private struct GeneralSettings: View {
             UpdateSettings()
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(Palette.bg)
     }
 }
 
@@ -178,7 +184,7 @@ private struct UpdateSettings: View {
                 Button("Check Now") { Task { await updater.check(userInitiated: true) } }
                     .disabled(updater.isBusy || !updater.canSelfUpdate)
             }
-            Text(status).font(.caption).foregroundStyle(.secondary)
+            Text(status).font(.system(size: 11)).foregroundStyle(.secondary)
         }
     }
 
@@ -198,22 +204,28 @@ private struct UpdateSettings: View {
 }
 
 private struct AboutView: View {
+    @State private var showCredits = false
+
     var body: some View {
         VStack(spacing: 10) {
             AppMark(size: 72)
             Text(Brand.appName).font(.title.bold())
             Text(Brand.tagline).foregroundStyle(.secondary)
             Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")")
-                .font(.caption).foregroundStyle(.tertiary)
+                .font(.system(size: 11)).foregroundStyle(.secondary)
             Divider().frame(width: 200).padding(.vertical, 6)
             Text("Made by \(Brand.author)")
             HStack(spacing: 16) {
                 Link(Brand.websiteHost, destination: Brand.website)
                 Link("Source on GitHub", destination: Brand.repository)
                 Link("Terms & Privacy", destination: Brand.legal)
+                Button("Photo Credits") { showCredits = true }
+                    .buttonStyle(.link)
             }
-            Text("Free and open source (MIT).").font(.caption).foregroundStyle(.secondary)
+            Text("Free and open source (MIT).").font(.system(size: 11)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.bg)
+        .sheet(isPresented: $showCredits) { MacPhotoCreditsView() }
     }
 }

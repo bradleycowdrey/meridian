@@ -54,7 +54,7 @@ struct ClockEntryView: View {
     let entry: ClockEntry
 
     /// iPhone: names, captions and status follow the reader's text size up to xLarge, where the
-    /// widget's fixed rows and tiles still hold (WidgetType.scale). The Mac keeps its sizes.
+    /// widget's fixed rows and tiles still hold (WidgetType.scale). The Mac's sizes are fixed.
     var body: some View {
         #if os(iOS)
         face.dynamicTypeSize(...DynamicTypeSize.xLarge)
@@ -82,8 +82,8 @@ struct ClockEntryView: View {
         .environment(\.colorScheme, .dark)
     }
 
-    /// The system's content margins keep the face clear of the edges (and, on the Mac, the crimson rule). On
-    /// iPhone the small widget's background is its city's skyline photo (WidgetContainerBackground).
+    /// The system's content margins keep the face clear of the edges. The small widget's background
+    /// is its city's skyline photo (WidgetContainerBackground).
     private var clock: some View {
         WidgetClockView(snapshot: entry.snapshot, date: entry.date, family: family)
             .containerBackground(for: .widget) {

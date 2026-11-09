@@ -112,4 +112,9 @@ jobs:
           # A widget must start through Apple's extension entry point, or macOS can't use it.
           nm -u dist/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/MacOS/MeridianWidget | grep -q _NSExtensionMain \
             || { echo "::error::widget isn't linked with _NSExtensionMain; it would never appear in Edit Widgets"; exit 1; }
+          # The city photos: the app's full-size copies and the widget's own smaller ones.
+          [ "$(ls dist/Meridian.app/Contents/Resources/Skylines/*.jpg | wc -l)" -ge 200 ] \
+            || { echo "::error::city photos are missing from Meridian.app (Resources/Skylines)"; exit 1; }
+          [ "$(ls dist/Meridian.app/Contents/PlugIns/MeridianWidget.appex/Contents/Resources/Skylines/*.jpg | wc -l)" -ge 200 ] \
+            || { echo "::error::city photos are missing from the widget (MeridianWidget.appex Resources/Skylines)"; exit 1; }
           if grep -q "^FAIL" "$OUT/functional.txt"; then grep "^FAIL" "$OUT/functional.txt"; exit 1; fi

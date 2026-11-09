@@ -71,7 +71,7 @@ instant everywhere, so the line through the middle is *now*.
 - **My Location**: the city you're in, added for you and kept current when you travel. Meridian asks once (Use My Location is recommended); change it in **Settings → Cities → Show My Location**. Your location only names the city and stays on your Mac.
 - **Day/night ribbons**: night navy, dawn peach, daylight sand and dusk orange, one row per city.
 - **Time travel**: drag the strip, scroll, press ← →, or click any hour. **Now** snaps back.
-- **Meeting overlap**: a cream mark shows hours when every city is inside working hours.
+- **Meeting overlap**: a white mark shows hours when every city is inside working hours.
 - **Copy the moment**: one click copies the selected time for every city, ready to paste into a chat or invite.
 - **Easy to manage**: **Add** opens search right in the panel; **Edit** shows a delete button and a drag handle on every city.
 - **Fast search**: city names, airport codes (`SFO`, `LHR`), abbreviations (`PST`, `CET`) or offsets (`UTC+5:30`).

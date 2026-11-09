@@ -20,6 +20,10 @@ sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist >
 cp -R Resources/Fonts "$APP/Contents/Resources/Fonts"
 # Offline data: world cities and public holidays (scripts/gen-data.py).
 cp Resources/Data/*.tsv "$APP/Contents/Resources/"
+# City photos (day and night) from the one copy in git (Android's), and their manifest.
+mkdir -p "$APP/Contents/Resources/Skylines"
+cp android/app/src/main/res/drawable-nodpi/skyline_*.jpg "$APP/Contents/Resources/Skylines/"
+cp Resources/Data/skylines.json "$APP/Contents/Resources/skylines.json"
 
 # Icon: 1024px PNG -> .icns
 ICONSET="$(mktemp -d)/AppIcon.iconset"
@@ -52,11 +56,19 @@ else
       -target "$arch-apple-macos14.0" -module-name MeridianWidget \
       Widget/MeridianWidget.swift Widget/WidgetCities.swift Sources/Meridian/Shared/WidgetContent.swift \
       Sources/Meridian/Model/Place.swift Sources/Meridian/Model/CityDirectory.swift \
+      Sources/Meridian/Shared/MacSkylines.swift Sources/Meridian/Model/Sun.swift \
       -o "$WIDGET_TMP/MeridianWidget-$arch"
   done
   lipo -create "$WIDGET_TMP"/MeridianWidget-* -output "$APPEX/Contents/MacOS/MeridianWidget"
   sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Widget-Info.plist > "$APPEX/Contents/Info.plist"
 fi
+
+# The widget is sandboxed: it reads its own smaller copies (600 px wide).
+mkdir -p "$APPEX/Contents/Resources/Skylines"
+for f in "$APP/Contents/Resources/Skylines"/*.jpg; do
+  sips -Z 600 -s format jpeg -s formatOptions 72 "$f" --out "$APPEX/Contents/Resources/Skylines/$(basename "$f")" >/dev/null
+done
+cp Resources/Data/skylines.json "$APPEX/Contents/Resources/skylines.json"
 
 # Sign with a Developer ID if one is configured, otherwise ad-hoc (fine for sideloading).
 IDENTITY="${CODESIGN_IDENTITY:--}"

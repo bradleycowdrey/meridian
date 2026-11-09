@@ -24,8 +24,8 @@ private struct ClockPanelContent: View {
     @State private var adding = false
     @State private var editing = false
     @State private var contentHeight: CGFloat = 0
-    /// Height of the window's hidden title bar. The panel draws under it (so the crimson rule
-    /// is at the very top), and SwiftUI still adds it to the window height, so it's subtracted
+    /// Height of the window's hidden title bar. The panel draws under it (so the header starts
+    /// at the very top), and SwiftUI still adds it to the window height, so it's subtracted
     /// at the bottom to keep the window exactly the size of the panel.
     @State private var titleBarInset: CGFloat = 0
     @State private var host = HostWindow()
@@ -38,18 +38,24 @@ private struct ClockPanelContent: View {
     /// Tallest the scrolling body may be so the whole panel stays on screen at any size.
     private var maxBodyHeight: CGFloat {
         let screen = NSScreen.main?.visibleFrame.height ?? 800
-        let chrome = 3 + ui.l + ui.xs + ui.pt(32) + ui.m   // crimson rule + header
-        return max(ui.pt(240), screen - chrome - ui.pt(compact ? 32 : 64))
+        let chrome = ui.l + ui.xs + ui.pt(32) + ui.m   // header
+        return max(ui.pt(240), screen - chrome - ui.pt(compact ? 32 : 40))
+    }
+
+    /// City rows share the room under the header: tall (three-line labels) while they all fit,
+    /// shorter as cities are added, and from the shortest on the body scrolls. Counts what is
+    /// always there (moment line, strip tile and its header row, footer); the city search and
+    /// update banner are left out on purpose, so rows don't jump when Add City opens.
+    private var rowHeight: CGFloat {
+        let fixed = ui.xs + ui.pt(28) + ui.m + 2 * ui.tilePadding + ui.pt(20) + ui.gutter + ui.m + ui.pt(16) + ui.l + ui.xs
+        return ui.rowHeight(compact: compact, rows: store.places.count, room: maxBodyHeight - fixed)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Crimson rule and header together act as the window's title bar: drag anywhere
-            // that isn't a button to move the window.
+            // The header acts as the window's title bar: drag anywhere that isn't a button to
+            // move the window.
             VStack(alignment: .leading, spacing: 0) {
-                // bradcowdrey.com's signature crimson rule.
-                Palette.crimson.frame(height: 3)
-
                 header
                     .padding(.horizontal, ui.xl)
                     .padding(.top, ui.l + ui.xs)
@@ -80,7 +86,7 @@ private struct ClockPanelContent: View {
                             StripView(
                                 cellWidth: ui.stripCellWidth(compact: compact,
                                                              screenWidth: (NSScreen.main?.visibleFrame.width ?? 1440) - 48),
-                                rowHeight: ui.rowHeight(compact: compact),
+                                rowHeight: rowHeight,
                                 labelWidth: ui.labelWidth(compact: compact),
                                 editing: editing
                             )
@@ -115,7 +121,7 @@ private struct ClockPanelContent: View {
         }
         .padding(.bottom, -titleBarInset)
         .background(Palette.bg)
-        // Use the full window: the crimson rule sits at the very top, under the hidden title bar.
+        // Use the full window: the header starts at the very top, under the hidden title bar.
         .ignoresSafeArea()
         .background(Palette.bg.ignoresSafeArea())
         .background(HostWindowReader(box: { host.isDesktop = !compact; return host }()) { window in
@@ -468,7 +474,7 @@ private struct ContentHeightKey: PreferenceKey {
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
 
-/// One hairline capsule holding Add City | Edit. Quiet at rest; the active segment fills cream.
+/// One hairline capsule holding Add City | Edit. Quiet at rest; the active segment fills white.
 private struct ListControls: View {
     @EnvironmentObject private var store: ZoneStore
     @Environment(\.metrics) private var ui
@@ -635,7 +641,7 @@ private struct UpdateBanner: View {
             // An available update is always shown, above any other status, until it's installed.
             if let release = updater.latest {
                 row {
-                    Circle().fill(Palette.crimson).frame(width: ui.pt(7), height: ui.pt(7))
+                    Circle().fill(Palette.accent).frame(width: ui.pt(7), height: ui.pt(7))
                     Text("Meridian \(release.version) is available")
                         .font(ui.font(14, .semibold))
                         .foregroundStyle(Palette.textPrimary)
@@ -672,7 +678,7 @@ private struct UpdateBanner: View {
                 row {
                     Image(systemName: notice.isError ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
                         .font(ui.font(14, .semibold))
-                        .foregroundStyle(notice.isError ? Palette.crimson : Palette.cream)
+                        .foregroundStyle(notice.isError ? Palette.holiday : Palette.cream)
                     message(notice.text)
                     Spacer(minLength: ui.s)
                     if notice.isError {
@@ -723,7 +729,7 @@ struct TravelBar: View {
         // One quiet line: the strip below is the focus, not the clock.
         HStack(spacing: ui.s) {
             if store.offsetHours == 0 {
-                Circle().fill(Palette.crimson).frame(width: ui.pt(6), height: ui.pt(6))
+                Circle().fill(Palette.now).frame(width: ui.pt(6), height: ui.pt(6))
             }
             Text(relativeLabel)
                 .font(ui.font(13, .medium))
@@ -799,10 +805,10 @@ struct AddCityField: View {
             .foregroundStyle(Palette.textPrimary)
             .padding(.horizontal, ui.m)
             .frame(height: ui.pt(44))
-            .background(RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous).fill(Palette.bg))
+            .background(RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous).fill(Palette.field))
             .overlay(
                 RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous)
-                    .strokeBorder(focused ? Palette.textFaint : .clear, lineWidth: 0.5)
+                    .strokeBorder(focused ? Palette.textFaint : Palette.border, lineWidth: 0.5)
                     .allowsHitTesting(false)
             )
 
@@ -865,7 +871,7 @@ struct AddCityField: View {
 
 // MARK: - Bits
 
-/// Small in-app mark: warm-black tile, three ribbons and the white lens.
+/// Small in-app mark: near-black tile, three sky-blue ribbons and the white Now outline.
 struct AppMark: View {
     var size: CGFloat = 28
 
@@ -874,14 +880,14 @@ struct AppMark: View {
             .fill(Palette.subtle)
             .overlay(
                 VStack(spacing: size * 0.1) {
-                    Capsule().fill(Palette.cream).frame(width: size * 0.62, height: size * 0.12)
-                    Capsule().fill(Palette.textFaint).frame(width: size * 0.62, height: size * 0.12)
-                    Capsule().fill(Palette.textMuted).frame(width: size * 0.62, height: size * 0.12)
+                    Capsule().fill(Color(hex: 0x3A6699)).frame(width: size * 0.62, height: size * 0.12)
+                    Capsule().fill(Color(hex: 0x1C3A5E)).frame(width: size * 0.62, height: size * 0.12)
+                    Capsule().fill(Color(hex: 0x34609A)).frame(width: size * 0.62, height: size * 0.12)
                 }
             )
             .overlay(
                 Capsule()
-                    .strokeBorder(.white, lineWidth: max(1.5, size * 0.06))
+                    .strokeBorder(Color.white.opacity(0.85), lineWidth: max(1.5, size * 0.06))
                     .frame(width: size * 0.26, height: size * 0.68)
             )
             .frame(width: size, height: size)
@@ -911,7 +917,7 @@ struct IconButton: View {
     }
 }
 
-/// apple.com-style pill: white for the primary action, warm grey for secondary.
+/// apple.com-style pill: white for the primary action, a quiet translucent grey for secondary.
 struct PillButtonStyle: ButtonStyle {
     var prominent = false
     var small = false
@@ -935,7 +941,7 @@ struct PillButtonStyle: ButtonStyle {
                 .frame(height: ui.pt(small ? 28 : 34))
                 .foregroundStyle(prominent ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textMuted))
                 .background(
-                    Capsule().fill(prominent ? (hovering ? Palette.cream : Color.white) : (hovering && isEnabled ? Palette.borderStrong : Palette.border))
+                    Capsule().fill(prominent ? (hovering ? Color(white: 0.88) : Color.white) : (hovering && isEnabled ? Palette.borderStrong : Palette.border))
                 )
                 .opacity(configuration.isPressed ? 0.8 : 1)
                 .scaleEffect(configuration.isPressed ? 0.97 : 1)
@@ -976,7 +982,7 @@ struct RowButtonStyle: ButtonStyle {
             configuration.label
                 .background(
                     RoundedRectangle(cornerRadius: ui.pt(12), style: .continuous)
-                        .fill(configuration.isPressed ? Palette.borderStrong : (hovering ? Palette.border : .clear))
+                        .fill(configuration.isPressed || hovering ? Palette.menu : .clear)
                 )
                 .onHover { hovering = $0 }
         }

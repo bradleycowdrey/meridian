@@ -129,4 +129,39 @@
             </FrameLayout>
         </LinearLayout>
     </LinearLayout>
+    <!-- The new day's weekday tag ("WED": gold on a black 55% pill) centred over the tile where a new day starts there
+         (midnight), above the tiles. The same insets and weights as the row above, so each slot is its tile's column;
+         a slot's bottom padding (set by MeridianWidgets.tiles) is its tag's height above the row's bottom. -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal"
+        android:paddingStart="10dp" android:paddingEnd="10dp" android:importantForAccessibility="noHideDescendants">
+        <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+            android:layout_marginEnd="6dp" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.1"
+            android:orientation="horizontal">
+            <FrameLayout android:id="@+id/day_tag0_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                <TextView android:id="@+id/day_tag0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|center_horizontal" android:background="@drawable/widget_day_tag"
+                    android:paddingStart="5dp" android:paddingEnd="5dp" android:paddingTop="1dp" android:paddingBottom="1dp"
+                    android:fontFamily="sans-serif-medium" android:includeFontPadding="false" android:letterSpacing="0.03"
+                    android:maxLines="1" android:textColor="#F2C66D" android:textSize="11sp" android:visibility="gone" />
+            </FrameLayout>
+            <FrameLayout android:id="@+id/day_tag1_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.12"
+                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                <TextView android:id="@+id/day_tag1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|center_horizontal" android:background="@drawable/widget_day_tag"
+                    android:paddingStart="5dp" android:paddingEnd="5dp" android:paddingTop="1dp" android:paddingBottom="1dp"
+                    android:fontFamily="sans-serif-medium" android:includeFontPadding="false" android:letterSpacing="0.03"
+                    android:maxLines="1" android:textColor="#F2C66D" android:textSize="11sp" android:visibility="gone" />
+            </FrameLayout>
+            <FrameLayout android:id="@+id/day_tag2_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                <TextView android:id="@+id/day_tag2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|center_horizontal" android:background="@drawable/widget_day_tag"
+                    android:paddingStart="5dp" android:paddingEnd="5dp" android:paddingTop="1dp" android:paddingBottom="1dp"
+                    android:fontFamily="sans-serif-medium" android:includeFontPadding="false" android:letterSpacing="0.03"
+                    android:maxLines="1" android:textColor="#F2C66D" android:textSize="11sp" android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
 </FrameLayout>

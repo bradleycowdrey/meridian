@@ -1081,7 +1081,7 @@ struct CityRow: View {
                                      detail(moment), dayNote(moment), status?.spoken]
                                      .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", "))
                 // The city's hours: two before, the one holding the moment, two after.
-                HourTiles(place: place, height: tileHeight, nowAnchor: capsule, fade: false)
+                HourTiles(place: place, height: tileHeight, nowAnchor: capsule, fade: false, outlineAbove: first)
                     .shadow(color: Color.black.opacity(0.35), radius: 3, x: 0, y: 1)
             }
             .padding(.horizontal, RowCard.sidePadding)

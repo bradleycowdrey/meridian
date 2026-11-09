@@ -109,8 +109,8 @@ struct Scrub: ViewModifier {
 
 /// A city's hours as five day-and-night tiles, as in Meridian for Mac: each tile the colour of
 /// the day at that hour there (navy at night, deep blues at dawn and dusk, sky blue by day), dimmed
-/// outside working hours, with the weekday and a gold mark where a new day starts, and the outer
-/// tiles fading into the panel (not on a city card's photo). The middle column (the hour holding
+/// outside working hours, with a small gold weekday tag above the tile where a new day starts, and the
+/// outer tiles fading into the panel (not on a city card's photo). The middle column (the hour holding
 /// the moment shown) is larger, and marked by one outline down the whole list (`NowCapsule`), which finds the
 /// middle tiles through `NowTileAnchors`. Tap a tile to go to that hour; drag to scrub.
 struct HourTiles: View {
@@ -122,6 +122,9 @@ struct HourTiles: View {
     var nowAnchor = false
     /// Fade the outer tiles into the panel behind (off on a photo).
     var fade = true
+    /// The list's Now outline closes just above this row's Now tile (the first card; the safe default).
+    /// False on a card below the first, where the outline only passes either side of the Now tile.
+    var outlineAbove = true
     @State private var width: CGFloat = 228
     @Environment(\.dynamicTypeSize) private var typeSize
     /// The tile type sizes (as `TileLabel`'s), to decide whether ":30" fits inline in every tile.
@@ -176,6 +179,8 @@ struct HourTiles: View {
                 if fade { TileGrid.edgeFade } else { Color.black }
             }
             .padding(.vertical, -TileGrid.nowGrow)
+            // And past the top again, for the weekday tag above the tile where a new day starts.
+            .padding(.top, -Self.tagReach)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .contentShape(Rectangle())
@@ -200,9 +205,43 @@ struct HourTiles: View {
 
     private var accessibilityValue: String {
         let time = TimeMath.time(store.moment, in: place.timeZone, use24h: store.use24h)
-        guard store.showWorkHours else { return time }
+        // Where a new day starts in the hour shown, its weekday too ("12:15 AM, Wednesday").
+        let anchor = TimeMath.hourAnchor(store.moment)
+        let spoken = startsNewDay(anchor) ? "\(time), \(Self.spokenWeekday(anchor, in: place.timeZone))" : time
+        guard store.showWorkHours else { return spoken }
         let off = WorkWeek.offLabel(place, at: store.moment, start: store.workStart, end: store.workEnd)
-        return "\(time), \(off?.lowercased() ?? "working")"
+        return "\(spoken), \(off?.lowercased() ?? "working")"
+    }
+
+    /// A new day starts in the hour from `start` (usually 00:00, but some clock changes skip midnight).
+    private func startsNewDay(_ start: Date) -> Bool {
+        !place.calendar.isDate(start, inSameDayAs: start.addingTimeInterval(-3600))
+    }
+
+    private static func spokenWeekday(_ date: Date, in zone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = zone
+        formatter.dateFormat = "EEEE"
+        return formatter.string(from: date)
+    }
+
+    /// How far above the Now tile's top the weekday tag can reach: its height, and its clearance over
+    /// the Now outline's top line (the line's centre `NowCapsule.inset` above the tile, half its band,
+    /// and 2 pt clear).
+    static let tagClearance: CGFloat = NowCapsule.inset + NowCapsule.band / 2 + 2
+    static let tagReach: CGFloat = DayTag.height + tagClearance
+
+    /// The card is too short for the tag above its tiles (it has shrunk them: only its top padding is
+    /// left above), so the tag goes inside the tile's top edge instead.
+    private var tagInside: Bool { height < RowCard.tileHeight }
+
+    /// The weekday tag's top, from its tile's top: above the tile with 3 pt between them; above the
+    /// Now outline's top line with 2 pt clear where that passes over the Now tile; or 2 pt inside the
+    /// tile on a card too short for either.
+    private func tagOffset(_ k: Int) -> CGFloat {
+        if tagInside { return 2 }
+        let gap: CGFloat = (k == 0 && nowAnchor && outlineAbove) ? Self.tagClearance : 3
+        return -(DayTag.height + gap)
     }
 
     /// Half-hour zones: whether ":30" fits inline after the hour ("7:30", as on the widgets and on
@@ -232,11 +271,11 @@ struct HourTiles: View {
         // One flat colour per tile: the day there at the tile's start, as on the Mac.
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60)
         // A new day starts in this tile (usually 00:00, but some clock changes skip midnight).
-        let newDay = !cal.isDate(start, inSameDayAs: start.addingTimeInterval(-3600))
+        let newDay = startsNewDay(start)
+        let tileWidth = k == 0 ? nowWidth(columns.count) : otherWidth(columns.count)
         let dim = store.showWorkHours && !store.isWorking(place, at: start.addingTimeInterval(1800))
         return TileLabel(hour: hour, minute: minute, use24h: store.use24h, center: k == 0,
                          large: typeSize.isAccessibilitySize,
-                         weekday: newDay ? TimeMath.weekday(start, in: place.timeZone) : nil,
                          inlineMinutes: inlineMinutes)
             .contentTransition(.numericText())
             .foregroundStyle(style.text)
@@ -251,15 +290,14 @@ struct HourTiles: View {
             // 32%) keeps the row of five readable as tiles there (was 0.5 pt at 16%, 1.3:1).
             .overlay(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
                 .strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.32 : 0), lineWidth: 1))
-            .overlay(alignment: .leading) {
-                // Midnight: a sunrise-gold mark centred in the gap before the new day, as on the Mac.
+            .overlay(alignment: .top) {
+                // A new day: its weekday in a small gold tag centred above the tile (the tile itself
+                // reads "12", "AM" like its neighbours). Never wider than the tile, so it stays clear
+                // of the Now outline's lines either side.
                 if newDay {
-                    Capsule()
-                        .fill(Theme.midnight)
-                        .frame(width: 2)
-                        .padding(.vertical, 8)
-                        .offset(x: nowAnchor && (k == 0 || k == 1) ? 2 : -(TileGrid.gap / 2 + 1))
-                        .allowsHitTesting(false)
+                    let weekday = TimeMath.weekday(start, in: place.timeZone)
+                    DayTag(weekday: weekday, padding: DayTag.padding(for: weekday, tileWidth: tileWidth))
+                        .offset(y: tagOffset(k))
                 }
             }
     }
@@ -317,10 +355,11 @@ struct HourTiles: View {
 }
 
 /// One tile's words, as on the widgets: the hour in large tabular digits with AM or PM under it,
-/// the minutes in half-hour zones, and the weekday (in place of AM/PM) where a new day starts.
+/// and the minutes in half-hour zones. Midnight and noon read as every other hour ("12", "AM" and
+/// "12", "PM"); the new day's weekday is `DayTag`, above the tile.
 /// Sizes follow the reader's text size (never below 17 pt digits and 13 pt minutes and labels; at
 /// Accessibility sizes, where the row shows three tiles, up to 26 pt digits and 16 pt labels).
-/// Every tile has the same lines (hour, then AM/PM or the weekday), so its digits line up with its
+/// Every tile has the same lines (hour, then AM/PM), so its digits line up with its
 /// neighbours'. In half-hour zones ":30" follows the hour inline, smaller, as on the widgets and on
 /// Android, when the whole row fits it; otherwise the row puts its minutes on their own line. When
 /// a tile can't hold everything it drops AM/PM, rather than shrinking the type.
@@ -331,7 +370,6 @@ private struct TileLabel: View {
     let center: Bool
     /// Three wide tiles (Accessibility text sizes): the type may grow further.
     var large = false
-    let weekday: String?
     /// ":30" inline after the hour (decided for the whole row by `HourTiles`).
     var inlineMinutes = true
 
@@ -341,7 +379,7 @@ private struct TileLabel: View {
 
     static func digitSize(_ metric: CGFloat, large: Bool) -> CGFloat { min(max(metric, 17), large ? 26 : 21) }
     static func minuteSize(_ metric: CGFloat, large: Bool) -> CGFloat { min(max(metric, 13), large ? 17 : 15) }
-    /// The Now tile's type over the others': digits +3 pt; ":30", AM/PM and the weekday +1 pt.
+    /// The Now tile's type over the others': digits +3 pt; ":30" and AM/PM +1 pt.
     static let nowDigitBump: CGFloat = 3
     static let nowLabelBump: CGFloat = 1
 
@@ -351,20 +389,15 @@ private struct TileLabel: View {
 
     var body: some View {
         ViewThatFits {
-            // "5", "PM" (or "5:30", "PM"). Where a new day starts, "12", "WED": next to the gold mark
-            // and the weekday, 12 can only be midnight, and the tile keeps two lines like the rest.
+            // "5", "PM" (or "5:30", "PM"); midnight "12", "AM" and noon "12", "PM", like the rest.
             variant(suffix: true)
-            // Without AM/PM (the least needed: the neighbouring tiles carry it); the weekday stays.
+            // Without AM/PM (the least needed: the neighbouring tiles carry it).
             variant(suffix: false)
-            // Last resort: the hour line may shrink a little (never below 90%), and the weekday too
-            // (never below 85%, about 11 pt), so "WED" shows whole instead of an ellipsis.
-            VStack(spacing: 0) {
-                hourLine(inlineMinutes: true)
-                    .minimumScaleFactor(0.9)
-                if let weekday { weekdayText(weekday).minimumScaleFactor(0.85) }
-            }
-            .monospacedDigit()
-            .lineLimit(1)
+            // Last resort: the hour line may shrink a little (never below 90%).
+            hourLine(inlineMinutes: true)
+                .minimumScaleFactor(0.9)
+                .monospacedDigit()
+                .lineLimit(1)
         }
     }
 
@@ -372,9 +405,7 @@ private struct TileLabel: View {
         VStack(spacing: 0) {
             hourLine(inlineMinutes: inlineMinutes)
             if minute != 0 && !inlineMinutes { minuteText }
-            if let weekday {
-                weekdayText(weekday)
-            } else if suffix, !use24h {
+            if suffix, !use24h {
                 Text(hour < 12 ? "AM" : "PM")
                     .font(.system(size: smallSize, weight: .semibold))
                     .tracking(0.3)
@@ -394,10 +425,38 @@ private struct TileLabel: View {
         Text(":" + String(format: "%02d", minute)).font(.system(size: minuteSize, weight: .semibold))
     }
 
-    private func weekdayText(_ weekday: String) -> Text {
+}
+
+/// The new day's weekday ("WED"), above the tile where the day starts: gold on a dark pill, the same
+/// on every platform. A fixed 11 pt, so it always fits above the tile inside the card.
+private struct DayTag: View {
+    let weekday: String
+    /// Each side of the word (5 pt, less on a narrow tile).
+    let padding: CGFloat
+
+    static let height: CGFloat = 15
+    static let fontSize: CGFloat = 11
+    static let tracking: CGFloat = 0.3
+
+    /// 5 pt each side, or less (never under 3) so the tag is no wider than its tile.
+    static func padding(for weekday: String, tileWidth: CGFloat) -> CGFloat {
+        let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .kern: tracking]
+        let word = (weekday.uppercased() as NSString).size(withAttributes: attributes).width
+        return min(5, max(3, (tileWidth - word) / 2))
+    }
+
+    var body: some View {
         Text(weekday.uppercased())
-            .font(.system(size: smallSize, weight: .semibold))
-            .tracking(0.3)
+            .font(.system(size: Self.fontSize, weight: .semibold))
+            .tracking(Self.tracking)
+            .lineLimit(1)
+            .foregroundStyle(Theme.midnight)
+            .padding(.horizontal, padding)
+            .frame(height: Self.height)
+            .background(Capsule().fill(Color.black.opacity(0.55)))
+            .fixedSize()
+            .allowsHitTesting(false)
     }
 }
 

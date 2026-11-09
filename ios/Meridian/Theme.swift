@@ -34,7 +34,7 @@ enum Theme {
     static let sun = rgb(0xF2C66D)
     /// Two Degrees' moon accent.
     static let moon = rgb(0xEFE3CC)
-    /// The midnight mark between days on the hour tiles (Two Degrees' sunrise accent).
+    /// The new day's weekday tag above the midnight hour tile (Two Degrees' sunrise accent).
     static let midnight = rgb(0xF2C66D)
     /// The time on a bright photo: Two Degrees' darkest navy.
     static let bannerInk = rgb(0x0A0E1C)

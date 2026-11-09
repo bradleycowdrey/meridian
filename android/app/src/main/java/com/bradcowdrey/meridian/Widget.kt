@@ -113,6 +113,23 @@ object MeridianWidgets {
     private const val COMPACT_GAP = 1f
     /** Off-hours and night tiles (fill at most this luminance) get a 1 dp white 32% edge (widget_tile_edge), so they read as tiles on a night photo. */
     private const val EDGE_MAX_LUMINANCE = 0.05
+    /**
+     * The new day's weekday tag ("WED", widget_photo_row's day_tag0..2) over the tile where a new day starts there
+     * (midnight): 11 dp text whatever the font scale (it must stay narrower than a tile) in a pill TAG_H dp high
+     * (TAG_COMPACT_H where the row is short), TAG_PAD_H dp each side of the text, its bottom TAG_GAP dp above the
+     * tile's top; above the first row's Now tile, TAG_LINE_CLEAR dp above the Now outline's top line instead. Never
+     * nearer than TAG_TOP_CLEAR dp to the row's top; inside the first row's Now tile it starts TAG_INSET dp under the tile's top.
+     */
+    private const val TAG_DP = 11f
+    private const val TAG_H = 15f
+    private const val TAG_COMPACT_H = 13f
+    private const val TAG_PAD_H = 5f
+    private const val TAG_GAP = 3f
+    private const val TAG_LINE_CLEAR = 2f
+    private const val TAG_TOP_CLEAR = 0.5f
+    private const val TAG_INSET = 1f
+    /** A weekday tag's place: its [bottom] above the row's bottom and its [height] (dp); [inside]: within the Now tile's top, under the Now outline. */
+    private class DayTag(val bottom: Float, val height: Float, val inside: Boolean)
     /** The least clear space (dp) above the time's line in a row with the compact pill (five rows on the large widget): with the cap's own 3.7 dp, about 6 dp from the row's top edge to the time. */
     private const val COMPACT_TOP_CLEAR = 2f
     /**
@@ -334,7 +351,7 @@ object MeridianWidgets {
                     innerW, rowH, ROW_RADIUS, maxPx = 480, region = fit.region,
                     labels = fit.labels, column = 0.47f,
                     timeSp = fit.timeSp, nameSp = fit.nameSp, statusSp = fit.statusSp, statusFit = fit.status, tiles = true, work = work,
-                    textPad = fit.textPad, tallTiles = tall, home = home))
+                    textPad = fit.textPad, tallTiles = tall, home = home, first = i == 0))
             }
             // One Now capsule down the centre tiles of every row, over the tile column (the overlay spans the widget's full height).
             val blockW = (innerW - 2 * ROW_PAD_H - LABEL_GAP) * TILES_WEIGHT / (1f + TILES_WEIGHT)
@@ -382,7 +399,7 @@ object MeridianWidgets {
         context: Context, layout: Int, place: Place, ref: WidgetPhotos.Ref?, use24h: Boolean, now: Instant, live: Boolean,
         wDp: Float, hDp: Float, cornerDp: Float, maxPx: Int, region: RectF, labels: RectF, column: Float,
         timeSp: Float, nameSp: Float, statusSp: Float, statusFit: StatusFit, tiles: Boolean, work: Work,
-        textPad: Float, tallTiles: Boolean, home: ZoneId,
+        textPad: Float, tallTiles: Boolean, home: ZoneId, first: Boolean = false,
     ): RemoteViews {
         val v = RemoteViews(context.packageName, layout)
         val phase = WidgetSky.phase(place, now)
@@ -432,7 +449,7 @@ object MeridianWidgets {
         } else {
             v.setViewVisibility(R.id.status, View.GONE)
         }
-        if (tiles) tiles(context, v, place, use24h, now, home, work, wDp, hDp, tallTiles)
+        if (tiles) tiles(context, v, place, use24h, now, home, work, wDp, hDp, tallTiles, first)
         return v
     }
 
@@ -476,7 +493,7 @@ object MeridianWidgets {
     private fun nowGrow(rowHDp: Float, tileHDp: Float): Float =
         minOf(NOW_GROW, rowHDp - ROW_PAD_TOP - ROW_PAD_BOTTOM - tileHDp, ROW_PAD_BOTTOM).coerceAtLeast(0f)
 
-    private fun tiles(context: Context, v: RemoteViews, place: Place, use24h: Boolean, now: Instant, home: ZoneId, work: Work, wDp: Float, hDp: Float, tall: Boolean) {
+    private fun tiles(context: Context, v: RemoteViews, place: Place, use24h: Boolean, now: Instant, home: ZoneId, work: Work, wDp: Float, hDp: Float, tall: Boolean, first: Boolean) {
         val zone = place.zone
         // Rows at least TALL_TILE_ROW tall: the hour over AM/PM (as the app's tiles); shorter rows: "10 AM" on one line.
         v.setViewVisibility(R.id.tiles, if (tall) View.GONE else View.VISIBLE)
@@ -543,8 +560,55 @@ object MeridianWidgets {
                 (if (keepSuffix && !use24h && !tall) widthDp(TimeMath.THIN + (suffix(nowAt.hour) ?: ""), small, TypedValue.COMPLEX_UNIT_SP) else 0f) +
                 2f <= nowW &&
                 (if (tall) drawnLine(sp) + drawnLine(small) <= nowH + 1f else drawnLine(sp) <= nowH && drawnLine(small) <= nowH)
-        val nowSizes = (NOW_DIGITS_UP downTo 0).map { up -> (rowSp + up) to (if (up > 0) ampmSp + NOW_SMALL_UP else ampmSp) }
+        // The new day's weekday tag, over the tile where a new day starts there (midnight; every tile keeps its hour and
+        // AM/PM, "12" over "AM"): TAG_GAP above the tile, full height or compact, whichever keeps TAG_TOP_CLEAR from the
+        // row's top. The first row's Now tile has the Now outline's top line just above it (capsule: TILE_MARGIN out,
+        // CAPSULE_HALO wide), so there the tag sits TAG_LINE_CLEAR above that line, or, with no room, inside the tile's
+        // top (never on the line). Any other tile in a row too short: the compact tag as high as the row allows, over
+        // the tile's top edge (in the 56.8 dp rows of five cities, 0.7 dp over a side tile and 4.7 dp over the Now tile, both
+        // above the hour's digits).
+        val dayTags: List<DayTag?> = starts.mapIndexed { i, at ->
+            if (at.toLocalDate() == at.toInstant().minusSeconds(3600L).atZone(zone).toLocalDate()) null else {
+                val tileTop = ROW_PAD_BOTTOM + tileH + (if (i == 1) grow else 0f)
+                val underLine = first && i == 1
+                val gap = if (underLine) TILE_MARGIN + CAPSULE_HALO / 2 + TAG_LINE_CLEAR else TAG_GAP
+                val fits = listOf(TAG_H, TAG_COMPACT_H).firstOrNull { tileTop + gap + it + TAG_TOP_CLEAR <= hDp }
+                when {
+                    fits != null -> DayTag(tileTop + gap, fits, false)
+                    underLine -> DayTag((tileTop - TAG_INSET - TAG_COMPACT_H).coerceAtLeast(0f), TAG_COMPACT_H, true)
+                    else -> DayTag((hDp - TAG_TOP_CLEAR - TAG_COMPACT_H).coerceAtLeast(0f), TAG_COMPACT_H, false)
+                }
+            }
+        }
+        // With the tag inside the Now tile, the tile's label takes the row's sizes and sits under the tag (nowPush, below).
+        val tagInNow = dayTags[1]?.inside == true
+        // Its digits: the largest size from the row's down to 11 sp whose cap (0.18 of the line under the line's top) clears the tag.
+        val nowSizes = if (tagInNow) ((rowSp.toInt() downTo 11).map { it.toFloat() }.firstOrNull { (if (tall) drawnLine(it) + drawnLine(ampmSp) else drawnLine(it)) + TAG_INSET + TAG_COMPACT_H <= nowH + drawnLine(it) * 0.18f } ?: 11f) to ampmSp else (NOW_DIGITS_UP downTo 0).map { up -> (rowSp + up) to (if (up > 0) ampmSp + NOW_SMALL_UP else ampmSp) }
             .firstOrNull { (sp, small) -> nowFits(sp, small) } ?: (rowSp to ampmSp)
+        // Top padding (dp) on the Now tile's label then: what its lines leave of the tile, at most the tag's depth.
+        val nowPush = if (!tagInNow) 0f else
+            minOf(nowH - (if (tall) drawnLine(nowSizes.first) + drawnLine(ampmSp) else drawnLine(nowSizes.first)), TAG_INSET + TAG_COMPACT_H).coerceAtLeast(0f)
+        v.setViewPadding(ids[1], 0, (nowPush * dm.density).roundToInt(), 0, 0)
+        val tagIds = listOf(R.id.day_tag0, R.id.day_tag1, R.id.day_tag2)
+        val tagSlots = listOf(R.id.day_tag0_slot, R.id.day_tag1_slot, R.id.day_tag2_slot)
+        tagIds.indices.forEach { i ->
+            val tag = dayTags[i]
+            if (tag == null) {
+                v.setViewVisibility(tagIds[i], View.GONE)
+            } else {
+                val name = TimeMath.weekday(starts[i].toInstant(), zone).uppercase()
+                // Never wider than its tile, so it stays between the Now outline's vertical lines (in the gaps beside the Now tile).
+                val padH = minOf(TAG_PAD_H, ((if (i == 1) nowW else tileW) - widthDp(name, TAG_DP, TypedValue.COMPLEX_UNIT_DIP) - 1f) / 2f).coerceAtLeast(0f)
+                val padV = ((tag.height - TAG_DP * LINE_EM) / 2f).coerceAtLeast(0f)
+                val padHPx = (padH * dm.density).roundToInt()
+                val padVPx = (padV * dm.density).roundToInt()
+                v.setTextViewText(tagIds[i], name)
+                v.setTextViewTextSize(tagIds[i], TypedValue.COMPLEX_UNIT_DIP, TAG_DP)
+                v.setViewPadding(tagIds[i], padHPx, padVPx, padHPx, padVPx)
+                v.setViewPadding(tagSlots[i], 0, 0, 0, (tag.bottom * dm.density).roundToInt())
+                v.setViewVisibility(tagIds[i], View.VISIBLE)
+            }
+        }
         ids.indices.forEach { i ->
             val id = ids[i]
             val at = starts[i]
@@ -576,6 +640,10 @@ object MeridianWidgets {
             // measured it, so no character is left at the auto-sized base size (a 17 sp break would heighten the hour's line).
             if (period != null) text.setSpan(android.text.style.AbsoluteSizeSpan(spPx(smallSp), false), label.length - period.length - 1, label.length, flags)
             v.setTextViewText(id, text)
+            // TalkBack: the tile's own text, and at a new day its weekday too ("12 AM, Wednesday").
+            v.setContentDescription(id, if (dayTags[i] == null) null else
+                head + minutes + (suffix(at.hour)?.let { " $it" } ?: "") + ", " +
+                    at.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.US))
             v.setTextColor(id, 0xFFFFFFFF.toInt())
             // Opaque either way: the dimmed tile is darker, not see-through, so photo highlights never sit under its text.
             val fill = if (dim) TileDim.opaque(color) else color

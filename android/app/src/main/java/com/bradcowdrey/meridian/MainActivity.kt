@@ -82,6 +82,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -108,6 +109,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -148,7 +150,7 @@ object Palette {
     val secondary = Color(0xEBFFFFFF)
     val muted = Color(0x99FFFFFF)
     val faint = Color(0x66FFFFFF)
-    /** The midnight mark between hour tiles: the Two Degrees sunrise accent. */
+    /** The new day's weekday tag above the midnight hour tile: the Two Degrees sunrise accent. */
     val midnight = Color(0xFFF2C66D)
     val black = Color.Black
     val notice = Color(0xFFF2A65A)
@@ -581,7 +583,7 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                                         detectTapGestures(onLongPress = { openActions() })
                                     }
                                     .semantics { onLongClick(label = "Actions for ${place.title}") { actions = true; true } },
-                                    onLongPress = { openActions() })
+                                    first = first, onLongPress = { openActions() })
                             }
                             DropdownMenu(expanded = actions, onDismissRequest = { actions = false }) {
                                 DropdownMenuItem(text = { Text("Copy Time") }, onClick = {
@@ -1493,7 +1495,7 @@ private fun StatusPill(status: RowStatus, showDetail: Boolean, cap: Float) {
  * drawn by the list ([drawNowCapsule]).
  */
 @Composable
-fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifier, onLongPress: () -> Unit = {}) {
+fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifier, first: Boolean = false, onLongPress: () -> Unit = {}) {
     val moment = store.moment
     val time = TimeMath.time(moment, place.zone, store.use24h)
     val shift = TimeMath.dayShift(moment, place.zone, store.home)
@@ -1552,6 +1554,8 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
     val downloaded = if (useDownload) CityPhotos.bitmap(slug) else null
     // Where the time is on the card, for the adaptive ink (measured once it's laid out).
     var region by remember { mutableStateOf(TimeRegion.DEFAULT) }
+    // The time's own box on the card (px), read only when the tiles' weekday tag is drawn (so the tag never sits on it).
+    var timeBox by remember { mutableStateOf(Rect.Zero) }
     val card = remember { arrayOfNulls<LayoutCoordinates>(1) }
     val textShadow = if (Diag.has("shadows")) Shadow.None else with(density) { Shadow(Color.Black.copy(alpha = 0.6f), Offset(0f, 1.dp.toPx()), 3.dp.toPx()) }
     BoxWithConstraints(modifier.fillMaxWidth().height(height)
@@ -1721,6 +1725,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                         val h = parent.size.height.toFloat()
                         if (w <= 0f || h <= 0f) return@onGloballyPositioned
                         val r = parent.localBoundingBoxOf(coords, false)
+                        if (r != timeBox) timeBox = r
                         // Written only when it moves (by 0.05 of the card), so measuring never loops.
                         val moved = TimeRegion.of(r.left / w, r.top / h, r.right / w, r.bottom / h)
                         if (moved != region) region = moved
@@ -1748,7 +1753,13 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
                 }
             }
             Spacer(Modifier.width(Strip.labelGap))
-            if (Diag.has("tiles")) Spacer(Modifier.weight(1f)) else HourTiles(store, place, Modifier.weight(1f), onLongPress, tileHeight)
+            if (Diag.has("tiles")) Spacer(Modifier.weight(1f)) else {
+                // The tiles' place on the card (px), so the weekday tag knows the card's top and where the time is.
+                val tilesLeft = with(density) { (Rows.padH + labelWidth + Strip.labelGap).toPx() }
+                val tilesTop = with(density) { (height - Rows.padBottom - tileHeight).toPx() }
+                HourTiles(store, place, Modifier.weight(1f), onLongPress, tileHeight, first = first,
+                    headroom = height - Rows.padBottom - tileHeight, avoid = { timeBox.translate(-tilesLeft, -tilesTop) })
+            }
         }
     }
 }
@@ -1821,13 +1832,16 @@ object NowCapsule {
 /**
  * A city's hours as five tiles, two before the selected hour and two after, as on the Mac panel:
  * each tile the colour of the day there at that hour (navy at night, blue-greys at dawn and dusk,
- * sky blue by day), dimmed outside working hours, the day's name and a mark where a new day starts,
+ * sky blue by day), dimmed outside working hours, the day's name in a small tag above the tile where a new day starts,
  * shown whole with a soft shadow under them (over a photo). The Now
  * capsule over the selected hour is drawn down the whole list.
  * Tap a tile to go to that hour; drag to move through time in quarter-hours.
+ * [first]: the list's first card (the Now outline's top line passes above its Now tile). [headroom]: the card's
+ * room above the tiles. [avoid]: the card's time, in this row's own px (the weekday tag keeps off it).
  */
 @Composable
-fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () -> Unit, tileHeight: Dp = Strip.tileHeight) {
+fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () -> Unit, tileHeight: Dp = Strip.tileHeight,
+              first: Boolean = false, headroom: Dp = 38.dp, avoid: () -> Rect = { Rect.Zero }) {
     val anchor = TimeMath.hourAnchor(store.moment, store.home)
     val starts = (-2..2).map { anchor.plusSeconds(it * 3600L) }
     fun newDay(start: Instant) = start.atZone(place.zone).toLocalDate() != start.minusSeconds(3600).atZone(place.zone).toLocalDate()
@@ -1874,6 +1888,13 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
         }
     }
     val nowGrow = Strip.nowGrow
+    // The new day's tag: the weekday ("WED") over the tile where a new day starts there. 11 dp whatever the text
+    // size (it must stay narrower than a tile); the tile's hour and AM/PM are as every other tile's.
+    val tags = starts.map { if (newDay(it)) TimeMath.weekday(it, place.zone).uppercase() else null }
+    val tagStyle = with(LocalDensity.current) {
+        LocalTextStyle.current.copy(fontSize = 11.dp.toSp(), lineHeight = TextUnit.Unspecified, fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.3.dp.toSp(), color = Palette.midnight)
+    }
     Box(modifier.fillMaxWidth().height(tileHeight)
         .onSizeChanged { widthPx = it.width.toFloat().coerceAtLeast(1f) }
         // A soft drop shadow under each tile (black ~35%, 1 dp down, ~3 dp soft), so they stand off the photo.
@@ -1926,20 +1947,40 @@ fun HourTiles(store: Store, place: Place, modifier: Modifier, onLongPress: () ->
                 starts.forEachIndexed { i, start ->
                     // The Now tile: about 12% wider than each other tile, and nowGrow taller above and below their
                     // centre line (it draws past this row's height; the card has room above and below).
-                    if (i == 2) HourTile(store, place, start, center = true, newDay = newDay(start), height = tileHeight + nowGrow * 2,
+                    if (i == 2) HourTile(store, place, start, center = true, height = tileHeight + nowGrow * 2,
                         shrink = nowShrink, modifier = Modifier.weight(Strip.NOW_WIDTH).fillMaxHeight()
                             .wrapContentHeight(Alignment.CenterVertically, unbounded = true).requiredHeight(tileHeight + nowGrow * 2))
-                    else HourTile(store, place, start, center = false, newDay = newDay(start), height = tileHeight, shrink = rowShrink, modifier = Modifier.weight(1f).fillMaxHeight())
+                    else HourTile(store, place, start, center = false, height = tileHeight, shrink = rowShrink, modifier = Modifier.weight(1f).fillMaxHeight())
                 }
             }
-            // Midnight: a sunrise-gold mark in the gap before the tile where a new day starts, as on the Mac.
+            // A new day: its weekday in a small gold-on-dark tag centred just above the tile where it starts (midnight
+            // there), 3 dp clear of the tile's top. Drawn past this row's top; the card has [headroom] above the tiles.
             Canvas(Modifier.matchParentSize()) {
                 val g = Strip.gap.toPx()
-                val inset = 8.dp.toPx()
-                for (i in 1..4) {
-                    if (!newDay(starts[i])) continue
-                    drawRoundRect(Palette.midnight, topLeft = Offset(Strip.tileLeft(i, size.width, g) - g / 2 - 1.dp.toPx(), inset),
-                        size = Size(2.dp.toPx(), size.height - 2 * inset), cornerRadius = CornerRadius(1.dp.toPx()))
+                val timeBox = avoid()
+                for (i in 0..4) {
+                    val day = tags[i] ?: continue
+                    val tileW = Strip.tileWidthAt(i, size.width, g)
+                    if (tileW <= 0f) continue
+                    val label = measurer.measure(day, tagStyle, maxLines = 1, softWrap = false)
+                    val textW = label.size.width.toFloat()
+                    val textH = label.size.height.toFloat()
+                    // A pill: 15 dp high, 5 dp each side of the text, never wider than its tile (so it stays clear of
+                    // the Now outline's vertical lines, in the gaps beside the Now tile).
+                    val h = maxOf(15.dp.toPx(), textH)
+                    val w = minOf(textW + 10.dp.toPx(), maxOf(tileW, textW + 2.dp.toPx()))
+                    val x = Strip.tileLeft(i, size.width, g) + (tileW - w) / 2
+                    val tileTop = if (i == 2) -nowGrow.toPx() else 0f
+                    // The first card's Now tile has the outline's top line just above it (drawNowCapsule: half the gap
+                    // out, the halo's width): the tag sits 2 dp above that line, never on it.
+                    val lineTop = tileTop - g / 2 - NowCapsule.haloFor(g, density) / 2
+                    var y = if (i == 2 && first) lineTop - 2.dp.toPx() - h else tileTop - 3.dp.toPx() - h
+                    // No room above (the card's top, or the card's time running over the tiles): inside the tile's top.
+                    val clipped = y < 2.dp.toPx() - headroom.toPx()
+                    val onTime = Rect(x, y, x + w, y + h).inflate(2.dp.toPx()).overlaps(timeBox)
+                    if (clipped || onTime) y = tileTop + 2.dp.toPx()
+                    drawRoundRect(Color.Black.copy(alpha = 0.55f), topLeft = Offset(x, y), size = Size(w, h), cornerRadius = CornerRadius(h / 2))
+                    drawText(label, topLeft = Offset(x + (w - textW) / 2, y + (h - textH) / 2))
                 }
             }
         }
@@ -1972,12 +2013,12 @@ private object TileShadow {
 
 /**
  * One hour tile, as on the Mac: the day's colour there at that hour, flat, with the hour in white on it.
- * The hour on one line (17 sp, ":30" inline at 13 sp, tabular), AM/PM under it (12 sp semibold), or on a new
- * day's tile the day's name in AM/PM's place (12 sp medium). Large text grows up to 1.3x (1.15x on half-hour
- * tiles); then the hour shrinks to fit the tile (to 80%); AM/PM, the day and ":30" never shrink.
+ * The hour on one line (17 sp, ":30" inline at 13 sp, tabular), AM/PM under it (13 sp semibold), on every tile
+ * alike: midnight is "12 / AM", noon "12 / PM" (the new day's name is a tag above the tile, HourTiles). Large text
+ * grows up to 1.3x (1.15x on half-hour tiles); then the hour shrinks to fit the tile (to 80%); AM/PM and ":30" never shrink.
  */
 @Composable
-private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, newDay: Boolean, height: Dp, shrink: Float, modifier: Modifier) {
+private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean, height: Dp, shrink: Float, modifier: Modifier) {
     val z = start.atZone(place.zone)
     val hour = z.hour
     val minute = z.minute
@@ -1998,14 +2039,12 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val use24h = store.use24h
     val fontScale = LocalDensity.current.fontScale
     val cap = TileText.cap(fontScale, minute)
-    val grow = fontScale / cap
     // [shrink] is the row's (HourTiles): every tile in a row draws its hour at the same size.
     // The Now tile's text a size up: the hour 20 sp (17), ":30", AM/PM and the day 14 sp (13).
     val big = if (center) TileText.NOW_DIGITS else 17f
     val small = if (center) TileText.NOW_MINUTES else 13f
     val digits = TileText.digits(hour, minute, use24h, cap, small)
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
-    val weekday = if (newDay) TimeMath.weekday(start, place.zone).uppercase() else null
     // A plain Box (the tile's height comes from HourTiles): no subcomposition per tile, so a card's first frame is quick.
     // 2 dp clear each side on every tile (the Now outline's stroke sits in the gap outside the tile, NowCapsule).
     // Off-hours and night tiles (fill near the night photo's own darkness) get a 1 dp white 32% edge, so the five
@@ -2017,29 +2056,18 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
             else Modifier.border(1.dp, Color.Black.copy(alpha = 0.3f), shape))
         .padding(horizontal = 2.dp),
         contentAlignment = Alignment.Center) {
-        // The lines' heights (dp) at this text size, against the tile's.
-        val digitsH = (big + 1f) * grow
-        val dayH = (small + 2f) * grow
-        // Two lines on every tile (12-hour): the hour, then AM/PM, or on a new day's tile the day's name in AM/PM's
-        // place ("12 / WED": next to the gold midnight mark, 12 by a weekday can only be midnight). The same line
-        // heights as every other tile, so its "12" sits level with the neighbours' digits, and the day is never
-        // crammed in as a third line. 24-hour: the hour centred as its neighbours, the day under it where it fits
-        // with 2 dp clear at the bottom; else the gold mark carries the new day.
-        val second = weekday ?: suffix
-        val dayBelow = weekday != null && suffix == null && (height.value - digitsH) / 2f >= dayH + 2f
+        // Two lines on every tile (12-hour): the hour, then AM/PM, midnight ("12 / AM") and noon ("12 / PM") as any
+        // other. 24-hour: the hour alone, centred. The new day's name is the tag above the tile (HourTiles).
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(digits, style = tnum, fontSize = (big * shrink / cap).sp, lineHeight = ((big + 1f) / cap).sp,
                 fontWeight = if (center) FontWeight.SemiBold else FontWeight.Medium,
                 color = textColor, maxLines = 1, softWrap = false)
             // AM/PM at 13 sp (the 13 floor the rest of the tile uses, as iOS TileLabel; it never shrinks with the
-            // hour), full white. The day's name the same size and line height, semibold, tracked 0.3 (iOS weekdayText).
-            if (suffix != null && second != null) Text(second, style = tnum, fontSize = (small / cap).sp, lineHeight = ((small + 2f) / cap).sp,
+            // hour), full white, semibold, tracked 0.3.
+            if (suffix != null) Text(suffix, style = tnum, fontSize = (small / cap).sp, lineHeight = ((small + 2f) / cap).sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.3.sp, color = textColor, maxLines = 1, softWrap = false)
         }
-        if (dayBelow && weekday != null) Text(weekday, fontSize = (small / cap).sp, lineHeight = ((small + 2f) / cap).sp,
-            fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = textColor, maxLines = 1, softWrap = false,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp))
     }
 }
 

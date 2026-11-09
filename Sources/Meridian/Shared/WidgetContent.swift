@@ -500,6 +500,13 @@ struct WidgetClockView: View {
     // MARK: Small and medium: one city, big, with its next hours
 
     #if os(iOS)
+    /// A new day starts there in the hour from `start` (usually 00:00; some clock changes skip it).
+    private static func phoneStartsNewDay(_ start: Date, zone: TimeZone) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        return !calendar.isDate(start, inSameDayAs: start.addingTimeInterval(-3600))
+    }
+
     private func cityCell(_ city: WidgetSnapshot.City, timeSize: CGFloat) -> some View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
         let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
@@ -524,12 +531,19 @@ struct WidgetClockView: View {
             // The hour before, now (outlined) and the hour after, each labelled.
             HStack(spacing: 4) {
                 ForEach(-1...1, id: \.self) { k in
+                    let start = anchor.addingTimeInterval(Double(k) * 3600)
+                    // A new day: its weekday ("WED") is the tag above the tile, in the label's place
+                    // 3 pt above it (these 22 pt tiles have no other room); the tile reads "12 AM".
+                    let newDay = Self.phoneStartsNewDay(start, zone: zone)
+                    let label: String = k == 0 ? "Now" : (k > 0 ? "+1 hr" : "−1 hr")
                     VStack(spacing: 3) {
-                        Text(k == 0 ? "Now" : (k > 0 ? "+1 hr" : "−1 hr"))
-                            .font(.system(size: Self.labelSize, weight: k == 0 ? .semibold : .medium))
-                            .foregroundStyle(k == 0 ? nowTone : WidgetTone.muted)
+                        Text(newDay ? WidgetPhotoTile.weekday(start, zone: zone, format: "EEE").uppercased() : label)
+                            .font(.system(size: Self.labelSize, weight: k == 0 || newDay ? .semibold : .medium))
+                            .tracking(newDay ? 0.3 : 0)
+                            .foregroundStyle(k == 0 || newDay ? nowTone : WidgetTone.muted)
                             .lineLimit(1)
-                        tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone)
+                            .accessibilityLabel(newDay ? WidgetPhotoTile.weekday(start, zone: zone, format: "EEEE") : label)
+                        tile(start, zone: zone)
                             .frame(height: 22)
                             .overlay {
                                 if k == 0 {
@@ -591,7 +605,91 @@ struct WidgetClockView: View {
         .frame(width: width, height: height)
     }
 
+    /// A new day starts in the hour from `moment` there (usually 00:00, but some clock changes skip midnight).
+    private func macStartsNewDay(_ moment: Date, zone: TimeZone) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        return !calendar.isDate(moment, inSameDayAs: moment.addingTimeInterval(-3600))
+    }
+
+    /// "WED": the weekday there, for the new day's tag.
+    private static func macWeekday(_ moment: Date, zone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = zone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: moment).uppercased()
+    }
+
+    /// The new day's weekday tag, as on the iPhone (HourTiles' DayTag): 11 pt semibold caps, gold on
+    /// a dark pill (tinted modes: the word alone, in the system's colour), centred on its tile and
+    /// never wider than it (5 pt each side of the word, down to 3). The tile itself reads "12", "AM"
+    /// (or "00") like its neighbours.
+    private func macDayTag(_ moment: Date, zone: TimeZone, height: CGFloat) -> some View {
+        let word = Self.macWeekday(moment, zone: zone)
+        return ViewThatFits(in: .horizontal) {
+            macDayPill(word, padding: 5, height: height)
+            macDayPill(word, padding: 4, height: height)
+            macDayPill(word, padding: 3, height: height)
+        }
+    }
+
+    private func macDayPill(_ word: String, padding: CGFloat, height: CGFloat) -> some View {
+        Text(word)
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.3)
+            .lineLimit(1)
+            .foregroundStyle(tinted ? Color.primary : WidgetTone.midnight)
+            .padding(.horizontal, padding)
+            .frame(height: height)
+            .background {
+                if !tinted { Capsule().fill(Color.black.opacity(0.55)) }
+            }
+            .fixedSize()
+    }
+
+    /// The weekday tag's top (from its tile's top) and height where there is no room for it above
+    /// the tile: 15 pt high from `top`, or higher (never above `limit`) to stay 1.5 pt clear of the
+    /// digits; 13 pt high where that needs it.
+    private static func macTuckedTag(tile: CGFloat, stacked: Bool, now: Bool,
+                                     top: CGFloat, limit: CGFloat) -> (y: CGFloat, height: CGFloat) {
+        // From the tile's centre up to the top of its digits: 15 pt digits over 11 pt AM/PM, or one
+        // 13 pt line (the Now tile's are scaled with it).
+        let digitsTop = tile / 2 - (stacked ? 11.3 : 4.6) * (now ? nowScale : 1)
+        for height: CGFloat in [15, 13] {
+            let y = min(top, digitsTop - 1.5 - height)
+            if y >= limit { return (y, height) }
+        }
+        return (limit, 13)
+    }
+
+    /// A small or medium cell's weekday tag. The Now tile's is always 13 pt high and 2 pt above its
+    /// outline's top line (the line's edge is 3 pt above the larger tile); where the labels cannot
+    /// move up (not `lifted`) it takes the "Now" label's place. Other tiles: 3 pt above the tile
+    /// when `lifted`, otherwise across the tile's top edge, under the label's baseline.
+    private static func macCellTag(stacked: Bool, now: Bool, lifted: Bool) -> (y: CGFloat, height: CGFloat) {
+        if now { return (-(34 * (nowScale - 1) / 2 + 3 + 2 + 13), 13) }
+        guard lifted else { return macTuckedTag(tile: 34, stacked: stacked, now: false, top: 2, limit: -8) }
+        return (-18, 15)
+    }
+
+    /// Where a tile in the widget starts a new day (in any of its cities, so the cells' labels stay
+    /// level), the "Now" and "+1 hr" labels move up to leave room for the weekday tag above the tile;
+    /// if the widget is too short for that, the tag sits across the tile's top edge (the Now tile's
+    /// in place of its "Now" label).
     private func cityCell(_ city: WidgetSnapshot.City, timeSize: CGFloat) -> some View {
+        let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
+        let tagged = cities.contains { other in
+            let zone = TimeZone(identifier: other.timeZoneID) ?? .current
+            return (-1...1).contains { macStartsNewDay(anchor.addingTimeInterval(Double($0) * 3600), zone: zone) }
+        }
+        return ViewThatFits(in: .vertical) {
+            cityCellBody(city, timeSize: timeSize, lifted: tagged)
+            cityCellBody(city, timeSize: timeSize, lifted: false)
+        }
+    }
+
+    private func cityCellBody(_ city: WidgetSnapshot.City, timeSize: CGFloat, lifted: Bool) -> some View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
         let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
@@ -613,19 +711,19 @@ struct WidgetClockView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .minimumScaleFactor(Self.captionMinScale)
-            Spacer(minLength: 4)
+            Spacer(minLength: lifted ? 0 : 4)
             // The hour before, now (larger, outlined) and the hour after, each labelled.
             HStack(spacing: 6) {
                 ForEach(-1...1, id: \.self) { k in
-                    VStack(spacing: 6) {
+                    let start = anchor.addingTimeInterval(Double(k) * 3600)
+                    VStack(spacing: lifted ? 18 : 6) {
                         Text(k == 0 ? "Now" : (k > 0 ? "+1 hr" : "−1 hr"))
                             .font(.system(size: Self.labelSize, weight: k == 0 ? .semibold : .medium))
                             .foregroundStyle(k == 0 ? nowTone : quiet)
                             .lineLimit(1)
-                        // The gaps beside the Now tile hold its outline, so a new-day mark there
-                        // sits inside the tile.
-                        tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone,
-                             stacked: !snapshot.use24h, midnightX: k >= 0 ? 3 : -4)
+                            // Too short to move the labels up: the Now tile's weekday tag takes this place.
+                            .opacity(!lifted && k == 0 && macStartsNewDay(start, zone: zone) ? 0 : 1)
+                        tile(start, zone: zone, stacked: !snapshot.use24h)
                             .frame(height: 34)
                             .scaleEffect(k == 0 ? Self.nowScale : 1)
                             .overlay {
@@ -638,6 +736,13 @@ struct WidgetClockView: View {
                                                    tintedTone: Color.primary)
                                             .position(x: geo.size.width / 2, y: geo.size.height / 2)
                                     }
+                                }
+                            }
+                            .overlay(alignment: .top) {
+                                // A new day: its weekday tag (not scaled with the Now tile).
+                                if macStartsNewDay(start, zone: zone) {
+                                    let tag = Self.macCellTag(stacked: !snapshot.use24h, now: k == 0, lifted: lifted)
+                                    macDayTag(start, zone: zone, height: tag.height).offset(y: tag.y)
                                 }
                             }
                     }
@@ -735,9 +840,27 @@ struct WidgetClockView: View {
                         .padding(.trailing, 6)
 
                         ForEach(-half...half, id: \.self) { k in
-                            tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone,
-                                 stacked: !snapshot.use24h && rowHeight >= 34)
+                            let start = anchor.addingTimeInterval(Double(k) * 3600)
+                            let stacked = !snapshot.use24h && rowHeight >= 34
+                            tile(start, zone: zone, stacked: stacked)
                                 .frame(width: pitch - gap, height: rowHeight)
+                                .overlay(alignment: .top) {
+                                    // A new day: its weekday tag. The tiles fill their rows, so it sits
+                                    // inside the tile's top edge, above the digits (tinted modes: the
+                                    // word alone, in the system's colour); the tile reads "12", "AM".
+                                    if Self.phoneStartsNewDay(start, zone: zone) {
+                                        let roomy = (rowHeight - (stacked ? 32 : 16)) / 2 >= 17
+                                        Text(WidgetPhotoTile.weekday(start, zone: zone, format: "EEE").uppercased())
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .tracking(0.3)
+                                            .lineLimit(1)
+                                            .foregroundStyle(Color.primary)
+                                            .frame(height: roomy ? 15 : 13)
+                                            .fixedSize()
+                                            .offset(y: roomy ? 2 : 1)
+                                            .accessibilityLabel(WidgetPhotoTile.weekday(start, zone: zone, format: "EEEE"))
+                                    }
+                                }
                                 .frame(width: pitch)
                         }
                     }
@@ -837,12 +960,24 @@ struct WidgetClockView: View {
                         .padding(.trailing, 6)
 
                         ForEach(-half...half, id: \.self) { k in
-                            // The gaps beside the Now tile hold the outline, so a new-day mark
-                            // there sits inside the tile.
-                            tile(anchor.addingTimeInterval(Double(k) * 3600), zone: zone,
-                                 stacked: !snapshot.use24h && th >= 30, midnightX: k >= 0 ? 3 : -5)
+                            let start = anchor.addingTimeInterval(Double(k) * 3600)
+                            let stacked = !snapshot.use24h && th >= 30
+                            tile(start, zone: zone, stacked: stacked)
                                 .frame(width: tw, height: th)
                                 .scaleEffect(k == 0 ? Self.nowScale : 1)
+                                .overlay(alignment: .top) {
+                                    // A new day: its weekday tag. The rows leave no room above the
+                                    // tile, so it sits inside the tile's top edge (the Now tile's:
+                                    // 2 pt inside the larger tile, under the outline's top line), or
+                                    // across the edge where the digits are close, never past the
+                                    // row's card (which starts 6 pt above the tile).
+                                    if macStartsNewDay(start, zone: zone) {
+                                        let edge: CGFloat = k == 0 ? -th * grow : 0
+                                        let tag = Self.macTuckedTag(tile: th, stacked: stacked, now: k == 0,
+                                                                    top: edge + 2, limit: k == 0 ? edge + 1 : -5)
+                                        macDayTag(start, zone: zone, height: tag.height).offset(y: tag.y)
+                                    }
+                                }
                                 .frame(width: pitch, height: rowHeight)
                         }
                     }
@@ -867,15 +1002,14 @@ struct WidgetClockView: View {
     }
     #endif
 
-    /// `stacked` (tiles tall enough): AM/PM under the hour. `midnightX`: where the new-day mark
-    /// sits from the tile's leading edge (the Mac moves it for its wider gaps and the Now outline).
-    private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false, midnightX: CGFloat = -3) -> some View {
+    /// `stacked` (tiles tall enough): AM/PM under the hour. The new day's weekday tag is drawn by the
+    /// callers, above or inside the tile's top edge.
+    private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false) -> some View {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         let hour = calendar.component(.hour, from: moment)
         let minute = calendar.component(.minute, from: moment)
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60, lifted: true)
-        let newDay = !calendar.isDate(moment, inSameDayAs: moment.addingTimeInterval(-3600))
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         return tileLabel(hour: hour, minute: minute, stacked: stacked)
             .foregroundStyle(tinted ? Color.primary : style.text)
@@ -886,13 +1020,6 @@ struct WidgetClockView: View {
                     shape.strokeBorder(Color.primary.opacity(0.35), lineWidth: 1)
                 } else {
                     shape.fill(style.fill)
-                }
-            }
-            .overlay(alignment: .leading) {
-                // A new day starts at midnight.
-                if newDay {
-                    Capsule().fill(tinted ? Color.primary : WidgetTone.midnight)
-                        .frame(width: 2).padding(.vertical, 6).offset(x: midnightX)
                 }
             }
     }
@@ -1843,6 +1970,29 @@ struct WidgetPhotoRows: View {
     /// The Now tile about 12% wider than the other two (40 -> 45 pt); they keep their width.
     static func nowWidth(_ tileWidth: CGFloat) -> CGFloat { (tileWidth * 1.12).rounded() }
 
+    /// The new day's weekday tag (WidgetPhotoDayTag): its height, and its top from its tile's top.
+    /// `space` is the card's top to the tile's top. Above the tile with 3 pt between them (15 pt high,
+    /// or 13 where the card is short), always 1 pt or more inside the card. Where even that does not
+    /// fit (the taller Now tile) it sits as high as the card lets it, over the tile's top edge only.
+    /// `outline`: the Now outline's top line passes over this tile (the first row's Now tile): 2 pt
+    /// clear above its band, else 2 pt inside the tile.
+    static func dayTag(space: CGFloat, outline: Bool) -> (height: CGFloat, y: CGFloat) {
+        let clear: CGFloat = outline ? inset + band / 2 + 2 : 3
+        for h in [CGFloat(15), CGFloat(13)] where space >= h + clear + 1 {
+            return (height: h, y: -(h + clear))
+        }
+        if outline { return (height: 13, y: 2) }
+        return (height: 13, y: -max(0, min(space - 1, 13 + clear)))
+    }
+
+    /// How far a tile's label moves down so a tag reaching `tagBottom` into the tile stays clear of
+    /// its digits (about 4 pt of a label's first line is above the digits): nothing unless the tag
+    /// is inside the tile, and never more than the tile has spare.
+    static func labelDrop(tagBottom: CGFloat, tileHeight: CGFloat, labelHeight: CGFloat) -> CGFloat {
+        let spare = max(0, tileHeight - labelHeight)
+        return max(0, min(spare, 2 * (tagBottom - 3) - spare))
+    }
+
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
@@ -1852,8 +2002,9 @@ struct WidgetPhotoRows: View {
             let tileHeight = min(44, max(22, rowHeight - 24))
             let tileWidth = min(40, ((geo.size.width * 0.42 - 2 * Self.tileGap) / 3).rounded(.down))
             VStack(spacing: Self.gap) {
-                ForEach(Array(cities.enumerated()), id: \.offset) { _, city in
-                    row(city, width: geo.size.width, height: rowHeight, tileWidth: tileWidth, tileHeight: tileHeight)
+                ForEach(Array(cities.enumerated()), id: \.offset) { index, city in
+                    row(city, width: geo.size.width, height: rowHeight, tileWidth: tileWidth, tileHeight: tileHeight,
+                        first: index == 0)
                 }
             }
             .frame(width: geo.size.width, alignment: .top)
@@ -1890,7 +2041,7 @@ struct WidgetPhotoRows: View {
     }
 
     private func row(_ city: WidgetSnapshot.City, width: CGFloat, height: CGFloat,
-                     tileWidth: CGFloat, tileHeight: CGFloat) -> some View {
+                     tileWidth: CGFloat, tileHeight: CGFloat, first: Bool) -> some View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
         let photo = WidgetSkylines.photo(for: city, at: date)
         let phase = WidgetSky.phase(city, at: date)
@@ -1943,11 +2094,21 @@ struct WidgetPhotoRows: View {
                     ForEach(-1...1, id: \.self) { k in
                         // The Now tile: wider, `nowRise` taller above and below the others' centre
                         // line (the negative padding keeps the others where they were), digits +2 pt.
+                        // Where a new day starts in the tile, its weekday tag goes above it (dayTag).
+                        let ownHeight: CGFloat = k == 0 ? tileHeight + 2 * Self.nowRise : tileHeight
+                        let ownDigits: CGFloat = k == 0 ? digitSize + 2 : digitSize
+                        let tag = Self.dayTag(space: height - Self.bottomPadding - tileHeight - (k == 0 ? Self.nowRise : 0),
+                                              outline: first && k == 0)
+                        let minorLine: CGFloat = (k == 0 ? 13 : 12) * WidgetType.scale(typeSize) * 1.2
+                        let labelHeight: CGFloat = stacked ? ownDigits * 1.2 + minorLine - 1 : 20
                         WidgetPhotoTile(snapshot: snapshot, city: city, zone: zone,
                                         start: anchor.addingTimeInterval(Double(k) * 3600), center: k == 0,
-                                        stacked: stacked, digitSize: k == 0 ? digitSize + 2 : digitSize, widest: widest)
+                                        stacked: stacked, digitSize: ownDigits, widest: widest,
+                                        tagHeight: tag.height, tagY: tag.y,
+                                        labelDrop: Self.labelDrop(tagBottom: tag.y + tag.height, tileHeight: ownHeight,
+                                                                  labelHeight: labelHeight))
                             .frame(width: k == 0 ? Self.nowWidth(tileWidth) : tileWidth,
-                                   height: k == 0 ? tileHeight + 2 * Self.nowRise : tileHeight)
+                                   height: ownHeight)
                             .padding(.vertical, k == 0 ? -Self.nowRise : 0)
                     }
                 }
@@ -1964,7 +2125,9 @@ struct WidgetPhotoRows: View {
 
 /// An hour tile on a photo, as the app's: the day's colour there at that hour (dimmed outside
 /// working hours), the hour with AM/PM under it when `stacked` (tiles tall enough, narrow tiles and
-/// "9:30" zones; as the app's), after it ("9 AM") only on short tiles, and a mark where a new day starts.
+/// "9:30" zones; as the app's), after it ("9 AM") only on short tiles. Midnight and noon read as every
+/// other hour ("12", "AM" and "12", "PM"; "00" in 24-hour time); where a new day starts, its weekday
+/// is a small gold tag above the tile (WidgetPhotoDayTag), as the app's.
 struct WidgetPhotoTile: View {
     let snapshot: WidgetSnapshot
     let city: WidgetSnapshot.City
@@ -1975,6 +2138,11 @@ struct WidgetPhotoTile: View {
     var digitSize: CGFloat = 14
     /// The widest hour in the row ("10"), measured by every tile so the row shares one digit size.
     var widest: String = ""
+    /// The new day's weekday tag: its height, its top from the tile's top (negative: above), and how
+    /// far the label moves down to stay clear of a tag inside the tile (WidgetPhotoRows.dayTag).
+    var tagHeight: CGFloat = 15
+    var tagY: CGFloat = -18
+    var labelDrop: CGFloat = 0
 
     @Environment(\.dynamicTypeSize) private var typeSize
     /// AM/PM and ":30" grow with the reader's text size, as the rows' names and captions (12 -> 13.2 pt).
@@ -2030,6 +2198,7 @@ struct WidgetPhotoTile: View {
         // fit 36 pt, so the hour fell down the ladder to about 12 pt, 24% under the other rows'; at 40 pt
         // it fits, and the text still sits on the tile's straight middle, clear of the 6 pt corners.
         .padding(.horizontal, stacked ? (minute != 0 ? 0 : 6) : 3)
+        .padding(.top, newDay ? labelDrop : 0)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Off-hours tiles are darkened, never see-through (was 88% opacity: the photo showed
         // through behind the numerals), as the app's.
@@ -2037,12 +2206,23 @@ struct WidgetPhotoTile: View {
         // Night and off-hours tiles are near-black: a 1 pt edge at 32% white (was 0.5 pt at 16%,
         // 1.3:1) keeps the row reading as tiles on a dark night photo, as the app's HourTiles.
         .overlay(shape.strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.32 : 0), lineWidth: 1))
-        .overlay(alignment: .leading) {
+        .overlay(alignment: .top) {
+            // A new day: its weekday in a small gold tag centred above the tile, never wider than it.
             if newDay {
-                Capsule().fill(WidgetTone.midnight)
-                    .frame(width: 2).padding(.vertical, 6).offset(x: -(WidgetPhotoRows.tileGap / 2 + 1))
+                WidgetPhotoDayTag(weekday: Self.weekday(start, zone: zone, format: "EEE").uppercased(),
+                                  spoken: Self.weekday(start, zone: zone, format: "EEEE"), height: tagHeight)
+                    .offset(y: tagY)
             }
         }
+    }
+
+    /// "Wed" ("EEE") or "Wednesday" ("EEEE") there.
+    static func weekday(_ date: Date, zone: TimeZone, format: String) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = zone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = format
+        return formatter.string(from: date)
     }
 
     /// AM/PM and half-hour minutes: 12 pt (was 11), a step above Apple's 11 pt minimum.
@@ -2153,6 +2333,36 @@ struct WidgetPhotoTile: View {
             label(own, minute: minute, size: size)
         }
         .lineLimit(1)
+    }
+}
+
+/// The new day's weekday ("WED") above the tile where the day starts, as the app's DayTag: 11 pt
+/// semibold caps, gold on a black 55% pill, 5 pt each side of the word (down to 3, so it is never
+/// wider than its tile). VoiceOver reads the whole weekday.
+private struct WidgetPhotoDayTag: View {
+    let weekday: String
+    let spoken: String
+    var height: CGFloat = 15
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            pill(5)
+            pill(4)
+            pill(3)
+        }
+        .accessibilityLabel(spoken)
+    }
+
+    private func pill(_ padding: CGFloat) -> some View {
+        Text(weekday)
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.3)
+            .lineLimit(1)
+            .foregroundStyle(WidgetTone.midnight)
+            .padding(.horizontal, padding)
+            .frame(height: height)
+            .background(Capsule().fill(Color.black.opacity(0.55)))
+            .fixedSize()
     }
 }
 

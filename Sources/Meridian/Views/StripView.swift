@@ -91,10 +91,11 @@ struct StripView: View {
                                             dimmed: store.showWorkHours && !store.isWorking(place, at: date),
                                             highlights: store.showWorkHours,
                                             isCenter: index == base,
-                                            afterCenter: index == base + 1,
+                                            firstRow: place.id == store.places.first?.id,
                                             width: tile,
                                             tileHeight: tileHeight,
                                             tileBottom: tileBottom,
+                                            tileTop: rowHeight - tileBottom - tileHeight,
                                             hovered: hoverIndex == index && index != base
                                         )
                                         // The cell is the whole column of the row, so a click
@@ -457,7 +458,9 @@ private struct StatusPill: View {
 }
 
 /// One hour in one city: an opaque tile in that hour's sky colour, inside its (taller) cell. The
-/// selected hour's tile is drawn larger, overflowing its cell evenly on every side.
+/// selected hour's tile is drawn larger, overflowing its cell evenly on every side. Every tile reads
+/// the same way (the hour, with AM or PM under it on a 12-hour clock), midnight and noon included;
+/// where a new day starts, its weekday is a small gold tag (`DayTag`) above the tile.
 private struct HourCell: View {
     @Environment(\.metrics) private var ui
     let date: Date
@@ -468,11 +471,13 @@ private struct HourCell: View {
     /// Working hours are highlighted, so working tiles keep a readable blue.
     let highlights: Bool
     let isCenter: Bool
-    /// The tile right after the selected one: the gutter before it holds the Now outline.
-    let afterCenter: Bool
+    /// The top row: the Now outline's top line passes just above its selected tile.
+    let firstRow: Bool
     let width: CGFloat
     let tileHeight: CGFloat
     let tileBottom: CGFloat
+    /// Room in the row above a tile of the usual size.
+    let tileTop: CGFloat
     var hovered = false
 
     var body: some View {
@@ -491,8 +496,18 @@ private struct HourCell: View {
         // The darkest tiles get a hairline so they still read as tiles on a night photo.
         let edged = dimmed || hour < 6 || hour >= 21
         let shape = RoundedRectangle(cornerRadius: ui.tileRadius * k, style: .continuous)
-        // Under the hour: the weekday where a new day starts, else AM or PM on a 12-hour clock.
-        let caption: String? = newDay ? TimeMath.weekday(date, in: zone) : (use24h ? nil : (hour < 12 ? "AM" : "PM"))
+        // Under the hour: AM or PM on a 12-hour clock, at midnight and noon as at any other hour.
+        let caption: String? = use24h ? nil : (hour < 12 ? "AM" : "PM")
+        // The new day's weekday tag, from this tile's top. Where a short row tucks it into the
+        // tile's top edge and it would reach the digits, the label moves down just enough to
+        // stay clear of it (type sizes as `ui.font`; 1.2 and 0.24 are the line and the space
+        // over the digits, per point of type).
+        let tag = tagPlacement(scale: k)
+        let digitPoints = max(11, ui.pt(isCenter ? 19 : 17))
+        let captionPoints: CGFloat = caption == nil ? 0 : max(11, ui.pt(11))
+        let slack: CGFloat = (tileHeight * k - 1.2 * (digitPoints + captionPoints)) / 2
+        let reach: CGFloat = tag.top + tag.height + 1 - (slack + 0.24 * digitPoints)
+        let nudge: CGFloat = newDay ? max(0, min(reach, slack)) : 0
 
         return Color.clear
             .frame(width: width, height: tileHeight)
@@ -506,13 +521,12 @@ private struct HourCell: View {
                     if let caption {
                         Text(caption)
                             .font(ui.font(11, .semibold))
-                            .textCase(newDay ? .uppercase : nil)
-                            .tracking(newDay ? 0.6 : 0)
                             .lineLimit(1)
                     }
                 }
                 .foregroundStyle(Color.white)
                 .padding(.horizontal, 2)
+                .padding(.top, 2 * nudge)
                 .frame(width: width * k, height: tileHeight * k)
                 .background(shape.fill(fill))
                 .overlay {
@@ -522,18 +536,37 @@ private struct HourCell: View {
                         shape.strokeBorder(Color.white.opacity(0.32), lineWidth: 1)
                     }
                 }
-                .overlay(alignment: .leading) {
-                    // Midnight mark: a new day starts here. A 2pt line centred in the gutter
-                    // before the tile; beside the selected tile that gutter holds the Now
-                    // outline, so the mark moves just inside the tile.
+                .overlay(alignment: .top) {
+                    // A new day starts here: its weekday, centred over the tile's top. Never
+                    // wider than a tile of the usual size, so beside the selected tile it sits
+                    // between the Now outline's vertical lines.
                     if newDay {
-                        Capsule().fill(Palette.midnight).frame(width: 2).padding(.vertical, ui.s)
-                            .offset(x: isCenter || afterCenter ? 3 : -(ui.gutter / 2 + 1))
+                        DayTag(weekday: TimeMath.weekday(date, in: zone), tileWidth: width, height: tag.height)
+                            .offset(y: tag.top)
                     }
                 }
             }
             .padding(.bottom, tileBottom)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+
+    /// Where the weekday tag sits: its top edge from this tile's top (negative is above the tile)
+    /// and its height. Above the tile with 3 pt between them when the row has the room; in a
+    /// shorter row it is 2 pt less tall and starts at the row's top, so it only laps over the tile's
+    /// top edge and is never cut off by the card. Over the top row's selected tile runs the Now
+    /// outline's top line: there the tag clears that line by 2 pt, or sits just inside the tile.
+    private func tagPlacement(scale k: CGFloat) -> (top: CGFloat, height: CGFloat) {
+        let full = DayTag.fullHeight(ui)
+        let short = full - 2
+        let above = max(0, tileTop - tileHeight * (k - 1) / 2)
+        if isCenter && firstRow {
+            let line = ui.lensInset(tile: width) + ui.lensCore / 2 + ui.lensEdge + 2
+            if above >= full + line { return (-(full + line), full) }
+            if above >= short + line { return (-(short + line), short) }
+            return (1, short)
+        }
+        if above >= full + 3 { return (-(full + 3), full) }
+        return (-min(above, short + 3), short)
     }
 
     /// "09" or "9", with half-hour minutes set small after it.
@@ -544,6 +577,42 @@ private struct HourCell: View {
             text = text + Text(":\(String(format: "%02d", minute))").font(ui.font(11, .medium))
         }
         return text
+    }
+}
+
+/// The new day's weekday ("WED") over the tile where the day starts: gold on a dark pill, the same
+/// on every platform. Type follows the interface size (never under 11 pt).
+private struct DayTag: View {
+    @Environment(\.metrics) private var ui
+    let weekday: String
+    /// The tag is never wider than this.
+    let tileWidth: CGFloat
+    let height: CGFloat
+
+    static func fullHeight(_ ui: Metrics) -> CGFloat { max(15, ui.pt(15)) }
+
+    /// 5 pt each side of the word, or less (never under 3) so the tag is no wider than its tile.
+    private var padding: CGFloat {
+        let points = max(11, ui.pt(11))
+        let inter: NSFont? = ui.family == .inter ? NSFont(name: "Inter-SemiBold", size: points) : nil
+        let font: NSFont = inter ?? NSFont.systemFont(ofSize: points, weight: .semibold)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .kern: CGFloat(0.3)]
+        let word = (weekday.uppercased() as NSString).size(withAttributes: attributes).width
+        return min(5, max(3, ((tileWidth - word) / 2).rounded(.down)))
+    }
+
+    var body: some View {
+        Text(weekday.uppercased())
+            .font(ui.font(11, .semibold))
+            .tracking(0.3)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .foregroundStyle(Palette.midnight)
+            .padding(.horizontal, padding)
+            .frame(height: height)
+            .background(Capsule().fill(Color.black.opacity(0.55)))
+            .frame(maxWidth: tileWidth)
+            .allowsHitTesting(false)
     }
 }
 

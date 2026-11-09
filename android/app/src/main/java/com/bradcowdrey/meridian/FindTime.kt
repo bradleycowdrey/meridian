@@ -242,7 +242,7 @@ private fun BestTimes(store: Store, slots: List<Slot>, count: Int, pick: (Slot) 
                     Spacer(Modifier.height(2.dp))
                     // Same words as iOS FindTimeView: "Your time · start any time from 10:00 PM to 11:30 PM" (no-break spaces inside the times).
                     Text(if (run.size == 1) "Your time" else "Your time · start any time from ${time(first.start)} to ${time(run.last().start)}",
-                        fontSize = 13.sp, color = white(0.7f))
+                        fontSize = 13.sp, lineHeight = 18.sp, color = white(0.7f))
                 }
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = white(0.5f))
             }
@@ -361,7 +361,7 @@ private fun Legend(state: Slot.State, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         SlotCell(state, Modifier.size(14.dp), moon = 9.dp)
         Spacer(Modifier.width(5.dp))
-        Text(text, fontSize = 13.sp, color = white(0.7f))
+        Text(text, fontSize = 13.sp, lineHeight = 18.sp, color = white(0.7f))
     }
 }
 

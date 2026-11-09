@@ -194,7 +194,7 @@ struct ContentView: View {
                     .background(Theme.bar, ignoresSafeAreaEdges: .bottom)
                     // Its height (hint, Now and ruler, not the brief Copied pill), for `listHeight`.
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
-                    .overlay(alignment: .top) { Divider().overlay(Color.white.opacity(Theme.Op.track)) }
+                    .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Theme.Op.track)).frame(height: 0.5).accessibilityHidden(true) }
                     .environment(\.colorScheme, .dark)
             }
         }
@@ -349,6 +349,7 @@ struct ContentView: View {
             .listRowInsets(EdgeInsets(top: 10, leading: Card.margin, bottom: 10, trailing: Card.margin))
             .listRowBackground(Color.clear)
             .listRowSeparatorTint(Color.white.opacity(Theme.Op.track))
+            .alignmentGuide(.listRowSeparatorTrailing) { $0[.trailing] }
             .accessibilityHint(added ? "Already added" : "Adds \(entry.name)")
         }
     }
@@ -1217,7 +1218,14 @@ private struct SearchResultRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.name).font(.headline).foregroundStyle(.white)
+                // As Two Degrees: a quiet check after the name of a city already in the list (the times keep their column).
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(entry.name).font(.headline).foregroundStyle(.white).lineLimit(1)
+                    if added {
+                        Image(systemName: "checkmark").font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(Theme.Op.caption)).accessibilityHidden(true)
+                    }
+                }
                 // "California, United States" from the city list (as on Android), else the country.
                 Text(entry.countryCode != nil ? entry.region
                      : WorkWeek.countryName(zoneID: entry.timeZoneID) ?? entry.region.replacingOccurrences(of: "_", with: " "))
@@ -1231,10 +1239,6 @@ private struct SearchResultRow: View {
                     Text(TimeMath.offsetLabel(seconds: zone.secondsFromGMT(for: store.now)))
                         .font(.footnote).foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 }
-            }
-            // As Two Degrees: a quiet check on a city already in the list, nothing on a new one.
-            if added {
-                Image(systemName: "checkmark").foregroundStyle(Color.white.opacity(Theme.Op.caption))
             }
         }
         .contentShape(Rectangle())

@@ -165,7 +165,7 @@ fun GroupPickerDialog(store: Store, placeId: String, onDone: () -> Unit) {
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(if (store.customGroups.size >= Store.MAX_GROUPS) "You can have up to ${Store.MAX_GROUPS} groups."
-                    else "Add this card to as many groups as you like.", fontSize = 13.sp, color = white(0.6f))
+                    else "Add this card to as many groups as you like.", fontSize = 13.sp, lineHeight = 18.sp, color = white(0.6f))
             }
         },
         confirmButton = { TextButton(onClick = onDone) { Text("Done") } },
@@ -443,7 +443,7 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
                     Text(version, color = white(0.6f))
                 }
                 LinkRow("bradcowdrey.com/meridian") { open(Palette.APP_PAGE) }
-                LinkRow("Source code on GitHub") { open(Palette.SOURCE) }
+                LinkRow("Source Code on GitHub") { open(Palette.SOURCE) }
                 LinkRow("Terms & Privacy") { open(Palette.LEGAL) }
                 Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { credits = true }, verticalAlignment = Alignment.CenterVertically) {
                     Text("Photo Credits", Modifier.weight(1f), color = Palette.primary)
@@ -459,7 +459,7 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
 /** A line of explanation under a setting. */
 @Composable
 private fun Note(text: String) {
-    Text(text, fontSize = 13.sp, color = white(0.6f))
+    Text(text, fontSize = 13.sp, lineHeight = 18.sp, color = white(0.6f))
 }
 
 @Composable

@@ -356,11 +356,12 @@ private struct TileLabel: View {
             variant(suffix: true)
             // Without AM/PM (the least needed: the neighbouring tiles carry it); the weekday stays.
             variant(suffix: false)
-            // Last resort: the hour line may shrink a little (never below 90%).
+            // Last resort: the hour line may shrink a little (never below 90%), and the weekday too
+            // (never below 85%, about 11 pt), so "WED" shows whole instead of an ellipsis.
             VStack(spacing: 0) {
                 hourLine(inlineMinutes: true)
                     .minimumScaleFactor(0.9)
-                if let weekday { weekdayText(weekday) }
+                if let weekday { weekdayText(weekday).minimumScaleFactor(0.85) }
             }
             .monospacedDigit()
             .lineLimit(1)

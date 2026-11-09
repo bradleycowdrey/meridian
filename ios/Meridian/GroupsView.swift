@@ -93,7 +93,7 @@ struct GroupBar: View {
                     }
                     if !custom.isEmpty && !continents.isEmpty {
                         Rectangle()
-                            .fill(Color.white.opacity(0.2))
+                            .fill(Color.white.opacity(Theme.Op.track))
                             .frame(width: 0.5, height: 20)
                             .accessibilityHidden(true)
                     }
@@ -102,9 +102,10 @@ struct GroupBar: View {
                     }
                     trailingButton(newGroup: custom.isEmpty)
                 }
-                .padding(.horizontal, Card.margin)
+                // The same leading edge as the cards and the Now button below.
+                .padding(.horizontal, Strip.margin)
                 // The fade's width past the last chip, so at the row's end it is clear.
-                .padding(.trailing, 24 - Card.margin)
+                .padding(.trailing, 24 - Strip.margin)
             }
             .chipRowFade()
             .onAppear { proxy.scrollTo(store.groupFilter ?? Self.allID, anchor: .center) }

@@ -87,6 +87,8 @@ struct FindTimeView: View {
                 PillChip(title: Self.lengthLabel(minutes), isOn: length == minutes) { length = minutes }
             }
         }
+        // The day chips above carry 6 pt of touch padding too: sit as one group with them.
+        .padding(.top, -6)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Length")
     }

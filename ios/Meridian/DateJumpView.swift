@@ -213,7 +213,7 @@ struct DateJumpView: View {
             dismiss()
         } label: {
             Text("Go to This Time")
-                .font(.body.weight(.medium))
+                .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 50)
                 .background(Capsule().fill(Color.white))
                 .foregroundStyle(Color.black)

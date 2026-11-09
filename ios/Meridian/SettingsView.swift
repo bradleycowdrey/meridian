@@ -52,7 +52,7 @@ struct SettingsView: View {
                     Toggle("Download City Photos", isOn: $store.downloadCityPhotos)
                         .tint(Theme.switchOn)
                 } footer: {
-                    footer("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on this phone. Only the city's name is sent.")
+                    footer("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on your iPhone. Only the city's name is sent.")
                 }
                 .meridianSection()
                 Section {
@@ -64,7 +64,7 @@ struct SettingsView: View {
                 Section {
                     LabeledContent("Version", value: version)
                     Link("bradcowdrey.com/meridian", destination: Theme.appPage)
-                    Link("Source code on GitHub", destination: Theme.source)
+                    Link("Source Code on GitHub", destination: Theme.source)
                     Link("Terms & Privacy", destination: Theme.legal)
                     NavigationLink {
                         PhotoCreditsView()

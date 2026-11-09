@@ -1580,7 +1580,7 @@ struct PhotoCreditsView: View {
                 } header: {
                     caption("Downloaded")
                 } footer: {
-                    caption("Downloaded once from Wikimedia Commons and kept on this iPhone.")
+                    caption("Downloaded once from Wikimedia Commons and kept on your iPhone.")
                 }
                 .meridianSection()
             }

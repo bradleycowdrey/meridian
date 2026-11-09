@@ -2108,7 +2108,7 @@ fun TypeOffsetDialog(onDone: (Int?) -> Unit) {
         title = { Text("Hours from now") },
         text = {
             Column {
-                Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.", fontSize = 13.sp, color = white(0.6f))
+                Text("Ahead with + or a plain number, back with −. Hours and minutes work too: 2:30.", fontSize = 13.sp, lineHeight = 18.sp, color = white(0.6f))
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(text, { text = it; invalid = false }, singleLine = true, isError = invalid,
                     placeholder = { Text("+3, -1.5 or -2:30") },

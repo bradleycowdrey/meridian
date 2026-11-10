@@ -4,6 +4,12 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 2.1.1 · 10 November 2026
+
+- **See the city**: each row's photo runs sharp across the whole row, with the middle of the city in the open space between the name and the hours. Only a soft fade sits behind the name and time.
+- **Room around Now**: the Now outline has clear space on both sides of the current hour.
+- **Widgets fill themselves**: with fewer cities, the rows grow to fill the widget, with larger times and tiles.
+
 ## 2.1 · 10 November 2026
 
 A new look on the Mac, the same as on iPhone and Android.

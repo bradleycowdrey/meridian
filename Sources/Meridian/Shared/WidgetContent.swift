@@ -386,14 +386,25 @@ struct WidgetClockView: View {
     private static let captionMinScale: CGFloat = 1
     #else
     private static let labelSize: CGFloat = 11
-    private static let tileSize: CGFloat = 13
-    private static let tileSmallSize: CGFloat = 11
+    /// The panel's tile type: the hour 15 pt semibold, AM/PM 10 pt under it (the Now tile's are
+    /// scaled with it to about 17 and 11 pt).
+    private static let tileSize: CGFloat = 15
+    private static let tileSmallSize: CGFloat = 10
     private static let tileMinuteSize: CGFloat = 11
     private static let tileSmallWeight: Font.Weight = .semibold
     private static let tileMinScale: CGFloat = 0.85   // digits only; AM/PM never shrinks
     private static let nameMinScale: CGFloat = 0.9
     private static let largeNameMinScale: CGFloat = 0.9
     private static let captionMinScale: CGFloat = 1
+    #endif
+    /// The tiles' digits: medium on iPhone; semibold on the Mac, as the panel's. A stacked tile's hour
+    /// (AM/PM under it): 2 pt over tileSize on iPhone; the Mac's tileSize is already the panel's 15 pt.
+    #if os(iOS)
+    private static let tileWeight: Font.Weight = .medium
+    private static let stackedTileSize: CGFloat = tileSize + 2
+    #else
+    private static let tileWeight: Font.Weight = .semibold
+    private static let stackedTileSize: CGFloat = tileSize
     #endif
     /// "Now" labels and outlines: white in full colour.
     private var nowTone: Color { tinted ? Color.primary : WidgetTone.cream }
@@ -426,9 +437,9 @@ struct WidgetClockView: View {
     private func halfHourDigits(_ hour: Int, _ minute: Int, hourSize: CGFloat, minuteSize: CGFloat) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
             Text("\(hour % 12 == 0 ? 12 : hour % 12)")
-                .font(.system(size: hourSize, weight: .medium))
+                .font(.system(size: hourSize, weight: Self.tileWeight))
             Text(":" + String(format: "%02d", minute))
-                .font(.system(size: minuteSize, weight: .medium))
+                .font(.system(size: minuteSize, weight: Self.tileWeight))
         }
         .monospacedDigit()
         .lineLimit(1)
@@ -568,9 +579,10 @@ struct WidgetClockView: View {
     /// at the top edge easing to none 56% down, where the text ends); the rest is the photo as it is.
     static let photoScrim = LinearGradient(stops: macFade(end: 0.56), startPoint: .top, endPoint: .bottom)
 
-    /// Small text on a photo (the caption, the small widget's hour labels): a dark chip behind it,
-    /// black at 55%, so white keeps 4.7:1 or more even on a pure white photo.
-    static let chipTone = Color.black.opacity(0.55)
+    /// Small text on a photo (the zone chip): a dark pill behind it,
+    /// black at 50%, so white keeps about 4:1 or more even on a pure white photo (and far more on
+    /// the usual skylines).
+    static let chipTone = Color.black.opacity(0.5)
 
     /// The outline around the Now tiles: a white line with a thin dark edge, no fill (tinted modes:
     /// one line in the system's colour).
@@ -646,20 +658,24 @@ struct WidgetClockView: View {
         return (limit, 13)
     }
 
-    /// The small widget's weekday tag. The Now tile's is always 13 pt high and 2 pt above its
-    /// outline's top line (the line's edge is 4.5 pt above the larger tile); where the labels cannot
-    /// move up (not `lifted`) it takes the "Now" label's place. Other tiles: 3 pt above the tile
-    /// when `lifted`, otherwise across the tile's top edge, under the label's baseline.
+    /// The small widget's weekday tag. `lifted` (room above the tiles): the Now tile's 13 pt high and
+    /// 2 pt above its outline's top line (the line's edge is 5.25 pt above the larger tile: the 4 pt
+    /// inset plus half the 2.5 pt line), the
+    /// others' 15 pt high, 3 pt above the tile. Otherwise inside the tile's top edge (the Now tile's
+    /// inside the larger tile, under the outline's line).
     private static func macCellTag(stacked: Bool, now: Bool, lifted: Bool) -> (y: CGFloat, height: CGFloat) {
-        if now { return (-(34 * (nowScale - 1) / 2 + 4.5 + 2 + 13), 13) }
-        guard lifted else { return macTuckedTag(tile: 34, stacked: stacked, now: false, top: 2, limit: -8) }
+        let edge: CGFloat = now ? -34 * (nowScale - 1) / 2 : 0
+        guard lifted else {
+            return macTuckedTag(tile: 34, stacked: stacked, now: now, top: edge + 2, limit: now ? edge + 1 : -8)
+        }
+        if now { return (edge - 5.25 - 2 - 13, 13) }
         return (-18, 15)
     }
 
-    /// Where a tile in the widget starts a new day (in any of its cities, so the cells' labels stay
-    /// level), the "Now" and "+1 hr" labels move up to leave room for the weekday tag above the tile;
-    /// if the widget is too short for that, the tag sits across the tile's top edge (the Now tile's
-    /// in place of its "Now" label).
+    /// The small widget (Mac): the city's name, its time and the zone chip at the top of its photo,
+    /// then the hour before, now and the hour after as three panel tiles at the bottom (no labels:
+    /// the outline marks now). Where a tile starts a new day, its weekday tag sits above it when
+    /// the widget has the room, otherwise inside the tile's top edge.
     private func cityCell(_ city: WidgetSnapshot.City, timeSize: CGFloat) -> some View {
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
         let tagged = cities.contains { other in
@@ -667,15 +683,16 @@ struct WidgetClockView: View {
             return (-1...1).contains { macStartsNewDay(anchor.addingTimeInterval(Double($0) * 3600), zone: zone) }
         }
         return GeometryReader { geo in
-            // Room either side of the Now tile: 6.5 pt between the (larger) Now tile and each
-            // neighbour (3 pt more than before), whatever the widget's width; the outline's line runs
-            // down the middle of it, 2 pt clear of both tiles.
+            // As the large widget's: 8 pt between the (larger) Now tile and each neighbour (the 5 pt
+            // gap plus 3), the outline's line down the middle of it.
             let grow: CGFloat = (Self.nowScale - 1) / 2
-            let tileWidth: CGFloat = max(1, (geo.size.width - 13) / (3 + 2 * grow))
-            let spacing: CGFloat = 6.5 + tileWidth * grow
+            let tileWidth: CGFloat = max(1, (geo.size.width - 16) / (3 + 2 * grow))
+            let spacing: CGFloat = 8 + tileWidth * grow
+            // A smaller time before giving up the lifted tags (a tucked Now tag would cover its digits).
             ViewThatFits(in: .vertical) {
                 cityCellBody(city, timeSize: timeSize, lifted: tagged, spacing: spacing)
-                cityCellBody(city, timeSize: timeSize, lifted: false, spacing: spacing)
+                cityCellBody(city, timeSize: 30, lifted: tagged, spacing: spacing)
+                cityCellBody(city, timeSize: 30, lifted: false, spacing: spacing)
             }
         }
     }
@@ -685,8 +702,13 @@ struct WidgetClockView: View {
         let zone = TimeZone(identifier: city.timeZoneID) ?? .current
         let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
-        // On the photo the small text is white on a dark chip (tinted modes: the plain muted text).
+        // On the photo the chip's text is white on a dark pill (tinted modes: the plain muted text).
         let quiet = photos ? WidgetTone.primary : WidgetTone.muted
+        // The Mac's small time is 34 pt (the shared caller asks for the iPhone's 40).
+        let macTime: CGFloat = min(timeSize, 34)
+        let radius: CGFloat = 8
+        // The Now outline: 4 pt outside the larger Now tile, its line in the middle of the 8 pt gap.
+        let inset: CGFloat = 4
         return VStack(alignment: .leading, spacing: 0) {
             Text(city.name)
                 .font(.system(size: 13 * typeScale, weight: .semibold))
@@ -694,61 +716,53 @@ struct WidgetClockView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(Self.nameMinScale)
                 .macHalo(photos)
-            WidgetClockText.text(clock, suffix: suffix, size: timeSize)
+            WidgetClockText.text(clock, suffix: suffix, size: macTime)
                 .widgetAccentable()
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .macHalo(photos)
-            Text(caption(zone))
+            // The pill sits flush with the column (its text inset by the pill's padding).
+            Text(caption(zone, short: true))
                 .font(.system(size: 11 * typeScale, weight: photos ? .semibold : .medium))
                 .foregroundStyle(quiet)
                 .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(Self.captionMinScale)
+                .fixedSize()
                 .padding(.horizontal, photos ? 6 : 0)
-                .padding(.vertical, photos ? 1 : 0)
+                .padding(.vertical, photos ? 2 : 0)
                 .background { if photos { Capsule().fill(Self.chipTone) } }
-            Spacer(minLength: lifted ? 0 : 2)
-            // The hour before, now (larger, outlined) and the hour after, each labelled.
+                .padding(.top, 3)
+            Spacer(minLength: 0)
+            // The hour before, now (larger, outlined) and the hour after.
             HStack(spacing: spacing) {
                 ForEach(-1...1, id: \.self) { k in
                     let start = anchor.addingTimeInterval(Double(k) * 3600)
-                    VStack(spacing: lifted ? 24 : 8) {
-                        Text(k == 0 ? "Now" : (k > 0 ? "+1 hr" : "−1 hr"))
-                            .font(.system(size: Self.labelSize, weight: k == 0 || photos ? .semibold : .medium))
-                            .foregroundStyle(k == 0 ? nowTone : quiet)
-                            .lineLimit(1)
-                            .fixedSize()
-                            // On the photo: a dark chip behind the label (drawn past it, so the layout holds).
-                            .background { if photos { Capsule().fill(Self.chipTone).padding(.horizontal, -5) } }
-                            // Too short to move the labels up: the Now tile's weekday tag takes this place.
-                            .opacity(!lifted && k == 0 && macStartsNewDay(start, zone: zone) ? 0 : 1)
-                        tile(start, zone: zone, stacked: !snapshot.use24h)
-                            .frame(height: 34)
-                            .scaleEffect(k == 0 ? Self.nowScale : 1)
-                            .overlay {
-                                if k == 0 {
-                                    // Concentric with the Now tile, its line midway to the neighbours
-                                    // (3.25 pt from each: 2 pt clear either side of the 2.5 pt line).
-                                    GeometryReader { geo in
-                                        nowOutline(width: geo.size.width * Self.nowScale + 6.5,
-                                                   height: geo.size.height * Self.nowScale + 6.5,
-                                                   radius: 6 * Self.nowScale + 3.25,
-                                                   tintedTone: Color.primary)
-                                            .position(x: geo.size.width / 2, y: geo.size.height / 2)
-                                    }
+                    tile(start, zone: zone, stacked: !snapshot.use24h, radius: radius)
+                        .frame(height: 34)
+                        .scaleEffect(k == 0 ? Self.nowScale : 1)
+                        .overlay {
+                            if k == 0 {
+                                // Concentric with the Now tile.
+                                GeometryReader { geo in
+                                    nowOutline(width: geo.size.width * Self.nowScale + 2 * inset,
+                                               height: geo.size.height * Self.nowScale + 2 * inset,
+                                               radius: radius * Self.nowScale + inset,
+                                               tintedTone: Color.primary)
+                                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
                                 }
                             }
-                            .overlay(alignment: .top) {
-                                // A new day: its weekday tag (not scaled with the Now tile).
-                                if macStartsNewDay(start, zone: zone) {
-                                    let tag = Self.macCellTag(stacked: !snapshot.use24h, now: k == 0, lifted: lifted)
-                                    macDayTag(start, zone: zone, height: tag.height).offset(y: tag.y)
-                                }
+                        }
+                        .overlay(alignment: .top) {
+                            // A new day: its weekday tag (not scaled with the Now tile).
+                            if macStartsNewDay(start, zone: zone) {
+                                let tag = Self.macCellTag(stacked: !snapshot.use24h, now: k == 0, lifted: lifted)
+                                macDayTag(start, zone: zone, height: tag.height).offset(y: tag.y)
                             }
-                    }
+                        }
                 }
             }
+            // Room above the tiles: the weekday tags' when lifted, else the Now outline's (and air).
+            .padding(.top, lifted ? 24 : 8)
+            .padding(.bottom, 2)
         }
     }
     #endif
@@ -879,60 +893,64 @@ struct WidgetClockView: View {
         }
     }
     #else
-    /// Mac (medium and large): each city a row, a card filled with its photo, laid out as the name,
-    /// time and caption, then clear space where the city shows, then the hour tiles; the Now tiles
-    /// larger, with room either side and one outline running down every row. The rows share the
-    /// widget's whole height, and their contents grow with them when there are fewer cities.
+    /// Mac (medium and large): each city a row, a rounded card filled with its photo, laid out as
+    /// the panel's rows: the time, name and zone chip on the left (about a third of the row), then a
+    /// clear gap (at least 22% of the row) where the city shows, then three slim tiles; the text
+    /// and the tiles share the row's vertical centre. The Now tiles are larger, with room either
+    /// side and one outline running down every row. The rows share the widget's whole height (top
+    /// to bottom); with fewer cities they grow, and the extra height goes to the photo: the text
+    /// stays the same (1.1 times for a single city) and the tiles stop at 46 pt.
     private var strip: some View {
         GeometryReader { geo in
-            let gap: CGFloat = 4
             let headerHeight: CGFloat = 16
+            let headerGap: CGFloat = 5
+            let gap: CGFloat = 6
             let rows = max(cities.count, 1)
-            let rowHeight: CGFloat = max(1, (geo.size.height - headerHeight - gap * CGFloat(rows)) / CGFloat(rows))
-            // A row's height when the widget is full (large: five cities, medium: two): the designed look.
-            let fullHeight: CGFloat = max(1, (geo.size.height - headerHeight - gap * CGFloat(cityLimit)) / CGFloat(cityLimit))
-            let stretch: CGFloat = max(1, rowHeight / fullHeight)
-            let textScale: CGFloat = min(1.25, stretch)
+            // The card: 6 pt past the content on each side and at the bottom (an even frame round
+            // the cards); the text and the tiles 8 pt inside it.
+            let bleed: CGFloat = 6
+            let rowHeight: CGFloat = max(1, (geo.size.height + bleed - headerHeight - headerGap
+                                             - gap * CGFloat(rows - 1)) / CGFloat(rows))
+            let textScale: CGFloat = rows == 1 ? 1.1 : 1
+            let timeSize: CGFloat = 20 * textScale
             let nameSize: CGFloat = 13 * textScale
             let captionSize: CGFloat = 11 * textScale
-            // The time: 22 pt in a full widget of the usual size (a little less in a shorter one,
-            // never under 17 pt), up to 1.5 times that in taller rows.
-            let timeBase: CGFloat = 22 * min(1, fullHeight / 61.6)
-            let timeSize: CGFloat = max(17, timeBase * min(1.5, stretch))
             let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
             let half = columns / 2
-            // The tiles: whole points wide, from the widget's width; 6 pt inside a full widget's
-            // rows, and up to 1.4 times that height in taller ones.
-            let tw: CGFloat = min(46, max(40, geo.size.width * 0.136)).rounded(.down)
-            let th: CGFloat = max(1, min(rowHeight - 12, (fullHeight - 12) * 1.4))
-            // Room either side of the Now tile: 8 pt between the (larger) Now tile and each
-            // neighbour (3 pt more than before); the outline's line runs down the middle of it,
-            // 2.75 pt clear of both tiles.
+            let pad: CGFloat = 8
+            let cardWidth: CGFloat = geo.size.width + 2 * bleed
+            // The tiles: 11% of the row wide (whole points); 66% of its height up to 46 pt, and
+            // short enough that the larger Now tile and its outline keep 3 pt from the card's edges.
             let grow: CGFloat = (Self.nowScale - 1) / 2
-            let nowGap: CGFloat = 8
+            let tw: CGFloat = max(30, (cardWidth * 0.11).rounded())
+            let nowGap: CGFloat = 8          // the 5 pt gap plus 3, either side of the Now tile
+            let inset: CGFloat = nowGap / 2  // the outline's line runs down the middle of that gap
+            let th: CGFloat = max(1, min(46, rowHeight * 0.66,
+                                         (rowHeight - 2 * (inset + 3)) / Self.nowScale).rounded(.down))
+            let radius: CGFloat = 8
             let spacing: CGFloat = nowGap + tw * grow
             let tilesWidth: CGFloat = tw * CGFloat(columns) + spacing * CGFloat(columns - 1)
-            // The name, time and caption: compact, wider with the larger text; then the clear space,
-            // 40 pt or more where the widget has it.
-            let room: CGFloat = max(0, geo.size.width - tilesWidth)
-            let textWidth: CGFloat = max(min(104, room), min(104 * textScale, room - 40))
-            let clear: CGFloat = max(0, room - textWidth)
-            let inset: CGFloat = nowGap / 2
+            // The text block: at most 35% of the row; the clear gap at least 22% of it.
+            let room: CGFloat = max(0, cardWidth - 2 * pad - tilesWidth)
+            let clear: CGFloat = min(room, max(cardWidth * 0.22, room - cardWidth * 0.35))
+            let textWidth: CGFloat = max(0, room - clear)
+            let lead: CGFloat = pad - bleed   // the text's left edge in the content
+            let tilesX: CGFloat = lead + textWidth + clear
             let outlineWidth: CGFloat = tw * Self.nowScale + 2 * inset
             let outlineHeight: CGFloat = CGFloat(rows - 1) * (rowHeight + gap) + th * Self.nowScale + 2 * inset
-            let outlineX: CGFloat = textWidth + clear + CGFloat(half) * (tw + spacing) + (tw - outlineWidth) / 2
-            let tileTop: CGFloat = headerHeight + gap + (rowHeight - th) / 2
+            let outlineX: CGFloat = tilesX + CGFloat(half) * (tw + spacing) + (tw - outlineWidth) / 2
+            let tileTop: CGFloat = headerHeight + headerGap + (rowHeight - th) / 2
             let outlineY: CGFloat = tileTop - th * grow - inset
-            // The card reaches 6 pt past the row on each side. Its photo's centre sits in the middle
-            // of the clear space; the only darkening is behind the text, gone where the text ends.
-            let cardWidth: CGFloat = geo.size.width + 12
-            let focus: CGFloat = 6 + textWidth + clear / 2
-            let scrim = LinearGradient(stops: Self.macFade(end: (6 + textWidth) / cardWidth),
+            // The photo: its centre in the middle of the clear gap; its skyline lower in tall rows
+            // (50% down at 60 pt, 58% from 100 pt); the only darkening a light fade behind the text.
+            let focus: CGFloat = pad + textWidth + clear / 2
+            let anchorY: CGFloat = 0.5 + 0.08 * min(1, max(0, (rowHeight - 60) / 40))
+            let scrim = LinearGradient(stops: Self.macFade(end: (pad + textWidth) / cardWidth),
                                        startPoint: .leading, endPoint: .trailing)
 
-            VStack(alignment: .leading, spacing: gap) {
+            VStack(alignment: .leading, spacing: headerGap) {
                 HStack(spacing: spacing) {
-                    Color.clear.frame(width: max(0, textWidth + clear - spacing), height: 1)
+                    Color.clear.frame(width: max(0, tilesX - spacing), height: 1)
                     ForEach(-half...half, id: \.self) { k in
                         Text(k == 0 ? "Now" : (k > 0 ? "+\(k) hr" : "−\(-k) hr"))
                             .font(.system(size: Self.labelSize, weight: k == 0 ? .semibold : .medium))
@@ -949,76 +967,93 @@ struct WidgetClockView: View {
                     Rectangle().fill(rule).frame(height: 0.5)
                 }
 
-                ForEach(Array(cities.enumerated()), id: \.offset) { _, city in
-                    let zone = TimeZone(identifier: city.timeZoneID) ?? .current
-                    HStack(spacing: 0) {
-                        // Shorter rows than designed for: a smaller time, then no caption.
-                        ViewThatFits(in: .vertical) {
-                            stripLabel(city, zone: zone, timeSize: timeSize, nameSize: nameSize,
-                                       captionSize: captionSize, captioned: true)
-                            stripLabel(city, zone: zone, timeSize: max(15, timeSize * 0.8), nameSize: nameSize,
-                                       captionSize: captionSize, captioned: true)
-                            stripLabel(city, zone: zone, timeSize: max(15, timeSize * 0.8), nameSize: nameSize,
-                                       captionSize: captionSize, captioned: false)
-                        }
-                        .frame(width: textWidth, height: rowHeight, alignment: .leading)
+                VStack(alignment: .leading, spacing: gap) {
+                    ForEach(Array(cities.enumerated()), id: \.offset) { index, city in
+                        let zone = TimeZone(identifier: city.timeZoneID) ?? .current
+                        HStack(spacing: 0) {
+                            Color.clear.frame(width: max(0, lead), height: 1)
+                            // Shorter rows than usual: a smaller time, then no chip.
+                            ViewThatFits(in: .vertical) {
+                                stripLabel(city, zone: zone, timeSize: timeSize, nameSize: nameSize,
+                                           captionSize: captionSize, captioned: true)
+                                stripLabel(city, zone: zone, timeSize: 18, nameSize: nameSize,
+                                           captionSize: captionSize, captioned: true)
+                                stripLabel(city, zone: zone, timeSize: 18, nameSize: nameSize,
+                                           captionSize: captionSize, captioned: false)
+                            }
+                            .frame(width: textWidth, height: rowHeight, alignment: .leading)
 
-                        Color.clear.frame(width: clear, height: 1)
+                            Color.clear.frame(width: clear, height: 1)
 
-                        HStack(spacing: spacing) {
-                            ForEach(-half...half, id: \.self) { k in
-                                let start = anchor.addingTimeInterval(Double(k) * 3600)
-                                let stacked = !snapshot.use24h && th >= 30
-                                tile(start, zone: zone, stacked: stacked)
-                                    .frame(width: tw, height: th)
-                                    .scaleEffect(k == 0 ? Self.nowScale : 1)
-                                    .overlay(alignment: .top) {
-                                        // A new day: its weekday tag, inside the tile's top edge (the Now
-                                        // tile's: 2 pt inside the larger tile, under the outline's top
-                                        // line), or across the edge where the digits are close, never
-                                        // past the row's card (which starts 6 pt or more above the tile).
-                                        if macStartsNewDay(start, zone: zone) {
-                                            let edge: CGFloat = k == 0 ? -th * grow : 0
-                                            let tag = Self.macTuckedTag(tile: th, stacked: stacked, now: k == 0,
-                                                                        top: edge + 2, limit: k == 0 ? edge + 1 : -5)
-                                            macDayTag(start, zone: zone, height: tag.height).offset(y: tag.y)
+                            HStack(spacing: spacing) {
+                                ForEach(-half...half, id: \.self) { k in
+                                    let start = anchor.addingTimeInterval(Double(k) * 3600)
+                                    let stacked = !snapshot.use24h && th >= 30
+                                    tile(start, zone: zone, stacked: stacked, radius: radius)
+                                        .frame(width: tw, height: th)
+                                        .scaleEffect(k == 0 ? Self.nowScale : 1)
+                                        .overlay(alignment: .top) {
+                                            if macStartsNewDay(start, zone: zone) {
+                                                let tag = Self.macStripTag(tile: th, row: rowHeight, stacked: stacked,
+                                                                           now: k == 0, first: index == 0,
+                                                                           outlineGap: inset)
+                                                macDayTag(start, zone: zone, height: tag.height).offset(y: tag.y)
+                                            }
                                         }
-                                    }
-                                    .frame(width: tw, height: rowHeight)
+                                        .frame(width: tw, height: rowHeight)
+                                }
                             }
                         }
-                    }
-                    .frame(height: rowHeight)
-                    .background {
-                        if photos {
-                            MacWidgetRowPhoto(city: city, date: date, focusX: focus)
-                                .overlay(scrim)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .padding(.horizontal, -6)
+                        .frame(width: geo.size.width, height: rowHeight, alignment: .leading)
+                        .background {
+                            if photos {
+                                MacWidgetRowPhoto(city: city, date: date, focusX: focus, anchorY: anchorY)
+                                    .overlay(scrim)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .padding(.horizontal, -bleed)
+                            }
                         }
                     }
                 }
             }
+            .frame(width: geo.size.width, height: geo.size.height + bleed, alignment: .topLeading)
             // The Now outline, through every row: concentric with the Now tiles.
             .overlay(alignment: .topLeading) {
-                nowOutline(width: outlineWidth, height: outlineHeight, radius: 6 * Self.nowScale + inset,
+                nowOutline(width: outlineWidth, height: outlineHeight, radius: radius * Self.nowScale + inset,
                            tintedTone: Color.primary.opacity(0.6))
                     .offset(x: outlineX, y: outlineY)
             }
         }
     }
 
-    /// A row's time, name and caption. On its photo the time and name carry a soft dark halo and
-    /// the caption (small text) sits on a dark chip; the chip is never truncated.
+    /// A strip tile's weekday tag (y from the tile's top, unscaled; height). Above the tile where
+    /// the row has the room: 3 pt above it (the first row's Now tile: above the outline's top
+    /// line, 2 pt clear of it), and 2 pt inside the card. Otherwise inside the tile's top edge (the
+    /// Now tile's inside the larger tile, under the outline's line), or across the edge where the
+    /// digits are close, never past the card.
+    private static func macStripTag(tile: CGFloat, row: CGFloat, stacked: Bool, now: Bool, first: Bool,
+                                    outlineGap: CGFloat) -> (y: CGFloat, height: CGFloat) {
+        let edge: CGFloat = now ? -tile * (nowScale - 1) / 2 : 0      // the visible tile's top
+        let above: CGFloat = (row - tile) / 2 - (now ? -edge : 0)      // card top to that edge
+        let clearance: CGFloat = now && first ? outlineGap + 1.25 + 2 : 3
+        if above >= clearance + 15 + 2 { return (edge - clearance - 15, 15) }
+        return macTuckedTag(tile: tile, stacked: stacked, now: now, top: edge + 2, limit: now ? edge + 1 : -5)
+    }
+
+    /// A row's time, name and zone chip. On its photo the time and name carry a soft dark halo and
+    /// the chip is a small dark pill whose left edge is the column's (its text inset by the pill's
+    /// padding); the chip is never truncated.
     private func stripLabel(_ city: WidgetSnapshot.City, zone: TimeZone, timeSize: CGFloat, nameSize: CGFloat,
                             captionSize: CGFloat, captioned: Bool) -> some View {
         let (clock, suffix) = Self.clock(date, zone: zone, use24h: snapshot.use24h)
         return VStack(alignment: .leading, spacing: 0) {
+            // The digits have no descenders: the name tucks 3 pt into the time's line.
             WidgetClockText.text(clock, suffix: suffix, size: timeSize)
                 .widgetAccentable()
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.8)
                 .macHalo(photos)
+                .padding(.bottom, -3)
             Text(city.name)
                 .font(.system(size: nameSize, weight: .semibold))
                 .foregroundStyle(WidgetTone.primary)
@@ -1032,22 +1067,24 @@ struct WidgetClockView: View {
                     .lineLimit(1)
                     .fixedSize()
                     .padding(.horizontal, photos ? 6 : 0)
-                    .padding(.vertical, photos ? 1 : 0)
+                    .padding(.vertical, photos ? 1.5 : 0)
                     .background { if photos { Capsule().fill(Self.chipTone) } }
+                    .padding(.top, 2)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     #endif
 
     /// `stacked` (tiles tall enough): AM/PM under the hour. The new day's weekday tag is drawn by the
     /// callers, above or inside the tile's top edge.
-    private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false) -> some View {
+    private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false, radius: CGFloat = 6) -> some View {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         let hour = calendar.component(.hour, from: moment)
         let minute = calendar.component(.minute, from: moment)
         let style = DayColor.style(at: Double(hour) + Double(minute) / 60, lifted: true)
-        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         return tileLabel(hour: hour, minute: minute, stacked: stacked)
             .foregroundStyle(tinted ? Color.primary : style.text)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1073,19 +1110,19 @@ struct WidgetClockView: View {
                     // all-together 0.8 shrink is the last fallback. ViewThatFits picks by ideal
                     // (unscaled) size, so each step is a fixed size, not a minimumScaleFactor.
                     ViewThatFits(in: .horizontal) {
-                        halfHourDigits(hour, minute, hourSize: Self.tileSize + 2, minuteSize: Self.tileMinuteSize)
-                        halfHourDigits(hour, minute, hourSize: Self.tileSize + 2, minuteSize: 11)
-                        halfHourDigits(hour, minute, hourSize: Self.tileSize + 1, minuteSize: 11)
-                        halfHourDigits(hour, minute, hourSize: Self.tileSize, minuteSize: 11)
+                        halfHourDigits(hour, minute, hourSize: Self.stackedTileSize, minuteSize: Self.tileMinuteSize)
+                        halfHourDigits(hour, minute, hourSize: Self.stackedTileSize, minuteSize: 11)
+                        halfHourDigits(hour, minute, hourSize: Self.stackedTileSize - 1, minuteSize: 11)
+                        halfHourDigits(hour, minute, hourSize: Self.stackedTileSize - 2, minuteSize: 11)
                         tileDigits(hour: hour, minute: minute)
-                            .font(.system(size: Self.tileSize + 2, weight: .medium))
+                            .font(.system(size: Self.stackedTileSize, weight: Self.tileWeight))
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
                 } else {
                     tileDigits(hour: hour, minute: minute)
-                        .font(.system(size: Self.tileSize + 2, weight: .medium))
+                        .font(.system(size: Self.stackedTileSize, weight: Self.tileWeight))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
@@ -1100,7 +1137,7 @@ struct WidgetClockView: View {
             // rather than truncate.
             (tileDigits(hour: hour, minute: minute) + Text(suffix)
                 .font(.system(size: Self.tileSmallSize, weight: Self.tileSmallWeight)))
-                .font(.system(size: Self.tileSize, weight: .medium))
+                .font(.system(size: Self.tileSize, weight: Self.tileWeight))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -1108,7 +1145,7 @@ struct WidgetClockView: View {
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 tileDigits(hour: hour, minute: minute)
-                    .font(.system(size: Self.tileSize, weight: .medium))
+                    .font(.system(size: Self.tileSize, weight: Self.tileWeight))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(Self.tileScale(minute: minute, use24h: snapshot.use24h))
@@ -1128,7 +1165,7 @@ struct WidgetClockView: View {
         var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
         if minute != 0 {
             text = text + Text(":\(String(format: "%02d", minute))")
-                .font(.system(size: Self.tileMinuteSize, weight: .medium))
+                .font(.system(size: Self.tileMinuteSize, weight: Self.tileWeight))
         }
         return text
     }
@@ -1175,14 +1212,15 @@ struct WidgetClockView: View {
 /// Where a photo sits in a widget row (both platforms): scaled just enough to cover the frame
 /// (aspect-fill), and up to 15% more only so its horizontal centre can slide toward `focusX` (the
 /// clear gap's centre; nil: centred), never further; the point `focus` (0…1) of the way down the
-/// photo (its skyline band) at the frame's vertical centre. Both offsets are clamped so the photo
+/// photo (its skyline band) at `anchorY` (0…1) of the way down the frame (default: its vertical
+/// centre; the Mac's tall widget rows put it lower). Both offsets are clamped so the photo
 /// still covers the frame. Returns the photo's size and its top-left offset in the frame.
 enum WidgetPhotoPlacement {
     /// The skyline's usual height in a photo with no measured focus (downloaded photos, old indexes).
     static let defaultFocus: CGFloat = 0.62
 
     static func place(imageWidth: CGFloat, imageHeight: CGFloat, in frame: CGSize, focus: CGFloat,
-                      focusX: CGFloat?) -> (size: CGSize, offset: CGPoint) {
+                      focusX: CGFloat?, anchorY: CGFloat = 0.5) -> (size: CGSize, offset: CGPoint) {
         let fw = max(frame.width, 1), fh = max(frame.height, 1)
         let iw = max(imageWidth, 1), ih = max(imageHeight, 1)
         let cover: CGFloat = max(fw / iw, fh / ih)
@@ -1197,7 +1235,7 @@ enum WidgetPhotoPlacement {
         let w = iw * scale, h = ih * scale
         let x = min(max(centreX - w / 2, fw - w), 0)
         let f = min(max(focus, 0), 1)
-        let y = min(max(fh / 2 - f * h, fh - h), 0)
+        let y = min(max(fh * min(max(anchorY, 0), 1) - f * h, fh - h), 0)
         return (CGSize(width: w, height: h), CGPoint(x: x, y: y))
     }
 }
@@ -1205,12 +1243,14 @@ enum WidgetPhotoPlacement {
 #if !os(iOS)
 /// Mac: a widget row's photo (the widget's own 600 px copies; the night photo after dark, or the
 /// day photo darkened when the city has none), sharp, placed by WidgetPhotoPlacement: its skyline
-/// band (MacSkylines.focus) at the row's vertical centre, its centre slid toward `focusX` (points
-/// from the frame's left edge) by at most 15% extra zoom. A city with no photo keeps its sky.
+/// band (MacSkylines.focus) `anchorY` of the way down the row (0.5 to about 0.58 in tall rows, so
+/// more of the city and less empty sky shows), its centre slid toward `focusX` (points from the
+/// frame's left edge) by at most 15% extra zoom. A city with no photo keeps its sky.
 private struct MacWidgetRowPhoto: View {
     let city: WidgetSnapshot.City
     let date: Date
     let focusX: CGFloat
+    var anchorY: CGFloat = 0.5
 
     var body: some View {
         let night = MacSkylines.wantsNight(timeZoneID: city.timeZoneID, latitude: city.latitude,
@@ -1226,7 +1266,8 @@ private struct MacWidgetRowPhoto: View {
                 GeometryReader { geo in
                     let fit = WidgetPhotoPlacement.place(imageWidth: CGFloat(photo.width),
                                                          imageHeight: CGFloat(photo.height),
-                                                         in: geo.size, focus: focus, focusX: focusX)
+                                                         in: geo.size, focus: focus, focusX: focusX,
+                                                         anchorY: anchorY)
                     Image(decorative: photo, scale: 1)
                         .resizable()
                         .interpolation(.high)
@@ -1247,9 +1288,8 @@ private extension View {
     /// Mac widgets: the soft dark halo that keeps the time and the city name readable on a photo
     /// that is hardly darkened (none in the tinted modes, which draw no photo).
     func macHalo(_ on: Bool) -> some View {
-        self.shadow(color: Color.black.opacity(on ? 0.75 : 0), radius: 1, x: 0, y: 1)
-            .shadow(color: Color.black.opacity(on ? 0.55 : 0), radius: 5, x: 0, y: 0)
-            .shadow(color: Color.black.opacity(on ? 0.35 : 0), radius: 11, x: 0, y: 0)
+        self.shadow(color: Color.black.opacity(on ? 0.55 : 0), radius: 1, x: 0, y: 0.5)
+            .shadow(color: Color.black.opacity(on ? 0.35 : 0), radius: 4, x: 0, y: 0)
     }
 }
 #endif

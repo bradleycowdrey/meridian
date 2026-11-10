@@ -14,7 +14,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 </p>
 
 <p align="center">
-  <a href="https://bradcowdrey.com/meridian"><img src="docs/demo.png" width="715" alt="Meridian: cities as day-and-night ribbons on one time grid, with the current hour outlined. Click to try it in your browser."></a><br>
+  <a href="https://bradcowdrey.com/meridian"><img src="docs/demo.png" width="715" alt="Meridian on Mac: each city on a photo of its skyline, by day or by night there, with its time, status and hour tiles, and one outline down the current hour. Click to try it in your browser."></a><br>
   <sub>Click the picture to try the live demo at <a href="https://bradcowdrey.com/meridian">bradcowdrey.com/meridian</a>.</sub>
 </p>
 
@@ -92,7 +92,7 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 ## Desktop widget
 
-<p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small desktop widgets showing cities, times and day-and-night hour tiles"></p>
+<p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small Mac widgets: each city on its skyline photo with its time and hour tiles, the current hour outlined"></p>
 
 Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities) and large (four cities), each showing the hour before, now and the hour after as day-and-night tiles. It follows the cities and order you set in the app, or right-click it, choose **Edit Widget** and turn off **Use Meridian's Cities** to pick its own. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
 

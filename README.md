@@ -20,6 +20,12 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ---
 
+### What's new in 2.1
+
+- **City photos on every platform**: each city shows the city itself, by day or by night there, on Mac, iPhone, Android and in the widgets.
+- **A larger Now tile** with one outline down every city, and hour tiles in blues that make working hours stand out.
+- **Midnight reads like every other hour**, with a small weekday tag where a new day starts.
+
 ### What's new in 2.0
 
 - **Find a Time** (iPhone and Android): see when everyone is working across your cities, then add it to your calendar or share an invite with every city's time.

@@ -4,6 +4,16 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 2.1 · 10 November 2026
+
+A new look on the Mac, the same as on iPhone and Android.
+
+- **City photos**: each city's row shows the city itself, by day or by night there. Photos are built in for 111 major cities.
+- **A clearer row**: the local time in large type, the city, and whether people there are working, off hours or on a weekend.
+- **Hour tiles in blues**, navy at night and brightest at midday, with working hours standing out from off hours. The current hour's tile is larger, and one outline runs down every city's Now tile.
+- **Midnight reads like every other hour**, with a small weekday tag above it where a new day starts.
+- The widgets match.
+
 ## 2.0 · 1 November 2026
 
 Meridian 2.0, on Mac, iPhone and Android.

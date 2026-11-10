@@ -29,6 +29,17 @@ enum MacSkylines {
     private struct Night: Decodable {
         var file: String?
         var credit: Credit?
+        /// The night photo's skyline band: its vertical centre, 0 (top) to 1 (bottom).
+        var focus: Double?
+
+        private enum CodingKeys: String, CodingKey { case file, credit, focus }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            file = try? c.decodeIfPresent(String.self, forKey: .file)
+            credit = try? c.decodeIfPresent(Credit.self, forKey: .credit)
+            focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
+        }
     }
 
     private struct Entry: Decodable {
@@ -39,8 +50,10 @@ enum MacSkylines {
         var credit: Credit?
         /// nil when the photo pipeline found no night photo for the city.
         var night: Night?
+        /// The day photo's skyline band: its vertical centre, 0 (top) to 1 (bottom).
+        var focus: Double?
 
-        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night }
+        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -50,6 +63,7 @@ enum MacSkylines {
             file = try? c.decodeIfPresent(String.self, forKey: .file)
             credit = try? c.decodeIfPresent(Credit.self, forKey: .credit)
             night = try? c.decodeIfPresent(Night.self, forKey: .night)
+            focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
         }
     }
 
@@ -79,6 +93,13 @@ enum MacSkylines {
                 out[n, default: []].append(entry)
             }
         }
+        return out
+    }()
+
+    /// The manifest's entries by key (the first one with each key).
+    private static let byKey: [String: Entry] = {
+        var out: [String: Entry] = [:]
+        for entry in manifest where out[entry.key] == nil { out[entry.key] = entry }
         return out
     }()
 
@@ -226,11 +247,53 @@ enum MacSkylines {
     /// (darkened after dark). nil when the city has no photo.
     fileprivate static func pick(name: String, timeZoneID: String, night: Bool) -> MacSkylinePick? {
         guard let key = key(name: name, timeZoneID: timeZoneID) else { return nil }
-        guard night else { return MacSkylinePick(key: key, night: false, dimmed: false) }
+        guard night else { return MacSkylinePick(key: key, night: false, dimmed: false, focus: focus(key: key, night: false)) }
         if files.contains(fileName(key: key, night: true)) {
-            return MacSkylinePick(key: key, night: true, dimmed: false)
+            return MacSkylinePick(key: key, night: true, dimmed: false, focus: focus(key: key, night: true))
         }
-        return MacSkylinePick(key: key, night: false, dimmed: true)
+        return MacSkylinePick(key: key, night: false, dimmed: true, focus: focus(key: key, night: false))
+    }
+
+    // MARK: Framing
+
+    /// Where a photo's skyline sits when the manifest doesn't say: 62 % of the way down.
+    static let defaultFocus: CGFloat = 0.62
+
+    /// The vertical centre of the skyline band in the city's day (`night` false) or night photo,
+    /// 0 (top) to 1 (bottom), from skylines.json; `defaultFocus` when it has none. Pass the photo
+    /// actually shown: after dark with no night photo that is the day photo, so `night: false`.
+    static func focus(name: String, timeZoneID: String, night: Bool) -> CGFloat {
+        guard let key = key(name: name, timeZoneID: timeZoneID) else { return defaultFocus }
+        return focus(key: key, night: night)
+    }
+
+    private static func focus(key: String, night: Bool) -> CGFloat {
+        let entry = byKey[key]
+        let value = night ? entry?.night?.focus : entry?.focus
+        guard let value, value.isFinite else { return defaultFocus }
+        return CGFloat(min(max(value, 0), 1))
+    }
+
+    /// Where to draw a `imageSize` photo so it fills a `frame`-sized box: the rect (in the box's
+    /// coordinates) for the scaled photo. Scaled just enough to cover the box; with `focusX` (from
+    /// the box's leading edge) up to 15 % more, used only to slide the photo's centre toward
+    /// `focusX`, never more. Vertically the point `focusY` of the way down the photo sits at the
+    /// box's middle. Always clamped so the photo covers the box, with no empty edge.
+    static func photoRect(imageSize: CGSize, in frame: CGSize, focusX: CGFloat?, focusY: CGFloat) -> CGRect {
+        let iw = max(imageSize.width, 1), ih = max(imageSize.height, 1)
+        let fw = max(frame.width, 0), fh = max(frame.height, 0)
+        let cover = max(fw / iw, fh / ih)
+        var scale = cover
+        var centre = fw / 2
+        if let focusX {
+            centre = min(max(focusX, 0), fw)
+            let wanted = 2 * max(centre, fw - centre) / iw
+            scale = max(cover, min(cover * 1.15, wanted))
+        }
+        let w = iw * scale, h = ih * scale
+        let x = min(max(centre - w / 2, fw - w), 0)
+        let y = min(max(fh / 2 - focusY * h, fh - h), 0)
+        return CGRect(x: x, y: y, width: w, height: h)
     }
 
     // MARK: Credits
@@ -263,6 +326,8 @@ fileprivate struct MacSkylinePick {
     let key: String
     let night: Bool
     let dimmed: Bool
+    /// The shown photo's skyline band, 0 (top) to 1 (bottom).
+    let focus: CGFloat
 
     func id(maxPixel: Int) -> String { "\(key)|\(night)|\(maxPixel)|\(dimmed)" }
 }
@@ -271,27 +336,24 @@ fileprivate func macSkylineTone(_ hex: UInt32) -> Color {
     Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
 }
 
-/// A photo filling its frame: scaled to cover it, centred sideways and, when cropped top and
-/// bottom, held 35 % from the top (where skylines sit). With `focusX` (points from the frame's
-/// leading edge) the photo's centre sits there instead, the photo scaled up just enough to still
-/// cover the frame, and held 42 % from the top.
+/// A photo filling its frame, laid out by `MacSkylines.photoRect`: scaled just enough to cover it
+/// (up to 15 % more to slide its centre toward `focusX`, points from the frame's leading edge),
+/// with the skyline band (`focusY` of the way down the photo) at the frame's vertical middle.
 fileprivate struct MacSkylinePhoto: View {
     let image: CGImage
     let dimmed: Bool
     var focusX: CGFloat? = nil
+    var focusY: CGFloat = MacSkylines.defaultFocus
 
     var body: some View {
         GeometryReader { geo in
-            let iw = CGFloat(max(image.width, 1)), ih = CGFloat(max(image.height, 1))
-            let centre: CGFloat = focusX.map { min(max($0, 0), geo.size.width) } ?? geo.size.width / 2
-            let reach: CGFloat = 2 * max(centre, geo.size.width - centre)
-            let scale: CGFloat = max(reach / iw, geo.size.height / ih)
-            let w = iw * scale, h = ih * scale
+            let rect = MacSkylines.photoRect(imageSize: CGSize(width: image.width, height: image.height),
+                                             in: geo.size, focusX: focusX, focusY: focusY)
             Image(decorative: image, scale: 1)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: w, height: h)
-                .offset(x: centre - w / 2, y: (geo.size.height - h) * (focusX == nil ? 0.35 : 0.42))
+                .frame(width: rect.width, height: rect.height)
+                .offset(x: rect.minX, y: rect.minY)
         }
         .overlay { if dimmed { Color.black.opacity(0.45) } }
         .clipped()
@@ -314,6 +376,7 @@ struct MacSkylineBackdrop: View {
         let id: String
         let image: CGImage
         let dimmed: Bool
+        let focus: CGFloat
     }
 
     @State private var shown: Shown?
@@ -344,10 +407,10 @@ struct MacSkylineBackdrop: View {
             LinearGradient(colors: night ? Self.nightSky : Self.daySky, startPoint: .top, endPoint: .bottom)
             if synchronous {
                 if let pick, let image = MacSkylines.image(key: pick.key, night: pick.night, maxPixel: maxPixel) {
-                    MacSkylinePhoto(image: image, dimmed: pick.dimmed, focusX: focusX)
+                    MacSkylinePhoto(image: image, dimmed: pick.dimmed, focusX: focusX, focusY: pick.focus)
                 }
             } else if let shown {
-                MacSkylinePhoto(image: shown.image, dimmed: shown.dimmed, focusX: focusX)
+                MacSkylinePhoto(image: shown.image, dimmed: shown.dimmed, focusX: focusX, focusY: shown.focus)
                     .id(shown.id)
                     .transition(.opacity)
             }
@@ -364,7 +427,7 @@ struct MacSkylineBackdrop: View {
             if let ready = MacSkylines.cached(key: pick.key, night: pick.night, maxPixel: maxPixel) {
                 var instant = Transaction()
                 instant.disablesAnimations = true
-                withTransaction(instant) { shown = Shown(id: wanted, image: ready, dimmed: pick.dimmed) }
+                withTransaction(instant) { shown = Shown(id: wanted, image: ready, dimmed: pick.dimmed, focus: pick.focus) }
                 return
             }
             let key = pick.key, isNight = pick.night, size = maxPixel
@@ -372,7 +435,7 @@ struct MacSkylineBackdrop: View {
                 MacSkylines.image(key: key, night: isNight, maxPixel: size)
             }.value
             guard !Task.isCancelled else { return }
-            shown = image.map { Shown(id: wanted, image: $0, dimmed: pick.dimmed) }
+            shown = image.map { Shown(id: wanted, image: $0, dimmed: pick.dimmed, focus: pick.focus) }
         }
     }
 }

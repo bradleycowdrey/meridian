@@ -106,6 +106,12 @@ credits = {}
 if os.path.exists(old_credits):
     credits = {c.get("key"): c for c in json.load(open(old_credits, encoding="utf-8"))}
 have = {e["key"] for e in entries}
+previous = {}  # the app's current manifest: a kept original keeps its "focus" (else the apps use 0.62)
+if os.path.exists(dst):
+    try:
+        previous = {e.get("key"): e for e in json.load(open(dst, encoding="utf-8"))}
+    except (ValueError, AttributeError):
+        previous = {}
 for key, (name, aliases, zone) in originals.items():
     if key in have or not os.path.isdir(os.path.join(assets, f"Skyline-{key}.imageset")):
         continue
@@ -113,6 +119,8 @@ for key, (name, aliases, zone) in originals.items():
     entries.append({"key": key, "names": [name, *aliases], "zone": zone, "file": f"skyline-{key}.jpg",
                     "credit": {"author": "", "license": "", "licenseUrl": "", "source": old.get("commons", "")},
                     "night": None})
+    if isinstance(previous.get(key, {}).get("focus"), (int, float)):
+        entries[-1]["focus"] = previous[key]["focus"]
     print(f"kept original {key} (not in this run)")
 with open(dst, "w", encoding="utf-8") as fh:
     json.dump(entries, fh, indent=1, ensure_ascii=False)

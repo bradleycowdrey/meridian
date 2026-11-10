@@ -447,7 +447,7 @@ object MeridianWidgets {
         val phase = WidgetSky.phase(place, now)
         // A row is [text block] [clear gap] [tiles]: the text column (weight 1 beside the tiles' TILES_WEIGHT) keeps
         // only what its widest line needs (the time, the name or the status pill); the rest of it, with LABEL_GAP,
-        // is the clear gap, never under MIN_CLEAR. The photo's centre sits in the middle of that gap.
+        // is the clear gap, never under MIN_CLEAR. The photo slides toward the middle of that gap (PhotoFocus.place).
         var focusDp: Float? = null
         var textEndDp = 0f
         var padEndDp = 0f
@@ -826,7 +826,7 @@ object MeridianWidgets {
 }
 
 /**
- * A widget's photo, drawn as the cards draw theirs: cropped to fill (a little above centre), the city's
+ * A widget's photo, drawn as the cards draw theirs: cropped to fill (its skyline at the middle), the city's
  * day photo by day and its night photo (the app's <key>-night.jpg copy) by night and after sunset, each
  * as taken; dawn is the day photo a little warmer, and a city with no night photo has its day photo
  * darkened and cooled as before. Sharp and hardly darkened: in a row, centred in the clear gap between the words
@@ -870,9 +870,9 @@ private object WidgetSky {
 
     /**
      * The picture for a card [wDp] by [hDp], at most [maxPx] wide (the layout stretches it to fit), so all
-     * a widget's pictures stay small. A row ([focusDp] set: the middle of its clear gap, dp from its left) has the
-     * photo's centre there, scaled just enough to cover the row both sides of it (width 2 x the farther edge) and
-     * set 42% down; the only darkening is over its text block (to [textEndDp]): black 45% at the left edge easing
+     * a widget's pictures stay small. The photo covers the picture with its skyline (the manifest's focus) at the
+     * middle of the height (PhotoFocus.place); a row ([focusDp] set: the middle of its clear gap, dp from its left)
+     * may zoom up to 15% more only to move the photo's centre toward there. In a row the only darkening is over its text block (to [textEndDp]): black 45% at the left edge easing
      * (smoothstep) to nothing at the block's end, none over the gap and the tiles. The small widget ([focusDp] null):
      * the photo cropped to fill as the cards, darkened only behind its words at the bottom: black 45% at the bottom
      * easing to nothing 45% up. No blur; the words carry their own halo (and the status its pill).
@@ -893,21 +893,21 @@ private object WidgetSky {
         val fx = focusDp?.let { (it * scale).coerceIn(0f, w) }
         // Night, and dusk: the night photo as taken. Else (or with no night photo) the day photo, shaded as before.
         val wantsNight = phase == Phase.NIGHT || (phase == Phase.TWILIGHT && evening)
-        // Rows: wide enough that the photo, centred on fx, still covers both edges; else crop to fill. Decoded at
-        // about the width it is drawn (never over 600 px), so it stays sharp and small.
-        val needW = if (fx != null) 2f * maxOf(fx, w - fx) else w
+        // Cropped to fill, at most 15% more on a row (only to move its centre toward fx): see PhotoFocus.place.
+        // Decoded at about the width it is drawn (never over 600 px), so it stays sharp and small.
+        val needW = if (fx != null) w * 1.15f else w
         val decodeW = minOf(needW.roundToInt().coerceAtLeast(bw), 600)
         val night = if (wantsNight && ref != null) WidgetPhotos.loadNight(context, ref, decodeW) else null
         val photo = night ?: ref?.let { WidgetPhotos.load(context, it, decodeW) }
         if (photo != null && ref != null) {
             val iw = photo.width.toFloat()
             val ih = photo.height.toFloat()
-            val s = maxOf(needW / iw, h / ih)
-            val dw = iw * s
-            val dh = ih * s
-            val offX = if (fx != null) fx - dw / 2f else (w - dw) / 2f
-            // Rows: 42% down; the small widget a little above centre, as the cards.
-            val offY = if (fx != null) (h - dh) * 0.42f else (h - dh) / 2f * (1f + ref.biasY)
+            // The photo's skyline (the manifest's focus for the photo drawn) at the middle of the height, as the cards.
+            val at = PhotoFocus.place(iw, ih, w, h, if (night != null) ref.nightFocus else ref.focus, fx)
+            val dw = iw * at[0]
+            val dh = ih * at[0]
+            val offX = at[1]
+            val offY = at[2]
             val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
             (if (night != null) null else gain(phase))?.let { g ->
                 paint.colorFilter = ColorMatrixColorFilter(ColorMatrix(floatArrayOf(

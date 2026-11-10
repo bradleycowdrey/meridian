@@ -37,10 +37,16 @@ data class PhotoCredit(val author: String, val license: String, val licenseUrl: 
  * `night`) still reads: a night drawable is found by its name alone.
  */
 object SkylineManifest {
-    data class Entry(val key: String, val names: List<String>, val zone: String?, val credit: PhotoCredit?, val nightCredit: PhotoCredit? = null)
+    /** [focus] / [nightFocus]: the manifest's "focus" for the day photo and "night"."focus" (null when it has none). */
+    data class Entry(val key: String, val names: List<String>, val zone: String?, val credit: PhotoCredit?, val nightCredit: PhotoCredit? = null,
+        val focus: Float? = null, val nightFocus: Float? = null)
 
-    /** A built-in photo for a card: its key (for how it's cropped), its day drawable, and its night one (0 for none). */
-    data class Photo(val key: String, val resId: Int, val nightResId: Int = 0)
+    /**
+     * A built-in photo for a card: its key, its day drawable, and its night one (0 for none), with where each
+     * photo's skyline is ([focus] / [nightFocus]: 0..1 down the photo; [PhotoFocus.DEFAULT] when the manifest has none).
+     */
+    data class Photo(val key: String, val resId: Int, val nightResId: Int = 0,
+        val focus: Float = PhotoFocus.DEFAULT, val nightFocus: Float = PhotoFocus.DEFAULT)
 
     private val fallback = listOf(
         Entry("sanfrancisco", listOf("San Francisco"), "America/Los_Angeles",
@@ -96,7 +102,8 @@ object SkylineManifest {
                 val nightCredit = o.optJSONObject("night")?.optJSONObject("credit")?.let { c ->
                     PhotoCredit(c.optString("author"), c.optString("license"), c.optString("licenseUrl").ifBlank { null }, c.optString("source"))
                 }
-                Entry(key, names, o.optString("zone").ifBlank { null }, credit, nightCredit)
+                Entry(key, names, o.optString("zone").ifBlank { null }, credit, nightCredit,
+                    focus = PhotoFocus.read(o), nightFocus = o.optJSONObject("night")?.let { PhotoFocus.read(it) })
             }
         }.getOrDefault(emptyList())
     }
@@ -132,7 +139,8 @@ object SkylineManifest {
             ?: candidates.firstOrNull { it.zone != null && sameZone(it.zone, zoneId) }
             ?: return null
         val id = resId(context, match.key)
-        return if (id != 0) Photo(match.key, id, resId(context, match.key, night = true)) else null
+        return if (id != 0) Photo(match.key, id, resId(context, match.key, night = true),
+            focus = match.focus ?: PhotoFocus.DEFAULT, nightFocus = match.nightFocus ?: PhotoFocus.DEFAULT) else null
     }
 
     /** The built-in photos in this build, with their credits (Photo Credits): each day photo, then its night one. */
@@ -141,6 +149,46 @@ object SkylineManifest {
             val name = e.names.firstOrNull() ?: e.key
             listOfNotNull(name to e.credit, if (resId(context, e.key, night = true) != 0) "$name at night" to e.nightCredit else null)
         }
+}
+
+/**
+ * Where a photo sits in a card or a widget row (all much wider than the 2:1 photos, so only a band of each shows):
+ * scaled just enough to cover (aspect-fill), at most [MAX_ZOOM] times that, the extra only to slide the photo's
+ * centre toward [centerX] (a row's clear gap); and moved so the point [focus] of the way down the photo (the
+ * skyline, from the manifest; [DEFAULT] without one) is at the middle of the height, clamped so it still covers.
+ */
+object PhotoFocus {
+    /** Where the skyline is when the manifest doesn't say (downloaded photos, old manifests). */
+    const val DEFAULT = 0.62f
+    private const val MAX_ZOOM = 1.15f
+
+    /** An object's "focus" (0..1), or null when it has none. */
+    fun read(o: JSONObject): Float? {
+        val v = o.optDouble("focus", Double.NaN)
+        return if (v.isNaN()) null else v.toFloat().coerceIn(0f, 1f)
+    }
+
+    /** [a] clamped between 0 and [b] (whichever way round: [b] is the room left, negative when it overflows). */
+    private fun clampTo(a: Float, b: Float): Float = a.coerceIn(minOf(0f, b), maxOf(0f, b))
+
+    /**
+     * The photo ([iw] by [ih]) drawn in a [w] by [h] box: its scale and its top-left offset in the box
+     * (floatArrayOf(scale, offX, offY)).
+     */
+    fun place(iw: Float, ih: Float, w: Float, h: Float, focus: Float, centerX: Float? = null): FloatArray {
+        if (iw <= 0f || ih <= 0f) return floatArrayOf(1f, 0f, 0f)
+        val cover = maxOf(w / iw, h / ih)
+        // Wide enough for the photo's centre to sit at centerX, but never past MAX_ZOOM times the cover scale.
+        val s = if (centerX == null) cover
+            else (2f * maxOf(centerX, w - centerX) / iw).coerceIn(cover, cover * MAX_ZOOM)
+        val dw = iw * s
+        val dh = ih * s
+        val offX = if (centerX == null) (w - dw) / 2f else clampTo(centerX - dw / 2f, w - dw)
+        return floatArrayOf(s, offX, top(dh, h, focus))
+    }
+
+    /** The top of a photo drawn [dh] high in a box [h] high: its point [focus] of the way down at the middle, still covering. */
+    fun top(dh: Float, h: Float, focus: Float): Float = clampTo(h / 2f - focus.coerceIn(0f, 1f) * dh, h - dh)
 }
 
 /**
@@ -522,7 +570,7 @@ object CityPhotos {
  * The home screen widgets' photos: small copies (about 480 px wide, JPEG quality 60) of each listed
  * city's photo, built in or downloaded, in filesDir/widget-skylines/<key>.jpg, and of its night photo
  * where it has one, <key>-night.jpg, with which city uses which (map.json: card id -> key, crop and
- * whether there's a night copy). Made by the app whenever the list changes or a downloaded
+ * where each photo's skyline is, and whether there's a night copy). Made by the app whenever the list changes or a downloaded
  * photo arrives (MeridianWidgets.updateAll does this before it redraws), so a widget only ever decodes
  * a small file and never touches the network.
  */
@@ -536,18 +584,10 @@ object WidgetPhotos {
      * A card's photo: [key] names the copy; [resId] (built in) or [slug] (downloaded) is where it came from.
      * [night]: the city has a night photo too (copied as <key>-night.jpg; built in from [nightResId]).
      */
-    data class Ref(val key: String, val biasY: Float, val resId: Int = 0, val slug: String? = null,
-        val nightResId: Int = 0, val night: Boolean = false)
+    data class Ref(val key: String, val focus: Float, val resId: Int = 0, val slug: String? = null,
+        val nightResId: Int = 0, val night: Boolean = false, val nightFocus: Float = PhotoFocus.DEFAULT)
 
     fun dir(context: Context): File = File(context.filesDir, DIR).apply { mkdirs() }
-
-    /** Where each built-in photo is cropped: a little above centre, so the tops of the towers stay in (as the cards). */
-    fun biasY(key: String?): Float = when (key) {
-        "sanfrancisco" -> -0.35f
-        "london" -> -0.45f
-        "newyork" -> -0.2f
-        else -> -0.1f
-    }
 
     /** The city a card's photo is for: a person's city, or the city you're in for My Location. */
     fun city(context: Context, place: Place): String =
@@ -557,10 +597,10 @@ object WidgetPhotos {
     fun ref(context: Context, place: Place): Ref? {
         val city = city(context, place)
         SkylineManifest.photo(context, city, place.zoneId)?.let {
-            return Ref(it.key, biasY(it.key), resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0)
+            return Ref(it.key, it.focus, resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0, nightFocus = it.nightFocus)
         }
         val slug = CityPhotos.slug(city, place.zoneId)
-        if (CityPhotos.file(context, slug) != null) return Ref("dl-$slug", biasY(null), slug = slug, night = CityPhotos.nightFile(context, slug) != null)
+        if (CityPhotos.file(context, slug) != null) return Ref("dl-$slug", PhotoFocus.DEFAULT, slug = slug, night = CityPhotos.nightFile(context, slug) != null)
         return null
     }
 
@@ -606,7 +646,8 @@ object WidgetPhotos {
         }
         runCatching {
             val map = JSONObject()
-            refs.forEach { (id, r) -> map.put(id, JSONObject().put("key", r.key).put("biasY", r.biasY.toDouble()).put("night", r.night)) }
+            refs.forEach { (id, r) -> map.put(id, JSONObject().put("key", r.key).put("focus", r.focus.toDouble())
+                .put("nightFocus", r.nightFocus.toDouble()).put("night", r.night)) }
             val tmp = File(folder, "$MAP.part")
             tmp.writeText(map.toString())
             if (!tmp.renameTo(File(folder, MAP))) tmp.delete()
@@ -622,7 +663,8 @@ object WidgetPhotos {
         o.keys().asSequence().mapNotNull { id ->
             val e = o.optJSONObject(id) ?: return@mapNotNull null
             val key = e.optString("key").ifBlank { return@mapNotNull null }
-            id to Ref(key, e.optDouble("biasY", -0.1).toFloat(), night = e.optBoolean("night"))
+            id to Ref(key, PhotoFocus.read(e) ?: PhotoFocus.DEFAULT, night = e.optBoolean("night"),
+                nightFocus = e.optDouble("nightFocus", PhotoFocus.DEFAULT.toDouble()).toFloat())
         }.toMap()
     }.getOrDefault(emptyMap())
 

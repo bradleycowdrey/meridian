@@ -26,7 +26,8 @@ Output (in --out, default ./out):
   ios/Skyline-<key>.imageset/{skyline-<key>.jpg, Contents.json}                 DAY
   ios/Skyline-<key>-night.imageset/{skyline-<key>-night.jpg, Contents.json}     NIGHT
   android/skyline_<key>.jpg, android/skyline_<key>_night.jpg
-  skylines.json        manifest v2: [{key, names, zone, file, credit, night: {file, credit} | null}]
+  skylines.json        manifest v2: [{key, names, zone, file, credit, focus, night: {file, credit, focus} | null}]
+                       focus = vertical centre (0..1) of the skyline band, see skyline_focus()
                        (top-level file/credit are the DAY photo, so older apps keep working; a
                        city is listed only when it has a DAY photo)
   contact-sheet.jpg    each city's DAY and NIGHT side by side with measured luminance
@@ -372,6 +373,41 @@ def crop_resize(img, out_w: int = OUT_W, out_h: int = OUT_H):
     return img.crop(box).resize((out_w, out_h), Image.LANCZOS)
 
 
+FOCUS_DEFAULT = 0.62  # the apps' anchor for a photo without "focus"
+
+
+def _percentile(values: list[float], p: float) -> float:
+    """Linear-interpolated percentile (numpy's default method)."""
+    s = sorted(values)
+    k = (len(s) - 1) * p / 100
+    i = int(k)
+    j = min(i + 1, len(s) - 1)
+    return s[i] + (s[j] - s[i]) * (k - i)
+
+
+def skyline_focus(img) -> float:
+    """Vertical centre (0..1 of the height) of the skyline band: the first row, from the top, whose
+    edge energy rises above the plain sky's, placed a quarter of the way down a ~30%-tall band.
+    The apps put focus x imageHeight at the row's vertical centre."""
+    g = img.convert("L").resize((250, 125))
+    w, h = g.size
+    px = g.tobytes()
+    e: list[float] = []  # mean |dx| + |dy| per row, rows 0..h-2
+    for y in range(h - 1):
+        r = y * w
+        total = 0
+        for x in range(w - 1):
+            p = px[r + x]
+            total += abs(px[r + x + 1] - p) + abs(px[r + w + x] - p)
+        e.append(total / (w - 1))
+    n = len(e)
+    sm = [sum(e[k] for k in range(i - 2, i + 3) if 0 <= k < n) / 5 for i in range(n)]  # 5-row box, zero-padded
+    p30, p90 = _percentile(sm, 30), _percentile(sm, 90)
+    thr = p30 + 0.35 * (p90 - p30)
+    top = next((i for i, v in enumerate(sm) if v > thr), 0.4 * n)
+    return round(min(0.85, max(0.15, top / n + 0.30 * 0.25)), 3)
+
+
 def save_jpeg(img, path: str, quality: int = JPEG_QUALITY, max_bytes: int = MAX_BYTES) -> int:
     """Progressive JPEG at `quality`, stepping down (not below 48) while it is over max_bytes."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -442,9 +478,14 @@ def write_photo(img, out: str, key: str, kind: str) -> tuple[str, str, int]:
 
 
 def manifest_entry(city: City, day: dict, night: dict | None) -> dict:
-    """day / night: {"file", "credit"}. Top-level file and credit are the DAY photo (manifest v1 shape)."""
+    """day / night: {"file", "credit", "focus"}. Top-level file, credit and focus are the DAY photo
+    (manifest v1 shape plus focus); a missing focus is written as FOCUS_DEFAULT."""
+    def focus(d: dict) -> float:
+        return d.get("focus", FOCUS_DEFAULT)
+
     return {"key": city.key, "names": city.names, "zone": city.zone, "file": day["file"], "credit": day["credit"],
-            "night": {"file": night["file"], "credit": night["credit"]} if night else None}
+            "night": {"file": night["file"], "credit": night["credit"], "focus": focus(night)} if night else None,
+            "focus": focus(day)}
 
 
 def write_manifest(entries: list[dict], path: str) -> None:
@@ -697,7 +738,7 @@ def run(args) -> int:
                 with Image.open(io.BytesIO(f.get(url))) as im:
                     img = crop_resize(im)
                 fname, jpg, size = write_photo(img, out, city.key, kind)
-                done[kind] = {"file": fname, "credit": picked.credit}
+                done[kind] = {"file": fname, "credit": picked.credit, "focus": skyline_focus(img)}
                 lum = str(picked.luma) if picked.luma else "lum not measured"
                 tiles[kind] = (f"{city.name} {kind.upper()} - {picked.credit['license']}\n{lum}", jpg)
                 report.append(f"OK    {tag} {city.key:<18} {picked.title}  [{picked.credit['license']}; "
@@ -817,6 +858,39 @@ def selftest() -> int:
     check(abs(measure(Image.new("RGB", (330, 165), (255, 255, 255))).whole - 1.0) < 1e-6
           and measure(Image.new("RGB", (330, 165), (0, 0, 0))).whole == 0.0, "luminance range 0..1")
 
+    # Skyline focus: where the sky ends, a quarter of the way down the visible band.
+    def horizon(frac, size=(1000, 500)):
+        """Flat sky above `frac` of the height, busy city (random windows) below."""
+        im = Image.new("RGB", size, (150, 195, 240))
+        d = ImageDraw.Draw(im)
+        y0 = round(size[1] * frac)
+        d.rectangle((0, y0, size[0], size[1]), fill=(70, 70, 75))
+        for _ in range(3000):
+            x, y = rnd.randrange(size[0] - 4), rnd.randrange(y0, size[1] - 4)
+            d.rectangle((x, y, x + 3, y + 3), fill=(230, 225, 200))
+        return im
+
+    f40, f66 = skyline_focus(horizon(0.40)), skyline_focus(horizon(0.66))
+    check(abs(f40 - (0.40 + 0.075)) <= 0.03 and abs(f66 - (0.66 + 0.075)) <= 0.03 and f66 > f40,
+          f"focus follows the horizon (0.40 -> {f40}, 0.66 -> {f66})")
+    check(skyline_focus(Image.new("RGB", (1000, 500), (150, 195, 240))) == round(0.4 + 0.075, 3),
+          "featureless photo -> 0.4 H fallback")
+    check(skyline_focus(horizon(0.0)) == 0.15 and skyline_focus(horizon(0.97)) == 0.85, "focus clamped to 0.15..0.85")
+    check(_percentile([1, 2, 3, 4, 5], 30) == 2.2 and _percentile([7], 90) == 7, "percentile (linear)")
+    repo = os.path.dirname(here)
+    app_manifest = os.path.join(repo, "Resources", "Data", "skylines.json")
+    assets = os.path.join(repo, "ios", "Meridian", "Assets.xcassets")
+    if os.path.exists(app_manifest):
+        with open(app_manifest, encoding="utf-8") as fh:
+            app = {e.get("key"): e for e in json.load(fh)}
+        sf = app.get("sanfrancisco") or {}
+        jpg = os.path.join(assets, "Skyline-sanfrancisco-night.imageset", "skyline-sanfrancisco-night.jpg")
+        want = (sf.get("night") or {}).get("focus")
+        if want is not None and os.path.exists(jpg):
+            with Image.open(jpg) as im:
+                got = skyline_focus(im)
+            check(got == want, f"San Francisco NIGHT focus matches the app manifest ({got} vs {want})")
+
     # Scoring nudges.
     big = {"width": 4000, "height": 2000, "mime": "image/jpeg"}
     check(score_candidate("File:X skyline at night.jpg", big, NIGHT) > score_candidate("File:X skyline.jpg", big, NIGHT),
@@ -890,15 +964,18 @@ def selftest() -> int:
         check(dsize <= MAX_BYTES and nsize <= MAX_BYTES, f"JPEG sizes {dsize} / {nsize} bytes")
         with open(os.path.join(tmp, "ios/Skyline-paris-night.imageset/Contents.json"), encoding="utf-8") as fh:
             check(json.load(fh)["images"][0]["filename"] == nname, "night Contents.json names its file")
-        entries = [manifest_entry(paris, {"file": dname, "credit": credit}, {"file": nname, "credit": credit}),
+        dfocus, nfocus = skyline_focus(dimg), skyline_focus(nimg)
+        entries = [manifest_entry(paris, {"file": dname, "credit": credit, "focus": dfocus},
+                                  {"file": nname, "credit": credit, "focus": nfocus}),
                    manifest_entry(oslo, {"file": "skyline-oslo.jpg", "credit": credit}, None)]
         mpath = os.path.join(tmp, "skylines.json")
         write_manifest(entries, mpath)
         with open(mpath, encoding="utf-8") as fh:
             back = json.load(fh)
         check(isinstance(back, list) and back[0]["file"] == dname and back[0]["credit"] == credit
-              and back[0]["night"] == {"file": nname, "credit": credit} and back[1]["night"] is None
-              and set(back[0]) == {"key", "names", "zone", "file", "credit", "night"}, "manifest v2 shape")
+              and back[0]["night"] == {"file": nname, "credit": credit, "focus": nfocus} and back[1]["night"] is None
+              and back[0]["focus"] == dfocus and back[1]["focus"] == FOCUS_DEFAULT
+              and set(back[0]) == {"key", "names", "zone", "file", "credit", "night", "focus"}, "manifest v2 shape + focus")
         sheet = os.path.join(tmp, "contact-sheet.jpg")
         contact_sheet([("Paris", ("Paris DAY\n" + str(day), djpg), ("Paris NIGHT\n" + str(night), njpg)),
                        ("Oslo", None, None)], sheet)

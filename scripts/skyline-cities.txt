@@ -34,7 +34,7 @@ Miami|Miami|America/New_York|MIA
 Detroit|Detroit|America/Detroit|DTW
 Toronto|Toronto|America/Toronto|YYZ
 Montreal|Montreal|America/Toronto|Montréal;YUL|-File:Montreal Skyline at Night.jpg
-Havana|Havana|America/Havana|La Habana;HAV||;-File:Havana - Tropicana Night Club.jpg
+Havana|Havana|America/Havana|La Habana;HAV||-File:Havana - Tropicana Night Club.jpg
 Panama City|Panama City|America/Panama|Panama;PTY
 Honolulu|Honolulu|Pacific/Honolulu|HNL
 Anchorage|Anchorage, Alaska|America/Anchorage|ANC|-File:Skyline of northern Anchorage, Alaska viewed from Arctic Valley, Tikhatnu Commons in foreground.jpg;-File:Anchorage skyline with Fireworks.jpg

@@ -1,0 +1,224 @@
+111 of 111 cities have a DAY photo; 111 of those also have a NIGHT photo
+
+OK    DAY   sanfrancisco       File:San Francisco (CA, USA), Fisherman's Wharf Parking Garage, Skyline -- 2022 -- 151006.jpg  [CC BY-SA 4.0; Dietmar Rabich]  lum 0.252, sky 0.343, bright 4.1%; via search 'San Francisco skyline' (score 9.5), 81 KB
+OK    NIGHT sanfrancisco       File:San Francisco skyline on a foggy 4th of July night.jpg  [CC BY-SA 4.0; Dllu]  lum 0.062, sky 0.017, bright 0.6%; via search 'San Francisco skyline night' (score 10), 25 KB
+OK    DAY   losangeles         File:20190616154621!Echo Park Lake with Downtown Los Angeles Skyline.jpg  [CC BY-SA 4.0; Adoramassey]  lum 0.160, sky 0.285, bright 3.3%; via search 'Los Angeles skyline' (score 9.5), 57 KB
+OK    NIGHT losangeles         File:Los Angeles and skyline at night, California, U.S.jpg  [CC BY-SA 2.0; Ron Reiring]  lum 0.082, sky 0.092, bright 1.7%; via search 'Los Angeles skyline night' (score 10, relaxed night), 63 KB
+OK    DAY   seattle            File:SeattleI5Skyline.jpg  [CC BY-SA 3.0; Cacophony]  lum 0.158, sky 0.310, bright 1.9%; via search 'Seattle skyline' (score 9.5), 52 KB
+OK    NIGHT seattle            File:Seattle skyline night.jpg  [CC BY-SA 3.0; Created by User:Nova77]  lum 0.019, sky 0.009, bright 0.7%; via search 'Seattle skyline night' (score 7.5), 34 KB
+OK    DAY   sandiego           File:San Diego Skyline Image.jpg  [CC0; Eric youtse]  lum 0.206, sky 0.265, bright 0.3%; via search 'San Diego skyline' (score 9.5), 43 KB
+OK    NIGHT sandiego           File:San Diego skyline at night from Point Loma 2014.jpg  [CC BY 2.0; Agha Zain]  lum 0.084, sky 0.080, bright 1.2%; via search 'San Diego skyline night' (score 10, relaxed night), 87 KB
+OK    DAY   lasvegas           File:Las Vegas Panorama Bellagio to Paris 2014.jpg  [CC BY-SA 4.0; Paul Harrison]  lum 0.224, sky 0.259, bright 4.5%; via search 'Las Vegas skyline' (score 8.5), 61 KB
+OK    NIGHT lasvegas           File:Las Vegas in the Night.jpg  [CC BY 2.0; matze_ott]  lum 0.073, sky 0.012, bright 2.8%; via search 'Las Vegas skyline night' (score 7), 71 KB
+OK    DAY   portland           File:Portland Skyline July 2017 with ducks - Oregon.jpg  [CC BY-SA 4.0; M.O. Stevens]  lum 0.410, sky 0.502, bright 28.3%; via search 'Portland Oregon skyline' (score 9.5), 34 KB
+OK    NIGHT portland           File:Portland Skyline night 2 July 2017 - Oregon.jpg  [CC BY-SA 4.0; M.O. Stevens]  lum 0.036, sky 0.012, bright 0.7%; via search 'Portland Oregon skyline night' (score 7.5), 55 KB
+OK    DAY   vancouver          File:Vancouver Skyline and Mountains.jpg  [CC BY-SA 2.0; Kyle Pearce / DIY Genius]  lum 0.365, sky 0.657, bright 34.7%; via search 'Vancouver skyline' (score 9.5), 62 KB
+OK    NIGHT vancouver          File:Downtown Vancouver skyline (Grouse Mountain on upper right) (2289627186).jpg  [CC BY-SA 2.0; KimonBerlin]  lum 0.052, sky 0.012, bright 2.0%; via search 'Vancouver skyline night' (score 8), 61 KB
+OK    DAY   saltlakecity       File:Salt Lake City skyline (2020) from Ensign Peak.jpg  [CC BY-SA 4.0; Iansmh98]  lum 0.319, sky 0.563, bright 16.5%; via search 'Salt Lake City skyline' (score 9.5), 74 KB
+OK    NIGHT saltlakecity       File:Salt Lake City, Utah, United States skyline.jpg  [CC BY 4.0; 888emmanuelc888]  lum 0.054, sky 0.062, bright 2.4%; via search 'Salt Lake City skyline night' (score 8), 61 KB
+OK    DAY   denver             File:Denver skyline from Speer Blvd near I-25, April 2019.jpg  [CC BY-SA 4.0; Xnatedawgx]  lum 0.349, sky 0.525, bright 11.4%; via search 'Denver skyline' (score 9.5), 62 KB
+OK    NIGHT denver             File:2006-07-14-Denver Skyline Midnight.jpg  [CC BY-SA 2.5; Matt Wright]  lum 0.076, sky 0.027, bright 2.2%; via search 'Denver skyline night' (score 8), 62 KB
+OK    DAY   phoenix            File:Phoenix skyline.jpg  [CC BY 2.0; M S]  lum 0.480, sky 0.637, bright 57.5%; via search 'Phoenix Arizona skyline' (score 8.5), 60 KB
+OK    NIGHT phoenix            File:Phoenix Skyline from South Mountain at Night.2010.jpg  [CC BY-SA 2.0; Alan Stark]  lum 0.018, sky 0.002, bright 0.5%; via search 'Phoenix Arizona skyline night' (score 8), 31 KB
+OK    DAY   calgary            File:Calgary, Canada April 2022 - Skyline 2.jpg  [CC BY 2.0; Sharon Hahn Darlin]  lum 0.344, sky 0.617, bright 20.6%; via search 'Calgary skyline' (score 9.5), 34 KB
+OK    NIGHT calgary            File:Calgary night skyline-msu-2020-1110-8962.jpg  [CC BY-SA 4.0; Matthias Süßen]  lum 0.065, sky 0.074, bright 0.6%; via search 'Calgary skyline night' (score 8), 41 KB
+OK    DAY   austin             File:Austin, Texas Skyline 2018.jpg  [CC BY-SA 4.0; Sk5893]  lum 0.261, sky 0.409, bright 16.2%; via search 'Austin Texas skyline' (score 9.5), 63 KB
+OK    NIGHT austin             File:Austin Texas skyline, December 2023 - Night.jpg  [CC BY-SA 2.0; Steve]  lum 0.062, sky 0.015, bright 1.6%; via search 'Austin Texas skyline night' (score 10), 61 KB
+OK    DAY   dallas             File:Dallas skyline 2025.jpg  [CC BY 4.0; BullDawg2021]  lum 0.385, sky 0.543, bright 17.6%; via search 'Dallas skyline' (score 9.5), 43 KB
+OK    NIGHT dallas             File:Dallas night skyline.jpg  [Public domain; Carol M. Highsmith]  lum 0.075, sky 0.044, bright 2.4%; via search 'Dallas skyline night' (score 7.5), 63 KB
+OK    DAY   houston            File:Buildings-city-houston-skyline-1870617.jpg  [CC BY-SA 4.0; Jason Villanueva]  lum 0.301, sky 0.272, bright 6.8%; via search 'Houston skyline' (score 9.5), 66 KB
+OK    NIGHT houston            File:Downtown Houston Skyline Night.JPG  [CC BY-SA 3.0; Bobby L. Warren ( Blwarren713 )]  lum 0.060, sky 0.024, bright 1.4%; via search 'Houston skyline night' (score 7.5), 63 KB
+OK    DAY   chicago            File:Skyline de Chicago desde el centro, Illinois, Estados Unidos, 2012-10-20, DD 06.jpg  [CC BY-SA 3.0; Diego Delso]  lum 0.203, sky 0.360, bright 2.7%; via search 'Chicago skyline' (score 9.5), 63 KB
+OK    NIGHT chicago            File:Chicago Skyline on the Chicago River at night.jpg  [CC BY-SA 4.0; Spatms]  lum 0.062, sky 0.022, bright 1.7%; via search 'Chicago skyline night' (score 7.5), 65 KB
+OK    DAY   minneapolis        File:Minneapolis skyline from Prospect Park Water Tower, July 2014.jpg  [CC BY 2.0; Michael Hicks]  lum 0.253, sky 0.433, bright 1.7%; via search 'Minneapolis skyline' (score 9.5), 74 KB
+OK    NIGHT minneapolis        File:Minneapolis Skyline (19165922448).jpg  [CC BY 2.0; Tony Webster from Minneapolis, Minnesota]  lum 0.071, sky 0.063, bright 1.9%; via search 'Minneapolis skyline night' (score 8), 63 KB
+OK    DAY   mexicocity         File:Mexico City skyline.jpg  [CC BY-SA 4.0; Josh Baumgartner]  lum 0.268, sky 0.488, bright 5.4%; via search 'Mexico City skyline' (score 9.5), 58 KB
+OK    NIGHT mexicocity         File:Night view of Mexico City viewed from Hilton Mexcio City Reforma.JPG  [CC BY-SA 4.0; Bodhisattwa]  lum 0.041, sky 0.016, bright 1.2%; via search 'Mexico City at night' (score 6.5), 53 KB
+OK    DAY   newyork            File:Lower Manhattan, New York skyline from Liberty Island 2021.jpg  [CC BY-SA 3.0; Percival Kestreltail]  lum 0.402, sky 0.559, bright 23.0%; via search 'New York City skyline' (score 9.5), 55 KB
+OK    NIGHT newyork            File:New York Midtown Skyline at night - Jan 2006 edit1.jpg  [CC BY-SA 3.0; Diliff]  lum 0.054, sky 0.061, bright 0.8%; via search 'New York City skyline night' (score 10), 95 KB
+OK    DAY   boston             File:Boston skyline from Longfellow Bridge September 2017 panorama 2.jpg  [CC BY-SA 4.0; King of Hearts]  lum 0.282, sky 0.433, bright 7.3%; via search 'Boston skyline' (score 9.5), 62 KB
+OK    NIGHT boston             File:Boston Back Bay skyline at night (51526138311).jpg  [CC BY 2.0; Chris Rycroft from Cambridge, Massachusetts, United States]  lum 0.089, sky 0.050, bright 2.3%; via search 'Boston skyline night' (score 10), 63 KB
+OK    DAY   washingtondc       File:Washington dc skyline.jpg  [CC BY-SA 3.0; Ad Meskens]  lum 0.259, sky 0.409, bright 3.6%; via search 'Washington D.C. skyline' (score 9.5), 61 KB
+OK    NIGHT washingtondc       File:Lincoln Memorial at Night - Washington, DC.jpg  [CC BY-SA 4.0; Upstateherd]  lum 0.082, sky 0.056, bright 5.0%; via search 'Washington D.C. at night' (score 7), 28 KB
+OK    DAY   philadelphia       File:Philadelphia skyline 20240528 (cropped).jpg  [CC BY-SA 4.0; 颐园居]  lum 0.241, sky 0.342, bright 2.1%; via search 'Philadelphia skyline' (score 9.5), 63 KB
+OK    NIGHT philadelphia       File:Philadelphia Night Skyline (14146388982).jpg  [CC BY-SA 2.0; Chris Hunkeler from Carlsbad, California, USA]  lum 0.060, sky 0.052, bright 1.9%; via search 'Philadelphia skyline night' (score 10), 63 KB
+OK    DAY   atlanta            File:Atlanta Skyline from Mableton.jpg  [CC0; brandon walker]  lum 0.340, sky 0.751, bright 31.6%; via search 'Atlanta skyline' (score 9.5), 63 KB
+OK    NIGHT atlanta            File:View of Atlanta at night from "SCADpad".png  [CC BY-SA 4.0; PhysicalFilter]  lum 0.040, sky 0.013, bright 0.5%; via search 'Atlanta skyline night' (score 9), 35 KB
+OK    DAY   miami              File:Miami, Florida skyline.jpg  [CC0; Wilfredor]  lum 0.436, sky 0.719, bright 43.5%; via search 'Miami skyline' (score 9.5), 65 KB
+OK    NIGHT miami              File:Miami night skyline by Don Ramey Logan.jpg  [CC BY 4.0; Don Ramey Logan]  lum 0.062, sky 0.010, bright 3.0%; via search 'Miami skyline night' (score 10), 60 KB
+OK    DAY   detroit            File:Detroit Skyline 1942d.jpg  [Public domain; Arthur S. Siegel]  lum 0.215, sky 0.433, bright 9.4%; via search 'Detroit skyline' (score 9.5), 62 KB
+OK    NIGHT detroit            File:Detroit skyline at night (Windsor, Ontario).jpg  [CC BY-SA 4.0; Nheyob]  lum 0.071, sky 0.043, bright 2.0%; via search 'Detroit skyline night' (score 10), 50 KB
+OK    DAY   toronto            File:Toronto Skyline Summer 2020.jpg  [CC BY-SA 4.0; Aaron Davis]  lum 0.321, sky 0.357, bright 1.8%; via search 'Toronto skyline' (score 9.5), 56 KB
+OK    NIGHT toronto            File:Toronto Skyline at Night (5205797878).jpg  [CC BY 2.0; Peter Kudlacz]  lum 0.061, sky 0.012, bright 3.1%; via search 'Toronto skyline night' (score 10), 56 KB
+OK    DAY   montreal           File:Paysage - Montreal Skyline, November 2005.jpg  [CC BY-SA 2.0; monsieuricon]  lum 0.431, sky 0.620, bright 32.1%; via search 'Montreal skyline' (score 9.5), 60 KB
+OK    NIGHT montreal           File:Montreal skyline night.png  [CC BY 2.0; Anirudh Koul on Flickr]  lum 0.046, sky 0.016, bright 1.0%; via search 'Montreal skyline night' (score 10), 63 KB
+OK    DAY   havana             File:Havana Skyline (49020779491).jpg  [CC BY 2.0; kuhnmi]  lum 0.309, sky 0.326, bright 7.8%; via search 'Havana skyline' (score 9.5), 52 KB
+OK    NIGHT havana             File:Havana - Tropicana Night Club (1955).jpg  [Public domain; Curt Teich & Co.]  lum 0.139, sky 0.102, bright 7.4%; via search 'Havana at night' (score 4.5, relaxed night), 78 KB
+OK    DAY   panamacity         File:Panama City Skyline 1.jpg  [CC BY-SA 4.0; Dr. Thomas Liptak]  lum 0.478, sky 0.662, bright 38.1%; via search 'Panama City skyline' (score 9.5), 58 KB
+OK    NIGHT panamacity         File:Panama City night view.jpg  [CC BY 2.0; LWY from Pasadena, USA]  lum 0.035, sky 0.008, bright 0.7%; via search 'Panama City at night' (score 9), 55 KB
+OK    DAY   honolulu           File:Skyline from Kaka'ako Waterfront Park, Honolulu 01.jpg  [CC BY-SA 4.0; The Eloquent Peasant]  lum 0.264, sky 0.442, bright 11.4%; via search 'Honolulu skyline' (score 9.5), 64 KB
+OK    NIGHT honolulu           File:Downtown Honolulu at Night (34412400633).jpg  [CC BY 2.0; Jason Jacobs from Honolulu, USA]  lum 0.060, sky 0.044, bright 1.0%; via search 'Honolulu skyline night' (score 9), 50 KB
+OK    DAY   anchorage          File:Downtown Anchorage from Little O'Malley (5452272751).jpg  [CC BY 2.0; Frank Kovalchek from USA]  lum 0.285, sky 0.339, bright 1.5%; via search 'Anchorage Alaska skyline day' (score 8.5), 61 KB
+OK    NIGHT anchorage          File:Downtown Anchorage, Alaska at night with the Robert B. Atwood Building and Conoco-Phillips Building.jpg  [CC0; Dennis Krymski]  lum 0.034, sky 0.006, bright 0.8%; via search 'Anchorage Alaska at night' (score 6.5), 44 KB
+OK    DAY   bogota             File:Skyline downtown Bogota.jpg  [CC BY-SA 2.0; Tijs Zwinkels]  lum 0.421, sky 0.569, bright 31.5%; via search 'Bogotá skyline' (score 7), 66 KB
+OK    NIGHT bogota             File:Bogotá N de noche sep 2017.jpg  [CC BY-SA 4.0; EEIM]  lum 0.068, sky 0.052, bright 2.1%; via search 'Bogotá at night' (score 7), 46 KB
+OK    DAY   lima               File:Lima, Urban Skyline--Ciudad de Lima, Skyline urbano.jpg  [CC BY-SA 3.0; Joshua87]  lum 0.523, sky 0.680, bright 42.5%; via search 'Lima skyline' (score 9.5), 44 KB
+OK    NIGHT lima               File:San Isidro Modern Skyline at night - Lima, Peru.jpg  [CC BY-SA 3.0; Juaniotolp]  lum 0.048, sky 0.026, bright 0.9%; via search 'Lima skyline night' (score 10), 42 KB
+OK    DAY   santiago           File:Skyline of Santiago with San Cristóbal hill at the back (Northeast view Panorama 01 - Flat projection).jpg  [CC BY-SA 3.0; 3BRBS]  lum 0.326, sky 0.656, bright 29.2%; via search 'Santiago skyline' (score 9.5), 62 KB
+OK    NIGHT santiago           File:Santiago night skyline.jpg  [CC BY 2.0; Javier Vieras]  lum 0.081, sky 0.052, bright 2.8%; via search 'Santiago skyline night' (score 7.5), 67 KB
+OK    DAY   buenosaires        File:Buenos Aires, Argentina Skyline - panoramio (3).jpg  [CC BY 3.0; Michelle Maria]  lum 0.287, sky 0.441, bright 9.8%; via search 'Buenos Aires skyline' (score 9.5), 46 KB
+OK    NIGHT buenosaires        File:Corrientes Buenos Aires at Night.jpg  [CC BY 2.0; Luis Argerich]  lum 0.085, sky 0.064, bright 3.3%; via search 'Buenos Aires at night' (score 7), 65 KB
+OK    DAY   saopaulo           File:Skyline de São Paulo (34595764541).jpg  [CC BY 2.0; Gonzalo Ibáñez]  lum 0.380, sky 0.690, bright 30.8%; via search 'São Paulo skyline' (score 9.5), 62 KB
+OK    NIGHT saopaulo           File:(2006) Sao Paulo Skyline (9557402041).jpg  [CC BY 2.0; Diego Torres Silvestre from Sao Paulo, Brazil]  lum 0.054, sky 0.014, bright 1.8%; via search 'São Paulo skyline night' (score 8), 46 KB
+OK    DAY   riodejaneiro       File:Rio skyline and Cristo Redentor from Sugarloaf Mountain, Brazil.jpg  [CC0; Wilfredor]  lum 0.245, sky 0.356, bright 8.1%; via search 'Rio de Janeiro skyline' (score 9.5), 62 KB
+OK    NIGHT riodejaneiro       File:Rio by night-skyline downtown (9069145787).jpg  [CC BY 2.0; Edmir Silvestre from Rio de Janeiro-RJ, Brasil]  lum 0.058, sky 0.034, bright 1.6%; via search 'Rio de Janeiro skyline night' (score 7.5), 40 KB
+OK    DAY   london             File:City of London skyline from London City Hall - Sept 2015 - Crop Aligned.jpg  [CC BY-SA 4.0; User:Colin and Kim Hansen]  lum 0.306, sky 0.451, bright 10.4%; via search 'London skyline' (score 9.5), 81 KB
+OK    NIGHT london             File:London night skyline (429510111).jpg  [CC BY-SA 2.0; Michal Osmenda from Brussels, Belgium]  lum 0.075, sky 0.020, bright 5.2%; via search 'London skyline night' (score 10), 63 KB
+OK    DAY   manchester         File:Manchester Skyline - geograph.org.uk - 3411450.jpg  [CC BY-SA 2.0; Peter McDermott]  lum 0.236, sky 0.379, bright 12.5%; via search 'Manchester skyline' (score 9.5), 58 KB
+OK    NIGHT manchester         File:Manchester night-time skyline 1.jpg  [CC BY-SA 4.0; Francis Franklin]  lum 0.096, sky 0.052, bright 2.5%; via search 'Manchester skyline night' (score 10), 49 KB
+OK    DAY   edinburgh          File:Edinburgh Skyline from the Castle.jpg  [CC BY 3.0; Carlesmari]  lum 0.358, sky 0.627, bright 31.0%; via search 'Edinburgh skyline' (score 9.5), 50 KB
+OK    NIGHT edinburgh          File:Edinburgh night view - geograph.org.uk - 2699586.jpg  [CC BY-SA 2.0; Andrew Curtis]  lum 0.072, sky 0.052, bright 2.6%; via search 'Edinburgh at night' (score 9), 62 KB
+OK    DAY   dublin             File:Dublin skyline and River Liffey from ferry arriving at Dublin Port - geograph.org.uk - 5167299.jpg  [CC BY-SA 2.0; Chris Morgan]  lum 0.436, sky 0.520, bright 14.4%; via search 'Dublin skyline' (score 9.5), 63 KB
+OK    NIGHT dublin             File:Dublin at Night.jpg  [CC BY 2.0; Corey Leopold]  lum 0.070, sky 0.016, bright 2.5%; via search 'Dublin at night' (score 7), 48 KB
+OK    DAY   reykjavik          File:Reykjavík skyline - Skuggahverfi.JPG  [CC BY-SA 3.0; Navaro]  lum 0.361, sky 0.529, bright 14.9%; via search 'Reykjavík skyline' (score 7), 59 KB
+OK    NIGHT reykjavik          File:Hallgrimskirkja in Black, Reykjavík - panoramio.jpg  [CC BY 3.0; Petr Kraumann]  lum 0.044, sky 0.003, bright 1.2%; via search 'Reykjavík at night' (score 5), 34 KB
+OK    DAY   lisbon             File:LisbonSkyline.jpg  [CC BY 4.0; acediscovery]  lum 0.294, sky 0.409, bright 11.1%; via search 'Lisbon skyline' (score 9.5), 65 KB
+OK    NIGHT lisbon             File:Lisbon by night, Portugal. The Rossio area.jpg  [CC BY-SA 4.0; Fredericknoronha]  lum 0.078, sky 0.016, bright 2.1%; via search 'Lisbon at night' (score 7), 62 KB
+OK    DAY   madrid             File:Madrid Skyline - Spain.jpg  [CC BY 2.0; Alberto Racatumba]  lum 0.383, sky 0.591, bright 16.9%; via search 'Madrid skyline' (score 9.5), 44 KB
+OK    NIGHT madrid             File:Madrid At Night (190214475).jpeg  [CC0; Filip Trefil]  lum 0.066, sky 0.012, bright 3.2%; via search 'Madrid at night' (score 7), 63 KB
+OK    DAY   barcelona          File:Barcelona Skyline.jpg  [CC BY-SA 4.0; SGDWN]  lum 0.373, sky 0.596, bright 29.4%; via search 'Barcelona skyline' (score 9.5), 65 KB
+OK    NIGHT barcelona          File:Night view of Barcelona city.jpg  [CC BY-SA 4.0; Goutam]  lum 0.055, sky 0.009, bright 2.0%; via search 'Barcelona night' (score 9), 54 KB
+OK    DAY   paris              File:Paris Paris Skyline (37328639624).jpg  [CC0; Ali Sabbagh]  lum 0.278, sky 0.421, bright 2.1%; via search 'Paris skyline' (score 9.5), 51 KB
+OK    NIGHT paris              File:Paris Panorama from Tour Montparnasse at Night - panoramio.jpg  [CC BY-SA 3.0; Oleksandr Samoylyk]  lum 0.105, sky 0.117, bright 2.5%; via search 'Paris skyline night' (score 9, relaxed night), 69 KB
+OK    DAY   brussels           File:Brussels Skyline (cropped).jpg  [CC BY 4.0; Luca Mangiat]  lum 0.401, sky 0.661, bright 36.0%; via search 'Brussels skyline' (score 7.5), 67 KB
+OK    NIGHT brussels           File:Night skyline above Rue de la Fourche, Brussels, 2013.jpg  [CC0; DimiTalen]  lum 0.092, sky 0.024, bright 4.3%; via search 'Brussels skyline night' (score 7.5), 57 KB
+OK    DAY   amsterdam          File:Skyline Amsterdam Zuidas (cropped).jpg  [CC BY-SA 4.0; Choinowski]  lum 0.224, sky 0.296, bright 6.9%; via search 'Amsterdam skyline' (score 9.5), 81 KB
+OK    NIGHT amsterdam          File:Amsterdam by night (31110551215).jpg  [CC BY-SA 2.0; Tom Ek]  lum 0.066, sky 0.028, bright 1.4%; via search 'Amsterdam at night' (score 7), 75 KB
+OK    DAY   frankfurt          File:Seat of the European Central Bank and Frankfurt Skyline at dawn 20150422 1.jpg  [CC BY-SA 4.0; DXR]  lum 0.305, sky 0.326, bright 3.1%; via search 'Frankfurt skyline' (score 9.5), 42 KB
+OK    NIGHT frankfurt          File:Frankfurt Skyline 2022 bei Nacht.jpg  [CC BY-SA 4.0; Jörg Braukmann]  lum 0.068, sky 0.067, bright 1.1%; via search 'Frankfurt skyline night' (score 7.5), 53 KB
+OK    DAY   berlin             File:Berlin skyline 2009w.jpg  [CC BY-SA 3.0; Casp]  lum 0.480, sky 0.707, bright 59.0%; via search 'Berlin skyline' (score 9.5), 60 KB
+OK    NIGHT berlin             File:Reichstagsgebäude mit Weihnachtsbaum bei Nacht, Berlin, 151223, ako.jpg  [CC BY-SA 3.0 de; Ansgar Koreng]  lum 0.089, sky 0.051, bright 1.9%; via search 'Berlin at night' (score 7), 58 KB
+OK    DAY   munich             File:Munich skyline 1.jpg  [CC BY-SA 3.0; Mwinog2777 ( talk )]  lum 0.452, sky 0.588, bright 33.2%; via search 'Munich skyline' (score 9.5), 70 KB
+OK    NIGHT munich             File:Maximilianeum Munich at Night, March 2018.jpg  [CC BY-SA 4.0; Martin Falbisoner]  lum 0.079, sky 0.026, bright 0.9%; via search 'Munich at night' (score 7), 62 KB
+OK    DAY   zurich             File:Zürich Kreis 11 Panorama 2020.jpg  [CC BY-SA 3.0; Tschubby]  lum 0.289, sky 0.375, bright 8.4%; via search 'Zürich skyline' (score 8.5), 55 KB
+OK    NIGHT zurich             File:Panorama von Zürich @ 82 mm.jpg  [CC BY-SA 3.0; IqRS]  lum 0.027, sky 0.013, bright 0.7%; via search 'Zürich at night' (score 7), 71 KB
+OK    DAY   geneva             File:Pont de la Machine Genève BLS.jpg  [CC BY-SA 4.0; Benh LIEU SONG]  lum 0.288, sky 0.294, bright 8.4%; via search 'Geneva Switzerland cityscape' (score 6.5), 59 KB
+OK    NIGHT geneva             File:Geneva by night - panoramio.jpg  [CC BY-SA 3.0; Björn S.]  lum 0.080, sky 0.136, bright 1.2%; via search 'Geneva Switzerland at night' (score 4.5, relaxed night), 40 KB
+OK    DAY   milan              File:Full Milan skyline from Duomo roof.jpg  [CC BY-SA 3.0; Daniel Case]  lum 0.279, sky 0.448, bright 4.0%; via search 'Milan skyline' (score 9.5), 75 KB
+OK    NIGHT milan              File:202612 Duomo (Milan) - Facade at night 02.jpg  [CC BY-SA 4.0; Jonashtand]  lum 0.065, sky 0.018, bright 0.9%; via search 'Milan at night' (score 4.5), 63 KB
+OK    DAY   rome               File:Rome skyline panorama.jpg  [CC BY-SA 4.0; Nicholas Hartmann]  lum 0.305, sky 0.590, bright 19.8%; via search 'Rome skyline' (score 9.5), 72 KB
+OK    NIGHT rome               File:Vittoriano (Rome) at Night.jpg  [CC BY-SA 4.0; Livioandronico2013]  lum 0.062, sky 0.001, bright 1.0%; via search 'Rome at night' (score 7), 46 KB
+OK    DAY   vienna             File:Vienna skyline across the Danube river.jpg  [CC BY 4.0; Sohom Datta]  lum 0.338, sky 0.424, bright 2.5%; via search 'Vienna skyline' (score 9.5), 48 KB
+OK    NIGHT vienna             File:University of Vienna at night.jpg  [CC BY-SA 4.0; Beate Pamperl]  lum 0.046, sky 0.026, bright 1.2%; via search 'Vienna at night' (score 7), 60 KB
+OK    DAY   prague             File:North view of Charles Bridge from Mánesův most, Prague 20160808 1.jpg  [CC BY-SA 4.0; DXR]  lum 0.365, sky 0.562, bright 16.5%; via search 'Prague cityscape' (score 8.5), 63 KB
+OK    NIGHT prague             File:Prague at night - 34100936854.jpg  [CC BY 2.0; Miguel Mendez]  lum 0.067, sky 0.035, bright 1.8%; via search 'Prague at night' (score 7), 62 KB
+OK    DAY   copenhagen         File:Skyline of Copenhagen (Cropped).jpg  [CC BY-SA 2.0; Skyline_003.jpg : Paul Burani from New York, NY derivative work: Blunts ( talk )]  lum 0.290, sky 0.537, bright 22.3%; via search 'Copenhagen skyline' (score 9.5), 62 KB
+OK    NIGHT copenhagen         File:Copenhagen by night 20151104 IE 2.jpg  [CC BY-SA 4.0; Ingimar Erl]  lum 0.050, sky 0.053, bright 1.2%; via search 'Copenhagen at night' (score 7), 45 KB
+OK    DAY   oslo               File:Oslo skyline.jpg  [CC BY-SA 4.0; Audun]  lum 0.380, sky 0.503, bright 21.9%; via search 'Oslo skyline' (score 9.5), 54 KB
+OK    NIGHT oslo               File:Royal Palace, Oslo at the night 3.jpg  [CC BY-SA 4.0; Nurtenge]  lum 0.092, sky 0.003, bright 0.9%; via search 'Oslo at night' (score 7), 47 KB
+OK    DAY   stockholm          File:Stockholm Skyline (15189547020).jpg  [CC BY 2.0; Tony Webster from Portland, Oregon, United States]  lum 0.450, sky 0.644, bright 36.6%; via search 'Stockholm skyline' (score 9.5), 63 KB
+OK    NIGHT stockholm          File:Stockholm by night 2008h.jpg  [CC BY-SA 3.0; Holger.Ellgaard]  lum 0.076, sky 0.062, bright 2.0%; via search 'Stockholm at night' (score 7), 56 KB
+OK    DAY   helsinki           File:Skyline of Helsinki as seen from the Erottaja fire station.jpg  [CC BY-SA 3.0; JIP]  lum 0.234, sky 0.263, bright 4.8%; via search 'Helsinki skyline' (score 9.5), 71 KB
+OK    NIGHT helsinki           File:Helsinki skyline - panoramio.jpg  [CC BY-SA 3.0; Tim Tregenza]  lum 0.080, sky 0.024, bright 3.7%; via search 'Helsinki skyline night' (score 8), 62 KB
+OK    DAY   warsaw             File:The Warsaw Hub and Skyliner.jpg  [CC BY-SA 4.0; Wistula]  lum 0.373, sky 0.497, bright 33.0%; via search 'Warsaw skyline' (score 9.5), 61 KB
+OK    NIGHT warsaw             File:Gdański Bridge in Warsaw at night 01.jpg  [CC BY-SA 4.0; Oleslawlama]  lum 0.041, sky 0.032, bright 1.8%; via search 'Warsaw at night' (score 7), 48 KB
+OK    DAY   budapest           File:Budapest skyline from Gellért Hill (3).jpg  [CC BY 4.0; Elekes Andor]  lum 0.270, sky 0.432, bright 6.6%; via search 'Budapest skyline' (score 9.5), 63 KB
+OK    NIGHT budapest           File:Széchenyi Chain Bridge in Budapest at night.jpg  [CC0; Wilfredor]  lum 0.071, sky 0.022, bright 1.1%; via search 'Budapest at night' (score 7), 66 KB
+OK    DAY   athens             File:Attica 06-13 Athens 50 View from Philopappos - Acropolis Hill.jpg  [CC BY-SA 3.0; A.Savin]  lum 0.250, sky 0.295, bright 2.4%; via search 'Athens cityscape' (score 8.5), 70 KB
+OK    NIGHT athens             File:Acropolis Of Athens Night Panorama (194203805).jpeg  [CC BY-SA 3.0; Georgios Liakopoulos]  lum 0.034, sky 0.002, bright 0.9%; via search 'Athens night' (score 9), 42 KB
+OK    DAY   kyiv               File:Kyiv skyline (15688086793).jpg  [CC BY-SA 2.0; Sergey Galyonkin from Raleigh, USA]  lum 0.276, sky 0.314, bright 9.1%; via search 'Kyiv skyline' (score 9.5), 24 KB
+OK    NIGHT kyiv               File:Kyiv Pechersk Lavra at night 2005.jpg  [Public domain; i.Parfeniy]  lum 0.084, sky 0.096, bright 1.6%; via search 'Kyiv at night' (score 7, relaxed night), 60 KB
+OK    DAY   istanbul           File:Istanbul skyline 01.jpg  [CC BY 4.0; SegLig]  lum 0.265, sky 0.424, bright 13.7%; via search 'Istanbul skyline' (score 9.5), 92 KB
+OK    NIGHT istanbul           File:Istanbul-skyline-night-view-with-TV-tower.jpg  [CC BY-SA 4.0; SeablueTravelOfficial]  lum 0.062, sky 0.052, bright 0.8%; via search 'Istanbul skyline night' (score 7.5), 43 KB
+OK    DAY   moscow             File:Moscow - Skyline - 2026-09 - p02.jpg  [CC0; Александр Сигачёв]  lum 0.313, sky 0.417, bright 7.5%; via search 'Moscow skyline' (score 9.5), 82 KB
+OK    NIGHT moscow             File:Night-Moscow-(w b).jpg  [CC BY-SA 3.0; Aleks G]  lum 0.060, sky 0.009, bright 1.6%; via search 'Moscow at night' (score 7), 62 KB
+OK    DAY   cairo              File:Cairo Skyline.jpg  [CC BY 2.0; Maher Najm]  lum 0.305, sky 0.614, bright 27.0%; via search 'Cairo skyline' (score 9.5), 61 KB
+OK    NIGHT cairo              File:Cairo night panorama - panoramio.jpg  [CC BY-SA 3.0; Mujaddara]  lum 0.018, sky 0.003, bright 0.6%; via search 'Cairo at night' (score 9), 39 KB
+OK    DAY   casablanca         File:Casablanca (1).jpg  [CC BY-SA 2.0; elchicogris]  lum 0.322, sky 0.522, bright 21.1%; via search 'Casablanca skyline' (score 4), 32 KB
+OK    NIGHT casablanca         File:Casablanca fountain night.jpg  [Public domain; User: (WT-shared) Radouane at wts wikivoyage]  lum 0.055, sky 0.009, bright 2.6%; via search 'Casablanca at night' (score 7), 42 KB
+OK    DAY   lagos              File:Lagos skyline.jpg  [CC BY-SA 2.0; Clara Sanchiz]  lum 0.339, sky 0.639, bright 33.0%; via search 'Lagos skyline' (score 9.5), 53 KB
+OK    NIGHT lagos              File:Lagos at Night (48478169886).jpg  [CC BY 2.0; Theo Crazzolara]  lum 0.064, sky 0.004, bright 2.4%; via search 'Lagos at night' (score 4.5), 52 KB
+OK    DAY   accra              File:Accra Skyline - Ghana.jpg  [CC BY-SA 4.0; Synth85]  lum 0.388, sky 0.635, bright 28.4%; via search 'Accra skyline' (score 7), 43 KB
+OK    NIGHT accra              File:Cool Accra By Night (3880299393).jpg  [CC BY 2.0; James Ainooson from Kasoa, Ghana]  lum 0.086, sky 0.021, bright 2.6%; via search 'Accra at night' (score 4.5), 36 KB
+OK    DAY   addisababa         File:Addis Ababa skyline.jpg  [CC BY-SA 3.0; Simfan34]  lum 0.384, sky 0.686, bright 33.5%; via search 'Addis Ababa skyline' (score 7), 36 KB
+OK    NIGHT addisababa         File:Addis Ababa by night activity.jpg  [CC BY 4.0; Jean Rebiffé]  lum 0.082, sky 0.007, bright 4.5%; via search 'Addis Ababa at night' (score 4.5), 63 KB
+OK    DAY   nairobi            File:Nairobi Skyline Savannah Kenya May19 R1600687.jpg  [CC BY-SA 4.0; This Photo was taken by Timothy A. Gonsalves . Feel free to use my photos, but please mention me as the author. I wou...]  lum 0.431, sky 0.680, bright 41.1%; via search 'Nairobi skyline' (score 9.5), 45 KB
+OK    NIGHT nairobi            File:Nairobi night skyline at dusk .jpg  [CC BY-SA 4.0; Nbi101]  lum 0.137, sky 0.078, bright 5.3%; via search 'Nairobi skyline night' (score 10, relaxed night), 63 KB
+OK    DAY   johannesburg       File:Johannesburg skyline 2017.jpg  [CC BY 2.0; Mark Hillary]  lum 0.278, sky 0.595, bright 18.0%; via search 'Johannesburg skyline' (score 9.5), 83 KB
+OK    NIGHT johannesburg       File:Johannesburg at night, 1980 - panoramio.jpg  [CC BY 3.0; qwesy qwesy]  lum 0.058, sky 0.046, bright 3.9%; via search 'Johannesburg skyline night' (score 4.5), 61 KB
+OK    DAY   capetown           File:Cape Town Skyline.jpg  [CC BY-SA 4.0; Bernard303]  lum 0.372, sky 0.372, bright 23.8%; via search 'Cape Town skyline' (score 9.5), 69 KB
+OK    NIGHT capetown           File:Night sky in Cape Town.jpg  [CC BY-SA 4.0; Satdeep Gill]  lum 0.084, sky 0.017, bright 3.4%; via search 'Cape Town skyline night' (score 4.5), 16 KB
+OK    DAY   telaviv            File:Skylines of Tel Aviv-Yafo.jpg  [CC BY-SA 4.0; Yair Haklai]  lum 0.330, sky 0.692, bright 25.3%; via search 'Tel Aviv skyline' (score 9.5), 53 KB
+OK    NIGHT telaviv            File:Tel Aviv downtown night.jpg  [Public domain; No machine-readable author provided. Tango7000 assumed (based on copyright claims).]  lum 0.032, sky 0.019, bright 0.6%; via search 'Tel Aviv skyline night' (score 6.5), 47 KB
+OK    DAY   riyadh             File:Riyadh skyline.jpg  [CC BY-SA 4.0; Thesadcactus]  lum 0.352, sky 0.643, bright 25.5%; via search 'Riyadh skyline' (score 7), 37 KB
+OK    NIGHT riyadh             File:Night view of City Riyadh from Hauptstadt Saudi Arabiens - panoramio.jpg  [CC BY 3.0; Jack Soma]  lum 0.047, sky 0.022, bright 1.3%; via search 'Riyadh at night' (score 9), 70 KB
+OK    DAY   doha               File:Doha Skyline 01.jpg  [CC BY 4.0; Zairon]  lum 0.292, sky 0.393, bright 2.1%; via search 'Doha skyline' (score 9.5), 63 KB
+OK    NIGHT doha               File:Doha Dhow Harbour Skyline View at Night 02.jpg  [CC BY 4.0; Zairon]  lum 0.013, sky 0.004, bright 0.5%; via search 'Doha skyline night' (score 10), 41 KB
+OK    DAY   dubai              File:Dubai Skyline from Zabeel Park.jpg  [CC BY-SA 2.0; Challiyil Eswaramangalath Pavithran Vipin]  lum 0.267, sky 0.475, bright 13.6%; via search 'Dubai skyline' (score 9.5), 60 KB
+OK    NIGHT dubai              File:Dubai night birds eye view.jpg  [CC BY-SA 3.0; Challiyan]  lum 0.068, sky 0.016, bright 1.4%; via search 'Dubai skyline night' (score 9), 87 KB
+OK    DAY   abudhabi           File:Abu Dhabi - Corniche – Skyline - الكورنيش - الأفق - panoramio (1).jpg  [CC BY 3.0; giggel]  lum 0.224, sky 0.259, bright 0.4%; via search 'Abu Dhabi skyline' (score 9.5), 40 KB
+OK    NIGHT abudhabi           File:Abu Dhabi night skyline (37001006072).jpg  [CC BY-SA 2.0; Groman123]  lum 0.055, sky 0.009, bright 1.5%; via search 'Abu Dhabi skyline night' (score 7.5), 48 KB
+OK    DAY   tehran             File:Tehran skyline- Alborz Mountains on background-20150401.jpg  [CC BY-SA 4.0; Mhsheikholeslami]  lum 0.470, sky 0.661, bright 38.2%; via search 'Tehran skyline' (score 9.5), 61 KB
+OK    NIGHT tehran             File:University of Tehran at night 2021 (1).jpg  [CC BY-SA 4.0; Shiasun]  lum 0.069, sky 0.017, bright 3.2%; via search 'Tehran at night' (score 7), 43 KB
+OK    DAY   karachi            File:Karachi Skyline 2025.jpg  [CC0; Ktownboy103]  lum 0.387, sky 0.540, bright 33.8%; via search 'Karachi skyline' (score 9.5), 114 KB
+OK    NIGHT karachi            File:Karachi Port Trust (KPT) Head Office Building night view.jpg  [CC BY-SA 3.0; Kabeer Khusroo]  lum 0.061, sky 0.030, bright 4.2%; via search 'Karachi at night' (score 6.5), 46 KB
+OK    DAY   delhi              File:Skyline at Rajiv Chowk.JPG  [CC BY-SA 3.0; Kabi1990]  lum 0.296, sky 0.300, bright 11.3%; via pinned, 73 KB
+OK    NIGHT delhi              File:Night view of Central Vista, New Delhi , India.jpg  [CC BY-SA 4.0; Narendra Modi YouTube Channel, Government of India]  lum 0.022, sky 0.010, bright 0.6%; via search 'Delhi night' (score 9), 49 KB
+OK    DAY   mumbai             File:Mumbai skyline, Carter Road Bandra.jpg  [CC BY-SA 4.0; Wander-earth]  lum 0.397, sky 0.659, bright 35.0%; via search 'Mumbai skyline' (score 9.5), 48 KB
+OK    NIGHT mumbai             File:Mumbai Skyline Marine Drive Night.jpg  [CC BY-SA 4.0; Av9]  lum 0.035, sky 0.019, bright 0.8%; via search 'Mumbai skyline night' (score 10), 30 KB
+OK    DAY   bengaluru          File:Bengaluru Skyline from Tata Promont.jpg  [CC BY-SA 4.0; Kushagra140]  lum 0.314, sky 0.481, bright 11.9%; via search 'Bengaluru skyline' (score 9.5), 62 KB
+OK    NIGHT bengaluru          File:Night Life in Bangalore (3113168217).jpg  [CC BY-SA 2.0; Ashwin Kumar from Bangalore, India]  lum 0.032, sky 0.041, bright 1.1%; via search 'Bengaluru night' (score 7), 60 KB
+OK    DAY   hyderabad          File:Rajapushpa Provincia and My Home Avatar complexes - High-rise residential skyline in Hyderabad.jpg  [CC BY-SA 4.0; iMahesh]  lum 0.272, sky 0.293, bright 10.1%; via search 'Hyderabad skyline' (score 9.5), 78 KB
+OK    NIGHT hyderabad          File:Hyderabad Hi-Tech City Skyline at Night – India's Emerging Silicon Valley (2025).jpg  [CC BY 4.0; Mohammad Anees Qamar]  lum 0.136, sky 0.105, bright 8.1%; via search 'Hyderabad skyline night' (score 10, relaxed night), 71 KB
+OK    DAY   chennai            File:Chennai skyline.JPG  [CC BY-SA 3.0; Vineeshkoomully]  lum 0.365, sky 0.649, bright 34.6%; via search 'Chennai skyline' (score 9.5), 77 KB
+OK    NIGHT chennai            File:Fireworks Chennai Diwali skyline, Tamil Nadu India November 2010.jpg  [CC BY-SA 2.0; soumyajit pramanick]  lum 0.027, sky 0.000, bright 1.4%; via search 'Chennai skyline night' (score 6), 32 KB
+OK    DAY   kolkata            File:Kolkata Skyline From Vidyasagar Seti 2.jpg  [CC BY-SA 3.0; Innocentbunny]  lum 0.386, sky 0.453, bright 6.6%; via search 'Kolkata skyline' (score 9.5), 53 KB
+OK    NIGHT kolkata            File:Kolkata skyline at night.jpg  [CC BY-SA 4.0; DeepanjanGhosh]  lum 0.055, sky 0.041, bright 1.0%; via search 'Kolkata skyline night' (score 10), 51 KB
+OK    DAY   dhaka              File:Skyline View of the City of Dhaka on a Cloudy Day.jpg  [CC BY-SA 4.0; Tarunno]  lum 0.291, sky 0.497, bright 6.9%; via search 'Dhaka skyline' (score 9.5), 65 KB
+OK    NIGHT dhaka              File:Dhaka night (29464009911).jpg  [CC BY 2.0; ASaber91]  lum 0.070, sky 0.045, bright 1.7%; via search 'Dhaka at night' (score 7), 65 KB
+OK    DAY   bangkok            File:Bangkok skyline 2018.jpg  [CC BY-SA 4.0; srihariyv]  lum 0.229, sky 0.427, bright 7.4%; via search 'Bangkok skyline' (score 9.5), 61 KB
+OK    NIGHT bangkok            File:Bangkok Panorama (211522205).jpeg  [CC BY 3.0; Wolfgang Weber]  lum 0.033, sky 0.022, bright 0.6%; via search 'Bangkok skyline night' (score 7), 63 KB
+OK    DAY   hanoi              File:Hanoi Skyline - NKS.jpg  [CC BY-SA 4.0; NKSTTSSHNVN]  lum 0.290, sky 0.617, bright 24.1%; via search 'Hanoi skyline' (score 9.5), 61 KB
+OK    NIGHT hanoi              File:Hanoi at night.jpg  [CC BY 2.0; cloud.shepherd]  lum 0.076, sky 0.038, bright 2.2%; via search 'Hanoi at night' (score 7), 62 KB
+OK    DAY   hochiminhcity      File:Ho Chi Minh City Skyline.jpg  [CC0; Pimnl]  lum 0.439, sky 0.568, bright 35.1%; via search 'Ho Chi Minh City skyline' (score 9.5), 39 KB
+OK    NIGHT hochiminhcity      File:Ho Chi Minh City Skyline (night).jpg  [CC BY-SA 2.0; Jim 陳]  lum 0.061, sky 0.009, bright 1.6%; via search 'Ho Chi Minh City skyline night' (score 10), 73 KB
+OK    DAY   kualalumpur        File:Kuala Lumpur Malaysia Skyline-of-Kuala-Lumpur-Sentral-01.jpg  [CC BY-SA 3.0; CEphoto, Uwe Aranas]  lum 0.513, sky 0.749, bright 46.1%; via search 'Kuala Lumpur skyline' (score 9.5), 65 KB
+OK    NIGHT kualalumpur        File:Kuala Lumpur skyline at night (2019).jpg  [CC BY 2.0; Lee Wei]  lum 0.055, sky 0.055, bright 0.5%; via search 'Kuala Lumpur skyline night' (score 10), 41 KB
+OK    DAY   singapore          File:Singapore Skyline-01.jpg  [CC BY-SA 3.0; CEphoto, Uwe Aranas]  lum 0.356, sky 0.573, bright 28.0%; via search 'Singapore skyline' (score 9.5), 66 KB
+OK    NIGHT singapore          File:Skylines of the Central Business District at night in Singapore.jpg  [CC BY-SA 4.0; Basile Morin]  lum 0.085, sky 0.043, bright 2.5%; via search 'Singapore skyline night' (score 10), 78 KB
+OK    DAY   jakarta            File:Jakarta skyline.jpg  [CC BY 3.0; Netaholic13 at English Wikipedia]  lum 0.299, sky 0.672, bright 23.0%; via search 'Jakarta skyline' (score 9.5), 62 KB
+OK    NIGHT jakarta            File:Skyline Jakarta.jpg  [CC BY-SA 4.0; Cuantum1]  lum 0.057, sky 0.011, bright 2.0%; via search 'Jakarta skyline night' (score 8), 54 KB
+OK    DAY   manila             File:Cityscape of Manila, 2025 (05).jpg  [CC BY-SA 4.0; Bahnfrend]  lum 0.243, sky 0.534, bright 12.5%; via search 'Manila cityscape' (score 8.5), 65 KB
+OK    NIGHT manila             File:De La Salle University Manila La Salle Hall Night Skyline Taft Avenue.jpg  [CC BY-SA 4.0; Matthew Gan]  lum 0.076, sky 0.027, bright 2.8%; via search 'Manila skyline night' (score 10), 65 KB
+OK    DAY   hongkong           File:Hong Kong Island Skyline 2009.jpg  [CC BY-SA 3.0; WiNG]  lum 0.252, sky 0.340, bright 9.3%; via search 'Hong Kong skyline' (score 9.5), 63 KB
+OK    NIGHT hongkong           File:Hong Kong skyline night lights.jpg  [CC BY-SA 2.0; Kent Wang]  lum 0.064, sky 0.057, bright 1.3%; via search 'Hong Kong skyline night' (score 10), 60 KB
+OK    DAY   shenzhen           File:Skyline in Shenzhen (20250327).jpg  [CC0; Fumikas Sagisavas]  lum 0.276, sky 0.396, bright 8.9%; via search 'Shenzhen skyline' (score 7), 46 KB
+OK    NIGHT shenzhen           File:Shenzhen at Night - panoramio.jpg  [CC BY 3.0; A J Butler]  lum 0.028, sky 0.013, bright 1.8%; via search 'Shenzhen at night' (score 4.5), 41 KB
+OK    DAY   guangzhou          File:Guangzhou skyline (6343573781).jpg  [CC BY-SA 2.0; kevinmcgill from Den Bosch, Netherlands]  lum 0.273, sky 0.320, bright 0.4%; via search 'Guangzhou skyline' (score 9.5), 39 KB
+OK    NIGHT guangzhou          File:Guangzhou-Huadu Plain and Mount Baiyun Aerial View from Tianhe.jpg  [CC BY-SA 4.0; User:Pulsarwind]  lum 0.047, sky 0.027, bright 1.0%; via search 'Guangzhou skyline night' (score 7), 90 KB
+OK    DAY   shanghai           File:Shanghai skyline from the bund.jpg  [CC0; https://www.pxfuel.com/en/free-photo-ovozr]  lum 0.444, sky 0.410, bright 18.8%; via search 'Shanghai skyline' (score 9.5), 52 KB
+OK    NIGHT shanghai           File:Skyline of Shanghai at night, Aug 10 2023.jpg  [CC BY-SA 4.0; A Chinese ID]  lum 0.047, sky 0.013, bright 1.2%; via search 'Shanghai skyline night' (score 7.5), 50 KB
+OK    DAY   beijing            File:Eastern Beijing skyline from Forbidden City.jpg  [CC BY-SA 3.0; Daniel Case]  lum 0.320, sky 0.467, bright 3.0%; via search 'Beijing skyline' (score 9.5), 63 KB
+OK    NIGHT beijing            File:Beijing skyline at night.JPG  [Public domain; Scott Meltzer]  lum 0.036, sky 0.021, bright 1.0%; via search 'Beijing skyline night' (score 7.5), 47 KB
+OK    DAY   taipei             File:Nangang, Taipei Skyline 20250928.jpg  [CC BY-SA 4.0; brian25_tw]  lum 0.287, sky 0.549, bright 22.2%; via search 'Taipei skyline' (score 9.5), 79 KB
+OK    NIGHT taipei             File:Taipei Night Skyline 2013.jpg  [CC BY 2.0; Sinchen.Lin]  lum 0.052, sky 0.052, bright 0.8%; via search 'Taipei skyline night' (score 10), 50 KB
+OK    DAY   seoul              File:Han River Seoul skyline Pixabay 1214950.jpg  [CC0; USAGI_POST]  lum 0.270, sky 0.276, bright 10.3%; via search 'Seoul skyline' (score 9.5), 54 KB
+OK    NIGHT seoul              File:Seoul city skyline at night from Namsan Mountain (49174548523).jpg  [CC BY-SA 2.0; Matt Kieffer from London, United Kingdom]  lum 0.054, sky 0.019, bright 1.2%; via search 'Seoul skyline night' (score 7.5), 62 KB
+OK    DAY   tokyo              File:Tokio skyline from Tokyo Metropolitan Government Building.jpg  [CC BY-SA 4.0; Max221B]  lum 0.299, sky 0.462, bright 4.2%; via search 'Tokyo skyline' (score 9.5), 66 KB
+OK    NIGHT tokyo              File:Tokyo night view 1 (cropped).jpg  [CC BY-SA 2.0; https://www.flickr.com/people/imuttoo/]  lum 0.140, sky 0.104, bright 6.4%; via search 'Tokyo skyline night' (score 6.5, relaxed night), 71 KB
+OK    DAY   osaka              File:Ufoto-wiki-01 Osaka-Skyline May2014.jpg  [CC BY-SA 4.0; Ug]  lum 0.302, sky 0.533, bright 7.7%; via search 'Osaka skyline' (score 9.5), 67 KB
+OK    NIGHT osaka              File:Night view of Osaka Minato Bridge from Sakishima Building Observatory.jpg  [CC BY-SA 4.0; Insightwm]  lum 0.041, sky 0.010, bright 1.1%; via search 'Osaka night' (score 6.5), 58 KB
+OK    DAY   perth              File:Perth skyline 2.jpg  [CC BY-SA 3.0; Mark]  lum 0.266, sky 0.325, bright 9.8%; via search 'Perth skyline' (score 9.5), 57 KB
+OK    NIGHT perth              File:Perth Skyline Night South Perth Foreshore.jpg  [CC BY-SA 4.0; Siddhartha Parti]  lum 0.075, sky 0.019, bright 1.7%; via search 'Perth skyline night' (score 10), 61 KB
+OK    DAY   adelaide           File:Adelaide skyline, December 2022.jpg  [CC BY-SA 2.0; Ardash Muradian from Australia]  lum 0.223, sky 0.387, bright 8.1%; via search 'Adelaide skyline' (score 9.5), 84 KB
+OK    NIGHT adelaide           File:Adelaide central business district at night.jpg  [CC BY-SA 2.0; Ashton 29]  lum 0.054, sky 0.017, bright 2.1%; via search 'Adelaide skyline night' (score 7), 59 KB
+OK    DAY   brisbane           File:Brisbane Skyline from Brisbane River.jpg  [CC BY-SA 4.0; Deepeshmd]  lum 0.269, sky 0.349, bright 6.7%; via search 'Brisbane skyline' (score 9.5), 67 KB
+OK    NIGHT brisbane           File:Brisbane Skyline At Night.jpg  [CC BY-SA 3.0; EzykronHD]  lum 0.032, sky 0.052, bright 0.6%; via search 'Brisbane skyline night' (score 10), 50 KB
+OK    DAY   sydney             File:Sydney (AU), Skyline -- 2019 -- 2287.jpg  [CC BY-SA 4.0; Dietmar Rabich]  lum 0.360, sky 0.365, bright 14.6%; via search 'Sydney skyline' (score 9.5), 58 KB
+OK    NIGHT sydney             File:Sydney skyline from Taronga Visitors Center at night-25Aug2009.jpg  [CC BY 2.0; Gordon Wrigley]  lum 0.045, sky 0.020, bright 1.3%; via search 'Sydney skyline night' (score 10), 48 KB
+OK    DAY   melbourne          File:Melbourne Skyline from Rialto Crop - Nov 2008.jpg  [CC BY-SA 3.0; Diliff]  lum 0.285, sky 0.386, bright 12.5%; via search 'Melbourne skyline' (score 9.5), 100 KB
+OK    NIGHT melbourne          File:Melbourne Night Skyline (2013).jpg  [CC BY 2.0; Alfred Glickman]  lum 0.037, sky 0.009, bright 0.7%; via search 'Melbourne skyline night' (score 10), 45 KB
+OK    DAY   auckland           File:Auckland Skyline as seen from Devonport 20100128 3.jpg  [CC BY-SA 4.0; DXR]  lum 0.398, sky 0.470, bright 10.5%; via search 'Auckland skyline' (score 9.5), 61 KB
+OK    NIGHT auckland           File:Auckland Skyline at night.jpg  [CC BY-SA 4.0; Duncnbiscuit]  lum 0.066, sky 0.012, bright 4.8%; via search 'Auckland skyline night' (score 10), 54 KB
+OK    DAY   wellington         File:Wellington Skyline from Frank Kitts Park.jpg  [Public domain; Unknown author]  lum 0.374, sky 0.669, bright 33.9%; via search 'Wellington skyline' (score 9.5), 62 KB
+OK    NIGHT wellington         File:Wellington Skyline (34319401232).jpg  [CC BY 2.0; Simeon W from Wellington, New Zealand]  lum 0.046, sky 0.011, bright 1.3%; via search 'Wellington skyline night' (score 8), 52 KB

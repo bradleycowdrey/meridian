@@ -1,0 +1,2943 @@
+[
+ {
+  "key": "sanfrancisco",
+  "names": [
+   "San Francisco",
+   "SF",
+   "SFO",
+   "Bay Area"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-sanfrancisco.jpg",
+  "credit": {
+   "author": "Dietmar Rabich",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:San_Francisco_(CA,_USA),_Fisherman%27s_Wharf_Parking_Garage,_Skyline_--_2022_--_151006.jpg"
+  },
+  "night": {
+   "file": "skyline-sanfrancisco-night.jpg",
+   "credit": {
+    "author": "Dllu",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_on_a_foggy_4th_of_July_night.jpg"
+   },
+   "focus": 0.664
+  },
+  "focus": 0.406
+ },
+ {
+  "key": "losangeles",
+  "names": [
+   "Los Angeles",
+   "LA",
+   "LAX"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-losangeles.jpg",
+  "credit": {
+   "author": "Adoramassey",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:20190616154621!Echo_Park_Lake_with_Downtown_Los_Angeles_Skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-losangeles-night.jpg",
+   "credit": {
+    "author": "Ron Reiring",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Los_Angeles_and_skyline_at_night,_California,_U.S.jpg"
+   },
+   "focus": 0.204
+  },
+  "focus": 0.422
+ },
+ {
+  "key": "seattle",
+  "names": [
+   "Seattle",
+   "SEA"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-seattle.jpg",
+  "credit": {
+   "author": "Cacophony",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:SeattleI5Skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-seattle-night.jpg",
+   "credit": {
+    "author": "Created by User:Nova77",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "source": "https://commons.wikimedia.org/wiki/File:Seattle_skyline_night.jpg"
+   },
+   "focus": 0.817
+  },
+  "focus": 0.398
+ },
+ {
+  "key": "sandiego",
+  "names": [
+   "San Diego",
+   "SAN"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-sandiego.jpg",
+  "credit": {
+   "author": "Eric youtse",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:San_Diego_Skyline_Image.jpg"
+  },
+  "night": {
+   "file": "skyline-sandiego-night.jpg",
+   "credit": {
+    "author": "Agha Zain",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:San_Diego_skyline_at_night_from_Point_Loma_2014.jpg"
+   },
+   "focus": 0.309
+  },
+  "focus": 0.631
+ },
+ {
+  "key": "lasvegas",
+  "names": [
+   "Las Vegas",
+   "LAS",
+   "Vegas"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-lasvegas.jpg",
+  "credit": {
+   "author": "Paul Harrison",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Las_Vegas_Panorama_Bellagio_to_Paris_2014.jpg"
+  },
+  "night": {
+   "file": "skyline-lasvegas-night.jpg",
+   "credit": {
+    "author": "matze_ott",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Las_Vegas_in_the_Night.jpg"
+   },
+   "focus": 0.398
+  },
+  "focus": 0.51
+ },
+ {
+  "key": "portland",
+  "names": [
+   "Portland",
+   "PDX"
+  ],
+  "zone": "America/Los_Angeles",
+  "file": "skyline-portland.jpg",
+  "credit": {
+   "author": "M.O. Stevens",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Portland_Skyline_July_2017_with_ducks_-_Oregon.jpg"
+  },
+  "night": {
+   "file": "skyline-portland-night.jpg",
+   "credit": {
+    "author": "M.O. Stevens",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Portland_Skyline_night_2_July_2017_-_Oregon.jpg"
+   },
+   "focus": 0.486
+  },
+  "focus": 0.551
+ },
+ {
+  "key": "vancouver",
+  "names": [
+   "Vancouver",
+   "YVR"
+  ],
+  "zone": "America/Vancouver",
+  "file": "skyline-vancouver.jpg",
+  "credit": {
+   "author": "Kyle Pearce / DIY Genius",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Vancouver_Skyline_and_Mountains.jpg"
+  },
+  "night": {
+   "file": "skyline-vancouver-night.jpg",
+   "credit": {
+    "author": "KimonBerlin",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Downtown_Vancouver_skyline_(Grouse_Mountain_on_upper_right)_(2289627186).jpg"
+   },
+   "focus": 0.494
+  },
+  "focus": 0.712
+ },
+ {
+  "key": "saltlakecity",
+  "names": [
+   "Salt Lake City",
+   "SLC"
+  ],
+  "zone": "America/Denver",
+  "file": "skyline-saltlakecity.jpg",
+  "credit": {
+   "author": "Iansmh98",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Salt_Lake_City_skyline_(2020)_from_Ensign_Peak.jpg"
+  },
+  "night": {
+   "file": "skyline-saltlakecity-night.jpg",
+   "credit": {
+    "author": "888emmanuelc888",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Salt_Lake_City,_Utah,_United_States_skyline.jpg"
+   },
+   "focus": 0.244
+  },
+  "focus": 0.575
+ },
+ {
+  "key": "denver",
+  "names": [
+   "Denver",
+   "DEN"
+  ],
+  "zone": "America/Denver",
+  "file": "skyline-denver.jpg",
+  "credit": {
+   "author": "Xnatedawgx",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Denver_skyline_from_Speer_Blvd_near_I-25,_April_2019.jpg"
+  },
+  "night": {
+   "file": "skyline-denver-night.jpg",
+   "credit": {
+    "author": "Matt Wright",
+    "license": "CC BY-SA 2.5",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+    "source": "https://commons.wikimedia.org/wiki/File:2006-07-14-Denver_Skyline_Midnight.jpg"
+   },
+   "focus": 0.47
+  },
+  "focus": 0.527
+ },
+ {
+  "key": "phoenix",
+  "names": [
+   "Phoenix",
+   "PHX"
+  ],
+  "zone": "America/Phoenix",
+  "file": "skyline-phoenix.jpg",
+  "credit": {
+   "author": "M S",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Phoenix_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-phoenix-night.jpg",
+   "credit": {
+    "author": "Alan Stark",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Phoenix_Skyline_from_South_Mountain_at_Night.2010.jpg"
+   },
+   "focus": 0.527
+  },
+  "focus": 0.631
+ },
+ {
+  "key": "calgary",
+  "names": [
+   "Calgary",
+   "YYC"
+  ],
+  "zone": "America/Edmonton",
+  "file": "skyline-calgary.jpg",
+  "credit": {
+   "author": "Sharon Hahn Darlin",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Calgary,_Canada_April_2022_-_Skyline_2.jpg"
+  },
+  "night": {
+   "file": "skyline-calgary-night.jpg",
+   "credit": {
+    "author": "Matthias Süßen",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Calgary_night_skyline-msu-2020-1110-8962.jpg"
+   },
+   "focus": 0.599
+  },
+  "focus": 0.567
+ },
+ {
+  "key": "austin",
+  "names": [
+   "Austin",
+   "AUS"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-austin.jpg",
+  "credit": {
+   "author": "Sk5893",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Austin,_Texas_Skyline_2018.jpg"
+  },
+  "night": {
+   "file": "skyline-austin-night.jpg",
+   "credit": {
+    "author": "Steve",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Austin_Texas_skyline,_December_2023_-_Night.jpg"
+   },
+   "focus": 0.502
+  },
+  "focus": 0.398
+ },
+ {
+  "key": "dallas",
+  "names": [
+   "Dallas",
+   "DFW"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-dallas.jpg",
+  "credit": {
+   "author": "BullDawg2021",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Dallas_skyline_2025.jpg"
+  },
+  "night": {
+   "file": "skyline-dallas-night.jpg",
+   "credit": {
+    "author": "Carol M. Highsmith",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Dallas_night_skyline.jpg"
+   },
+   "focus": 0.43
+  },
+  "focus": 0.543
+ },
+ {
+  "key": "houston",
+  "names": [
+   "Houston",
+   "IAH"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-houston.jpg",
+  "credit": {
+   "author": "Jason Villanueva",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Buildings-city-houston-skyline-1870617.jpg"
+  },
+  "night": {
+   "file": "skyline-houston-night.jpg",
+   "credit": {
+    "author": "Bobby L. Warren ( Blwarren713 )",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Downtown_Houston_Skyline_Night.JPG"
+   },
+   "focus": 0.567
+  },
+  "focus": 0.591
+ },
+ {
+  "key": "chicago",
+  "names": [
+   "Chicago",
+   "ORD",
+   "CHI"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-chicago.jpg",
+  "credit": {
+   "author": "Diego Delso",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_de_Chicago_desde_el_centro,_Illinois,_Estados_Unidos,_2012-10-20,_DD_06.jpg"
+  },
+  "night": {
+   "file": "skyline-chicago-night.jpg",
+   "credit": {
+    "author": "Spatms",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Chicago_Skyline_on_the_Chicago_River_at_night.jpg"
+   },
+   "focus": 0.559
+  },
+  "focus": 0.406
+ },
+ {
+  "key": "minneapolis",
+  "names": [
+   "Minneapolis",
+   "MSP"
+  ],
+  "zone": "America/Chicago",
+  "file": "skyline-minneapolis.jpg",
+  "credit": {
+   "author": "Michael Hicks",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Minneapolis_skyline_from_Prospect_Park_Water_Tower,_July_2014.jpg"
+  },
+  "night": {
+   "file": "skyline-minneapolis-night.jpg",
+   "credit": {
+    "author": "Tony Webster from Minneapolis, Minnesota",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Minneapolis_Skyline_(19165922448).jpg"
+   },
+   "focus": 0.575
+  },
+  "focus": 0.446
+ },
+ {
+  "key": "mexicocity",
+  "names": [
+   "Mexico City",
+   "MEX",
+   "Ciudad de México",
+   "CDMX"
+  ],
+  "zone": "America/Mexico_City",
+  "file": "skyline-mexicocity.jpg",
+  "credit": {
+   "author": "Josh Baumgartner",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Mexico_City_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-mexicocity-night.jpg",
+   "credit": {
+    "author": "Bodhisattwa",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_view_of_Mexico_City_viewed_from_Hilton_Mexcio_City_Reforma.JPG"
+   },
+   "focus": 0.494
+  },
+  "focus": 0.422
+ },
+ {
+  "key": "newyork",
+  "names": [
+   "New York",
+   "New York City",
+   "NYC",
+   "JFK",
+   "LGA",
+   "EWR",
+   "Manhattan"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-newyork.jpg",
+  "credit": {
+   "author": "Percival Kestreltail",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Lower_Manhattan,_New_York_skyline_from_Liberty_Island_2021.jpg"
+  },
+  "night": {
+   "file": "skyline-newyork-night.jpg",
+   "credit": {
+    "author": "Diliff",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:New_York_Midtown_Skyline_at_night_-_Jan_2006_edit1.jpg"
+   },
+   "focus": 0.22
+  },
+  "focus": 0.51
+ },
+ {
+  "key": "boston",
+  "names": [
+   "Boston",
+   "BOS"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-boston.jpg",
+  "credit": {
+   "author": "King of Hearts",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Boston_skyline_from_Longfellow_Bridge_September_2017_panorama_2.jpg"
+  },
+  "night": {
+   "file": "skyline-boston-night.jpg",
+   "credit": {
+    "author": "Chris Rycroft from Cambridge, Massachusetts, United States",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Boston_Back_Bay_skyline_at_night_(51526138311).jpg"
+   },
+   "focus": 0.551
+  },
+  "focus": 0.502
+ },
+ {
+  "key": "washingtondc",
+  "names": [
+   "Washington DC",
+   "Washington",
+   "Washington D.C.",
+   "DC",
+   "IAD",
+   "DCA"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-washingtondc.jpg",
+  "credit": {
+   "author": "Ad Meskens",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Washington_dc_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-washingtondc-night.jpg",
+   "credit": {
+    "author": "Upstateherd",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Lincoln_Memorial_at_Night_-_Washington,_DC.jpg"
+   },
+   "focus": 0.26
+  },
+  "focus": 0.664
+ },
+ {
+  "key": "philadelphia",
+  "names": [
+   "Philadelphia",
+   "PHL"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-philadelphia.jpg",
+  "credit": {
+   "author": "颐园居",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Philadelphia_skyline_20240528_(cropped).jpg"
+  },
+  "night": {
+   "file": "skyline-philadelphia-night.jpg",
+   "credit": {
+    "author": "Chris Hunkeler from Carlsbad, California, USA",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Philadelphia_Night_Skyline_(14146388982).jpg"
+   },
+   "focus": 0.47
+  },
+  "focus": 0.519
+ },
+ {
+  "key": "atlanta",
+  "names": [
+   "Atlanta",
+   "ATL"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-atlanta.jpg",
+  "credit": {
+   "author": "brandon walker",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Atlanta_Skyline_from_Mableton.jpg"
+  },
+  "night": {
+   "file": "skyline-atlanta-night.jpg",
+   "credit": {
+    "author": "PhysicalFilter",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:View_of_Atlanta_at_night_from_%22SCADpad%22.png"
+   },
+   "focus": 0.527
+  },
+  "focus": 0.704
+ },
+ {
+  "key": "miami",
+  "names": [
+   "Miami",
+   "MIA"
+  ],
+  "zone": "America/New_York",
+  "file": "skyline-miami.jpg",
+  "credit": {
+   "author": "Wilfredor",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Miami,_Florida_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-miami-night.jpg",
+   "credit": {
+    "author": "Don Ramey Logan",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Miami_night_skyline_by_Don_Ramey_Logan.jpg"
+   },
+   "focus": 0.438
+  },
+  "focus": 0.462
+ },
+ {
+  "key": "detroit",
+  "names": [
+   "Detroit",
+   "DTW"
+  ],
+  "zone": "America/Detroit",
+  "file": "skyline-detroit.jpg",
+  "credit": {
+   "author": "Arthur S. Siegel",
+   "license": "Public domain",
+   "licenseUrl": "",
+   "source": "https://commons.wikimedia.org/wiki/File:Detroit_Skyline_1942d.jpg"
+  },
+  "night": {
+   "file": "skyline-detroit-night.jpg",
+   "credit": {
+    "author": "Nheyob",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Detroit_skyline_at_night_(Windsor,_Ontario).jpg"
+   },
+   "focus": 0.559
+  },
+  "focus": 0.43
+ },
+ {
+  "key": "toronto",
+  "names": [
+   "Toronto",
+   "YYZ"
+  ],
+  "zone": "America/Toronto",
+  "file": "skyline-toronto.jpg",
+  "credit": {
+   "author": "Aaron Davis",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Toronto_Skyline_Summer_2020.jpg"
+  },
+  "night": {
+   "file": "skyline-toronto-night.jpg",
+   "credit": {
+    "author": "Peter Kudlacz",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Toronto_Skyline_at_Night_(5205797878).jpg"
+   },
+   "focus": 0.704
+  },
+  "focus": 0.672
+ },
+ {
+  "key": "montreal",
+  "names": [
+   "Montreal",
+   "Montréal",
+   "YUL"
+  ],
+  "zone": "America/Toronto",
+  "file": "skyline-montreal.jpg",
+  "credit": {
+   "author": "monsieuricon",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Paysage_-_Montreal_Skyline,_November_2005.jpg"
+  },
+  "night": {
+   "file": "skyline-montreal-night.jpg",
+   "credit": {
+    "author": "Anirudh Koul on Flickr",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Montreal_skyline_night.png"
+   },
+   "focus": 0.51
+  },
+  "focus": 0.623
+ },
+ {
+  "key": "havana",
+  "names": [
+   "Havana",
+   "La Habana",
+   "HAV"
+  ],
+  "zone": "America/Havana",
+  "file": "skyline-havana.jpg",
+  "credit": {
+   "author": "kuhnmi",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Havana_Skyline_(49020779491).jpg"
+  },
+  "night": {
+   "file": "skyline-havana-night.jpg",
+   "credit": {
+    "author": "Curt Teich & Co.",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Havana_-_Tropicana_Night_Club_(1955).jpg"
+   },
+   "focus": 0.15
+  },
+  "focus": 0.623
+ },
+ {
+  "key": "panamacity",
+  "names": [
+   "Panama City",
+   "Panama",
+   "PTY"
+  ],
+  "zone": "America/Panama",
+  "file": "skyline-panamacity.jpg",
+  "credit": {
+   "author": "Dr. Thomas Liptak",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Panama_City_Skyline_1.jpg"
+  },
+  "night": {
+   "file": "skyline-panamacity-night.jpg",
+   "credit": {
+    "author": "LWY from Pasadena, USA",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Panama_City_night_view.jpg"
+   },
+   "focus": 0.607
+  },
+  "focus": 0.672
+ },
+ {
+  "key": "honolulu",
+  "names": [
+   "Honolulu",
+   "HNL"
+  ],
+  "zone": "Pacific/Honolulu",
+  "file": "skyline-honolulu.jpg",
+  "credit": {
+   "author": "The Eloquent Peasant",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_from_Kaka%27ako_Waterfront_Park,_Honolulu_01.jpg"
+  },
+  "night": {
+   "file": "skyline-honolulu-night.jpg",
+   "credit": {
+    "author": "Jason Jacobs from Honolulu, USA",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Downtown_Honolulu_at_Night_(34412400633).jpg"
+   },
+   "focus": 0.575
+  },
+  "focus": 0.422
+ },
+ {
+  "key": "anchorage",
+  "names": [
+   "Anchorage",
+   "ANC"
+  ],
+  "zone": "America/Anchorage",
+  "file": "skyline-anchorage.jpg",
+  "credit": {
+   "author": "Frank Kovalchek from USA",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Downtown_Anchorage_from_Little_O%27Malley_(5452272751).jpg"
+  },
+  "night": {
+   "file": "skyline-anchorage-night.jpg",
+   "credit": {
+    "author": "Dennis Krymski",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "source": "https://commons.wikimedia.org/wiki/File:Downtown_Anchorage,_Alaska_at_night_with_the_Robert_B._Atwood_Building_and_Conoco-Phillips_Building.jpg"
+   },
+   "focus": 0.414
+  },
+  "focus": 0.64
+ },
+ {
+  "key": "bogota",
+  "names": [
+   "Bogota",
+   "Bogotá",
+   "BOG"
+  ],
+  "zone": "America/Bogota",
+  "file": "skyline-bogota.jpg",
+  "credit": {
+   "author": "Tijs Zwinkels",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_downtown_Bogota.jpg"
+  },
+  "night": {
+   "file": "skyline-bogota-night.jpg",
+   "credit": {
+    "author": "EEIM",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Bogot%C3%A1_N_de_noche_sep_2017.jpg"
+   },
+   "focus": 0.583
+  },
+  "focus": 0.519
+ },
+ {
+  "key": "lima",
+  "names": [
+   "Lima",
+   "LIM"
+  ],
+  "zone": "America/Lima",
+  "file": "skyline-lima.jpg",
+  "credit": {
+   "author": "Joshua87",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Lima,_Urban_Skyline--Ciudad_de_Lima,_Skyline_urbano.jpg"
+  },
+  "night": {
+   "file": "skyline-lima-night.jpg",
+   "credit": {
+    "author": "Juaniotolp",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:San_Isidro_Modern_Skyline_at_night_-_Lima,_Peru.jpg"
+   },
+   "focus": 0.672
+  },
+  "focus": 0.656
+ },
+ {
+  "key": "santiago",
+  "names": [
+   "Santiago",
+   "Santiago de Chile",
+   "SCL"
+  ],
+  "zone": "America/Santiago",
+  "file": "skyline-santiago.jpg",
+  "credit": {
+   "author": "3BRBS",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Santiago_with_San_Crist%C3%B3bal_hill_at_the_back_(Northeast_view_Panorama_01_-_Flat_projection).jpg"
+  },
+  "night": {
+   "file": "skyline-santiago-night.jpg",
+   "credit": {
+    "author": "Javier Vieras",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Santiago_night_skyline.jpg"
+   },
+   "focus": 0.212
+  },
+  "focus": 0.446
+ },
+ {
+  "key": "buenosaires",
+  "names": [
+   "Buenos Aires",
+   "EZE"
+  ],
+  "zone": "America/Argentina/Buenos_Aires",
+  "file": "skyline-buenosaires.jpg",
+  "credit": {
+   "author": "Michelle Maria",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Buenos_Aires,_Argentina_Skyline_-_panoramio_(3).jpg"
+  },
+  "night": {
+   "file": "skyline-buenosaires-night.jpg",
+   "credit": {
+    "author": "Luis Argerich",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Corrientes_Buenos_Aires_at_Night.jpg"
+   },
+   "focus": 0.648
+  },
+  "focus": 0.188
+ },
+ {
+  "key": "saopaulo",
+  "names": [
+   "Sao Paulo",
+   "São Paulo",
+   "GRU"
+  ],
+  "zone": "America/Sao_Paulo",
+  "file": "skyline-saopaulo.jpg",
+  "credit": {
+   "author": "Gonzalo Ibáñez",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_de_S%C3%A3o_Paulo_(34595764541).jpg"
+  },
+  "night": {
+   "file": "skyline-saopaulo-night.jpg",
+   "credit": {
+    "author": "Diego Torres Silvestre from Sao Paulo, Brazil",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:(2006)_Sao_Paulo_Skyline_(9557402041).jpg"
+   },
+   "focus": 0.559
+  },
+  "focus": 0.47
+ },
+ {
+  "key": "riodejaneiro",
+  "names": [
+   "Rio de Janeiro",
+   "Rio",
+   "GIG"
+  ],
+  "zone": "America/Sao_Paulo",
+  "file": "skyline-riodejaneiro.jpg",
+  "credit": {
+   "author": "Wilfredor",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Rio_skyline_and_Cristo_Redentor_from_Sugarloaf_Mountain,_Brazil.jpg"
+  },
+  "night": {
+   "file": "skyline-riodejaneiro-night.jpg",
+   "credit": {
+    "author": "Edmir Silvestre from Rio de Janeiro-RJ, Brasil",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Rio_by_night-skyline_downtown_(9069145787).jpg"
+   },
+   "focus": 0.777
+  },
+  "focus": 0.422
+ },
+ {
+  "key": "london",
+  "names": [
+   "London",
+   "LHR",
+   "LGW"
+  ],
+  "zone": "Europe/London",
+  "file": "skyline-london.jpg",
+  "credit": {
+   "author": "User:Colin and Kim Hansen",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:City_of_London_skyline_from_London_City_Hall_-_Sept_2015_-_Crop_Aligned.jpg"
+  },
+  "night": {
+   "file": "skyline-london-night.jpg",
+   "credit": {
+    "author": "Michal Osmenda from Brussels, Belgium",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:London_night_skyline_(429510111).jpg"
+   },
+   "focus": 0.462
+  },
+  "focus": 0.446
+ },
+ {
+  "key": "manchester",
+  "names": [
+   "Manchester"
+  ],
+  "zone": "Europe/London",
+  "file": "skyline-manchester.jpg",
+  "credit": {
+   "author": "Peter McDermott",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Manchester_Skyline_-_geograph.org.uk_-_3411450.jpg"
+  },
+  "night": {
+   "file": "skyline-manchester-night.jpg",
+   "credit": {
+    "author": "Francis Franklin",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Manchester_night-time_skyline_1.jpg"
+   },
+   "focus": 0.769
+  },
+  "focus": 0.47
+ },
+ {
+  "key": "edinburgh",
+  "names": [
+   "Edinburgh",
+   "EDI"
+  ],
+  "zone": "Europe/London",
+  "file": "skyline-edinburgh.jpg",
+  "credit": {
+   "author": "Carlesmari",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Edinburgh_Skyline_from_the_Castle.jpg"
+  },
+  "night": {
+   "file": "skyline-edinburgh-night.jpg",
+   "credit": {
+    "author": "Andrew Curtis",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Edinburgh_night_view_-_geograph.org.uk_-_2699586.jpg"
+   },
+   "focus": 0.236
+  },
+  "focus": 0.607
+ },
+ {
+  "key": "dublin",
+  "names": [
+   "Dublin",
+   "DUB"
+  ],
+  "zone": "Europe/Dublin",
+  "file": "skyline-dublin.jpg",
+  "credit": {
+   "author": "Chris Morgan",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Dublin_skyline_and_River_Liffey_from_ferry_arriving_at_Dublin_Port_-_geograph.org.uk_-_5167299.jpg"
+  },
+  "night": {
+   "file": "skyline-dublin-night.jpg",
+   "credit": {
+    "author": "Corey Leopold",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Dublin_at_Night.jpg"
+   },
+   "focus": 0.446
+  },
+  "focus": 0.244
+ },
+ {
+  "key": "reykjavik",
+  "names": [
+   "Reykjavik",
+   "Reykjavík",
+   "KEF"
+  ],
+  "zone": "Atlantic/Reykjavik",
+  "file": "skyline-reykjavik.jpg",
+  "credit": {
+   "author": "Navaro",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Reykjav%C3%ADk_skyline_-_Skuggahverfi.JPG"
+  },
+  "night": {
+   "file": "skyline-reykjavik-night.jpg",
+   "credit": {
+    "author": "Petr Kraumann",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hallgrimskirkja_in_Black,_Reykjav%C3%ADk_-_panoramio.jpg"
+   },
+   "focus": 0.833
+  },
+  "focus": 0.519
+ },
+ {
+  "key": "lisbon",
+  "names": [
+   "Lisbon",
+   "Lisboa",
+   "LIS"
+  ],
+  "zone": "Europe/Lisbon",
+  "file": "skyline-lisbon.jpg",
+  "credit": {
+   "author": "acediscovery",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:LisbonSkyline.jpg"
+  },
+  "night": {
+   "file": "skyline-lisbon-night.jpg",
+   "credit": {
+    "author": "Fredericknoronha",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Lisbon_by_night,_Portugal._The_Rossio_area.jpg"
+   },
+   "focus": 0.494
+  },
+  "focus": 0.519
+ },
+ {
+  "key": "madrid",
+  "names": [
+   "Madrid",
+   "MAD"
+  ],
+  "zone": "Europe/Madrid",
+  "file": "skyline-madrid.jpg",
+  "credit": {
+   "author": "Alberto Racatumba",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Madrid_Skyline_-_Spain.jpg"
+  },
+  "night": {
+   "file": "skyline-madrid-night.jpg",
+   "credit": {
+    "author": "Filip Trefil",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "source": "https://commons.wikimedia.org/wiki/File:Madrid_At_Night_(190214475).jpeg"
+   },
+   "focus": 0.422
+  },
+  "focus": 0.85
+ },
+ {
+  "key": "barcelona",
+  "names": [
+   "Barcelona",
+   "BCN"
+  ],
+  "zone": "Europe/Madrid",
+  "file": "skyline-barcelona.jpg",
+  "credit": {
+   "author": "SGDWN",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Barcelona_Skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-barcelona-night.jpg",
+   "credit": {
+    "author": "Goutam",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_view_of_Barcelona_city.jpg"
+   },
+   "focus": 0.47
+  },
+  "focus": 0.15
+ },
+ {
+  "key": "paris",
+  "names": [
+   "Paris",
+   "CDG"
+  ],
+  "zone": "Europe/Paris",
+  "file": "skyline-paris.jpg",
+  "credit": {
+   "author": "Ali Sabbagh",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Paris_Paris_Skyline_(37328639624).jpg"
+  },
+  "night": {
+   "file": "skyline-paris-night.jpg",
+   "credit": {
+    "author": "Oleksandr Samoylyk",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Paris_Panorama_from_Tour_Montparnasse_at_Night_-_panoramio.jpg"
+   },
+   "focus": 0.478
+  },
+  "focus": 0.599
+ },
+ {
+  "key": "brussels",
+  "names": [
+   "Brussels",
+   "Bruxelles",
+   "BRU"
+  ],
+  "zone": "Europe/Brussels",
+  "file": "skyline-brussels.jpg",
+  "credit": {
+   "author": "Luca Mangiat",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Brussels_Skyline_(cropped).jpg"
+  },
+  "night": {
+   "file": "skyline-brussels-night.jpg",
+   "credit": {
+    "author": "DimiTalen",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_skyline_above_Rue_de_la_Fourche,_Brussels,_2013.jpg"
+   },
+   "focus": 0.446
+  },
+  "focus": 0.47
+ },
+ {
+  "key": "amsterdam",
+  "names": [
+   "Amsterdam",
+   "AMS"
+  ],
+  "zone": "Europe/Amsterdam",
+  "file": "skyline-amsterdam.jpg",
+  "credit": {
+   "author": "Choinowski",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_Amsterdam_Zuidas_(cropped).jpg"
+  },
+  "night": {
+   "file": "skyline-amsterdam-night.jpg",
+   "credit": {
+    "author": "Tom Ek",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Amsterdam_by_night_(31110551215).jpg"
+   },
+   "focus": 0.47
+  },
+  "focus": 0.325
+ },
+ {
+  "key": "frankfurt",
+  "names": [
+   "Frankfurt",
+   "Frankfurt am Main"
+  ],
+  "zone": "Europe/Berlin",
+  "file": "skyline-frankfurt.jpg",
+  "credit": {
+   "author": "DXR",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Seat_of_the_European_Central_Bank_and_Frankfurt_Skyline_at_dawn_20150422_1.jpg"
+  },
+  "night": {
+   "file": "skyline-frankfurt-night.jpg",
+   "credit": {
+    "author": "Jörg Braukmann",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Frankfurt_Skyline_2022_bei_Nacht.jpg"
+   },
+   "focus": 0.599
+  },
+  "focus": 0.704
+ },
+ {
+  "key": "berlin",
+  "names": [
+   "Berlin",
+   "BER"
+  ],
+  "zone": "Europe/Berlin",
+  "file": "skyline-berlin.jpg",
+  "credit": {
+   "author": "Casp",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Berlin_skyline_2009w.jpg"
+  },
+  "night": {
+   "file": "skyline-berlin-night.jpg",
+   "credit": {
+    "author": "Ansgar Koreng",
+    "license": "CC BY-SA 3.0 de",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
+    "source": "https://commons.wikimedia.org/wiki/File:Reichstagsgeb%C3%A4ude_mit_Weihnachtsbaum_bei_Nacht,_Berlin,_151223,_ako.jpg"
+   },
+   "focus": 0.535
+  },
+  "focus": 0.648
+ },
+ {
+  "key": "munich",
+  "names": [
+   "Munich",
+   "München",
+   "MUC"
+  ],
+  "zone": "Europe/Berlin",
+  "file": "skyline-munich.jpg",
+  "credit": {
+   "author": "Mwinog2777 ( talk )",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Munich_skyline_1.jpg"
+  },
+  "night": {
+   "file": "skyline-munich-night.jpg",
+   "credit": {
+    "author": "Martin Falbisoner",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Maximilianeum_Munich_at_Night,_March_2018.jpg"
+   },
+   "focus": 0.406
+  },
+  "focus": 0.623
+ },
+ {
+  "key": "zurich",
+  "names": [
+   "Zurich",
+   "Zürich",
+   "ZRH"
+  ],
+  "zone": "Europe/Zurich",
+  "file": "skyline-zurich.jpg",
+  "credit": {
+   "author": "Tschubby",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+   "source": "https://commons.wikimedia.org/wiki/File:Z%C3%BCrich_Kreis_11_Panorama_2020.jpg"
+  },
+  "night": {
+   "file": "skyline-zurich-night.jpg",
+   "credit": {
+    "author": "IqRS",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Panorama_von_Z%C3%BCrich_@_82_mm.jpg"
+   },
+   "focus": 0.333
+  },
+  "focus": 0.656
+ },
+ {
+  "key": "geneva",
+  "names": [
+   "Geneva",
+   "Genève",
+   "GVA"
+  ],
+  "zone": "Europe/Zurich",
+  "file": "skyline-geneva.jpg",
+  "credit": {
+   "author": "Benh LIEU SONG",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Pont_de_la_Machine_Gen%C3%A8ve_BLS.jpg"
+  },
+  "night": {
+   "file": "skyline-geneva-night.jpg",
+   "credit": {
+    "author": "Björn S.",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Geneva_by_night_-_panoramio.jpg"
+   },
+   "focus": 0.341
+  },
+  "focus": 0.591
+ },
+ {
+  "key": "milan",
+  "names": [
+   "Milan",
+   "Milano",
+   "MXP"
+  ],
+  "zone": "Europe/Rome",
+  "file": "skyline-milan.jpg",
+  "credit": {
+   "author": "Daniel Case",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Full_Milan_skyline_from_Duomo_roof.jpg"
+  },
+  "night": {
+   "file": "skyline-milan-night.jpg",
+   "credit": {
+    "author": "Jonashtand",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:202612_Duomo_(Milan)_-_Facade_at_night_02.jpg"
+   },
+   "focus": 0.494
+  },
+  "focus": 0.462
+ },
+ {
+  "key": "rome",
+  "names": [
+   "Rome",
+   "Roma",
+   "FCO"
+  ],
+  "zone": "Europe/Rome",
+  "file": "skyline-rome.jpg",
+  "credit": {
+   "author": "Nicholas Hartmann",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Rome_skyline_panorama.jpg"
+  },
+  "night": {
+   "file": "skyline-rome-night.jpg",
+   "credit": {
+    "author": "Livioandronico2013",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Vittoriano_(Rome)_at_Night.jpg"
+   },
+   "focus": 0.494
+  },
+  "focus": 0.406
+ },
+ {
+  "key": "vienna",
+  "names": [
+   "Vienna",
+   "Wien",
+   "VIE"
+  ],
+  "zone": "Europe/Vienna",
+  "file": "skyline-vienna.jpg",
+  "credit": {
+   "author": "Sohom Datta",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Vienna_skyline_across_the_Danube_river.jpg"
+  },
+  "night": {
+   "file": "skyline-vienna-night.jpg",
+   "credit": {
+    "author": "Beate Pamperl",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:University_of_Vienna_at_night.jpg"
+   },
+   "focus": 0.349
+  },
+  "focus": 0.712
+ },
+ {
+  "key": "prague",
+  "names": [
+   "Prague",
+   "Praha",
+   "PRG"
+  ],
+  "zone": "Europe/Prague",
+  "file": "skyline-prague.jpg",
+  "credit": {
+   "author": "DXR",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:North_view_of_Charles_Bridge_from_M%C3%A1nes%C5%AFv_most,_Prague_20160808_1.jpg"
+  },
+  "night": {
+   "file": "skyline-prague-night.jpg",
+   "credit": {
+    "author": "Miguel Mendez",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Prague_at_night_-_34100936854.jpg"
+   },
+   "focus": 0.309
+  },
+  "focus": 0.486
+ },
+ {
+  "key": "copenhagen",
+  "names": [
+   "Copenhagen",
+   "København",
+   "CPH"
+  ],
+  "zone": "Europe/Copenhagen",
+  "file": "skyline-copenhagen.jpg",
+  "credit": {
+   "author": "Skyline_003.jpg : Paul Burani from New York, NY derivative work: Blunts ( talk )",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Copenhagen_(Cropped).jpg"
+  },
+  "night": {
+   "file": "skyline-copenhagen-night.jpg",
+   "credit": {
+    "author": "Ingimar Erl",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Copenhagen_by_night_20151104_IE_2.jpg"
+   },
+   "focus": 0.293
+  },
+  "focus": 0.341
+ },
+ {
+  "key": "oslo",
+  "names": [
+   "Oslo",
+   "OSL"
+  ],
+  "zone": "Europe/Oslo",
+  "file": "skyline-oslo.jpg",
+  "credit": {
+   "author": "Audun",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Oslo_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-oslo-night.jpg",
+   "credit": {
+    "author": "Nurtenge",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Royal_Palace,_Oslo_at_the_night_3.jpg"
+   },
+   "focus": 0.373
+  },
+  "focus": 0.599
+ },
+ {
+  "key": "stockholm",
+  "names": [
+   "Stockholm",
+   "ARN"
+  ],
+  "zone": "Europe/Stockholm",
+  "file": "skyline-stockholm.jpg",
+  "credit": {
+   "author": "Tony Webster from Portland, Oregon, United States",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Stockholm_Skyline_(15189547020).jpg"
+  },
+  "night": {
+   "file": "skyline-stockholm-night.jpg",
+   "credit": {
+    "author": "Holger.Ellgaard",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Stockholm_by_night_2008h.jpg"
+   },
+   "focus": 0.502
+  },
+  "focus": 0.535
+ },
+ {
+  "key": "helsinki",
+  "names": [
+   "Helsinki",
+   "HEL"
+  ],
+  "zone": "Europe/Helsinki",
+  "file": "skyline-helsinki.jpg",
+  "credit": {
+   "author": "JIP",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Helsinki_as_seen_from_the_Erottaja_fire_station.jpg"
+  },
+  "night": {
+   "file": "skyline-helsinki-night.jpg",
+   "credit": {
+    "author": "Tim Tregenza",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Helsinki_skyline_-_panoramio.jpg"
+   },
+   "focus": 0.349
+  },
+  "focus": 0.414
+ },
+ {
+  "key": "warsaw",
+  "names": [
+   "Warsaw",
+   "Warszawa",
+   "WAW"
+  ],
+  "zone": "Europe/Warsaw",
+  "file": "skyline-warsaw.jpg",
+  "credit": {
+   "author": "Wistula",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:The_Warsaw_Hub_and_Skyliner.jpg"
+  },
+  "night": {
+   "file": "skyline-warsaw-night.jpg",
+   "credit": {
+    "author": "Oleslawlama",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Gda%C5%84ski_Bridge_in_Warsaw_at_night_01.jpg"
+   },
+   "focus": 0.309
+  },
+  "focus": 0.527
+ },
+ {
+  "key": "budapest",
+  "names": [
+   "Budapest",
+   "BUD"
+  ],
+  "zone": "Europe/Budapest",
+  "file": "skyline-budapest.jpg",
+  "credit": {
+   "author": "Elekes Andor",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Budapest_skyline_from_Gell%C3%A9rt_Hill_(3).jpg"
+  },
+  "night": {
+   "file": "skyline-budapest-night.jpg",
+   "credit": {
+    "author": "Wilfredor",
+    "license": "CC0",
+    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "source": "https://commons.wikimedia.org/wiki/File:Sz%C3%A9chenyi_Chain_Bridge_in_Budapest_at_night.jpg"
+   },
+   "focus": 0.43
+  },
+  "focus": 0.559
+ },
+ {
+  "key": "athens",
+  "names": [
+   "Athens",
+   "Athína",
+   "ATH"
+  ],
+  "zone": "Europe/Athens",
+  "file": "skyline-athens.jpg",
+  "credit": {
+   "author": "A.Savin",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Attica_06-13_Athens_50_View_from_Philopappos_-_Acropolis_Hill.jpg"
+  },
+  "night": {
+   "file": "skyline-athens-night.jpg",
+   "credit": {
+    "author": "Georgios Liakopoulos",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Acropolis_Of_Athens_Night_Panorama_(194203805).jpeg"
+   },
+   "focus": 0.414
+  },
+  "focus": 0.446
+ },
+ {
+  "key": "kyiv",
+  "names": [
+   "Kyiv",
+   "Kiev",
+   "KBP"
+  ],
+  "zone": "Europe/Kyiv",
+  "file": "skyline-kyiv.jpg",
+  "credit": {
+   "author": "Sergey Galyonkin from Raleigh, USA",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Kyiv_skyline_(15688086793).jpg"
+  },
+  "night": {
+   "file": "skyline-kyiv-night.jpg",
+   "credit": {
+    "author": "i.Parfeniy",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Kyiv_Pechersk_Lavra_at_night_2005.jpg"
+   },
+   "focus": 0.293
+  },
+  "focus": 0.494
+ },
+ {
+  "key": "istanbul",
+  "names": [
+   "Istanbul",
+   "İstanbul",
+   "IST"
+  ],
+  "zone": "Europe/Istanbul",
+  "file": "skyline-istanbul.jpg",
+  "credit": {
+   "author": "SegLig",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Istanbul_skyline_01.jpg"
+  },
+  "night": {
+   "file": "skyline-istanbul-night.jpg",
+   "credit": {
+    "author": "SeablueTravelOfficial",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Istanbul-skyline-night-view-with-TV-tower.jpg"
+   },
+   "focus": 0.599
+  },
+  "focus": 0.285
+ },
+ {
+  "key": "moscow",
+  "names": [
+   "Moscow",
+   "Moskva",
+   "SVO"
+  ],
+  "zone": "Europe/Moscow",
+  "file": "skyline-moscow.jpg",
+  "credit": {
+   "author": "Александр Сигачёв",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Moscow_-_Skyline_-_2026-09_-_p02.jpg"
+  },
+  "night": {
+   "file": "skyline-moscow-night.jpg",
+   "credit": {
+    "author": "Aleks G",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night-Moscow-(w_b).jpg"
+   },
+   "focus": 0.414
+  },
+  "focus": 0.47
+ },
+ {
+  "key": "cairo",
+  "names": [
+   "Cairo",
+   "CAI"
+  ],
+  "zone": "Africa/Cairo",
+  "file": "skyline-cairo.jpg",
+  "credit": {
+   "author": "Maher Najm",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cairo_Skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-cairo-night.jpg",
+   "credit": {
+    "author": "Mujaddara",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Cairo_night_panorama_-_panoramio.jpg"
+   },
+   "focus": 0.422
+  },
+  "focus": 0.398
+ },
+ {
+  "key": "casablanca",
+  "names": [
+   "Casablanca",
+   "CMN",
+   "Hassan II"
+  ],
+  "zone": "Africa/Casablanca",
+  "file": "skyline-casablanca.jpg",
+  "credit": {
+   "author": "elchicogris",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Casablanca_(1).jpg"
+  },
+  "night": {
+   "file": "skyline-casablanca-night.jpg",
+   "credit": {
+    "author": "User: (WT-shared) Radouane at wts wikivoyage",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Casablanca_fountain_night.jpg"
+   },
+   "focus": 0.696
+  },
+  "focus": 0.623
+ },
+ {
+  "key": "lagos",
+  "names": [
+   "Lagos",
+   "LOS"
+  ],
+  "zone": "Africa/Lagos",
+  "file": "skyline-lagos.jpg",
+  "credit": {
+   "author": "Clara Sanchiz",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Lagos_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-lagos-night.jpg",
+   "credit": {
+    "author": "Theo Crazzolara",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Lagos_at_Night_(48478169886).jpg"
+   },
+   "focus": 0.446
+  },
+  "focus": 0.47
+ },
+ {
+  "key": "accra",
+  "names": [
+   "Accra",
+   "ACC"
+  ],
+  "zone": "Africa/Accra",
+  "file": "skyline-accra.jpg",
+  "credit": {
+   "author": "Synth85",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Accra_Skyline_-_Ghana.jpg"
+  },
+  "night": {
+   "file": "skyline-accra-night.jpg",
+   "credit": {
+    "author": "James Ainooson from Kasoa, Ghana",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Cool_Accra_By_Night_(3880299393).jpg"
+   },
+   "focus": 0.752
+  },
+  "focus": 0.575
+ },
+ {
+  "key": "addisababa",
+  "names": [
+   "Addis Ababa",
+   "ADD"
+  ],
+  "zone": "Africa/Addis_Ababa",
+  "file": "skyline-addisababa.jpg",
+  "credit": {
+   "author": "Simfan34",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Addis_Ababa_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-addisababa-night.jpg",
+   "credit": {
+    "author": "Jean Rebiffé",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Addis_Ababa_by_night_activity.jpg"
+   },
+   "focus": 0.43
+  },
+  "focus": 0.672
+ },
+ {
+  "key": "nairobi",
+  "names": [
+   "Nairobi",
+   "NBO"
+  ],
+  "zone": "Africa/Nairobi",
+  "file": "skyline-nairobi.jpg",
+  "credit": {
+   "author": "This Photo was taken by Timothy A. Gonsalves . Feel free to use my photos, but please mention me as the author. I wou...",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Nairobi_Skyline_Savannah_Kenya_May19_R1600687.jpg"
+  },
+  "night": {
+   "file": "skyline-nairobi-night.jpg",
+   "credit": {
+    "author": "Nbi101",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Nairobi_night_skyline_at_dusk_.jpg"
+   },
+   "focus": 0.623
+  },
+  "focus": 0.656
+ },
+ {
+  "key": "johannesburg",
+  "names": [
+   "Johannesburg",
+   "JNB",
+   "Joburg"
+  ],
+  "zone": "Africa/Johannesburg",
+  "file": "skyline-johannesburg.jpg",
+  "credit": {
+   "author": "Mark Hillary",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Johannesburg_skyline_2017.jpg"
+  },
+  "night": {
+   "file": "skyline-johannesburg-night.jpg",
+   "credit": {
+    "author": "qwesy qwesy",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Johannesburg_at_night,_1980_-_panoramio.jpg"
+   },
+   "focus": 0.269
+  },
+  "focus": 0.381
+ },
+ {
+  "key": "capetown",
+  "names": [
+   "Cape Town",
+   "CPT"
+  ],
+  "zone": "Africa/Johannesburg",
+  "file": "skyline-capetown.jpg",
+  "credit": {
+   "author": "Bernard303",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cape_Town_Skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-capetown-night.jpg",
+   "credit": {
+    "author": "Satdeep Gill",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_sky_in_Cape_Town.jpg"
+   },
+   "focus": 0.583
+  },
+  "focus": 0.406
+ },
+ {
+  "key": "telaviv",
+  "names": [
+   "Tel Aviv",
+   "TLV"
+  ],
+  "zone": "Asia/Jerusalem",
+  "file": "skyline-telaviv.jpg",
+  "credit": {
+   "author": "Yair Haklai",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skylines_of_Tel_Aviv-Yafo.jpg"
+  },
+  "night": {
+   "file": "skyline-telaviv-night.jpg",
+   "credit": {
+    "author": "No machine-readable author provided. Tango7000 assumed (based on copyright claims).",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Tel_Aviv_downtown_night.jpg"
+   },
+   "focus": 0.607
+  },
+  "focus": 0.446
+ },
+ {
+  "key": "riyadh",
+  "names": [
+   "Riyadh",
+   "RUH"
+  ],
+  "zone": "Asia/Riyadh",
+  "file": "skyline-riyadh.jpg",
+  "credit": {
+   "author": "Thesadcactus",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Riyadh_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-riyadh-night.jpg",
+   "credit": {
+    "author": "Jack Soma",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_view_of_City_Riyadh_from_Hauptstadt_Saudi_Arabiens_-_panoramio.jpg"
+   },
+   "focus": 0.365
+  },
+  "focus": 0.712
+ },
+ {
+  "key": "doha",
+  "names": [
+   "Doha",
+   "DOH"
+  ],
+  "zone": "Asia/Qatar",
+  "file": "skyline-doha.jpg",
+  "credit": {
+   "author": "Zairon",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Doha_Skyline_01.jpg"
+  },
+  "night": {
+   "file": "skyline-doha-night.jpg",
+   "credit": {
+    "author": "Zairon",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Doha_Dhow_Harbour_Skyline_View_at_Night_02.jpg"
+   },
+   "focus": 0.325
+  },
+  "focus": 0.535
+ },
+ {
+  "key": "dubai",
+  "names": [
+   "Dubai",
+   "DXB"
+  ],
+  "zone": "Asia/Dubai",
+  "file": "skyline-dubai.jpg",
+  "credit": {
+   "author": "Challiyil Eswaramangalath Pavithran Vipin",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Dubai_Skyline_from_Zabeel_Park.jpg"
+  },
+  "night": {
+   "file": "skyline-dubai-night.jpg",
+   "credit": {
+    "author": "Challiyan",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Dubai_night_birds_eye_view.jpg"
+   },
+   "focus": 0.39
+  },
+  "focus": 0.398
+ },
+ {
+  "key": "abudhabi",
+  "names": [
+   "Abu Dhabi",
+   "AUH"
+  ],
+  "zone": "Asia/Dubai",
+  "file": "skyline-abudhabi.jpg",
+  "credit": {
+   "author": "giggel",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Abu_Dhabi_-_Corniche_%E2%80%93_Skyline_-_%D8%A7%D9%84%D9%83%D9%88%D8%B1%D9%86%D9%8A%D8%B4_-_%D8%A7%D9%84%D8%A3%D9%81%D9%82_-_panoramio_(1).jpg"
+  },
+  "night": {
+   "file": "skyline-abudhabi-night.jpg",
+   "credit": {
+    "author": "Groman123",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Abu_Dhabi_night_skyline_(37001006072).jpg"
+   },
+   "focus": 0.502
+  },
+  "focus": 0.39
+ },
+ {
+  "key": "tehran",
+  "names": [
+   "Tehran",
+   "IKA"
+  ],
+  "zone": "Asia/Tehran",
+  "file": "skyline-tehran.jpg",
+  "credit": {
+   "author": "Mhsheikholeslami",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Tehran_skyline-_Alborz_Mountains_on_background-20150401.jpg"
+  },
+  "night": {
+   "file": "skyline-tehran-night.jpg",
+   "credit": {
+    "author": "Shiasun",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:University_of_Tehran_at_night_2021_(1).jpg"
+   },
+   "focus": 0.365
+  },
+  "focus": 0.728
+ },
+ {
+  "key": "karachi",
+  "names": [
+   "Karachi",
+   "KHI"
+  ],
+  "zone": "Asia/Karachi",
+  "file": "skyline-karachi.jpg",
+  "credit": {
+   "author": "Ktownboy103",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Karachi_Skyline_2025.jpg"
+  },
+  "night": {
+   "file": "skyline-karachi-night.jpg",
+   "credit": {
+    "author": "Kabeer Khusroo",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Karachi_Port_Trust_(KPT)_Head_Office_Building_night_view.jpg"
+   },
+   "focus": 0.406
+  },
+  "focus": 0.438
+ },
+ {
+  "key": "delhi",
+  "names": [
+   "Delhi",
+   "New Delhi",
+   "DEL"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-delhi.jpg",
+  "credit": {
+   "author": "Kabi1990",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_at_Rajiv_Chowk.JPG"
+  },
+  "night": {
+   "file": "skyline-delhi-night.jpg",
+   "credit": {
+    "author": "Narendra Modi YouTube Channel, Government of India",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_view_of_Central_Vista,_New_Delhi_,_India.jpg"
+   },
+   "focus": 0.196
+  },
+  "focus": 0.502
+ },
+ {
+  "key": "mumbai",
+  "names": [
+   "Mumbai",
+   "Bombay",
+   "BOM"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-mumbai.jpg",
+  "credit": {
+   "author": "Wander-earth",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Mumbai_skyline,_Carter_Road_Bandra.jpg"
+  },
+  "night": {
+   "file": "skyline-mumbai-night.jpg",
+   "credit": {
+    "author": "Av9",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Mumbai_Skyline_Marine_Drive_Night.jpg"
+   },
+   "focus": 0.494
+  },
+  "focus": 0.551
+ },
+ {
+  "key": "bengaluru",
+  "names": [
+   "Bengaluru",
+   "Bangalore",
+   "BLR"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-bengaluru.jpg",
+  "credit": {
+   "author": "Kushagra140",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bengaluru_Skyline_from_Tata_Promont.jpg"
+  },
+  "night": {
+   "file": "skyline-bengaluru-night.jpg",
+   "credit": {
+    "author": "Ashwin Kumar from Bangalore, India",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_Life_in_Bangalore_(3113168217).jpg"
+   },
+   "focus": 0.228
+  },
+  "focus": 0.712
+ },
+ {
+  "key": "hyderabad",
+  "names": [
+   "Hyderabad",
+   "HYD"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-hyderabad.jpg",
+  "credit": {
+   "author": "iMahesh",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Rajapushpa_Provincia_and_My_Home_Avatar_complexes_-_High-rise_residential_skyline_in_Hyderabad.jpg"
+  },
+  "night": {
+   "file": "skyline-hyderabad-night.jpg",
+   "credit": {
+    "author": "Mohammad Anees Qamar",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hyderabad_Hi-Tech_City_Skyline_at_Night_%E2%80%93_India%27s_Emerging_Silicon_Valley_(2025).jpg"
+   },
+   "focus": 0.365
+  },
+  "focus": 0.43
+ },
+ {
+  "key": "chennai",
+  "names": [
+   "Chennai",
+   "Madras",
+   "MAA"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-chennai.jpg",
+  "credit": {
+   "author": "Vineeshkoomully",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Chennai_skyline.JPG"
+  },
+  "night": {
+   "file": "skyline-chennai-night.jpg",
+   "credit": {
+    "author": "soumyajit pramanick",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Fireworks_Chennai_Diwali_skyline,_Tamil_Nadu_India_November_2010.jpg"
+   },
+   "focus": 0.486
+  },
+  "focus": 0.309
+ },
+ {
+  "key": "kolkata",
+  "names": [
+   "Kolkata",
+   "Calcutta",
+   "CCU"
+  ],
+  "zone": "Asia/Kolkata",
+  "file": "skyline-kolkata.jpg",
+  "credit": {
+   "author": "Innocentbunny",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Kolkata_Skyline_From_Vidyasagar_Seti_2.jpg"
+  },
+  "night": {
+   "file": "skyline-kolkata-night.jpg",
+   "credit": {
+    "author": "DeepanjanGhosh",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Kolkata_skyline_at_night.jpg"
+   },
+   "focus": 0.309
+  },
+  "focus": 0.752
+ },
+ {
+  "key": "dhaka",
+  "names": [
+   "Dhaka",
+   "DAC"
+  ],
+  "zone": "Asia/Dhaka",
+  "file": "skyline-dhaka.jpg",
+  "credit": {
+   "author": "Tarunno",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_View_of_the_City_of_Dhaka_on_a_Cloudy_Day.jpg"
+  },
+  "night": {
+   "file": "skyline-dhaka-night.jpg",
+   "credit": {
+    "author": "ASaber91",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Dhaka_night_(29464009911).jpg"
+   },
+   "focus": 0.236
+  },
+  "focus": 0.599
+ },
+ {
+  "key": "bangkok",
+  "names": [
+   "Bangkok",
+   "BKK"
+  ],
+  "zone": "Asia/Bangkok",
+  "file": "skyline-bangkok.jpg",
+  "credit": {
+   "author": "srihariyv",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bangkok_skyline_2018.jpg"
+  },
+  "night": {
+   "file": "skyline-bangkok-night.jpg",
+   "credit": {
+    "author": "Wolfgang Weber",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Bangkok_Panorama_(211522205).jpeg"
+   },
+   "focus": 0.422
+  },
+  "focus": 0.51
+ },
+ {
+  "key": "hanoi",
+  "names": [
+   "Hanoi",
+   "Hà Nội",
+   "HAN"
+  ],
+  "zone": "Asia/Ho_Chi_Minh",
+  "file": "skyline-hanoi.jpg",
+  "credit": {
+   "author": "NKSTTSSHNVN",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Hanoi_Skyline_-_NKS.jpg"
+  },
+  "night": {
+   "file": "skyline-hanoi-night.jpg",
+   "credit": {
+    "author": "cloud.shepherd",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hanoi_at_night.jpg"
+   },
+   "focus": 0.406
+  },
+  "focus": 0.406
+ },
+ {
+  "key": "hochiminhcity",
+  "names": [
+   "Ho Chi Minh City",
+   "Ho Chi Minh",
+   "Saigon",
+   "SGN"
+  ],
+  "zone": "Asia/Ho_Chi_Minh",
+  "file": "skyline-hochiminhcity.jpg",
+  "credit": {
+   "author": "Pimnl",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Ho_Chi_Minh_City_Skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-hochiminhcity-night.jpg",
+   "credit": {
+    "author": "Jim 陳",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Ho_Chi_Minh_City_Skyline_(night).jpg"
+   },
+   "focus": 0.422
+  },
+  "focus": 0.607
+ },
+ {
+  "key": "kualalumpur",
+  "names": [
+   "Kuala Lumpur",
+   "KL",
+   "KUL"
+  ],
+  "zone": "Asia/Kuala_Lumpur",
+  "file": "skyline-kualalumpur.jpg",
+  "credit": {
+   "author": "CEphoto, Uwe Aranas",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Kuala_Lumpur_Malaysia_Skyline-of-Kuala-Lumpur-Sentral-01.jpg"
+  },
+  "night": {
+   "file": "skyline-kualalumpur-night.jpg",
+   "credit": {
+    "author": "Lee Wei",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Kuala_Lumpur_skyline_at_night_(2019).jpg"
+   },
+   "focus": 0.567
+  },
+  "focus": 0.76
+ },
+ {
+  "key": "singapore",
+  "names": [
+   "Singapore",
+   "SIN"
+  ],
+  "zone": "Asia/Singapore",
+  "file": "skyline-singapore.jpg",
+  "credit": {
+   "author": "CEphoto, Uwe Aranas",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Singapore_Skyline-01.jpg"
+  },
+  "night": {
+   "file": "skyline-singapore-night.jpg",
+   "credit": {
+    "author": "Basile Morin",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Skylines_of_the_Central_Business_District_at_night_in_Singapore.jpg"
+   },
+   "focus": 0.325
+  },
+  "focus": 0.486
+ },
+ {
+  "key": "jakarta",
+  "names": [
+   "Jakarta",
+   "CGK"
+  ],
+  "zone": "Asia/Jakarta",
+  "file": "skyline-jakarta.jpg",
+  "credit": {
+   "author": "Netaholic13 at English Wikipedia",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Jakarta_skyline.jpg"
+  },
+  "night": {
+   "file": "skyline-jakarta-night.jpg",
+   "credit": {
+    "author": "Cuantum1",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Skyline_Jakarta.jpg"
+   },
+   "focus": 0.398
+  },
+  "focus": 0.446
+ },
+ {
+  "key": "manila",
+  "names": [
+   "Manila",
+   "MNL",
+   "Makati"
+  ],
+  "zone": "Asia/Manila",
+  "file": "skyline-manila.jpg",
+  "credit": {
+   "author": "Bahnfrend",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cityscape_of_Manila,_2025_(05).jpg"
+  },
+  "night": {
+   "file": "skyline-manila-night.jpg",
+   "credit": {
+    "author": "Matthew Gan",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:De_La_Salle_University_Manila_La_Salle_Hall_Night_Skyline_Taft_Avenue.jpg"
+   },
+   "focus": 0.51
+  },
+  "focus": 0.373
+ },
+ {
+  "key": "hongkong",
+  "names": [
+   "Hong Kong",
+   "HK",
+   "HKG"
+  ],
+  "zone": "Asia/Hong_Kong",
+  "file": "skyline-hongkong.jpg",
+  "credit": {
+   "author": "WiNG",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Hong_Kong_Island_Skyline_2009.jpg"
+  },
+  "night": {
+   "file": "skyline-hongkong-night.jpg",
+   "credit": {
+    "author": "Kent Wang",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hong_Kong_skyline_night_lights.jpg"
+   },
+   "focus": 0.51
+  },
+  "focus": 0.527
+ },
+ {
+  "key": "shenzhen",
+  "names": [
+   "Shenzhen",
+   "SZX"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-shenzhen.jpg",
+  "credit": {
+   "author": "Fumikas Sagisavas",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Skyline_in_Shenzhen_(20250327).jpg"
+  },
+  "night": {
+   "file": "skyline-shenzhen-night.jpg",
+   "credit": {
+    "author": "A J Butler",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Shenzhen_at_Night_-_panoramio.jpg"
+   },
+   "focus": 0.18
+  },
+  "focus": 0.43
+ },
+ {
+  "key": "guangzhou",
+  "names": [
+   "Guangzhou",
+   "Canton",
+   "CAN"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-guangzhou.jpg",
+  "credit": {
+   "author": "kevinmcgill from Den Bosch, Netherlands",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Guangzhou_skyline_(6343573781).jpg"
+  },
+  "night": {
+   "file": "skyline-guangzhou-night.jpg",
+   "credit": {
+    "author": "User:Pulsarwind",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Guangzhou-Huadu_Plain_and_Mount_Baiyun_Aerial_View_from_Tianhe.jpg"
+   },
+   "focus": 0.373
+  },
+  "focus": 0.64
+ },
+ {
+  "key": "shanghai",
+  "names": [
+   "Shanghai",
+   "PVG"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-shanghai.jpg",
+  "credit": {
+   "author": "https://www.pxfuel.com/en/free-photo-ovozr",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Shanghai_skyline_from_the_bund.jpg"
+  },
+  "night": {
+   "file": "skyline-shanghai-night.jpg",
+   "credit": {
+    "author": "A Chinese ID",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Skyline_of_Shanghai_at_night,_Aug_10_2023.jpg"
+   },
+   "focus": 0.64
+  },
+  "focus": 0.656
+ },
+ {
+  "key": "beijing",
+  "names": [
+   "Beijing",
+   "Peking",
+   "PEK"
+  ],
+  "zone": "Asia/Shanghai",
+  "file": "skyline-beijing.jpg",
+  "credit": {
+   "author": "Daniel Case",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Eastern_Beijing_skyline_from_Forbidden_City.jpg"
+  },
+  "night": {
+   "file": "skyline-beijing-night.jpg",
+   "credit": {
+    "author": "Scott Meltzer",
+    "license": "Public domain",
+    "licenseUrl": "",
+    "source": "https://commons.wikimedia.org/wiki/File:Beijing_skyline_at_night.JPG"
+   },
+   "focus": 0.535
+  },
+  "focus": 0.551
+ },
+ {
+  "key": "taipei",
+  "names": [
+   "Taipei",
+   "TPE"
+  ],
+  "zone": "Asia/Taipei",
+  "file": "skyline-taipei.jpg",
+  "credit": {
+   "author": "brian25_tw",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Nangang,_Taipei_Skyline_20250928.jpg"
+  },
+  "night": {
+   "file": "skyline-taipei-night.jpg",
+   "credit": {
+    "author": "Sinchen.Lin",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Taipei_Night_Skyline_2013.jpg"
+   },
+   "focus": 0.583
+  },
+  "focus": 0.381
+ },
+ {
+  "key": "seoul",
+  "names": [
+   "Seoul",
+   "ICN"
+  ],
+  "zone": "Asia/Seoul",
+  "file": "skyline-seoul.jpg",
+  "credit": {
+   "author": "USAGI_POST",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "source": "https://commons.wikimedia.org/wiki/File:Han_River_Seoul_skyline_Pixabay_1214950.jpg"
+  },
+  "night": {
+   "file": "skyline-seoul-night.jpg",
+   "credit": {
+    "author": "Matt Kieffer from London, United Kingdom",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Seoul_city_skyline_at_night_from_Namsan_Mountain_(49174548523).jpg"
+   },
+   "focus": 0.648
+  },
+  "focus": 0.51
+ },
+ {
+  "key": "tokyo",
+  "names": [
+   "Tokyo",
+   "HND",
+   "NRT"
+  ],
+  "zone": "Asia/Tokyo",
+  "file": "skyline-tokyo.jpg",
+  "credit": {
+   "author": "Max221B",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Tokio_skyline_from_Tokyo_Metropolitan_Government_Building.jpg"
+  },
+  "night": {
+   "file": "skyline-tokyo-night.jpg",
+   "credit": {
+    "author": "https://www.flickr.com/people/imuttoo/",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Tokyo_night_view_1_(cropped).jpg"
+   },
+   "focus": 0.349
+  },
+  "focus": 0.51
+ },
+ {
+  "key": "osaka",
+  "names": [
+   "Osaka",
+   "KIX"
+  ],
+  "zone": "Asia/Tokyo",
+  "file": "skyline-osaka.jpg",
+  "credit": {
+   "author": "Ug",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Ufoto-wiki-01_Osaka-Skyline_May2014.jpg"
+  },
+  "night": {
+   "file": "skyline-osaka-night.jpg",
+   "credit": {
+    "author": "Insightwm",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Night_view_of_Osaka_Minato_Bridge_from_Sakishima_Building_Observatory.jpg"
+   },
+   "focus": 0.567
+  },
+  "focus": 0.486
+ },
+ {
+  "key": "perth",
+  "names": [
+   "Perth",
+   "PER"
+  ],
+  "zone": "Australia/Perth",
+  "file": "skyline-perth.jpg",
+  "credit": {
+   "author": "Mark",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Perth_skyline_2.jpg"
+  },
+  "night": {
+   "file": "skyline-perth-night.jpg",
+   "credit": {
+    "author": "Siddhartha Parti",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Perth_Skyline_Night_South_Perth_Foreshore.jpg"
+   },
+   "focus": 0.438
+  },
+  "focus": 0.414
+ },
+ {
+  "key": "adelaide",
+  "names": [
+   "Adelaide",
+   "ADL"
+  ],
+  "zone": "Australia/Adelaide",
+  "file": "skyline-adelaide.jpg",
+  "credit": {
+   "author": "Ardash Muradian from Australia",
+   "license": "CC BY-SA 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Adelaide_skyline,_December_2022.jpg"
+  },
+  "night": {
+   "file": "skyline-adelaide-night.jpg",
+   "credit": {
+    "author": "Ashton 29",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Adelaide_central_business_district_at_night.jpg"
+   },
+   "focus": 0.43
+  },
+  "focus": 0.244
+ },
+ {
+  "key": "brisbane",
+  "names": [
+   "Brisbane",
+   "BNE"
+  ],
+  "zone": "Australia/Brisbane",
+  "file": "skyline-brisbane.jpg",
+  "credit": {
+   "author": "Deepeshmd",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Brisbane_Skyline_from_Brisbane_River.jpg"
+  },
+  "night": {
+   "file": "skyline-brisbane-night.jpg",
+   "credit": {
+    "author": "EzykronHD",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Brisbane_Skyline_At_Night.jpg"
+   },
+   "focus": 0.244
+  },
+  "focus": 0.43
+ },
+ {
+  "key": "sydney",
+  "names": [
+   "Sydney",
+   "SYD"
+  ],
+  "zone": "Australia/Sydney",
+  "file": "skyline-sydney.jpg",
+  "credit": {
+   "author": "Dietmar Rabich",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sydney_(AU),_Skyline_--_2019_--_2287.jpg"
+  },
+  "night": {
+   "file": "skyline-sydney-night.jpg",
+   "credit": {
+    "author": "Gordon Wrigley",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Sydney_skyline_from_Taronga_Visitors_Center_at_night-25Aug2009.jpg"
+   },
+   "focus": 0.502
+  },
+  "focus": 0.648
+ },
+ {
+  "key": "melbourne",
+  "names": [
+   "Melbourne",
+   "MEL"
+  ],
+  "zone": "Australia/Melbourne",
+  "file": "skyline-melbourne.jpg",
+  "credit": {
+   "author": "Diliff",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Melbourne_Skyline_from_Rialto_Crop_-_Nov_2008.jpg"
+  },
+  "night": {
+   "file": "skyline-melbourne-night.jpg",
+   "credit": {
+    "author": "Alfred Glickman",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Melbourne_Night_Skyline_(2013).jpg"
+   },
+   "focus": 0.664
+  },
+  "focus": 0.381
+ },
+ {
+  "key": "auckland",
+  "names": [
+   "Auckland",
+   "AKL"
+  ],
+  "zone": "Pacific/Auckland",
+  "file": "skyline-auckland.jpg",
+  "credit": {
+   "author": "DXR",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Auckland_Skyline_as_seen_from_Devonport_20100128_3.jpg"
+  },
+  "night": {
+   "file": "skyline-auckland-night.jpg",
+   "credit": {
+    "author": "Duncnbiscuit",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Auckland_Skyline_at_night.jpg"
+   },
+   "focus": 0.454
+  },
+  "focus": 0.591
+ },
+ {
+  "key": "wellington",
+  "names": [
+   "Wellington",
+   "WLG"
+  ],
+  "zone": "Pacific/Auckland",
+  "file": "skyline-wellington.jpg",
+  "credit": {
+   "author": "Unknown author",
+   "license": "Public domain",
+   "licenseUrl": "",
+   "source": "https://commons.wikimedia.org/wiki/File:Wellington_Skyline_from_Frank_Kitts_Park.jpg"
+  },
+  "night": {
+   "file": "skyline-wellington-night.jpg",
+   "credit": {
+    "author": "Simeon W from Wellington, New Zealand",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Wellington_Skyline_(34319401232).jpg"
+   },
+   "focus": 0.494
+  },
+  "focus": 0.422
+ }
+]

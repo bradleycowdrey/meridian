@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 2.1.2 · 10 November 2026
+
+- **Every city's skyline in view**: each photo is framed on its own skyline, so rows show the city rather than empty sky or a few zoomed-in windows.
+
 ## 2.1.1 · 10 November 2026
 
 - **See the city**: each row's photo runs sharp across the whole row, with the middle of the city in the open space between the name and the hours. Only a soft fade sits behind the name and time.

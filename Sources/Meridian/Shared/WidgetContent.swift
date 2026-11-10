@@ -1162,7 +1162,13 @@ struct WidgetClockView: View {
 
     /// "9" or "09", with ":30" smaller in half-hour zones.
     private func tileDigits(hour: Int, minute: Int) -> Text {
+        #if os(iOS)
         var text = snapshot.use24h ? Text(String(format: "%02d", hour)) : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
+        #else
+        // On the Mac's slim tiles a half-hour zone drops the leading zero ("9:30", not "09:30") so it fits whole.
+        var text = snapshot.use24h ? Text(minute != 0 ? "\(hour)" : String(format: "%02d", hour))
+                                   : Text("\(hour % 12 == 0 ? 12 : hour % 12)")
+        #endif
         if minute != 0 {
             text = text + Text(":\(String(format: "%02d", minute))")
                 .font(.system(size: Self.tileMinuteSize, weight: Self.tileWeight))
@@ -1175,7 +1181,8 @@ struct WidgetClockView: View {
         #if os(iOS)
         return minute != 0 && !use24h ? 0.8 : tileMinScale
         #else
-        return tileMinScale
+        // Half-hour zones ("9:30", "10:30") on the Mac's slim tiles may shrink a little more.
+        return minute != 0 ? 0.75 : tileMinScale
         #endif
     }
 

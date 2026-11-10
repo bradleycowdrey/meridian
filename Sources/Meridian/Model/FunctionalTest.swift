@@ -38,6 +38,17 @@ final class FunctionalTest {
         try? await Task.sleep(for: .seconds(seconds))
     }
 
+    /// Waits (up to about 2 s) until the tagged control's frame is the same on two looks 150 ms apart.
+    private func settleFrame(_ id: String) async {
+        var last = TestAnchors.frames[id]
+        for _ in 0..<14 {
+            try? await Task.sleep(for: .milliseconds(150))
+            let now = TestAnchors.frames[id]
+            if let now, let last, now == last { return }
+            last = now
+        }
+    }
+
     nonisolated private static let baseline: [(String, String)] = [
         ("Paris", "Europe/Paris"), ("New York", "America/New_York"),
         ("Kolkata", "Asia/Kolkata"), ("Tokyo", "Asia/Tokyo"),
@@ -288,7 +299,15 @@ final class FunctionalTest {
                 await click("control-add", in: window)
                 check("\(tag) Add City opens search", adding.wrappedValue)
                 let before = store.places.count
+                // The results list and the photo rows settle after the panel grows: wait until the first result
+                // stops moving, then click it (once more if the first click landed mid-animation).
+                await settleFrame("result-0")
                 await click("result-0", in: window)
+                if store.places.count == before {
+                    SelfTest.log("functional: result-0 click did not add; retrying once")
+                    await settleFrame("result-0")
+                    await click("result-0", in: window)
+                }
                 check("\(tag) click a result adds it", store.places.count == before + 1, "\(before) -> \(store.places.count)")
                 await click("control-add", in: window)
                 check("\(tag) Done closes search", !adding.wrappedValue)

@@ -7,7 +7,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 <p align="center">
   <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg"><b>Download for Mac</b></a> ·
-  <a href="https://apps.apple.com/app/id6826713540"><b>iPhone</b></a> (in App Review) ·
+  <a href="docs/sideload.md"><b>iPhone</b></a> (sideload until it's on the App Store) ·
   <a href="https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk"><b>Android APK</b></a> ·
   <a href="https://bradcowdrey.com/meridian">Try it in your browser</a> ·
   <a href="https://github.com/bradleycowdrey/meridian/issues">Report an issue</a>
@@ -22,9 +22,13 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ### What's new in 2.1
 
-- **City photos on every platform**: each city shows the city itself, by day or by night there, on Mac, iPhone, Android and in the widgets.
-- **A larger Now tile** with one outline down every city, and hour tiles in blues that make working hours stand out.
+Mac 2.1.2 is out and updates itself. iPhone 2.0 is in TestFlight on its way to App Review, with the same look; sideload it now ([below](#iphone-and-android)). Android has it in the latest APK.
+
+- **City photos on every platform**: each city shows the city itself, by day or by night there, framed on its own skyline, on Mac, iPhone, Android and in the widgets.
+- **A larger Now tile** with room either side and one outline down every city, and hour tiles in blues that make working hours stand out.
+- **A status pill on every city**: Working, Off hours, Weekend, Day off or the holiday's name.
 - **Midnight reads like every other hour**, with a small weekday tag where a new day starts.
+- **Widgets fill themselves**: with fewer cities, the rows grow to fill the widget, with larger times and tiles.
 
 ### What's new in 2.0
 
@@ -69,24 +73,26 @@ Meridian updates itself once a day. Full history: [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-Meridian lines up your cities as day-and-night ribbons on one grid. Every column is the same
+Meridian lines up your cities as rows of hour tiles on one grid, each on a photo of the city. Every column is the same
 instant everywhere, so the line through the middle is *now*.
 
 ## Features
 
 - **My Location**: the city you're in, added for you and kept current when you travel. Meridian asks once (Use My Location is recommended); change it in **Settings → Cities → Show My Location**. Your location only names the city and stays on your Mac.
-- **Day/night ribbons**: night navy, dawn peach, daylight sand and dusk orange, one row per city.
+- **City photos**: each row shows its city by day or by night there, framed on the skyline, with its time and a status pill (Working, Off hours, Weekend, Day off or the holiday's name). Photos are built in for 111 major cities; others show the sky for the time of day.
+- **Hour tiles in blues**: navy at night, brightest at midday, working hours standing out from off hours. The Now tile is larger, with one outline down every city. Midnight reads like every other hour, with a small weekday tag where a new day starts.
+- **Public holidays** in every country count as days off, by name, through 2030.
 - **Time travel**: drag the strip, scroll, press ← →, or click any hour. **Now** snaps back.
 - **Meeting overlap**: a white mark shows hours when every city is inside working hours.
 - **Copy the moment**: one click copies the selected time for every city, ready to paste into a chat or invite.
 - **Easy to manage**: **Add** opens search right in the panel; **Edit** shows a delete button and a drag handle on every city.
-- **Fast search**: city names, airport codes (`SFO`, `LHR`), abbreviations (`PST`, `CET`) or offsets (`UTC+5:30`).
+- **Fast search**: 34,000 cities offline, the bigger city first, or airport codes (`SFO`, `LHR`), abbreviations (`PST`, `CET`) or offsets (`UTC+5:30`).
 - **The details**: day-change markers, half-hour and 45-minute zones, a `+1 d` badge, 12/24-hour time, custom city names, drag to reorder.
-- **Desktop widget**: small, medium and large widgets for the desktop or Notification Center, small shows one city, medium two, large four with the day/night tiles; right-click a widget → **Edit Widget** to choose its cities. Right-click the desktop → **Edit Widgets** → search **Meridian**.
+- **Desktop widget**: small, medium and large widgets for the desktop or Notification Center, small shows one city, medium two, large five, each on its photo with its hour tiles, the rows growing to fill the widget; right-click a widget → **Edit Widget** to choose its cities. Right-click the desktop → **Edit Widgets** → search **Meridian**.
 - **Menu bar first**: show an icon, or a city and its time (`LON 14:32`). Open it as a desktop window that can float above everything.
 - **Five sizes** (Extra Small to Extra Large, ⌘+ / ⌘−) and a choice of **SF Pro** or **Inter**, the typeface of bradcowdrey.com.
 - **Automatic updates**: Meridian checks GitHub Releases once a day, verifies the download's SHA-256, then installs and restarts in one click. Turn it off or check manually in **Settings → General → Updates** or the ⋯ menu.
-- Open at login. No account, no tracking, no ads. The only network use is checking GitHub for updates and, with My Location on, Apple's service naming your city. About 1 MB.
+- Open at login. No account, no tracking, no ads. The only network use is checking GitHub for updates and, with My Location on, Apple's service naming your city. About 30 MB, most of it city photos.
 
 Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or later.
 
@@ -94,12 +100,13 @@ Native SwiftUI, universal binary (Apple silicon + Intel), macOS 14 Sonoma or lat
 
 <p align="center"><img src="docs/widgets.png" width="760" alt="Meridian's large, medium and small Mac widgets: each city on its skyline photo with its time and hour tiles, the current hour outlined"></p>
 
-Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities) and large (four cities), each showing the hour before, now and the hour after as day-and-night tiles. It follows the cities and order you set in the app, or right-click it, choose **Edit Widget** and turn off **Use Meridian's Cities** to pick its own. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
+Add Meridian to your desktop or Notification Center in three sizes: small (one city), medium (two cities) and large (five cities), each city on its photo with the hour before, now and the hour after, the current hour outlined. With fewer cities, the rows grow to fill the widget. It follows the cities and order you set in the app, or right-click it, choose **Edit Widget** and turn off **Use Meridian's Cities** to pick its own. Right-click the desktop, choose **Edit Widgets**, then search for **Meridian**. If it isn't listed, open Meridian from Applications, choose Settings → **Refresh Widgets**, then close and reopen Edit Widgets.
 
 ## iPhone and Android
 
-- **iPhone** (iOS 17 or later): [Meridian: Every Time Zone](https://apps.apple.com/app/id6826713540) on the App Store, in App Review. Each city's time large, with a day-and-night bar you can drag to move through time; Home Screen and Lock Screen widgets; My Location. Source in [`ios/`](ios).
-- **Android** (8 or later): download [Meridian-debug.apk](https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk) on your phone and open it (allow installs from your browser if asked). Same design, home screen widgets in three sizes, My Location. Not on Google Play yet. Source in [`android/`](android).
+- **iPhone** (iOS 17 or later): Meridian 2.0 is in TestFlight, on its way to App Review as Meridian: Every Time Zone. Each city a card on its photo, its time large, with a ruler you swipe to move through time; Find a Time; people and groups; clock-change notices; Home Screen widgets that fill themselves and Lock Screen widgets; My Location. Until it's on the App Store, [sideload it](docs/sideload.md): download [Meridian-iOS.ipa](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian-iOS.ipa) and install it with AltStore or Sideloadly. Source in [`ios/`](ios).
+- **Android** (8 or later): download [Meridian-debug.apk](https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk) on your phone and open it (allow installs from your browser if asked). The same design and features as the iPhone, home screen widgets in three sizes that fill themselves, My Location. Not on Google Play yet. Source in [`android/`](android).
+- **Web**: try it in your browser at [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), nothing to install.
 
 ## Install on Mac (sideload)
 
@@ -119,13 +126,13 @@ Requires Xcode 15.3+ (Swift 5.10) on macOS 14+.
 git clone https://github.com/bradleycowdrey/meridian.git
 cd meridian
 swift run                         # run in development
-scripts/build-app.sh 0.1.0        # dist/Meridian.app (universal)
-scripts/make-dmg.sh 0.1.0         # dist/Meridian-0.1.0.dmg
+scripts/build-app.sh 2.1.2        # dist/Meridian.app (universal, with city photos)
+scripts/make-dmg.sh 2.1.2         # dist/Meridian-2.1.2.dmg
 ```
 
 ## Releasing
 
-Bump the number in `VERSION` and push to `main`. GitHub Actions builds a universal app, packages a DMG and publishes it as release `v<VERSION>`, plus a stable `Meridian.dmg` that the download links always point to.
+Bump the number in `VERSION` and push to `main`. GitHub Actions builds a universal app, packages a DMG and publishes it as release `v<VERSION>`, plus a stable `Meridian.dmg` that the download links always point to, and `Meridian-iOS.ipa` for sideloading. The iPhone app goes to TestFlight and App Review through `ios/APPSTORE`; see [docs/versioning.md](docs/versioning.md).
 
 Optional secrets for Developer ID signing and notarization (removes the Gatekeeper prompt):
 `DEVELOPER_ID_P12` (base64 .p12), `DEVELOPER_ID_P12_PASSWORD`, `CODESIGN_IDENTITY`,
@@ -139,9 +146,12 @@ Sources/Meridian/
   MeridianApp.swift       Menu bar, desktop window, settings
   Brand.swift             Name, author and links: rebrand here
   Model/                  Cities, search directory, settings and time maths
-  Views/StripView.swift   The ribbons
+  Views/StripView.swift   The rows: photo, time, status and hour tiles
   Views/ClockPanel.swift  Header, time-travel bar, add-city search
-docs/                     Download page with a live web demo
+Widget/                   Mac widget extension
+ios/                      iPhone app and widgets
+android/                  Android app and widget
+docs/                     Sideloading and versioning notes; index.html forwards to bradcowdrey.com/meridian
 ```
 
 ## Terms and privacy

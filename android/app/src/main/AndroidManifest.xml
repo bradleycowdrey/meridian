@@ -24,6 +24,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Edit Widget: the app's cities, or the widget's own (as the iPhone's). -->
+        <activity
+            android:name=".WidgetConfigActivity"
+            android:exported="true"
+            android:label="Edit Widget"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver android:name=".SmallWidget" android:exported="false" android:label="Meridian · 1 city">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_small" />
@@ -32,7 +43,7 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_medium" />
         </receiver>
-        <receiver android:name=".LargeWidget" android:exported="false" android:label="Meridian · 4 cities">
+        <receiver android:name=".LargeWidget" android:exported="false" android:label="Meridian · 5 cities">
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_large" />
         </receiver>

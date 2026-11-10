@@ -24,9 +24,9 @@ final class ZoneStore: ObservableObject {
     @Published var offsetHours = 0
 
     @Published var use24h: Bool { didSet { defaults.set(use24h, forKey: "use24h"); syncWidget() } }
-    @Published var showWorkHours: Bool { didSet { defaults.set(showWorkHours, forKey: "showWorkHours") } }
-    @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart") } }
-    @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd") } }
+    @Published var showWorkHours: Bool { didSet { defaults.set(showWorkHours, forKey: "showWorkHours"); syncWidget() } }
+    @Published var workStart: Int { didSet { defaults.set(workStart, forKey: "workStart"); syncWidget() } }
+    @Published var workEnd: Int { didSet { defaults.set(workEnd, forKey: "workEnd"); syncWidget() } }
     @Published var floatOnTop: Bool { didSet { defaults.set(floatOnTop, forKey: "floatOnTop") } }
     @Published var menuBarStyle: MenuBarStyle { didSet { defaults.set(menuBarStyle.rawValue, forKey: "menuBarStyle") } }
     @Published var uiSize: UISize { didSet { defaults.set(uiSize.rawValue, forKey: "uiSize") } }
@@ -123,12 +123,17 @@ final class ZoneStore: ObservableObject {
         if let data = try? JSONEncoder().encode(places) { defaults.set(data, forKey: "places") }
     }
 
-    /// Hands the cities to the desktop widget and asks it to redraw when they changed.
+    /// Hands the cities to the desktop widget and asks it to redraw when they changed: with each
+    /// city's country, place (its sunrise and sunset) and working week, and the working-hours
+    /// settings, so the widget shows the same status and dimmed hours as the panel (as on iPhone).
     private func syncWidget() {
-        let snapshot = WidgetSnapshot(
-            cities: places.map { .init(name: $0.name, timeZoneID: $0.timeZoneID) },
-            use24h: use24h
-        )
+        let cities = places.map { place in
+            WidgetSnapshot.City(name: place.name, timeZoneID: place.timeZoneID, countryCode: place.countryCode,
+                                latitude: place.latitude, longitude: place.longitude,
+                                workDays: place.workDays.map { $0.sorted() }, workStart: place.workStart, workEnd: place.workEnd)
+        }
+        let snapshot = WidgetSnapshot(cities: cities, use24h: use24h, showStatus: showWorkHours,
+                                      workStart: workStart, workEnd: workEnd, countHolidays: Holidays.counted)
         if snapshot.save() { WidgetCenter.shared.reloadAllTimelines() }
     }
 

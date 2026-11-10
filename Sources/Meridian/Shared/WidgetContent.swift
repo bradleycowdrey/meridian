@@ -36,8 +36,10 @@ struct WidgetSnapshot: Codable, Equatable {
     var countHolidays: Bool? = nil
 
     #if os(iOS)
-    /// iPhone: the App Group container the app and its widget share.
-    static let appGroup = "group.com.bradcowdrey.meridian"
+    /// iPhone: the App Group container the app and its widget share. AltStore renames the group for
+    /// the installer's team when sideloading and records the new name under ALTAppGroups.
+    static let appGroup: String = (Bundle.main.object(forInfoDictionaryKey: "ALTAppGroups") as? [String])?.first
+        ?? "group.com.bradcowdrey.meridian"
     static var fileURL: URL {
         (FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
             ?? FileManager.default.temporaryDirectory)
@@ -721,22 +723,31 @@ struct WidgetClockView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .macHalo(photos)
-            // The pill sits flush with the column (its text inset by the pill's padding).
-            Text(caption(zone, short: true))
-                .font(.system(size: 11 * typeScale, weight: photos ? .semibold : .medium))
-                .foregroundStyle(quiet)
-                .lineLimit(1)
-                .fixedSize()
-                .padding(.horizontal, photos ? 6 : 0)
-                .padding(.vertical, photos ? 2 : 0)
-                .background { if photos { Capsule().fill(Self.chipTone) } }
-                .padding(.top, 3)
+            // The pill's edge sits on the name's (its text inset by the pill's padding): the
+            // working status, as the panel and the iPhone's widgets; the zone chip when Highlight
+            // Working Hours is off.
+            if let status = WidgetWorkStatus.of(city, snapshot: snapshot, at: date) {
+                WidgetStatusPill(status: status, size: 12)
+                    .padding(.leading, 1)
+                    .padding(.top, 3)
+            } else {
+                Text(caption(zone, short: true))
+                    .font(.system(size: 11 * typeScale, weight: photos ? .semibold : .medium))
+                    .foregroundStyle(quiet)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, photos ? 6 : 0)
+                    .padding(.vertical, photos ? 2 : 0)
+                    .background { if photos { Capsule().fill(Self.chipTone) } }
+                    .padding(.leading, photos ? 1 : 0)
+                    .padding(.top, 3)
+            }
             Spacer(minLength: 0)
             // The hour before, now (larger, outlined) and the hour after.
             HStack(spacing: spacing) {
                 ForEach(-1...1, id: \.self) { k in
                     let start = anchor.addingTimeInterval(Double(k) * 3600)
-                    tile(start, zone: zone, stacked: !snapshot.use24h, radius: radius)
+                    tile(start, zone: zone, stacked: !snapshot.use24h, radius: radius, city: city)
                         .frame(height: 34)
                         .scaleEffect(k == 0 ? Self.nowScale : 1)
                         .overlay {
@@ -989,7 +1000,7 @@ struct WidgetClockView: View {
                                 ForEach(-half...half, id: \.self) { k in
                                     let start = anchor.addingTimeInterval(Double(k) * 3600)
                                     let stacked = !snapshot.use24h && th >= 30
-                                    tile(start, zone: zone, stacked: stacked, radius: radius)
+                                    tile(start, zone: zone, stacked: stacked, radius: radius, city: city)
                                         .frame(width: tw, height: th)
                                         .scaleEffect(k == 0 ? Self.nowScale : 1)
                                         .overlay(alignment: .top) {
@@ -1061,15 +1072,24 @@ struct WidgetClockView: View {
                 .minimumScaleFactor(Self.largeNameMinScale)
                 .macHalo(photos)
             if captioned {
-                Text(caption(zone, short: true))
-                    .font(.system(size: captionSize, weight: photos ? .semibold : .medium))
-                    .foregroundStyle(photos ? WidgetTone.primary : WidgetTone.muted)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .padding(.horizontal, photos ? 6 : 0)
-                    .padding(.vertical, photos ? 1.5 : 0)
-                    .background { if photos { Capsule().fill(Self.chipTone) } }
-                    .padding(.top, 2)
+                // The working status, as the panel and the iPhone's widgets; the zone chip when
+                // Highlight Working Hours is off. Either pill's edge sits on the name's.
+                if let status = WidgetWorkStatus.of(city, snapshot: snapshot, at: date) {
+                    WidgetStatusPill(status: status, size: captionSize + 1)
+                        .padding(.leading, 1)
+                        .padding(.top, 2)
+                } else {
+                    Text(caption(zone, short: true))
+                        .font(.system(size: captionSize, weight: photos ? .semibold : .medium))
+                        .foregroundStyle(photos ? WidgetTone.primary : WidgetTone.muted)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(.horizontal, photos ? 6 : 0)
+                        .padding(.vertical, photos ? 1.5 : 0)
+                        .background { if photos { Capsule().fill(Self.chipTone) } }
+                        .padding(.leading, photos ? 1 : 0)
+                        .padding(.top, 2)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1078,13 +1098,23 @@ struct WidgetClockView: View {
 
     /// `stacked` (tiles tall enough): AM/PM under the hour. The new day's weekday tag is drawn by the
     /// callers, above or inside the tile's top edge.
-    private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false, radius: CGFloat = 6) -> some View {
+    /// `city` (the Mac's widgets): in full colour, the iPhone's rule: an hour outside the city's
+    /// working hours is dimmed, a working one floored (while the app highlights working hours),
+    /// and off-hours and night tiles get a 1 pt edge at 32% white.
+    private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false, radius: CGFloat = 6,
+                      city: WidgetSnapshot.City? = nil) -> some View {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         let hour = calendar.component(.hour, from: moment)
         let minute = calendar.component(.minute, from: moment)
-        let style = DayColor.style(at: Double(hour) + Double(minute) / 60, lifted: true)
+        let h = Double(hour) + Double(minute) / 60
+        let style = DayColor.style(at: h, lifted: true)
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        let worked = city != nil && !tinted
+        let dim = worked ? WidgetWorkStatus.dims(city!, snapshot: snapshot, hourStart: moment) : false
+        let fill = !worked ? style.fill
+            : (dim ? DayColor.offHoursFill(at: h) : ((snapshot.showStatus ?? true) ? DayColor.workingFill(at: h) : style.fill))
+        let edge: Double = worked && (dim || hour < 6 || hour >= 21) ? 0.32 : 0
         return tileLabel(hour: hour, minute: minute, stacked: stacked)
             .foregroundStyle(tinted ? Color.primary : style.text)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1093,9 +1123,10 @@ struct WidgetClockView: View {
                 if tinted {
                     shape.strokeBorder(Color.primary.opacity(0.35), lineWidth: 1)
                 } else {
-                    shape.fill(style.fill)
+                    shape.fill(fill)
                 }
             }
+            .overlay(shape.strokeBorder(Color.white.opacity(edge), lineWidth: 1))
     }
 
     /// The tile's hour. Only the digits may shrink; AM/PM stays 12 pt (Mac: 11 pt), after the hour or,
@@ -1300,6 +1331,106 @@ private extension View {
     }
 }
 #endif
+
+/// Where a city is in its working week, as the app's status pill says it (Working, Off hours,
+/// Weekend, Day off, or the holiday's name), from the settings the app hands the widget.
+struct WidgetWorkStatus {
+    enum Kind { case working, offHours, weekend, dayOff, holiday }
+    let kind: Kind
+    let title: String
+
+    var color: Color {
+        let hex: UInt32
+        switch kind {
+        case .working: hex = 0x9AD3A8            // Two Degrees' mild green
+        case .offHours: hex = 0xD9DEE6           // the app's WorkStatus ink (was #B9C3CF, 0.54 luminance vs the app's 0.73)
+        case .weekend, .dayOff: hex = 0xF2C66D   // TileAccent.sunrise
+        case .holiday: hex = 0xF39A72            // TileAccent.sunset
+        }
+        let c = DayColor.components(hex)
+        return Color(red: c.0, green: c.1, blue: c.2)
+    }
+
+    var symbol: String {
+        switch kind {
+        case .working: return "briefcase.fill"
+        case .offHours: return "moon.fill"
+        case .weekend: return "sun.max.fill"
+        case .dayOff: return "calendar"
+        case .holiday: return "star.fill"
+        }
+    }
+
+    static func makePlace(_ city: WidgetSnapshot.City) -> Place {
+        var place = Place(name: city.name, timeZoneID: city.timeZoneID)
+        place.countryCode = city.countryCode
+        place.latitude = city.latitude
+        place.longitude = city.longitude
+        place.workDays = city.workDays.map { Set($0) }
+        place.workStart = city.workStart
+        place.workEnd = city.workEnd
+        return place
+    }
+
+    /// Follows the app's Count Holidays setting (the widget keeps its own copy of it).
+    private static func applySettings(_ snapshot: WidgetSnapshot) {
+        if let counted = snapshot.countHolidays, Holidays.counted != counted { Holidays.counted = counted }
+    }
+
+    /// Nil when the app's Highlight Working Hours is off.
+    static func of(_ city: WidgetSnapshot.City, snapshot: WidgetSnapshot, at date: Date) -> WidgetWorkStatus? {
+        guard snapshot.showStatus ?? true else { return nil }
+        applySettings(snapshot)
+        let place = makePlace(city)
+        let start = snapshot.workStart ?? 9, end = snapshot.workEnd ?? 18
+        guard let off = WorkWeek.offLabel(place, at: date, start: start, end: end) else {
+            return WidgetWorkStatus(kind: .working, title: "Working")
+        }
+        let kind: Kind
+        switch off {
+        case "Off hours": kind = .offHours
+        case "Weekend": kind = .weekend
+        case "Day off": kind = .dayOff
+        default: kind = .holiday
+        }
+        return WidgetWorkStatus(kind: kind, title: off)
+    }
+
+    /// An hour tile is dimmed outside working hours (when the app highlights them).
+    static func dims(_ city: WidgetSnapshot.City, snapshot: WidgetSnapshot, hourStart: Date) -> Bool {
+        guard snapshot.showStatus ?? true else { return false }
+        applySettings(snapshot)
+        return !WorkWeek.isWorking(makePlace(city), at: hourStart.addingTimeInterval(1800),
+                                   start: snapshot.workStart ?? 9, end: snapshot.workEnd ?? 18)
+    }
+}
+
+/// The app's status pill, small: an icon and the status in its colour (the app's inks) on a dark
+/// backing: 12 pt with an 11 pt icon, as the app's (was 11 pt), on black at 75% (was 65%), so even
+/// over pure white every status keeps 4.8:1 or more ("Off hours" 7.7:1), whatever the photo.
+struct WidgetStatusPill: View {
+    let status: WidgetWorkStatus
+    var size: CGFloat = 12
+
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        let scaled = size * WidgetType.scale(typeSize)
+        HStack(spacing: 3) {
+            Image(systemName: status.symbol)
+                .font(.system(size: scaled * 11 / 12, weight: .semibold))
+            Text(status.title)
+                .font(.system(size: scaled, weight: .semibold))
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .foregroundStyle(status.color)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 1)
+        .background(Capsule().fill(Color.black.opacity(0.75)))
+        .overlay(Capsule().strokeBorder(status.color.opacity(0.5), lineWidth: 1))
+    }
+}
 
 #if os(iOS)
 /// Lock Screen widgets: inline (above the clock), circular and rectangular. They follow the
@@ -1802,79 +1933,6 @@ enum WidgetSky {
     }
 }
 
-/// Where a city is in its working week, as the app's status pill says it (Working, Off hours,
-/// Weekend, Day off, or the holiday's name), from the settings the app hands the widget.
-struct WidgetWorkStatus {
-    enum Kind { case working, offHours, weekend, dayOff, holiday }
-    let kind: Kind
-    let title: String
-
-    var color: Color {
-        let hex: UInt32
-        switch kind {
-        case .working: hex = 0x9AD3A8            // Two Degrees' mild green
-        case .offHours: hex = 0xD9DEE6           // the app's WorkStatus ink (was #B9C3CF, 0.54 luminance vs the app's 0.73)
-        case .weekend, .dayOff: hex = 0xF2C66D   // TileAccent.sunrise
-        case .holiday: hex = 0xF39A72            // TileAccent.sunset
-        }
-        let c = DayColor.components(hex)
-        return Color(red: c.0, green: c.1, blue: c.2)
-    }
-
-    var symbol: String {
-        switch kind {
-        case .working: return "briefcase.fill"
-        case .offHours: return "moon.fill"
-        case .weekend: return "sun.max.fill"
-        case .dayOff: return "calendar"
-        case .holiday: return "star.fill"
-        }
-    }
-
-    static func makePlace(_ city: WidgetSnapshot.City) -> Place {
-        var place = Place(name: city.name, timeZoneID: city.timeZoneID)
-        place.countryCode = city.countryCode
-        place.latitude = city.latitude
-        place.longitude = city.longitude
-        place.workDays = city.workDays.map { Set($0) }
-        place.workStart = city.workStart
-        place.workEnd = city.workEnd
-        return place
-    }
-
-    /// Follows the app's Count Holidays setting (the widget keeps its own copy of it).
-    private static func applySettings(_ snapshot: WidgetSnapshot) {
-        if let counted = snapshot.countHolidays, Holidays.counted != counted { Holidays.counted = counted }
-    }
-
-    /// Nil when the app's Highlight Working Hours is off.
-    static func of(_ city: WidgetSnapshot.City, snapshot: WidgetSnapshot, at date: Date) -> WidgetWorkStatus? {
-        guard snapshot.showStatus ?? true else { return nil }
-        applySettings(snapshot)
-        let place = makePlace(city)
-        let start = snapshot.workStart ?? 9, end = snapshot.workEnd ?? 18
-        guard let off = WorkWeek.offLabel(place, at: date, start: start, end: end) else {
-            return WidgetWorkStatus(kind: .working, title: "Working")
-        }
-        let kind: Kind
-        switch off {
-        case "Off hours": kind = .offHours
-        case "Weekend": kind = .weekend
-        case "Day off": kind = .dayOff
-        default: kind = .holiday
-        }
-        return WidgetWorkStatus(kind: kind, title: off)
-    }
-
-    /// An hour tile is dimmed outside working hours (when the app highlights them).
-    static func dims(_ city: WidgetSnapshot.City, snapshot: WidgetSnapshot, hourStart: Date) -> Bool {
-        guard snapshot.showStatus ?? true else { return false }
-        applySettings(snapshot)
-        return !WorkWeek.isWorking(makePlace(city), at: hourStart.addingTimeInterval(1800),
-                                   start: snapshot.workStart ?? 9, end: snapshot.workEnd ?? 18)
-    }
-}
-
 /// No longer drawn over the photo widgets (WidgetTextShade is); kept for WidgetSkylines.backing.
 /// The card's scrim: black at 55% along the bottom, eased out by 70% of the way up, and a lighter
 /// one from the left (35%, eased out by 60% across); eased stops, so no line shows across a bright
@@ -2110,33 +2168,6 @@ struct WidgetBannerClock: View {
             .opacity(bright ? 0.85 : 0.6)
             t.foregroundStyle(bright ? WidgetTone.ink : Color.white)
         }
-    }
-}
-
-/// The app's status pill, small: an icon and the status in its colour (the app's inks) on a dark
-/// backing: 12 pt with an 11 pt icon, as the app's (was 11 pt), on black at 75% (was 65%), so even
-/// over pure white every status keeps 4.8:1 or more ("Off hours" 7.7:1), whatever the photo.
-struct WidgetStatusPill: View {
-    let status: WidgetWorkStatus
-    var size: CGFloat = 12
-
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    var body: some View {
-        let scaled = size * WidgetType.scale(typeSize)
-        HStack(spacing: 3) {
-            Image(systemName: status.symbol)
-                .font(.system(size: scaled * 11 / 12, weight: .semibold))
-            Text(status.title)
-                .font(.system(size: scaled, weight: .semibold))
-                .lineLimit(1)
-                .truncationMode(.tail)
-        }
-        .foregroundStyle(status.color)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 1)
-        .background(Capsule().fill(Color.black.opacity(0.75)))
-        .overlay(Capsule().strokeBorder(status.color.opacity(0.5), lineWidth: 1))
     }
 }
 

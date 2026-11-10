@@ -57,6 +57,7 @@ else
       Widget/MeridianWidget.swift Widget/WidgetCities.swift Sources/Meridian/Shared/WidgetContent.swift \
       Sources/Meridian/Model/Place.swift Sources/Meridian/Model/CityDirectory.swift \
       Sources/Meridian/Shared/MacSkylines.swift Sources/Meridian/Model/Sun.swift \
+      Sources/Meridian/Model/WorkWeek.swift Sources/Meridian/Model/Holidays.swift \
       -o "$WIDGET_TMP/MeridianWidget-$arch"
   done
   lipo -create "$WIDGET_TMP"/MeridianWidget-* -output "$APPEX/Contents/MacOS/MeridianWidget"
@@ -69,6 +70,8 @@ for f in "$APP/Contents/Resources/Skylines"/*.jpg; do
   sips -Z 600 -s format jpeg -s formatOptions 72 "$f" --out "$APPEX/Contents/Resources/Skylines/$(basename "$f")" >/dev/null
 done
 cp Resources/Data/skylines.json "$APPEX/Contents/Resources/skylines.json"
+# The cities' public holidays, for the widget's status (Holidays loads from the appex's bundle).
+cp Resources/Data/holidays.tsv "$APPEX/Contents/Resources/"
 
 # Sign with a Developer ID if one is configured, otherwise ad-hoc (fine for sideloading).
 IDENTITY="${CODESIGN_IDENTITY:--}"

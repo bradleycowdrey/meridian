@@ -56,6 +56,18 @@ jobs:
           { scripts/build-app.sh "$TAG" && scripts/make-dmg.sh "$TAG"; } 2>&1 | tee "$RUNNER_TEMP/release.log"
           cp dist/Meridian-*.dmg dist/Meridian.dmg
 
+      # The iPhone app as an ad-hoc signed .ipa for sideloading until it's on the App Store
+      # (docs/sideload.md), so releases/latest/download/Meridian-iOS.ipa works. Never blocks the Mac release.
+      - name: Build the iPhone app for sideloading
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Only an existing release without the .ipa (or a new one) would use it; skip otherwise.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' 2>/dev/null | grep -qx Meridian-iOS.ipa; then echo "Release $TAG already has the ipa"; exit 0; fi
+          set -o pipefail
+          scripts/build-ipa.sh dist/Meridian-iOS.ipa 2>&1 | tee "$RUNNER_TEMP/ipa-build.log" | grep -E "error:|BUILD|Meridian-iOS.ipa"
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -63,14 +75,19 @@ jobs:
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             # Never replace a published version's files; bump VERSION to release new code.
             echo "Release $TAG already exists; not overwriting it."
+            # Only exception: add the iPhone sideload build if this release doesn't have one yet.
+            if [ -f dist/Meridian-iOS.ipa ] && ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' | grep -qx Meridian-iOS.ipa; then
+              gh release upload "$TAG" dist/Meridian-iOS.ipa --repo "$GITHUB_REPOSITORY"
+            fi
           else
             # Pre-release tags (v1.0.0-beta) never become "latest" for everyone.
             if [[ "$TAG" == *-* ]]; then KIND=--prerelease; else KIND=--latest; fi
             # Notes: this version's section of CHANGELOG.md, then the install line.
             V="${TAG##*v}"
             awk -v v="$V" '/^## /{p = (index($0, "## " v " ") == 1)} p' CHANGELOG.md | sed '1d' > notes.md
-            printf '\n**Install:** download the DMG, open it and drag Meridian into Applications. Already installed? Meridian updates itself.\n\nMade by Bradley Cowdrey · bradcowdrey.com\n' >> notes.md
-            gh release create "$TAG" dist/*.dmg dist/*.sha256 \
+            printf '\n**Install:** download the DMG, open it and drag Meridian into Applications. Already installed? Meridian updates itself.\n\n**iPhone (sideload until it is on the App Store):** Meridian-iOS.ipa, installed with AltStore or Sideloadly. Steps: https://github.com/bradleycowdrey/meridian/blob/main/docs/sideload.md\n\nMade by Bradley Cowdrey · bradcowdrey.com\n' >> notes.md
+            IPA=(); [ -f dist/Meridian-iOS.ipa ] && IPA=(dist/Meridian-iOS.ipa)
+            gh release create "$TAG" dist/*.dmg dist/*.sha256 "${IPA[@]}" \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" $KIND \
               --title "Meridian $V" \
               --notes-file notes.md
@@ -83,6 +100,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/rel" && cd "$RUNNER_TEMP/rel"
           cp "$RUNNER_TEMP/release.log" . 2>/dev/null || echo "no log" > release.log
+          cp "$RUNNER_TEMP/ipa-build.log" . 2>/dev/null || true
           echo "$GITHUB_SHA ${{ job.status }}" > commit.txt
           git init -q -b ci-release
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"

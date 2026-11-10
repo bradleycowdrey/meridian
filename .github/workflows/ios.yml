@@ -5,8 +5,8 @@ name: iPhone app
 on:
   push:
     branches: [main]
-    paths: ["ios/**", "Widget/**", "Sources/Meridian/Shared/**", "Sources/Meridian/Model/Place.swift",
-            "Sources/Meridian/Model/CityDirectory.swift", ".github/workflows/ios.yml"]
+    paths: ["ios/**", "Widget/**", "Sources/Meridian/Shared/**", "Sources/Meridian/Model/**", "Resources/**",
+            "scripts/build-ipa.sh", ".github/workflows/ios.yml"]
   workflow_dispatch:
 
 permissions:
@@ -77,6 +77,16 @@ jobs:
           ls ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i meridian >> "$OUT/device.txt"
           # Fail (after the renders are copied; the publish step still runs) if Terms is still black.
           if [ "${TERMS_MEAN:-99}" -lt 3 ]; then echo "screen-terms.png is black (mean $TERMS_MEAN)"; exit 1; fi
+      # Ad-hoc signed device build for sideloading (AltStore / Sideloadly re-sign it; docs/sideload.md).
+      # Published with the screenshots, so https://github.com/bradleycowdrey/meridian/raw/ci-ios/Meridian-iOS.ipa
+      # is always the newest build. Never fails the job.
+      - name: Sideload build (Meridian-iOS.ipa)
+        if: always()
+        continue-on-error: true
+        run: |
+          OUT="$RUNNER_TEMP/ios"; mkdir -p "$OUT"
+          set -o pipefail
+          scripts/build-ipa.sh "$OUT/Meridian-iOS.ipa" 2>&1 | tee "$OUT/ipa-build.log" | grep -E "error:|BUILD|Meridian-iOS.ipa"
       - name: Publish to ci-ios branch
         if: always()
         run: |

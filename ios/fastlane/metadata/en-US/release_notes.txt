@@ -1,3 +1,5 @@
+City photos: each card shows its city by day or by night there, framed on its skyline, with hour tiles in blues and a larger Now tile outlined down every city.
+
 Find a Time: pick a day and who's in it, and see when everyone is working, with the best times first. Add it to your calendar or share an invite with every city's time.
 
 People and groups: add a card for a colleague in their city, put cards in groups, and show one group at a time.

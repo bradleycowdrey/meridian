@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -27,6 +28,8 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
+import org.json.JSONArray
+import org.json.JSONObject
 import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.Executors
@@ -40,8 +43,9 @@ import kotlin.math.roundToInt
  * city's zone, so it never goes stale), name and status bottom-left and the hour before, now and the
  * hour after as tiles bottom-right (the day photo by day, the night photo by night where the city has one), and one Now capsule down the centre tiles of every row. The photos
  * are small copies the app keeps for them (WidgetPhotos); the widgets never use the network. The
- * pictures and tiles refresh on the hour, and when the time, the zone, the list or the widget's size
- * changes.
+ * pictures, status and tiles refresh every quarter hour (every city's working hours start and end on a
+ * quarter), and when the time, the zone, the list or the widget's size changes. Each widget shows the
+ * app's cities, or its own (Edit Widget: WidgetConfigActivity), as the iPhone's.
  */
 object MeridianWidgets {
     enum class Size(val cities: Int) { SMALL(1), MEDIUM(2), LARGE(5) }
@@ -188,7 +192,53 @@ object MeridianWidgets {
         }
         // After the redraw that's queued (one worker, in order).
         if (done != null) worker.execute { done() }
-        scheduleNextHour(app)
+        scheduleNextQuarter(app)
+    }
+
+    /** A widget's own city (WidgetConfigActivity): its name and zone, with its country and place when known. */
+    class Chosen(val name: String, val zoneId: String, val countryCode: String? = null, val latitude: Double? = null, val longitude: Double? = null)
+
+    /** Whether widget [id] shows the app's cities (true unless set otherwise), and its own chosen cities. */
+    fun followKey(id: Int) = "widget.$id.follow"
+    fun citiesKey(id: Int) = "widget.$id.cities"
+
+    fun loadChosen(prefs: SharedPreferences, id: Int): List<Chosen> = runCatching {
+        val array = JSONArray(prefs.getString(citiesKey(id), null) ?: return@runCatching emptyList<Chosen>())
+        (0 until array.length()).map { i ->
+            val o = array.getJSONObject(i)
+            Chosen(o.getString("name"), o.getString("timeZoneID"),
+                countryCode = if (o.has("countryCode")) o.getString("countryCode") else null,
+                latitude = if (o.has("latitude")) o.getDouble("latitude") else null,
+                longitude = if (o.has("longitude")) o.getDouble("longitude") else null)
+        }
+    }.getOrDefault(emptyList())
+
+    fun saveChosen(prefs: SharedPreferences, id: Int, follow: Boolean, chosen: List<Chosen>) {
+        val array = JSONArray()
+        chosen.forEach { c ->
+            val o = JSONObject().put("name", c.name).put("timeZoneID", c.zoneId)
+            c.countryCode?.let { o.put("countryCode", it) }
+            c.latitude?.let { o.put("latitude", it) }
+            c.longitude?.let { o.put("longitude", it) }
+            array.put(o)
+        }
+        prefs.edit().putBoolean(followKey(id), follow).putString(citiesKey(id), array.toString()).apply()
+    }
+
+    /**
+     * Widget [id]'s cities, as the iPhone's ClockConfiguration: the app's list while it follows the app (the default) or
+     * has no cities of its own; else its chosen cities in their order, each the app's card for it where the city is on
+     * the list (keeping its country, location and working week), else the city alone.
+     */
+    fun citiesFor(prefs: SharedPreferences, id: Int, places: List<Place>): List<Place> {
+        if (prefs.getBoolean(followKey(id), true)) return places
+        val chosen = loadChosen(prefs, id)
+        if (chosen.isEmpty()) return places
+        return chosen.map { c ->
+            places.firstOrNull { it.name == c.name && it.zoneId == c.zoneId }
+                ?: Place(name = c.name, zoneId = c.zoneId, id = "widget|${c.name}|${c.zoneId}",
+                    countryCode = c.countryCode, latitude = c.latitude, longitude = c.longitude)
+        }
     }
 
     private fun render(context: Context) {
@@ -200,14 +250,20 @@ object MeridianWidgets {
         val manager = AppWidgetManager.getInstance(context)
         val places = Store.loadPlaces(context) ?: emptyList()
         val use24h = Store.use24h(context)
-        // The small copies for every city on the list (only missing ones are made), then which city uses which.
-        val photos = runCatching { WidgetPhotos.export(context, places) }.getOrElse { WidgetPhotos.saved(context) }
+        // Each widget's cities: the app's, or its own (Edit Widget).
+        val lists = providers.values.flatMap { cls -> manager.getAppWidgetIds(ComponentName(context, cls)).toList() }
+            .associateWith { id -> citiesFor(prefs, id, places) }
+        // The small copies for every city on the list and every widget's own (only missing ones are made), then
+        // which city uses which. A city with no photo has the drawn sky.
+        val shown = (places + lists.values.flatten()).distinctBy { it.id }
+        val photos = runCatching { WidgetPhotos.export(context, shown) }.getOrElse { WidgetPhotos.saved(context) }
         val now = Instant.now()
         val home = ZoneId.systemDefault()
         providers.forEach { (size, cls) ->
             manager.getAppWidgetIds(ComponentName(context, cls)).forEach { id ->
                 val (w, h) = sizeOf(context, manager, id) ?: defaultSize(size)
-                manager.updateAppWidget(id, views(context, size, places, use24h, now, home, live = true, widthDp = w, heightDp = h, photos = photos))
+                val cities = lists[id] ?: places
+                manager.updateAppWidget(id, views(context, size, cities, use24h, now, home, live = true, widthDp = w, heightDp = h, photos = photos))
             }
         }
     }
@@ -361,7 +417,7 @@ object MeridianWidgets {
             val words = cities.map { p -> if (work.show) status(p, TimeMath.quarter(now), work).second else "" }
             val fit = rowFit(context, rowH, work.show) { t, nm, k ->
                 timeWidth(context, t, use24h) <= maxOf(capW, timeWidth(context, 20f, use24h)) &&
-                    cities.all { p -> textWidth(context, p.title, nm) <= maxOf(capW, textWidth(context, p.title, 15f)) } &&
+                    cities.all { p -> textWidth(context, p.name, nm) <= maxOf(capW, textWidth(context, p.name, 15f)) } &&
                     words.all { wd -> wd.isEmpty() || textWidth(context, wd, STATUS_SP * k) <= maxOf(capW - 29f, textWidth(context, wd, STATUS_SP)) }
             }
             // Tall tiles for the whole widget (the Now capsule's height is shared) only while every half-hour city's widest
@@ -454,13 +510,13 @@ object MeridianWidgets {
         if (tiles) {
             val colW = (wDp - 2 * ROW_PAD_H - LABEL_GAP) / (1f + TILES_WEIGHT)
             val words = if (statusFit != StatusFit.NONE && work.show) status(place, TimeMath.quarter(now), work).second else null
-            val block = textBlockWidth(context, place.title, words, statusFit, timeSp, nameSp, statusSp, use24h)
+            val block = textBlockWidth(context, place.name, words, statusFit, timeSp, nameSp, statusSp, use24h)
                 .coerceAtMost(colW - (MIN_CLEAR - LABEL_GAP)).coerceAtLeast(0f)
             padEndDp = colW - block
             textEndDp = ROW_PAD_H + block
             focusDp = textEndDp + (padEndDp + LABEL_GAP) / 2f
         }
-        val art = WidgetSky.background(context, ref, WidgetPhotos.city(context, place), phase, WidgetSky.evening(place, now),
+        val art = WidgetSky.background(context, ref, WidgetPhotos.city(context, place), phase, WidgetSky.wantsNight(place, now),
             wDp, hDp, cornerDp, maxPx, focusDp, textEndDp)
         v.setImageViewBitmap(R.id.bg, art.bitmap)
         // White words with a dark halo on every photo (the photo is hardly darkened now; art.bright is always false).
@@ -468,7 +524,7 @@ object MeridianWidgets {
         v.setViewVisibility(lightInk.box, if (art.bright) View.GONE else View.VISIBLE)
         v.setViewVisibility(darkInk.box, if (art.bright) View.VISIBLE else View.GONE)
         clock(v, ink, place.zone, use24h, now, live, timeSp)
-        v.setTextViewText(R.id.name, place.title)
+        v.setTextViewText(R.id.name, place.name)
         v.setTextViewTextSize(R.id.name, TypedValue.COMPLEX_UNIT_SP, nameSp)
         // Only the row layout has the status dot.
         val hasDot = layout == R.layout.widget_photo_row
@@ -493,7 +549,7 @@ object MeridianWidgets {
                 v.setViewVisibility(R.id.status, View.GONE)
                 v.setInt(R.id.status_dot, "setColorFilter", kind.color)
                 v.setViewVisibility(R.id.status_dot, View.VISIBLE)
-                v.setContentDescription(R.id.name, "${place.title}, $text")
+                v.setContentDescription(R.id.name, "${place.name}, $text")
             } else {
                 val padV = if (statusFit == StatusFit.COMPACT) 0 else (PILL_PAD_V * d).roundToInt()
                 v.setViewPadding(R.id.status, (6 * d).roundToInt(), padV, (7 * d).roundToInt(), padV)
@@ -815,13 +871,16 @@ object MeridianWidgets {
         return bitmap
     }
 
-    /** Refresh the pictures and tiles at the start of the next hour (inexact is fine; clocks tick on their own). */
-    private fun scheduleNextHour(context: Context) {
+    /**
+     * Refresh the pictures, status and tiles at the start of the next quarter hour (inexact is fine; clocks tick on their
+     * own). Every zone's offset is a whole number of quarter hours, so every city's working hours start and end on one.
+     */
+    private fun scheduleNextQuarter(context: Context) {
         val alarms = context.getSystemService(AlarmManager::class.java) ?: return
-        val next = Instant.now().atZone(ZoneId.systemDefault()).withMinute(0).withSecond(5).withNano(0).plusHours(1)
+        val next = TimeMath.quarter(Instant.now()).plusSeconds(900 + 5)
         val intent = PendingIntent.getBroadcast(context, 1, Intent(context, WidgetClock::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        alarms.set(AlarmManager.RTC, next.toInstant().toEpochMilli(), intent)
+        alarms.set(AlarmManager.RTC, next.toEpochMilli(), intent)
     }
 }
 
@@ -851,13 +910,21 @@ private object WidgetSky {
         return if (now) Phase.DAY else Phase.NIGHT
     }
 
-    /** After midday on the city's clock: twilight then is dusk (night photo), before it dawn (day photo). */
-    fun evening(place: Place, at: Instant): Boolean = at.atZone(place.zone).hour >= 12
+    /**
+     * The night photo only once the sun has set and sunrise is more than an hour away, as the iPhone's
+     * (WidgetSky.wantsNightPhoto); the hour before sunset keeps the day photo, a little warmer.
+     */
+    fun wantsNight(place: Place, at: Instant): Boolean = when (Sun.phase(place, at)) {
+        is Sun.Phase.Day, Sun.Phase.AllDay -> false
+        Sun.Phase.AllNight -> true
+        is Sun.Phase.Night -> Sun.phase(place, at.plusSeconds(3600)).let { it is Sun.Phase.Night || it == Sun.Phase.AllNight }
+        null -> at.atZone(place.zone).hour !in 7..18
+    }
 
     /** The fallback shading, for a city with no night photo: night about 45% darker and a little cooler; dawn and dusk a little warmer; day as taken. */
     private fun gain(phase: Phase): FloatArray? = when (phase) {
         Phase.NIGHT -> floatArrayOf(0.400f, 0.459f, 0.522f)
-        Phase.TWILIGHT -> floatArrayOf(0.941f, 0.820f, 0.714f)
+        Phase.TWILIGHT -> floatArrayOf(1f, 0.949f, 0.878f)
         Phase.DAY -> null
     }
 
@@ -878,7 +945,7 @@ private object WidgetSky {
      * easing to nothing 45% up. No blur; the words carry their own halo (and the status its pill).
      */
     fun background(
-        context: Context, ref: WidgetPhotos.Ref?, city: String, phase: Phase, evening: Boolean,
+        context: Context, ref: WidgetPhotos.Ref?, city: String, phase: Phase, wantsNight: Boolean,
         wDp: Float, hDp: Float, cornerDp: Float, maxPx: Int, focusDp: Float?, textEndDp: Float,
     ): Art {
         val density = context.resources.displayMetrics.density
@@ -891,8 +958,8 @@ private object WidgetSky {
         val h = bh.toFloat()
         // A row's photo centre (px), in the middle of its clear gap.
         val fx = focusDp?.let { (it * scale).coerceIn(0f, w) }
-        // Night, and dusk: the night photo as taken. Else (or with no night photo) the day photo, shaded as before.
-        val wantsNight = phase == Phase.NIGHT || (phase == Phase.TWILIGHT && evening)
+        // After sunset with sunrise over an hour away ([wantsNight]): the night photo as taken. Else (or with no night
+        // photo) the day photo, shaded as before.
         // Cropped to fill, at most 15% more on a row (only to move its centre toward fx): see PhotoFocus.place.
         // Decoded at about the width it is drawn (never over 600 px), so it stays sharp and small.
         val needW = if (fx != null) w * 1.15f else w
@@ -1007,7 +1074,7 @@ private object WidgetSky {
     private const val SHADE_MAX = 0.45f
 }
 
-/** Hourly alarm, and the phone's time, time zone or date changing: redraw the widgets. */
+/** The quarter-hour alarm, and the phone's time, time zone or date changing: redraw the widgets. */
 class WidgetClock : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val pending = goAsync()
@@ -1019,6 +1086,13 @@ open class MeridianWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         val pending = goAsync()
         MeridianWidgets.updateAll(context) { pending.finish() }
+    }
+
+    /** Removed: forget the widget's own cities. */
+    override fun onDeleted(context: Context, ids: IntArray) {
+        val edit = Store.prefs(context).edit()
+        ids.forEach { id -> edit.remove(MeridianWidgets.followKey(id)).remove(MeridianWidgets.citiesKey(id)) }
+        edit.apply()
     }
 
     /** Resized: the pictures and the capsule are drawn for the widget's size. */

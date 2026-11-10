@@ -1,0 +1,58 @@
+name: Links
+
+# Checks every link Meridian publishes (scripts/check-links.py): the URLs in README, CHANGELOG,
+# TERMS, docs/, the App Store metadata, Android strings and the Swift/Kotlin source; the relative
+# links in README and docs/; and the live pages bradcowdrey.com/, /meridian, /meridian-app.html and
+# /legal with every link on them, rendered by headless Chrome. Publishes report.txt to the ci-links
+# branch and fails if any link is broken or a live page renders no links. Listed but not failing:
+# BLOCKED third-party sites that refuse robots, and CITATION research sources in docs/working-hours.md.
+# Runs after Release and iPhone app finish (every push to main runs Release), so the .ipa and DMG
+# links they publish exist by then.
+on:
+  workflow_run:
+    workflows: ["Release", "iPhone app"]
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+    paths: ["scripts/check-links.py", ".github/workflows/links.yml"]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1"  # Mondays, 06:17 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: links
+  cancel-in-progress: true
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OUT: ${{ github.workspace }}/out
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check links
+        id: check
+        run: |
+          set +e
+          python3 scripts/check-links.py "$OUT"
+          echo "result=$?" >> "$GITHUB_OUTPUT"
+      - name: Publish to ci-links branch
+        if: always()
+        run: |
+          mkdir -p "$OUT"; cd "$OUT"
+          echo "$GITHUB_SHA" > commit.txt
+          git init -q -b ci-links
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "Link check for $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-links
+      - name: Require every link to work
+        run: |
+          if [ "${{ steps.check.outputs.result }}" != "0" ]; then
+            grep -E "^(BROKEN|MISSING)" "$OUT/report.txt" | sed 's/^/::error::/' || true
+            exit 1
+          fi

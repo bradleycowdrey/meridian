@@ -4,6 +4,12 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 2.1.3 · 10 November 2026
+
+- **Widgets laid out like the panel**: compact text, slim hour tiles and the city photo showing between them, with rows filling the widget evenly.
+- **Widgets show more**: whether each city is working, off hours or on a weekend, dimmed off-hours tiles, and half-hour cities' tiles shown whole (9:30, 10:30).
+- **iPhone, before the App Store**: each release now includes an iPhone app file you can install yourself. See the [sideload guide](docs/sideload.md).
+
 ## 2.1.2 · 10 November 2026
 
 - **Every city's skyline in view**: each photo is framed on its own skyline, so rows show the city rather than empty sky or a few zoomed-in windows.

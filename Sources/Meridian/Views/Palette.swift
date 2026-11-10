@@ -172,8 +172,17 @@ struct Metrics {
     // The Now outline.
     /// How far the Now tile grows past its cell on each side.
     func nowGrowX(tile: CGFloat) -> CGFloat { tile * (nowScale - 1) / 2 }
+    /// Extra room on each side of the Now tile, on top of the gutter: 6 pt (scaled), or what it
+    /// takes for the outline's line (core and dark edge) to stand 3 pt clear of the Now tile and
+    /// of its neighbour. `cell` is the column pitch.
+    func nowPad(cell: CGFloat) -> CGFloat {
+        let needed = 2 * (3 + lensCore / 2 + lensEdge) + nowGrowX(tile: cell - gutter) - gutter
+        return max(pt(6), needed.rounded(.up))
+    }
     /// From the Now tile's edge to the outline's centre line: midway in the clear gap.
-    func lensInset(tile: CGFloat) -> CGFloat { (gutter - nowGrowX(tile: tile)) / 2 }
+    func lensInset(tile: CGFloat) -> CGFloat {
+        (gutter + nowPad(cell: tile + gutter) - nowGrowX(tile: tile)) / 2
+    }
     var lensCore: CGFloat { gutter >= 8 ? 2 : 1.5 }
     var lensEdge: CGFloat { gutter >= 8 ? 1 : 0.5 }
     /// Concentric with the Now tile's corners.
@@ -183,20 +192,42 @@ struct Metrics {
     /// Hours shown: two before, now, two after.
     static let visibleColumns = 5
 
-    /// Panel width built from its parts: the room of seven standard hour columns (in the menu
-    /// bar popover and the window alike), or five if that wouldn't fit on screen at this size.
-    func panelWidth(compact: Bool, screenWidth: CGFloat) -> CGFloat {
-        func width(_ columns: Int) -> CGFloat {
-            2 * xl + 2 * tilePadding + labelWidth(compact: compact) + CGFloat(columns) * cellWidth(compact: compact)
-        }
-        return width(7) > screenWidth ? width(5) : width(7)
+    /// The panel without the clear gap: margins, the label column and this many standard hour
+    /// columns.
+    private func panelBase(compact: Bool, columns: Int) -> CGFloat {
+        2 * xl + 2 * tilePadding + labelWidth(compact: compact) + CGFloat(columns) * cellWidth(compact: compact)
     }
 
-    /// The column pitch actually used: the strip's room shared by the five visible hours, so
-    /// fewer, wider tiles fill the same panel. Whole points keep the edges crisp.
+    /// The clear gap between a row's label and its hour tiles is never under this.
+    static let minClearGap: CGFloat = 96
+
+    /// The strip has the room of seven standard hour columns (in the menu bar popover and the
+    /// window alike), or five if seven and the smallest clear gap wouldn't fit on screen.
+    private func panelColumns(compact: Bool, screenWidth: CGFloat) -> Int {
+        panelBase(compact: compact, columns: 7) + Self.minClearGap > screenWidth ? 5 : 7
+    }
+
+    /// The clear space between a row's label and its hour tiles, where the city's photo is
+    /// centred: 170 pt (scaled), less when the panel would otherwise be wider than the screen,
+    /// never under 96.
+    func clearGap(compact: Bool, screenWidth: CGFloat) -> CGFloat {
+        let base = panelBase(compact: compact, columns: panelColumns(compact: compact, screenWidth: screenWidth))
+        return min(pt(170), max(Self.minClearGap, (screenWidth - base).rounded(.down)))
+    }
+
+    /// Panel width built from its parts: margins, label, clear gap, strip.
+    func panelWidth(compact: Bool, screenWidth: CGFloat) -> CGFloat {
+        panelBase(compact: compact, columns: panelColumns(compact: compact, screenWidth: screenWidth))
+            + clearGap(compact: compact, screenWidth: screenWidth)
+    }
+
+    /// The column pitch actually used: the strip's room, less the extra space either side of the
+    /// Now tile, shared by the five visible hours, so fewer, wider tiles fill the same panel.
+    /// Whole points keep the edges crisp.
     func stripCellWidth(compact: Bool, screenWidth: CGFloat) -> CGFloat {
-        let strip = panelWidth(compact: compact, screenWidth: screenWidth) - 2 * xl - 2 * tilePadding - labelWidth(compact: compact)
-        return (strip / CGFloat(Self.visibleColumns)).rounded(.down)
+        let strip = CGFloat(panelColumns(compact: compact, screenWidth: screenWidth)) * cellWidth(compact: compact)
+        let columns = CGFloat(Self.visibleColumns)
+        return ((strip - 2 * nowPad(cell: strip / columns)) / columns).rounded(.down)
     }
 }
 

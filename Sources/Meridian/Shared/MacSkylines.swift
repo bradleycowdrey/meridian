@@ -272,21 +272,26 @@ fileprivate func macSkylineTone(_ hex: UInt32) -> Color {
 }
 
 /// A photo filling its frame: scaled to cover it, centred sideways and, when cropped top and
-/// bottom, held 35 % from the top (where skylines sit).
+/// bottom, held 35 % from the top (where skylines sit). With `focusX` (points from the frame's
+/// leading edge) the photo's centre sits there instead, the photo scaled up just enough to still
+/// cover the frame, and held 42 % from the top.
 fileprivate struct MacSkylinePhoto: View {
     let image: CGImage
     let dimmed: Bool
+    var focusX: CGFloat? = nil
 
     var body: some View {
         GeometryReader { geo in
             let iw = CGFloat(max(image.width, 1)), ih = CGFloat(max(image.height, 1))
-            let scale = max(geo.size.width / iw, geo.size.height / ih)
+            let centre: CGFloat = focusX.map { min(max($0, 0), geo.size.width) } ?? geo.size.width / 2
+            let reach: CGFloat = 2 * max(centre, geo.size.width - centre)
+            let scale: CGFloat = max(reach / iw, geo.size.height / ih)
             let w = iw * scale, h = ih * scale
             Image(decorative: image, scale: 1)
                 .resizable()
                 .interpolation(.high)
                 .frame(width: w, height: h)
-                .offset(x: (geo.size.width - w) / 2, y: (geo.size.height - h) * 0.35)
+                .offset(x: centre - w / 2, y: (geo.size.height - h) * (focusX == nil ? 0.35 : 0.42))
         }
         .overlay { if dimmed { Color.black.opacity(0.45) } }
         .clipped()
@@ -303,6 +308,7 @@ struct MacSkylineBackdrop: View {
     private let date: Date
     private let maxPixel: Int
     private let synchronous: Bool
+    private let focusX: CGFloat?
 
     private struct Shown {
         let id: String
@@ -313,9 +319,10 @@ struct MacSkylineBackdrop: View {
     @State private var shown: Shown?
 
     /// `synchronous` decodes in `body` (widgets and ImageRenderer, which never run tasks);
-    /// otherwise the photo is decoded off the main thread and fades in.
+    /// otherwise the photo is decoded off the main thread and fades in. `focusX` (points from the
+    /// leading edge) puts the photo's centre there rather than in the middle of the frame.
     init(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
-         date: Date, maxPixel: Int = 1000, synchronous: Bool = false) {
+         date: Date, maxPixel: Int = 1000, synchronous: Bool = false, focusX: CGFloat? = nil) {
         self.name = name
         self.timeZoneID = timeZoneID
         self.latitude = latitude
@@ -323,6 +330,7 @@ struct MacSkylineBackdrop: View {
         self.date = date
         self.maxPixel = maxPixel
         self.synchronous = synchronous
+        self.focusX = focusX
     }
 
     private static let daySky = [macSkylineTone(0x3D74B0), macSkylineTone(0x1C3A5E)]
@@ -336,10 +344,10 @@ struct MacSkylineBackdrop: View {
             LinearGradient(colors: night ? Self.nightSky : Self.daySky, startPoint: .top, endPoint: .bottom)
             if synchronous {
                 if let pick, let image = MacSkylines.image(key: pick.key, night: pick.night, maxPixel: maxPixel) {
-                    MacSkylinePhoto(image: image, dimmed: pick.dimmed)
+                    MacSkylinePhoto(image: image, dimmed: pick.dimmed, focusX: focusX)
                 }
             } else if let shown {
-                MacSkylinePhoto(image: shown.image, dimmed: shown.dimmed)
+                MacSkylinePhoto(image: shown.image, dimmed: shown.dimmed, focusX: focusX)
                     .id(shown.id)
                     .transition(.opacity)
             }

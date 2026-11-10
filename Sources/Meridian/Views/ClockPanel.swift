@@ -88,6 +88,8 @@ private struct ClockPanelContent: View {
                                                              screenWidth: (NSScreen.main?.visibleFrame.width ?? 1440) - 48),
                                 rowHeight: rowHeight,
                                 labelWidth: ui.labelWidth(compact: compact),
+                                gapWidth: ui.clearGap(compact: compact,
+                                                      screenWidth: (NSScreen.main?.visibleFrame.width ?? 1440) - 48),
                                 editing: editing
                             )
                         }

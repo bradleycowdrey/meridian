@@ -10,6 +10,8 @@ struct StripView: View {
     var cellWidth: CGFloat = 52
     var rowHeight: CGFloat = 84
     var labelWidth: CGFloat = 200
+    /// Clear space between a row's label and its hour tiles: the city's photo is centred here.
+    var gapWidth: CGFloat = 170
     var editing = false
 
     /// Live drag distance; resets by itself if the gesture is cancelled (panel closed mid-drag).
@@ -24,7 +26,7 @@ struct StripView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let stripWidth = max(cellWidth * 5, geo.size.width - labelWidth)
+            let stripWidth = max(cellWidth * 5, geo.size.width - labelWidth - gapWidth)
             let half = Int(stripWidth / cellWidth / 2) + 2
             let total = Double(store.offsetHours) - Double(drag / cellWidth)
             let base = Int(total.rounded())
@@ -33,8 +35,15 @@ struct StripView: View {
             let moment = base == 0 ? store.now : anchor.addingTimeInterval(Double(base) * 3600)
             let tile = cellWidth - cellGap
             let tileHeight = ui.tileHeight(row: rowHeight)
-            let tileBottom = ui.tileBottom(row: rowHeight)
-            let cardWidth = labelWidth + stripWidth + 2 * ui.cardOutset
+            // Extra room either side of the Now tile, where the outline's line runs.
+            let nowPad = ui.nowPad(cell: cellWidth)
+            // Under the tiles there is always room for the outline's bottom line inside the row.
+            let lensReach: CGFloat = (tileHeight * (ui.nowScale - 1) / 2 + ui.lensInset(tile: tile)
+                + ui.lensCore / 2 + ui.lensEdge).rounded(.up)
+            let tileBottom = max(0, min(max(ui.tileBottom(row: rowHeight), lensReach), rowHeight - tileHeight))
+            let cardWidth = labelWidth + gapWidth + stripWidth + 2 * ui.cardOutset
+            // The photo's centre: the middle of the clear gap, from the card's leading edge.
+            let focusX = ui.cardOutset + labelWidth + gapWidth / 2
 
             ZStack(alignment: .topLeading) {
                 // Each city's photo (day or night by the sun there at the shown moment), behind
@@ -43,8 +52,8 @@ struct StripView: View {
                     ForEach(store.places) { place in
                         MacSkylineBackdrop(name: place.name, timeZoneID: place.timeZoneID,
                                            latitude: place.latitude, longitude: place.longitude,
-                                           date: moment, maxPixel: 1000)
-                            .overlay(scrim(cardWidth: cardWidth))
+                                           date: moment, maxPixel: 1000, focusX: focusX)
+                            .overlay(scrim(textEnd: ui.cardOutset + labelWidth, cardWidth: cardWidth))
                             .clipShape(RoundedRectangle(cornerRadius: ui.cardRadius, style: .continuous))
                             .frame(maxWidth: .infinity)
                             .frame(height: rowHeight)
@@ -52,7 +61,7 @@ struct StripView: View {
                 }
                 .padding(.top, overlapRowHeight + rowSpacing)
                 .padding(.horizontal, -ui.cardOutset)
-                .frame(width: labelWidth + stripWidth, alignment: .topLeading)
+                .frame(width: labelWidth + gapWidth + stripWidth, alignment: .topLeading)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
 
@@ -78,6 +87,7 @@ struct StripView: View {
                                         isOverlap: allWorking(at: anchor.addingTimeInterval(Double(index) * 3600))
                                     )
                                     .frame(width: tile, height: overlapRowHeight)
+                                    .padding(.horizontal, index == base ? nowPad : 0)
                                 }
                             }
                             ForEach(store.places) { place in
@@ -109,6 +119,7 @@ struct StripView: View {
                                         .accessibilityElement(children: .combine)
                                         .accessibilityAddTraits(.isButton)
                                         .testID("hour-\(place.name)-\(index)")
+                                        .padding(.horizontal, index == base ? nowPad : 0)
                                         // The larger Now tile overlaps its neighbours' gutters.
                                         .zIndex(index == base ? 1 : 0)
                                     }
@@ -150,6 +161,7 @@ struct StripView: View {
                             }
                     )
                     .onScrollWheel { delta in store.travel(delta) }
+                    .padding(.leading, gapWidth)
                 }
             }
         }
@@ -161,30 +173,18 @@ struct StripView: View {
             && store.places.allSatisfy { store.isWorking($0, at: date) }
     }
 
-    /// Darkens a row's photo: heavily behind the label so white text reads on any sky (a sky of
-    /// luminance 0.5 under 0.70 is still 4.9:1), lightly behind the tiles, a little more at the foot.
-    private func scrim(cardWidth: CGFloat) -> some View {
-        let width = max(cardWidth, 1)
-        let labelEnd = min(max(labelWidth / width, 0.01), 0.9)
-        let fadeEnd = min(max((labelWidth + 1.5 * cellWidth) / width, labelEnd + 0.01), 0.99)
-        return ZStack {
-            LinearGradient(
-                stops: [
-                    .init(color: Palette.scrim.opacity(0.78), location: 0),
-                    .init(color: Palette.scrim.opacity(0.70), location: labelEnd),
-                    .init(color: Palette.scrim.opacity(0.12), location: fadeEnd),
-                    .init(color: Palette.scrim.opacity(0.12), location: 1),
-                ],
-                startPoint: .leading, endPoint: .trailing
-            )
-            LinearGradient(
-                stops: [
-                    .init(color: Palette.scrim.opacity(0.45), location: 0),
-                    .init(color: Palette.scrim.opacity(0), location: 0.6),
-                ],
-                startPoint: .bottom, endPoint: .top
-            )
+    /// The only darkening on a row's photo: black easing slowly (smoothstep, so no edge or band)
+    /// from 45% at the card's leading edge to nothing where the label ends. The clear gap and the
+    /// tiles' side are the photo as it is; the label's words carry their own halo and chips.
+    private func scrim(textEnd: CGFloat, cardWidth: CGFloat) -> some View {
+        let end: CGFloat = min(max(textEnd / max(cardWidth, 1), 0.01), 1)
+        let steps = 10
+        let stops: [Gradient.Stop] = (0...steps).map { (step: Int) -> Gradient.Stop in
+            let t = Double(step) / Double(steps)
+            let ease = t * t * (3 - 2 * t)
+            return Gradient.Stop(color: Palette.scrim.opacity(0.45 * (1 - ease)), location: end * CGFloat(t))
         }
+        return LinearGradient(stops: stops, startPoint: .leading, endPoint: .trailing)
     }
 
     private func nowOutline(tile: CGFloat, tileHeight: CGFloat, tileBottom: CGFloat) -> some View {
@@ -220,6 +220,10 @@ private struct PlaceLabel: View {
     @State private var handleHovered = false
 
     private var tall: Bool { rowHeight >= ui.threeLineRow }
+
+    /// Black behind the small white text (zone, day shift): at 55% white keeps 4.7:1 even on a
+    /// pure white photo with no other darkening.
+    fileprivate static let chipBacking: Double = 0.55
 
     var body: some View {
         let shift = TimeMath.dayShift(moment, zone: place.timeZone)
@@ -299,7 +303,7 @@ private struct PlaceLabel: View {
             .foregroundStyle(Palette.textPrimary)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            .shadow(color: .black.opacity(0.55), radius: 1.5, y: 1)
+            .photoHalo()
     }
 
     private func nameLine(font: Font) -> some View {
@@ -309,11 +313,12 @@ private struct PlaceLabel: View {
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .shadow(color: .black.opacity(0.55), radius: 1.5, y: 1)
+                .photoHalo()
             if store.isHere(place) {
                 Image(systemName: "location.fill")
                     .font(ui.font(11, .medium))
-                    .foregroundStyle(Palette.textSecondary)
+                    .foregroundStyle(Palette.textPrimary)
+                    .photoHalo()
                     .accessibilityLabel("My Location")
             }
         }
@@ -327,22 +332,27 @@ private struct PlaceLabel: View {
         if shift != 0 {
             dayBadge(shift)
         } else if !editing {
+            // Small text on a bright photo: white on its own dark chip, like the status pill.
             Text(place.offsetLabel(at: moment))
-                .font(ui.font(12))
-                .foregroundStyle(Palette.textSecondary)
+                .font(ui.font(11, .semibold))
+                .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, ui.pt(7))
+                .frame(height: max(16, ui.pt(16)))
+                .background(Capsule().fill(Palette.scrim.opacity(PlaceLabel.chipBacking)))
         }
     }
 
     private func dayBadge(_ shift: Int) -> some View {
         Text(shift > 0 ? "+\(shift) d" : "−\(-shift) d")
-            .font(ui.font(11, .medium))
+            .font(ui.font(11, .semibold))
             .foregroundStyle(Palette.textPrimary)
             .lineLimit(1)
             .fixedSize()
             .padding(.horizontal, ui.pt(7))
-            .padding(.vertical, 1)
-            .background(Capsule().fill(Palette.scrim.opacity(0.5)))
+            .frame(height: max(16, ui.pt(16)))
+            .background(Capsule().fill(Palette.scrim.opacity(PlaceLabel.chipBacking)))
     }
 
     /// Working, Off hours, Weekend, Day off, or the holiday's name; nil when working hours aren't shown.
@@ -451,7 +461,9 @@ private struct StatusPill: View {
             .lineLimit(1)
             .padding(.horizontal, ui.pt(7))
             .frame(height: max(16, ui.pt(16)))
-            .background(Capsule().fill(Palette.scrim.opacity(0.5)))
+            // The photo behind is hardly darkened now, so the plate is deeper than the chips':
+            // the state's colour has less contrast to spare than white.
+            .background(Capsule().fill(Palette.scrim.opacity(0.7)))
             .overlay(Capsule().strokeBorder(color.opacity(0.5), lineWidth: 1))
             .accessibilityLabel(title)
     }
@@ -649,6 +661,18 @@ private struct OverlapMark: View {
             .fill(isOverlap ? Palette.cream : .clear)
             .frame(width: ui.pt(16), height: 3)
             .help(isOverlap ? "Everyone is in working hours" : "")
+    }
+}
+
+// MARK: - Text on a photo
+
+private extension View {
+    /// A soft dark halo, so white words read on a bright photo that is hardly darkened.
+    func photoHalo() -> some View {
+        self
+            .shadow(color: .black.opacity(0.75), radius: 1, y: 1)
+            .shadow(color: .black.opacity(0.55), radius: 5)
+            .shadow(color: .black.opacity(0.35), radius: 11)
     }
 }
 

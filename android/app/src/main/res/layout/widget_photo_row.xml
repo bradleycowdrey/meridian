@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One city (medium and large widgets): its photo fills the row (pre-rendered with the time-of-day shading,
-     the scrims and rounded corners); bottom-left the time (white on a dark photo, dark on a bright one),
-     the name and what it's doing; bottom-right the hour before, now and the hour after. The Now capsule is
+<!-- One city (medium and large widgets): its photo fills the row (pre-rendered sharp, centred in the clear gap
+     between the words and the tiles, shaded only over the words, with rounded corners); bottom-left the time
+     and name (white with a dark halo) and what it's doing (on its dark pill), then the clear gap (text_col's end
+     padding, set in code); bottom-right the hour before, now and the hour after, the Now tile 7 dp from each
+     (5 dp margins) so the Now outline runs in clear space. The Now capsule is
      drawn once over every row (widget_photo_root). Insets and weights match MeridianWidgets' geometry. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -10,28 +12,28 @@
     <ImageView android:id="@+id/bg" android:layout_width="match_parent" android:layout_height="match_parent"
         android:scaleType="fitXY" android:importantForAccessibility="no" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-        android:gravity="bottom" android:orientation="horizontal" android:clipToPadding="false"
+        android:gravity="bottom" android:orientation="horizontal" android:clipToPadding="false" android:clipChildren="false"
         android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="0dp" android:paddingBottom="6dp">
         <LinearLayout android:id="@+id/text_col" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:layout_marginEnd="6dp" android:orientation="vertical">
+            android:layout_marginEnd="6dp" android:orientation="vertical" android:clipChildren="false" android:clipToPadding="false">
             <LinearLayout android:id="@+id/time_light" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:baselineAligned="true" android:orientation="horizontal" android:visibility="visible">
+                android:baselineAligned="true" android:orientation="horizontal" android:clipChildren="false" android:visibility="visible">
                 <TextClock android:id="@+id/clock" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
                     android:letterSpacing="-0.02" android:textColor="#FFFFFF" android:textSize="20sp" android:maxLines="1"
-                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                    android:shadowColor="#E6000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="14" />
                 <TextView android:id="@+id/clock_static" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
                     android:letterSpacing="-0.02" android:textColor="#FFFFFF" android:textSize="20sp" android:maxLines="1"
-                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                    android:shadowColor="#E6000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="14" />
                 <TextClock android:id="@+id/ampm" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
                     android:textColor="#FFFFFF" android:textSize="12sp" android:maxLines="1"
-                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                    android:shadowColor="#E6000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="14" />
                 <TextView android:id="@+id/ampm_static" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="2dp" android:fontFamily="sans-serif-medium" android:fontFeatureSettings="tnum" android:includeFontPadding="false"
                     android:textColor="#FFFFFF" android:textSize="12sp" android:maxLines="1"
-                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                    android:shadowColor="#E6000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="14" />
             </LinearLayout>
             <LinearLayout android:id="@+id/time_dark" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:baselineAligned="true" android:orientation="horizontal" android:visibility="gone">
@@ -56,14 +58,14 @@
                  status dot before it in rows too short for the pill (MeridianWidgets.rowFit). Its bottom padding is the
                  gap above the full pill (set in code; 0 for the compact pill, the dot and none). -->
             <LinearLayout android:id="@+id/name_row" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:gravity="center_vertical" android:orientation="horizontal">
+                android:gravity="center_vertical" android:orientation="horizontal" android:clipChildren="false" android:clipToPadding="false">
                 <ImageView android:id="@+id/status_dot" android:layout_width="8dp" android:layout_height="8dp"
                     android:layout_marginEnd="4dp" android:padding="1dp" android:background="@drawable/widget_dot_ring"
                     android:src="@drawable/widget_dot" android:visibility="gone" android:importantForAccessibility="no" />
                 <TextView android:id="@+id/name" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                     android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"
                     android:fontFamily="sans-serif-medium" android:textColor="#FFFFFF" android:textSize="15sp"
-                    android:shadowColor="#99000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="3" />
+                    android:shadowColor="#E6000000" android:shadowDx="0" android:shadowDy="1" android:shadowRadius="14" />
             </LinearLayout>
             <LinearLayout android:id="@+id/status" android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:background="@drawable/widget_pill" android:gravity="center_vertical"
@@ -88,7 +90,7 @@
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
             <FrameLayout android:id="@+id/tile1_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.12"
-                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
                 <TextView android:id="@+id/tile1" style="@style/WidgetTile"
                     android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile1_edge" android:layout_width="match_parent" android:layout_height="match_parent"
@@ -106,7 +108,7 @@
              iPhone widget). Shown instead of [tiles] by MeridianWidgets.tiles; TILE_TALL_HEIGHT matches the side tiles (38 dp), the Now tile 8 dp more. -->
         <LinearLayout android:id="@+id/tiles_tall" android:layout_width="0dp" android:layout_height="46dp" android:layout_weight="1.1"
             android:layout_marginBottom="-4dp" android:orientation="horizontal" android:visibility="gone">
-            <FrameLayout android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1"
+            <FrameLayout android:id="@+id/tile0_tall_slot" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1"
                 android:layout_gravity="center_vertical" android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile0_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
                     android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
@@ -114,13 +116,13 @@
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
             <FrameLayout android:id="@+id/tile1_tall_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.12"
-                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
                 <TextView android:id="@+id/tile1_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
                     android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
                 <ImageView android:id="@+id/tile1_tall_edge" android:layout_width="match_parent" android:layout_height="match_parent"
                     android:background="@drawable/widget_tile_edge" android:visibility="gone" android:importantForAccessibility="no" />
             </FrameLayout>
-            <FrameLayout android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1"
+            <FrameLayout android:id="@+id/tile2_tall_slot" android:layout_width="0dp" android:layout_height="38dp" android:layout_weight="1"
                 android:layout_gravity="center_vertical" android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
                 <TextView android:id="@+id/tile2_tall" style="@style/WidgetTile" android:maxLines="2" android:includeFontPadding="false"
                     android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp" android:textSize="17sp" />
@@ -147,7 +149,7 @@
                     android:maxLines="1" android:textColor="#F2C66D" android:textSize="11sp" android:visibility="gone" />
             </FrameLayout>
             <FrameLayout android:id="@+id/day_tag1_slot" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1.12"
-                android:layout_marginStart="2dp" android:layout_marginEnd="2dp">
+                android:layout_marginStart="5dp" android:layout_marginEnd="5dp">
                 <TextView android:id="@+id/day_tag1" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_gravity="bottom|center_horizontal" android:background="@drawable/widget_day_tag"
                     android:paddingStart="5dp" android:paddingEnd="5dp" android:paddingTop="1dp" android:paddingBottom="1dp"

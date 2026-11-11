@@ -9,7 +9,7 @@ the live pages at bradcowdrey.com. Run by .github/workflows/links.yml.
 
 Status words in report.txt:
   OK       2xx, directly or after redirects
-  BROKEN   anything else (4xx, 5xx, DNS failure, timeout)
+  BROKEN   anything else (4xx, 5xx, DNS failure, timeout), except BLOCKED below
   BLOCKED  401/403/429/999 from a third-party site, which usually means it refuses robots rather than
            that the page is gone; listed for a person to look at, not counted as a failure.
            Our own hosts (bradcowdrey.com, GitHub, Apple) never get this allowance.

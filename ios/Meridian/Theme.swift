@@ -66,7 +66,7 @@ enum Theme {
     /// What Share says, as Two Degrees does: the app, what it does here, who made it.
     static let shareMessage = "Meridian: every time zone at a glance, on your iPhone and its Home Screen and Lock Screen. Free, by Bradley Cowdrey."
     /// Copy a Message to Send: ready to paste into a chat, with where to get it.
-    static let messageToSend = "\(shareMessage)\n\nGet it for iPhone, Mac or Android: \(appPage.absoluteString)"
+    static let messageToSend = "\(shareMessage)\n\nGet it for iPhone or Mac: \(appPage.absoluteString)"
 }
 
 /// Cards on the sheets and the clock-change notices (the cities are rows in one panel: `Strip`).

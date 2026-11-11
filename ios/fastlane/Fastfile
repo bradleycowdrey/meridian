@@ -290,6 +290,8 @@ platform :ios do
         marketing = pre.dig("data", "attributes", "version")
       end
       UI.message("Version #{name}: #{state}; build #{build&.dig("attributes", "version") || "none"} (#{marketing || "-"})")
+      icon = build&.dig("attributes", "iconAssetToken", "templateUrl")
+      UI.message("  icon of that build: #{icon.sub("{w}", "256").sub("{h}", "256").sub("{f}", "png")}") if icon
       if marketing && marketing != name && state != "READY_FOR_SALE"
         code, body = asc(:patch, "v1/appStoreVersions/#{v["id"]}", { data: { type: "appStoreVersions", id: v["id"], attributes: { versionString: marketing } } })
         report("Version name #{name} -> #{marketing}", code, body)

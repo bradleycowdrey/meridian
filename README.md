@@ -7,7 +7,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 <p align="center">
   <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg"><b>Download for Mac</b></a> ·
-  <a href="docs/sideload.md"><b>iPhone</b></a> (sideload until it's on the App Store) ·
+  <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian-iOS.ipa"><b>iPhone app file</b></a> (<a href="docs/sideload.md">how to install</a>, until it's on the App Store) ·
   <a href="https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk"><b>Android APK</b></a> ·
   <a href="https://bradcowdrey.com/meridian">Try it in your browser</a> ·
   <a href="https://github.com/bradleycowdrey/meridian/issues">Report an issue</a>
@@ -22,7 +22,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ### What's new in 2.1
 
-Mac 2.1.2 is out and updates itself. iPhone 2.0 is in TestFlight on its way to App Review, with the same look; sideload it now ([below](#iphone-and-android)). Android has it in the latest APK.
+Mac 2.1.3 is out and updates itself. iPhone 2.0 is on its way to App Review, with the same look. Until it's on the App Store, install it yourself: download [Meridian-iOS.ipa](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian-iOS.ipa) and follow the [sideload steps](docs/sideload.md) (AltStore or Sideloadly, about 5 minutes). Android has it in the latest APK.
 
 - **City photos on every platform**: each city shows the city itself, by day or by night there, framed on its own skyline, on Mac, iPhone, Android and in the widgets.
 - **A larger Now tile** with room either side and one outline down every city, and hour tiles in blues that make working hours stand out.
@@ -126,8 +126,8 @@ Requires Xcode 15.3+ (Swift 5.10) on macOS 14+.
 git clone https://github.com/bradleycowdrey/meridian.git
 cd meridian
 swift run                         # run in development
-scripts/build-app.sh 2.1.2        # dist/Meridian.app (universal, with city photos)
-scripts/make-dmg.sh 2.1.2         # dist/Meridian-2.1.2.dmg
+scripts/build-app.sh 2.1.3        # dist/Meridian.app (universal, with city photos)
+scripts/make-dmg.sh 2.1.3         # dist/Meridian-2.1.3.dmg
 ```
 
 ## Releasing

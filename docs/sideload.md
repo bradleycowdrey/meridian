@@ -1,6 +1,6 @@
 # Install Meridian on iPhone (sideload)
 
-Meridian 2.0 for iPhone is in TestFlight, on its way to App Review. Until it's on the App Store, you can install it yourself with
+Meridian 2.0 for iPhone is on its way to App Review. Until it's on the App Store, you can install it yourself with
 **AltStore** or **Sideloadly**. Both sign the app with your own Apple ID, so it runs on your iPhone
 like any other app, widgets included.
 

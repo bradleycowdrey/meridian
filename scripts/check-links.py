@@ -10,7 +10,7 @@ the live pages at bradcowdrey.com. Run by .github/workflows/links.yml.
 Status words in report.txt:
   OK       2xx, directly or after redirects
   BROKEN   anything else (4xx, 5xx, DNS failure, timeout)
-  BLOCKED  401/403/999 from a third-party site, which usually means it refuses robots rather than
+  BLOCKED  401/403/429/999 from a third-party site, which usually means it refuses robots rather than
            that the page is gone; listed for a person to look at, not counted as a failure.
            Our own hosts (bradcowdrey.com, GitHub, Apple) never get this allowance.
   CITATION a research source cited only in docs/working-hours.md, on a third-party site, that
@@ -211,7 +211,7 @@ def check(url):
     strict = is_strict(host)
     if 200 <= code < 300:
         status = "OK"
-    elif code in (401, 403, 999) and not strict:
+    elif code in (401, 403, 429, 999) and not strict:  # 429 after a retry: rate-limits robots (Instagram)
         status = "BLOCKED"
     else:
         status = "BROKEN"

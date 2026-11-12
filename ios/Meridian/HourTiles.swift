@@ -181,6 +181,10 @@ struct HourTiles: View {
             .padding(.vertical, -TileGrid.nowGrow)
             // And past the top again, for the weekday tag above the tile where a new day starts.
             .padding(.top, -Self.tagReach)
+            // And past the tiles' soft outline (`TileHalo.reach`), so its blur isn't cut off above
+            // and below the taller Now tile, or (on a card, where nothing fades) at the outer tiles.
+            .padding(.vertical, -TileHalo.reach)
+            .padding(.horizontal, fade ? 0 : -TileHalo.reach)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         .contentShape(Rectangle())
@@ -286,10 +290,11 @@ struct HourTiles: View {
             .background(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
                 .fill(dim ? Self.offHours(style.fill)
                       : store.showWorkHours ? Self.working(style.fill) : Self.legible(style.fill)))
-            // Night and off-hours tiles are near-black, close to a night photo: a 1 pt edge (white at
-            // 32%) keeps the row of five readable as tiles there (was 0.5 pt at 16%, 1.3:1).
-            .overlay(RoundedRectangle(cornerRadius: TileGrid.radius, style: .continuous)
-                .strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.32 : 0), lineWidth: 1))
+            // Every tile (day and night, working and off hours, the Now tile too) gets one soft
+            // outline: a thin white line just outside its edge, gently blurred (`TileHalo`). It keeps
+            // near-black night and off-hours tiles readable as tiles on a night photo, as the hard
+            // 1 pt edge (white at 32%, night and off hours only) did, but with no hard stroke.
+            .overlay(TileHalo())
             .overlay(alignment: .top) {
                 // A new day: its weekday in a small gold tag centred above the tile (the tile itself
                 // reads "12", "AM" like its neighbours). Never wider than the tile, so it stays clear
@@ -425,6 +430,28 @@ private struct TileLabel: View {
         Text(":" + String(format: "%02d", minute)).font(.system(size: minuteSize, weight: .semibold))
     }
 
+}
+
+/// Each hour tile's soft outline: a 1 pt white line (30%) hugging the tile's rounded rect just
+/// outside its edge (concentric corners), softened with a 1.5 pt blur into a gentle halo, so the tile
+/// reads crisp with a slightly blurred, elegant edge. Outside the tile, so it never covers the digits;
+/// the dark separation on a bright day photo comes from the tiles' shadow on the card.
+private struct TileHalo: View {
+    static let line: CGFloat = 1
+    static let blur: CGFloat = 1.5
+    /// The line's centre, this far outside the tile's edge (its inner side on the edge).
+    static let offset: CGFloat = line / 2
+    /// How far outside the tile the blurred line can reach.
+    static let reach: CGFloat = line + 3 * blur
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: TileGrid.radius + Self.offset, style: .continuous)
+            .stroke(Color.white.opacity(0.3), lineWidth: Self.line)
+            .padding(-Self.offset)
+            .blur(radius: Self.blur)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
 }
 
 /// The new day's weekday ("WED"), above the tile where the day starts: gold on a dark pill, the same

@@ -1021,6 +1021,9 @@ struct WidgetClockView: View {
                                 MacWidgetRowPhoto(city: city, date: date, focusX: focus, anchorY: anchorY)
                                     .overlay(scrim)
                                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    // The card's edge fades out over 3 pt into the widget's dark
+                                    // background (photo and scrim only; the text and tiles stay opaque).
+                                    .mask { WidgetCardFeather(radius: 10) }
                                     .padding(.horizontal, -bleed)
                             }
                         }
@@ -1100,7 +1103,7 @@ struct WidgetClockView: View {
     /// callers, above or inside the tile's top edge.
     /// `city` (the Mac's widgets): in full colour, the iPhone's rule: an hour outside the city's
     /// working hours is dimmed, a working one floored (while the app highlights working hours),
-    /// and off-hours and night tiles get a 1 pt edge at 32% white.
+    /// and every tile in full colour gets the soft blurred outline (WidgetTileHalo).
     private func tile(_ moment: Date, zone: TimeZone, stacked: Bool = false, radius: CGFloat = 6,
                       city: WidgetSnapshot.City? = nil) -> some View {
         var calendar = Calendar(identifier: .gregorian)
@@ -1114,7 +1117,6 @@ struct WidgetClockView: View {
         let dim = worked ? WidgetWorkStatus.dims(city!, snapshot: snapshot, hourStart: moment) : false
         let fill = !worked ? style.fill
             : (dim ? DayColor.offHoursFill(at: h) : ((snapshot.showStatus ?? true) ? DayColor.workingFill(at: h) : style.fill))
-        let edge: Double = worked && (dim || hour < 6 || hour >= 21) ? 0.32 : 0
         return tileLabel(hour: hour, minute: minute, stacked: stacked)
             .foregroundStyle(tinted ? Color.primary : style.text)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1126,7 +1128,11 @@ struct WidgetClockView: View {
                     shape.fill(fill)
                 }
             }
-            .overlay(shape.strokeBorder(Color.white.opacity(edge), lineWidth: 1))
+            // Full colour: every tile (day and night, working and off hours, Now included) gets the
+            // soft blurred outline (WidgetTileHalo) in place of the hard 1 pt edge night tiles had.
+            .overlay {
+                if !tinted { WidgetTileHalo(radius: radius) }
+            }
     }
 
     /// The tile's hour. Only the digits may shrink; AM/PM stays 12 pt (Mac: 11 pt), after the hour or,
@@ -1244,6 +1250,52 @@ struct WidgetClockView: View {
         let b = Calendar.current.dateComponents([.year, .month, .day], from: date)
         guard let da = there.date(from: a), let db = there.date(from: b) else { return 0 }
         return Int((da.timeIntervalSince(db) / 86_400).rounded())
+    }
+}
+
+/// A city card's soft edge (both platforms' widget rows): a mask for the card's photo and scrims
+/// only (never its text, pills or tiles) that fades them from opaque to nothing over a thin band
+/// (`band`, 3 pt) at the card's outer edge, on all four sides and round its corners, so the photo
+/// dissolves into the widget's background instead of ending on a hard rounded edge. A rounded rect
+/// inset by half the band (corners concentric with the card's) and blurred by a quarter of it; the
+/// mask never changes the photo's frame or the layout.
+struct WidgetCardFeather: View {
+    static let band: CGFloat = 3
+    let radius: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: max(0, radius - Self.band / 2), style: .continuous)
+            .fill(Color.black)
+            .padding(Self.band / 2)
+            .blur(radius: Self.band / 4)  // σ a quarter of the band: ~2% at the edge, no visible line
+    }
+}
+
+/// The soft outline round every hour tile in full colour (both platforms; was a hard 1 pt edge at
+/// 32% white on night and off-hours tiles only): a 1 pt line at 30% white just outside the tile's
+/// rounded edge, blurred 1.5 pt into a gentle halo, over a faint dark halo (1.5 pt at 25% black,
+/// blurred 2 pt) a little further out that keeps it apart from a bright day photo. Drawn outside
+/// the tile (the lines sit beyond its edge), so it never covers the digits; it changes no layout.
+struct WidgetTileHalo: View {
+    let radius: CGFloat
+    /// The faint dark halo (off where the caller already shades the tiles).
+    var dark = true
+
+    var body: some View {
+        ZStack {
+            if dark {
+                RoundedRectangle(cornerRadius: radius + 2.5, style: .continuous)
+                    .strokeBorder(Color.black.opacity(0.25), lineWidth: 1.5)
+                    .padding(-2.5)
+                    .blur(radius: 2)
+            }
+            RoundedRectangle(cornerRadius: radius + 1, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.3), lineWidth: 1)
+                .padding(-1)
+                .blur(radius: 1.5)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -2358,8 +2410,11 @@ struct WidgetPhotoRows: View {
             return WidgetPhotoTile.digits(h, use24h: snapshot.use24h)
         }.max { $0.count < $1.count } ?? ""
         return ZStack(alignment: .bottomLeading) {
+            // The card's edge fades out over 3 pt into the widget's sky (the photo and its shade
+            // only; the text, pill and tiles above stay fully opaque).
             WidgetCityBackdrop(city: city, date: date, photo: photo, focusX: focus,
                                shadeEnd: (Self.sidePadding + block) / max(width, 1))
+                .mask { WidgetCardFeather(radius: Self.radius) }
             HStack(alignment: .bottom, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
                     WidgetBannerClock(date: date, zone: zone, use24h: snapshot.use24h, size: clockSize)
@@ -2488,9 +2543,10 @@ struct WidgetPhotoTile: View {
         // Off-hours tiles are darkened, never see-through (was 88% opacity: the photo showed
         // through behind the numerals), as the app's.
         .background(shape.fill(fill))
-        // Night and off-hours tiles are near-black: a 1 pt edge at 32% white (was 0.5 pt at 16%,
-        // 1.3:1) keeps the row reading as tiles on a dark night photo, as the app's HourTiles.
-        .overlay(shape.strokeBorder(Color.white.opacity(dim || hour < 6 || hour >= 21 ? 0.32 : 0), lineWidth: 1))
+        // Every tile (day and night, working and off hours, Now included): the soft blurred outline
+        // (was a hard 1 pt edge at 32% white on night and off-hours tiles only). The row's tiles
+        // already carry a dark shadow, so the outline's own dark halo is off here.
+        .overlay { WidgetTileHalo(radius: Self.radius, dark: false) }
         .overlay(alignment: .top) {
             // A new day: its weekday in a small gold tag centred above the tile, never wider than it.
             if newDay {

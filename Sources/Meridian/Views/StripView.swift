@@ -23,6 +23,8 @@ struct StripView: View {
     private var overlapRowHeight: CGFloat { ui.pt(20) }
 
     private var pitch: CGFloat { rowHeight + rowSpacing }
+    /// Width of the soft band where each city card fades out into the panel.
+    static let feather: CGFloat = 4
 
     var body: some View {
         GeometryReader { geo in
@@ -55,6 +57,18 @@ struct StripView: View {
                                            date: moment, maxPixel: 1000, focusX: focusX)
                             .overlay(scrim(textEnd: ui.cardOutset + labelWidth, cardWidth: cardWidth))
                             .clipShape(RoundedRectangle(cornerRadius: ui.cardRadius, style: .continuous))
+                            // The card's edge feathers out over a thin band (4 pt) into the panel
+                            // behind it, following its rounded corners: a rounded rect inset by
+                            // half the band (concentric corners) and blurred (σ = a quarter of
+                            // the band) goes from nearly clear at the edge to opaque 4 pt in.
+                            // Photo and scrim only; the label, tiles and Now outline are drawn
+                            // above, unfaded.
+                            .mask {
+                                RoundedRectangle(cornerRadius: max(0, ui.cardRadius - StripView.feather / 2),
+                                                 style: .continuous)
+                                    .padding(StripView.feather / 2)
+                                    .blur(radius: StripView.feather / 4)
+                            }
                             .frame(maxWidth: .infinity)
                             .frame(height: rowHeight)
                     }
@@ -505,8 +519,6 @@ private struct HourCell: View {
         // Always fully opaque, so the photo never shows through behind the numerals.
         let fill: Color = dimmed ? DayColor.offHoursFill(at: h)
             : (highlights ? DayColor.workingFill(at: h) : DayColor.style(at: h).fill)
-        // The darkest tiles get a hairline so they still read as tiles on a night photo.
-        let edged = dimmed || hour < 6 || hour >= 21
         let shape = RoundedRectangle(cornerRadius: ui.tileRadius * k, style: .continuous)
         // Under the hour: AM or PM on a 12-hour clock, at midnight and noon as at any other hour.
         let caption: String? = use24h ? nil : (hour < 12 ? "AM" : "PM")
@@ -541,12 +553,23 @@ private struct HourCell: View {
                 .padding(.top, 2 * nudge)
                 .frame(width: width * k, height: tileHeight * k)
                 .background(shape.fill(fill))
+                // Every tile (day or night, working or off, Now included) has one soft outline
+                // instead of a hard hairline: a faint dark halo just outside it, behind the fill so
+                // it never darkens the tile, and a thin white line just outside its edge, gently blurred.
+                // Hovering only brightens the line.
+                .background {
+                    shape.stroke(Color.black.opacity(0.25), lineWidth: 2)
+                        .blur(radius: 2)
+                        .allowsHitTesting(false)
+                }
                 .overlay {
-                    if hovered {
-                        shape.strokeBorder(Color.white.opacity(0.55), lineWidth: 1)
-                    } else if edged {
-                        shape.strokeBorder(Color.white.opacity(0.32), lineWidth: 1)
-                    }
+                    // The line's inner side sits on the tile's edge (concentric corners, 1 pt
+                    // out), so it hugs the tile without reaching in toward the digits.
+                    RoundedRectangle(cornerRadius: ui.tileRadius * k + 1, style: .continuous)
+                        .strokeBorder(Color.white.opacity(hovered ? 0.6 : 0.3), lineWidth: 1)
+                        .padding(-1)
+                        .blur(radius: 1.5)
+                        .allowsHitTesting(false)
                 }
                 .overlay(alignment: .top) {
                     // A new day starts here: its weekday, centred over the tile's top. Never

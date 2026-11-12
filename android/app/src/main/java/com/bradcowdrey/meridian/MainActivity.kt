@@ -572,9 +572,12 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                             drawContent()
                             drawNowCapsule(i, count, rowHeight, first)
                         }
+                        // The card's grey fill only in Edit List (and the bare-rows diagnostic): a city's card carries
+                        // its own fill under the photo (CityRow), inside the feathered edge, so no hard grey rim shows.
+                        val plain = editing || Diag.has("rows")
                         Box(capsule.padding(start = Strip.margin, end = Strip.margin, top = if (first) Rows.edge else 0.dp,
                             bottom = if (last) Rows.edge else Rows.gap)
-                            .fillMaxWidth().clip(shape).background(Palette.tile)) {
+                            .fillMaxWidth().clip(shape).then(if (plain) Modifier.background(Palette.tile) else Modifier)) {
                             if (editing) EditRow(store, place)
                             else if (Diag.has("rows")) Box(Modifier.fillMaxWidth().height(rowHeight))
                             else {
@@ -875,6 +878,8 @@ object Strip {
 /** The city cards' sizes: separate rounded cards, each filled by its city's skyline. */
 object Rows {
     val radius = 16.dp
+    /** The card's feathered edge: its photo fades to clear over this band, all round (featherEdges). */
+    val feather = 6.dp
     /** Between cards, and above the first and below the last. */
     val gap = 8.dp
     val edge = 8.dp
@@ -1662,7 +1667,12 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         val boostTarget = if (drawnNight) 0f else shown?.look?.boost ?: 0f
         val boost by animateFloatAsState(boostTarget, tween(250), label = "scrim boost")
         val bright = if (drawnNight) Skyline.drawnIsBright(phase) else shown?.look?.bright ?: Skyline.drawnIsBright(phase)
-        Box(Modifier.matchParentSize().clearAndSetSemantics {}) {
+        // The photo layer (the card's fill, the photo or drawn skyline, and the scrim) fades to clear over a thin
+        // Rows.feather band at the card's rounded edge (featherEdges), so each card dissolves into the black behind
+        // it. Only this layer: the time, name, pill and hour tiles (the Row below) stay fully opaque.
+        Box(Modifier.matchParentSize().clearAndSetSemantics {}
+            .then(if (Diag.has("feather")) Modifier else Modifier.featherEdges(Rows.feather, Rows.radius))
+            .background(Palette.tile)) {
             // Photo to drawn skyline (a city with no night photo at sunset, and back at sunrise) fades over 0.3 s too.
             // Inside a Crossfade there's no card BoxScope: its children fill the Crossfade's own box (fillMaxSize),
             // which matchParentSize sizes to the card. matchParentSize in here measured the photo at 0x0 (pass 6).
@@ -1772,6 +1782,49 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         }
     }
 }
+
+/**
+ * Fades what this draws to clear over a thin [band] at its edge, all four sides, following [radius] corners: whole
+ * a band in, nothing at the very edge, linear between. Drawn in its own layer and then cut away (DstOut) by two-colour
+ * gradients over exact bands only (four edge strips and four corner squares with radial gradients), never a multi-stop
+ * brush over the whole card (those took the emulator's graphics down); the interior is never touched. Layout is unchanged.
+ */
+fun Modifier.featherEdges(band: Dp, radius: Dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val w = size.width
+        val h = size.height
+        // Whole pixels, so the strips and corner squares meet exactly (no anti-aliased seam).
+        val b = kotlin.math.round(band.toPx())
+        if (b < 1f || w <= 2f * b || h <= 2f * b) return@drawWithContent
+        val r = kotlin.math.round(radius.toPx()).coerceIn(b, kotlin.math.floor(minOf(w, h) / 2f))
+        val keep = Color.Black.copy(alpha = 0f)
+        val cut = Color.Black
+        // The sides, between the corners: cleared fully at the edge, not at all a band in.
+        if (w > 2f * r) {
+            drawRect(Brush.verticalGradient(listOf(cut, keep), startY = 0f, endY = b),
+                topLeft = Offset(r, 0f), size = Size(w - 2f * r, b), blendMode = BlendMode.DstOut)
+            drawRect(Brush.verticalGradient(listOf(keep, cut), startY = h - b, endY = h),
+                topLeft = Offset(r, h - b), size = Size(w - 2f * r, b), blendMode = BlendMode.DstOut)
+        }
+        if (h > 2f * r) {
+            drawRect(Brush.horizontalGradient(listOf(cut, keep), startX = 0f, endX = b),
+                topLeft = Offset(0f, r), size = Size(b, h - 2f * r), blendMode = BlendMode.DstOut)
+            drawRect(Brush.horizontalGradient(listOf(keep, cut), startX = w - b, endX = w),
+                topLeft = Offset(w - b, r), size = Size(b, h - 2f * r), blendMode = BlendMode.DstOut)
+        }
+        // The corners: round the corner's centre, kept inside r - b, cleared by r (and fully past it).
+        val inner = (r - b) / r
+        for (k in 0..3) {
+            val right = k % 2 == 1
+            val bottom = k >= 2
+            val centre = Offset(if (right) w - r else r, if (bottom) h - r else r)
+            drawRect(Brush.radialGradient(inner to keep, 1f to cut, center = centre, radius = r),
+                topLeft = Offset(if (right) w - r else 0f, if (bottom) h - r else 0f), size = Size(r, r),
+                blendMode = BlendMode.DstOut)
+        }
+    }
 
 /**
  * The Now capsule, once down the whole list as on the icon: drawn by each city card's list item over
@@ -2015,6 +2068,25 @@ private object TileText {
     }
 }
 
+/**
+ * An hour tile's soft outline, round its rounded rect ([radius], px): a white 30% line 1 dp wide just outside the
+ * edge, then fainter rings out to 2.5 dp, so it reads as a slightly blurred line (a gentle halo, no bloom). Strokes
+ * centred on the tile's edge: the half inside sits under the tile's opaque fill, so only the outside shows. Layered
+ * strokes rather than a blur (cheap in a scrolling list, and the same on every API level).
+ */
+private fun DrawScope.drawTileOutline(radius: Float) {
+    if (size.width <= 0f || size.height <= 0f) return
+    for ((reach, alpha) in TileOutline.layers) {
+        drawRoundRect(Color.White.copy(alpha = alpha), size = size, cornerRadius = CornerRadius(radius),
+            style = Stroke(2f * reach.toPx()))
+    }
+}
+
+/** The hour tiles' soft outline: (reach outside the edge, white alpha), outermost and faintest first. */
+private object TileOutline {
+    val layers = listOf(2.5.dp to 0.05f, 1.75.dp to 0.08f, 1.dp to 0.22f)
+}
+
 /** The hour tiles' soft shadow: wider, fainter layers (spread, alpha). */
 private object TileShadow {
     val layers = listOf(3.dp to 0.06f, 2.dp to 0.08f, 1.dp to 0.12f)
@@ -2037,7 +2109,7 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     // The sky colour, its brightest steps held so white on it stays at least 5.6:1; a working tile (where working
     // hours are shown) no darker than DayColor.WORKING_FLOOR, so 9 AM and 5 PM stand 3:1 from the off tile beside them.
     // Only where the hour's own sky is day or shoulder (6:30 AM to 8:30 PM): a night-shift city's working midnight
-    // keeps its navy, so the colour still says night; the 1 dp edge (below) tells it from the photo.
+    // keeps its navy, so the colour still says night; the soft outline (below) tells it from the photo.
     val h = hour + minute / 60.0
     val floor = if (store.showWorkHours && !dim && h >= 6.5 && h <= 20.5) DayColor.WORKING_FLOOR else 0.0
     val fill = DayColor.tile(h, floor)
@@ -2056,13 +2128,12 @@ private fun HourTile(store: Store, place: Place, start: Instant, center: Boolean
     val suffix = if (use24h) null else if (hour < 12) "AM" else "PM"
     // A plain Box (the tile's height comes from HourTiles): no subcomposition per tile, so a card's first frame is quick.
     // 2 dp clear each side on every tile (the Now outline's stroke sits in the gap outside the tile, NowCapsule).
-    // Off-hours and night tiles (fill near the night photo's own darkness) get a 1 dp white 32% edge, so the five
-    // still read as tiles on a dark photo; the fill stays as it is (3:1 working against off).
-    val edge = dim || Color(fill).luminance() < 0.03f
-    Box(modifier.clip(shape).background(fillColor)
-        .then(if (edge) Modifier.border(1.dp, Color.White.copy(alpha = 0.32f), shape)
-            // Day tiles a 1 dp black 30% edge, so the blue stands about 4:1 off a pale day sky (was about 2.6:1).
-            else Modifier.border(1.dp, Color.Black.copy(alpha = 0.3f), shape))
+    // Every tile (day and night, working and off, the Now tile too): one soft outline instead of the old hard 1 dp
+    // edge (white 32% at night and off hours, black 30% by day). A thin white line hugging the tile just outside its
+    // edge, softened like a ~1.5 dp blur (TileOutline), drawn before the clip so it never covers the digits; the dark
+    // soft shadow under the tiles (HourTiles, TileShadow) still parts them from a bright day sky. The fill stays as it is.
+    Box(modifier.drawBehind { drawTileOutline(Strip.tileRadius.toPx()) }
+        .clip(shape).background(fillColor)
         .padding(horizontal = 2.dp),
         contentAlignment = Alignment.Center) {
         // Two lines on every tile (12-hour): the hour, then AM/PM, midnight ("12 / AM") and noon ("12 / PM") as any

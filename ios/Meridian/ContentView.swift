@@ -1058,10 +1058,23 @@ struct CityRow: View {
         let content = max(0, cardWidth - 2 * RowCard.sidePadding)
         let tileHeight = min(RowCard.tileHeight, max(28, height - RowCard.topPadding - RowCard.bottomPadding))
         return ZStack(alignment: .bottomLeading) {
-            SkylineBackdrop(seed: place.name, photo: photo, phase: phase)
-                .accessibilityHidden(true)
-            CardScrim()
-                .accessibilityHidden(true)
+            // The card's background (its fill, photo and scrims) fades out over a thin band at its
+            // edge (`RowCard.edgeFeather`, following its rounded corners) into the list behind: a
+            // blurred rounded rect as its mask. Only this layer fades; the text and tiles above it
+            // stay fully opaque, and the mask leaves the layout as it was.
+            ZStack {
+                Theme.tile
+                SkylineBackdrop(seed: place.name, photo: photo, phase: phase)
+                CardScrim()
+            }
+            .mask {
+                // Inset by half the band with concentric corners, blurred by a quarter (σ): about 2%
+                // at the card's edge and 98% a band in, so it fades out with no visible line.
+                RoundedRectangle(cornerRadius: max(0, RowCard.radius - RowCard.edgeFeather / 2), style: .continuous)
+                    .padding(RowCard.edgeFeather / 2)
+                    .blur(radius: RowCard.edgeFeather / 4)
+            }
+            .accessibilityHidden(true)
             HStack(alignment: .bottom, spacing: Strip.labelGap) {
                 VStack(alignment: .leading, spacing: 0) {
                     BannerClock(moment: moment, zone: place.timeZone, use24h: store.use24h, size: clockSize,
@@ -1093,7 +1106,7 @@ struct CityRow: View {
         .frame(height: height)
         .coordinateSpace(.named(Self.cardSpace))
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { cardWidth = $0 }
-        .background(Theme.tile)
+        // The fill now sits inside the masked background above (so it fades with the photo).
         .clipShape(RoundedRectangle(cornerRadius: RowCard.radius, style: .continuous))
         .foregroundStyle(.white)
         .accessibilityElement(children: .contain)

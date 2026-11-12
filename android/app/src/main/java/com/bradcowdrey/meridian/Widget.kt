@@ -12,6 +12,7 @@ import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
@@ -136,8 +137,6 @@ object MeridianWidgets {
     private const val MINUTES_SP = 12f
     /** Gap (dp) above the compact pill (five rows on the large widget; was 0), so the name never sits on the pill's outline. */
     private const val COMPACT_GAP = 1f
-    /** Off-hours and night tiles (fill at most this luminance) get a 1 dp white 32% edge (widget_tile_edge), so they read as tiles on a night photo. */
-    private const val EDGE_MAX_LUMINANCE = 0.05
     /**
      * The new day's weekday tag ("WED", widget_photo_row's day_tag0..2) over the tile where a new day starts there
      * (midnight): 11 dp text whatever the font scale (it must stay narrower than a tile) in a pill TAG_H dp high
@@ -803,15 +802,11 @@ object MeridianWidgets {
             val fill = if (dim) TileDim.opaque(color) else color
             if (Build.VERSION.SDK_INT >= 31) v.setColorStateList(id, "setBackgroundTintList", ColorStateList.valueOf(fill))
             else v.setInt(id, "setBackgroundColor", fill)
-            // Off-hours and night tiles: a 1 dp white 32% edge over the tile (an overlay, so the tint above never touches it).
-            v.setViewVisibility(edges[i], if (luminance(fill) <= EDGE_MAX_LUMINANCE) View.VISIBLE else View.GONE)
+            // Every tile (day and night, working and off): the soft outline (widget_tile_edge, a 1 dp white 30% line at
+            // the edge easing to nothing 3 dp in, in place of the old hard 1 dp edge on night tiles only), an overlay
+            // over the tile so the tint above never touches it.
+            v.setViewVisibility(edges[i], View.VISIBLE)
         }
-    }
-
-    /** [rgb]'s relative luminance (WCAG). */
-    private fun luminance(rgb: Int): Double {
-        fun lin(v: Int): Double { val c = v / 255.0; return if (c <= 0.04045) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4) }
-        return 0.2126 * lin((rgb shr 16) and 0xFF) + 0.7152 * lin((rgb shr 8) and 0xFF) + 0.0722 * lin(rgb and 0xFF)
     }
 
     /** [rgb] with its linear light scaled (same hue) so its relative luminance is at most [TILE_MAX_LUMINANCE] and at least [floor]. */
@@ -1017,6 +1012,30 @@ private object WidgetSky {
             }
             c.drawPath(corners, Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT) })
         }
+        // The feathered edge: the photo (with its shade) fades to clear over a thin FEATHER_DP band all round,
+        // following the rounded corners, so each row dissolves into the widget's background instead of ending on a
+        // hard edge. Cleared (DST_OUT) with a blurred frame: everything outside a rounded rect inset 0.6 of the band,
+        // blurred (sigma a quarter of the band), so the photo is whole a band in and clear at the very edge. The frame's
+        // outer rect runs well past the bitmap, so its own edge never blurs into the picture. Software canvas: the
+        // BlurMaskFilter always applies. Words and tiles are separate views over the picture, so they never fade.
+        val band = FEATHER_DP * scale
+        if (band >= 1f && w > 4f * band && h > 4f * band) {
+            val inset = band * 0.6f
+            val r = (cornerDp * scale - inset).coerceAtLeast(0f)
+            val sigma = band / 4f
+            // BlurMaskFilter's radius to sigma is sigma = 0.57735 * radius + 0.5.
+            val blur = ((sigma - 0.5f) / 0.57735f).coerceAtLeast(0.5f)
+            val past = band * 4f
+            val frame = Path().apply {
+                fillType = Path.FillType.EVEN_ODD
+                addRect(-past, -past, w + past, h + past, Path.Direction.CW)
+                addRoundRect(RectF(inset, inset, w - inset, h - inset), r, r, Path.Direction.CW)
+            }
+            c.drawPath(frame, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_OUT)
+                maskFilter = BlurMaskFilter(blur, BlurMaskFilter.Blur.NORMAL)
+            })
+        }
         return Art(out, false)
     }
 
@@ -1072,6 +1091,9 @@ private object WidgetSky {
 
     /** The darkening at the far left of a row's text block (and the bottom of the small widget), black 45%. */
     private const val SHADE_MAX = 0.45f
+
+    /** The feathered edge's band (dp): each row's (and the small widget's) photo fades to clear over this, all round. */
+    private const val FEATHER_DP = 3f
 }
 
 /** The quarter-hour alarm, and the phone's time, time zone or date changing: redraw the widgets. */

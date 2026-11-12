@@ -8,6 +8,9 @@ import WidgetKit
 /// the right, so the sky shows above them.
 enum RowCard {
     static let radius: CGFloat = 16
+    /// The thin band round the card's edge where its photo (and scrims) fade out to the list
+    /// behind, so each card dissolves softly into the background instead of ending in a hard edge.
+    static let edgeFeather: CGFloat = 6
     /// Between cards, and above the first and below the last.
     static let gap: CGFloat = 8
     /// A card's height once the list scrolls (six or more cities).

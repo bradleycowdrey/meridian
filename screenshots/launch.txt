@@ -1,0 +1,18 @@
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:32:32 shot main
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:32:47 shot travel
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:33:14 shot add
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:33:39 shot edit
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:34:04 shot settings
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:34:28 shot date
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:34:52 shot find
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:35:16 shot widgets
+Starting: Intent { cmp=com.bradcowdrey.meridian/.MainActivity (has extras) }
+19:35:40 shot terms

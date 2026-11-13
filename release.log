@@ -1,0 +1,104 @@
+0%: Compute target dependency graph
+Building targets in dependency order
+Target dependency graph (2 targets)
+0%: Gather provisioning inputs
+0%: Create build description
+0%: Discovering version info for clang
+0%: Discovering version info for swiftc
+0%: Discovering version info for ld
+Build description signature: 05090731fa885dca4fcc65f7b45352c0
+
+Build description path: /Users/runner/work/meridian/meridian/.build/apple/Intermediates.noindex/XCBuildData/05090731fa885dca4fcc65f7b45352c0.xcbuilddata
+
+0%: Create build directory $(TARGET_BUILD_DIR)
+0%: Create build directory $(OBJROOT)
+0%: Build stat cache for /Applications/Xcode_16.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk
+0%: Create build directory $(TARGET_BUILD_DIR)/Release
+0%: Create build directory $(OBJROOT)/EagerLinkingTBDs/Release
+0%: Create build directory $(TARGET_BUILD_DIR)/Release/PackageFrameworks
+0%: Write Meridian_const_extract_protocols.json (x86_64)
+0%: Write Meridian.SwiftFileList (x86_64)
+0%: Write Meridian.LinkFileList (x86_64)
+0%: Write Meridian-OutputFileMap.json (x86_64)
+0%: Write Meridian_const_extract_protocols.json (arm64)
+0%: Write Meridian.SwiftFileList (arm64)
+0%: Write Meridian.LinkFileList (arm64)
+0%: Write Meridian-OutputFileMap.json (arm64)
+0%: Write Meridian.DependencyStaticMetadataFileList
+0%: Write Meridian.DependencyMetadataFileList
+48%: Planning Swift module Meridian (x86_64)
+48%: Planning Swift module Meridian (arm64)
+50%: Compile Meridian (x86_64)
+50%: Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift
+50%: Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift
+50%: Compile Meridian (arm64)
+50%: Compile 23 Swift source files (x86_64)
+50%: Compile 23 Swift source files (arm64)
+58%: Discovering Swift tasks after 'Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift'
+58%: Unblock downstream dependents of Meridian (arm64)
+58%: Link Meridian (arm64)
+58%: Copy Meridian.swiftmodule (arm64)
+58%: Copy Meridian.swiftdoc (arm64)
+58%: Copy Meridian.abi.json (arm64)
+58%: Copy Meridian.swiftsourceinfo (arm64)
+75%: Discovering Swift tasks after 'Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift'
+75%: Unblock downstream dependents of Meridian (x86_64)
+75%: Link Meridian (x86_64)
+75%: Copy Meridian.swiftmodule (x86_64)
+75%: Copy Meridian.swiftdoc (x86_64)
+75%: Copy Meridian.abi.json (x86_64)
+75%: Copy Meridian.swiftsourceinfo (x86_64)
+91%: Create universal binary Meridian
+91%: Generate Meridian.dSYM for Meridian
+97%: Register execution policy exception for Meridian
+100%: Build succeeded
+Build complete!
+[32m==>[0m [1mDownloading bottle manifests[0m
+✔︎ Bottle Manifest xcodegen (2.46.0)
+[32m==>[0m [1mFetching downloads for: [32mxcodegen[39m[0m
+✔︎ Bottle xcodegen (2.46.0)
+[34m==>[0m [1mPouring xcodegen--2.46.0.arm64_sequoia.bottle.1.tar.gz[0m
+🍺  /opt/homebrew/Cellar/xcodegen/2.46.0: 38 files, 7.5MB
+dist/Meridian.app/Contents/PlugIns/MeridianWidget.appex: replacing existing signature
+dist/Meridian.app: replacing existing signature
+dist/Meridian.app: valid on disk
+dist/Meridian.app: satisfies its Designated Requirement
+Built dist/Meridian.app (2.1.4 build 281)
+Conducting pre-submission checks for Meridian.zip and initiating connection to the Apple notary service...
+Submission ID received
+  id: 8bbc64ba-c119-4349-bd8f-36e45c8cd39d
+Successfully uploaded file
+  id: 8bbc64ba-c119-4349-bd8f-36e45c8cd39d
+  path: /var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/tmp.ODTWXcyNFN/Meridian.zip
+Waiting for processing to complete. Wait timeout is set to 7200.0 second(s).
+Current status: In Progress...Current status: In Progress....Current status: In Progress.....Current status: Accepted......Processing complete
+  id: 8bbc64ba-c119-4349-bd8f-36e45c8cd39d
+  status: Accepted
+Processing: /Users/runner/work/meridian/meridian/dist/Meridian.app
+Processing: /Users/runner/work/meridian/meridian/dist/Meridian.app
+The staple and validate action worked!
+
+[notice] A new release of pip is available: 26.2.2 -> 26.3
+[notice] To update, run: /private/var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/tmp.ODTWXcyNFN/venv/bin/python3.15 -m pip install --upgrade pip
+2 images written to /var/folders/2s/vty41l455yv698g4xkgfv7z00000gn/T/tmp.ODTWXcyNFN/background.tiff.
+Conducting pre-submission checks for Meridian-2.1.4.dmg and initiating connection to the Apple notary service...
+Submission ID received
+  id: 2d2ebe50-d5a1-482b-b9f1-826642ddb5e7
+Successfully uploaded file
+  id: 2d2ebe50-d5a1-482b-b9f1-826642ddb5e7
+  path: /Users/runner/work/meridian/meridian/dist/Meridian-2.1.4.dmg
+Waiting for processing to complete. Wait timeout is set to 7200.0 second(s).
+Current status: In Progress...Current status: In Progress....Current status: In Progress.....Current status: In Progress......Current status: Accepted.......Processing complete
+  id: 2d2ebe50-d5a1-482b-b9f1-826642ddb5e7
+  status: Accepted
+Processing: /Users/runner/work/meridian/meridian/dist/Meridian-2.1.4.dmg
+Processing: /Users/runner/work/meridian/meridian/dist/Meridian-2.1.4.dmg
+The staple and validate action worked!
+dist/Meridian-2.1.4.dmg: accepted
+source=Notarized Developer ID
+origin=Developer ID Application: Bradley Cowdrey (2XV97FZ86G)
+dist/Meridian.app: accepted
+source=Notarized Developer ID
+origin=Developer ID Application: Bradley Cowdrey (2XV97FZ86G)
+817d3bc1602a5bfe80e404b6f47df5fc794bda2aed5a31e09726418d7c1540f8  dist/Meridian-2.1.4.dmg
+Packaged dist/Meridian-2.1.4.dmg

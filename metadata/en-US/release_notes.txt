@@ -1,0 +1,11 @@
+City photos: each card shows its city by day or by night there, framed on its skyline, with hour tiles in blues and a larger Now tile outlined down every city.
+
+Find a Time: pick a day and who's in it, and see when everyone is working, with the best times first. Add it to your calendar or share an invite with every city's time.
+
+People and groups: add a card for a colleague in their city, put cards in groups, and show one group at a time.
+
+Every card has a status line: working or not, when the sun sets or rises there, and +1 d when it's another day.
+
+Public holidays count as days off, and the card names the holiday. Clock changes in the next two weeks show above your cities.
+
+Search 34,000 cities, offline. A time ruler moves every city through the day in quarter-hours. My Location adds the city you're in. Each city follows its own working days (Sunday to Thursday in Riyadh).

@@ -1,0 +1,31 @@
+[19:15:49]: [33mGet started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile[0m
+[19:15:49]: fastlane 2.241.2 (Ruby 4.0.9, homebrew)
+[19:15:51]: Sending anonymous analytics information
+[19:15:51]: Learn more at https://docs.fastlane.tools/#metrics
+[19:15:51]: No personal or sensitive data is sent.
+[19:15:51]: You can disable this by adding `opt_out_usage` at the top of your Fastfile
+[19:15:51]: [32m------------------------------[0m
+[19:15:51]: [32m--- Step: default_platform ---[0m
+[19:15:51]: [32m------------------------------[0m
+[19:15:51]: [32mDriving the lane 'ios store_status' 🚀[0m
+[19:15:51]: [32m--------------------------------------------[0m
+[19:15:51]: [32m--- Step: Switch to ios sign_in_api lane ---[0m
+[19:15:51]: [32m--------------------------------------------[0m
+[19:15:51]: Cruising over to lane 'ios sign_in_api' 🚖
+[19:15:51]: [32m---------------------------------------[0m
+[19:15:51]: [32m--- Step: app_store_connect_api_key ---[0m
+[19:15:51]: [32m---------------------------------------[0m
+[19:15:51]: Cruising back to lane 'ios store_status' 🚘
+[19:15:52]: Version 2.0: WAITING_FOR_REVIEW; build 274 (2.0)
+
++-----------------------------------------------------+
+|                  [32mfastlane summary[0m                   |
++------+--------------------------------+-------------+
+| Step | Action                         | Time (in s) |
++------+--------------------------------+-------------+
+| 1    | default_platform               | 0           |
+| 2    | Switch to ios sign_in_api lane | 0           |
+| 3    | app_store_connect_api_key      | 0           |
++------+--------------------------------+-------------+
+
+[19:15:52]: [32mfastlane.tools finished successfully 🎉[0m

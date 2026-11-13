@@ -1,0 +1,197 @@
+[selftest] keepOnScreen moved (94.0, 16.0, 836.0, 611.0) -> origin (94.0, 62.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (836.0, 450.0) window (94.0, 62.0, 836.0, 611.0) -> (94.0, 223.0, 836.0, 450.0) titleBarInset 0.0
+[selftest] fitWindow content (836.0, 583.0) window (94.0, 223.0, 836.0, 450.0) -> (94.0, 90.0, 836.0, 583.0) titleBarInset 0.0
+[selftest] window attached, title bar inset 28.0
+[selftest] fitWindow content (683.0, 573.0) window (94.0, 195.0, 683.0, 478.0) -> (94.0, 100.0, 683.0, 573.0) titleBarInset 28.0
+[selftest] fitWindow content (683.0, 478.0) window (94.0, 100.0, 683.0, 573.0) -> (94.0, 195.0, 683.0, 478.0) titleBarInset 28.0
+[selftest] fitWindow content (767.0, 484.0) window (94.0, 139.0, 767.0, 534.0) -> (94.0, 189.0, 767.0, 484.0) titleBarInset 28.0
+[selftest] fitWindow content (767.0, 534.0) window (94.0, 189.0, 767.0, 484.0) -> (94.0, 139.0, 767.0, 534.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 538.0) window (94.0, 90.0, 836.0, 583.0) -> (94.0, 135.0, 836.0, 538.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 583.0) window (94.0, 135.0, 836.0, 538.0) -> (94.0, 90.0, 836.0, 583.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (94.0, 49.0, 932.0, 624.0) -> origin (92.0, 62.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (932.0, 590.0) window (92.0, 62.0, 932.0, 624.0) -> (92.0, 96.0, 932.0, 590.0) titleBarInset 28.0
+[selftest] fitWindow content (932.0, 624.0) window (92.0, 96.0, 932.0, 590.0) -> (92.0, 62.0, 932.0, 624.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (92.0, 68.0, 976.0, 618.0) -> origin (48.0, 68.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 68.0, 976.0, 618.0) -> (48.0, 62.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] fitWindow content (976.0, 618.0) window (48.0, 62.0, 976.0, 632.0) -> (48.0, 76.0, 976.0, 618.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (48.0, 44.0, 683.0, 650.0) -> origin (48.0, 62.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (683.0, 591.0) window (48.0, 62.0, 683.0, 650.0) -> (48.0, 121.0, 683.0, 591.0) titleBarInset 28.0
+[selftest] fitWindow content (683.0, 650.0) window (48.0, 121.0, 683.0, 591.0) -> (48.0, 62.0, 683.0, 650.0) titleBarInset 28.0
+[selftest] fitWindow content (767.0, 646.0) window (48.0, 66.0, 767.0, 646.0) -> (48.0, 66.0, 767.0, 646.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 641.0) window (48.0, 71.0, 836.0, 641.0) -> (48.0, 71.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] fitWindow content (932.0, 636.0) window (48.0, 76.0, 932.0, 636.0) -> (48.0, 76.0, 932.0, 636.0) titleBarInset 28.0
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 80.0, 976.0, 632.0) -> (48.0, 80.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 641.0) window (48.0, 129.0, 836.0, 583.0) -> (48.0, 71.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 583.0) window (48.0, 71.0, 836.0, 641.0) -> (48.0, 129.0, 836.0, 583.0) titleBarInset 28.0
+[selftest] placement edge(Meridian.WindowPlacement.left) -> (16.0, 144.0, 836.0, 583.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] placement edge(Meridian.WindowPlacement.center) -> (94.0, 144.0, 836.0, 583.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] placement edge(Meridian.WindowPlacement.right) -> (172.0, 144.0, 836.0, 583.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (683.0, 573.0) window (172.0, 249.0, 683.0, 478.0) -> (172.0, 154.0, 683.0, 573.0) titleBarInset 28.0
+[selftest] fitWindow content (683.0, 478.0) window (172.0, 154.0, 683.0, 573.0) -> (172.0, 249.0, 683.0, 478.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 615,90 in 683x478 -> DocumentView
+[selftest] functional: click travel-now at 609,409 in 683x478 -> DocumentView
+[selftest] functional: click travel-later at 651,409 in 683x478 -> DocumentView
+[selftest] functional: click travel-earlier at 567,409 in 683x478 -> DocumentView
+[selftest] functional: click control-add at 516,448 in 683x478 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (683.0, 650.0) window (172.0, 77.0, 683.0, 650.0) -> (172.0, 77.0, 683.0, 650.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 326,479 in 683x650 -> DocumentView
+[selftest] fitWindow content (683.0, 631.0) window (172.0, 96.0, 683.0, 631.0) -> (172.0, 96.0, 683.0, 631.0) titleBarInset 28.0
+[selftest] functional: click control-add at 516,601 in 683x631 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (683.0, 553.0) window (172.0, 174.0, 683.0, 553.0) -> (172.0, 174.0, 683.0, 553.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 592,523 in 683x553 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 176,90 in 683x553 -> DocumentView
+[selftest] fitWindow content (683.0, 478.0) window (172.0, 249.0, 683.0, 478.0) -> (172.0, 249.0, 683.0, 478.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 592,448 in 683x478 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (683.0, 650.0) window (172.0, 77.0, 683.0, 650.0) -> (172.0, 77.0, 683.0, 650.0) titleBarInset 28.0
+[selftest] fitWindow content (767.0, 646.0) window (172.0, 193.0, 767.0, 534.0) -> (172.0, 81.0, 767.0, 646.0) titleBarInset 28.0
+[selftest] fitWindow content (767.0, 534.0) window (172.0, 81.0, 767.0, 646.0) -> (172.0, 193.0, 767.0, 534.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 692,100 in 767x534 -> DocumentView
+[selftest] functional: click travel-now at 686,457 in 767x534 -> DocumentView
+[selftest] functional: click travel-later at 732,457 in 767x534 -> DocumentView
+[selftest] functional: click travel-earlier at 640,457 in 767x534 -> DocumentView
+[selftest] functional: click control-add at 581,500 in 767x534 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (767.0, 646.0) window (172.0, 81.0, 767.0, 646.0) -> (172.0, 81.0, 767.0, 646.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 368,457 in 767x646 -> DocumentView
+[selftest] functional: click control-add at 581,612 in 767x646 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (767.0, 618.0) window (172.0, 109.0, 767.0, 618.0) -> (172.0, 109.0, 767.0, 618.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 665,584 in 767x618 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 197,99 in 767x618 -> DocumentView
+[selftest] fitWindow content (767.0, 534.0) window (172.0, 193.0, 767.0, 534.0) -> (172.0, 193.0, 767.0, 534.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 665,500 in 767x534 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (767.0, 646.0) window (172.0, 81.0, 767.0, 646.0) -> (172.0, 81.0, 767.0, 646.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 641.0) window (172.0, 144.0, 836.0, 583.0) -> (172.0, 86.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 583.0) window (172.0, 86.0, 836.0, 641.0) -> (172.0, 144.0, 836.0, 583.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 754,109 in 836x583 -> DocumentView
+[selftest] functional: click travel-now at 748,501 in 836x583 -> DocumentView
+[selftest] functional: click travel-later at 798,501 in 836x583 -> DocumentView
+[selftest] functional: click travel-earlier at 698,501 in 836x583 -> DocumentView
+[selftest] functional: click control-add at 632,547 in 836x583 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (836.0, 641.0) window (172.0, 86.0, 836.0, 641.0) -> (172.0, 86.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 403,435 in 836x641 -> DocumentView
+[selftest] functional: click control-add at 632,605 in 836x641 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (836.0, 630.0) window (172.0, 97.0, 836.0, 630.0) -> (172.0, 97.0, 836.0, 630.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 725,594 in 836x630 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 218,94 in 836x630 -> DocumentView
+[selftest] fitWindow content (836.0, 583.0) window (172.0, 144.0, 836.0, 583.0) -> (172.0, 144.0, 836.0, 583.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 725,547 in 836x583 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (836.0, 641.0) window (172.0, 86.0, 836.0, 641.0) -> (172.0, 86.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (172.0, 103.0, 932.0, 624.0) -> origin (92.0, 103.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (932.0, 636.0) window (92.0, 103.0, 932.0, 624.0) -> (92.0, 91.0, 932.0, 636.0) titleBarInset 28.0
+[selftest] fitWindow content (932.0, 624.0) window (92.0, 91.0, 932.0, 636.0) -> (92.0, 103.0, 932.0, 624.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 842,117 in 932x624 -> DocumentView
+[selftest] functional: click travel-now at 833,533 in 932x624 -> DocumentView
+[selftest] functional: click travel-later at 889,533 in 932x624 -> DocumentView
+[selftest] functional: click travel-earlier at 776,533 in 932x624 -> DocumentView
+[selftest] functional: click control-add at 704,584 in 932x624 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (932.0, 636.0) window (92.0, 91.0, 932.0, 636.0) -> (92.0, 91.0, 932.0, 636.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 451,408 in 932x636 -> DocumentView
+[selftest] functional: click control-add at 704,596 in 932x636 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (932.0, 626.0) window (92.0, 101.0, 932.0, 626.0) -> (92.0, 101.0, 932.0, 626.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 808,586 in 932x626 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 244,103 in 932x626 -> DocumentView
+[selftest] fitWindow content (932.0, 624.0) window (92.0, 103.0, 932.0, 624.0) -> (92.0, 103.0, 932.0, 624.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 808,584 in 932x624 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (932.0, 636.0) window (92.0, 91.0, 932.0, 636.0) -> (92.0, 91.0, 932.0, 636.0) titleBarInset 28.0
+[selftest] keepOnScreen moved (92.0, 109.0, 976.0, 618.0) -> origin (48.0, 109.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 109.0, 976.0, 618.0) -> (48.0, 95.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] fitWindow content (976.0, 618.0) window (48.0, 95.0, 976.0, 632.0) -> (48.0, 109.0, 976.0, 618.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 875,122 in 976x618 -> DocumentView
+[selftest] functional: click travel-now at 866,514 in 976x618 -> DocumentView
+[selftest] functional: click travel-later at 928,514 in 976x618 -> DocumentView
+[selftest] functional: click travel-earlier at 803,514 in 976x618 -> DocumentView
+[selftest] functional: click control-add at 720,572 in 976x618 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 95.0, 976.0, 632.0) -> (48.0, 95.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 473,373 in 976x632 -> DocumentView
+[selftest] functional: click control-add at 720,586 in 976x632 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click control-edit at 836,586 in 976x632 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 274,64 in 976x632 -> DocumentView
+[selftest] fitWindow content (976.0, 618.0) window (48.0, 109.0, 976.0, 618.0) -> (48.0, 109.0, 976.0, 618.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 836,572 in 976x618 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 95.0, 976.0, 632.0) -> (48.0, 95.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] fitWindow content (683.0, 650.0) window (48.0, 249.0, 683.0, 478.0) -> (48.0, 77.0, 683.0, 650.0) titleBarInset 28.0
+[selftest] fitWindow content (683.0, 478.0) window (48.0, 77.0, 683.0, 650.0) -> (48.0, 249.0, 683.0, 478.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 615,90 in 683x478 -> DocumentView
+[selftest] functional: click travel-now at 609,409 in 683x478 -> DocumentView
+[selftest] functional: click travel-later at 651,409 in 683x478 -> DocumentView
+[selftest] functional: click travel-earlier at 567,409 in 683x478 -> DocumentView
+[selftest] functional: click control-add at 516,448 in 683x478 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (683.0, 650.0) window (48.0, 77.0, 683.0, 650.0) -> (48.0, 77.0, 683.0, 650.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 334,479 in 683x650 -> DocumentView
+[selftest] fitWindow content (683.0, 631.0) window (48.0, 96.0, 683.0, 631.0) -> (48.0, 96.0, 683.0, 631.0) titleBarInset 28.0
+[selftest] functional: click control-add at 516,601 in 683x631 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (683.0, 553.0) window (48.0, 174.0, 683.0, 553.0) -> (48.0, 174.0, 683.0, 553.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 592,523 in 683x553 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 176,90 in 683x553 -> DocumentView
+[selftest] fitWindow content (683.0, 478.0) window (48.0, 249.0, 683.0, 478.0) -> (48.0, 249.0, 683.0, 478.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 592,448 in 683x478 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (683.0, 650.0) window (48.0, 77.0, 683.0, 650.0) -> (48.0, 77.0, 683.0, 650.0) titleBarInset 28.0
+[selftest] fitWindow content (767.0, 646.0) window (48.0, 193.0, 767.0, 534.0) -> (48.0, 81.0, 767.0, 646.0) titleBarInset 28.0
+[selftest] fitWindow content (767.0, 534.0) window (48.0, 81.0, 767.0, 646.0) -> (48.0, 193.0, 767.0, 534.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 692,100 in 767x534 -> DocumentView
+[selftest] functional: click travel-now at 686,457 in 767x534 -> DocumentView
+[selftest] functional: click travel-later at 732,457 in 767x534 -> DocumentView
+[selftest] functional: click travel-earlier at 640,457 in 767x534 -> DocumentView
+[selftest] functional: click control-add at 581,500 in 767x534 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (767.0, 646.0) window (48.0, 81.0, 767.0, 646.0) -> (48.0, 81.0, 767.0, 646.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 368,457 in 767x646 -> DocumentView
+[selftest] functional: click control-add at 581,612 in 767x646 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (767.0, 618.0) window (48.0, 109.0, 767.0, 618.0) -> (48.0, 109.0, 767.0, 618.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 665,584 in 767x618 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 197,99 in 767x618 -> DocumentView
+[selftest] fitWindow content (767.0, 534.0) window (48.0, 193.0, 767.0, 534.0) -> (48.0, 193.0, 767.0, 534.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 665,500 in 767x534 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (767.0, 646.0) window (48.0, 81.0, 767.0, 646.0) -> (48.0, 81.0, 767.0, 646.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 641.0) window (48.0, 144.0, 836.0, 583.0) -> (48.0, 86.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] fitWindow content (836.0, 583.0) window (48.0, 86.0, 836.0, 641.0) -> (48.0, 144.0, 836.0, 583.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 754,109 in 836x583 -> DocumentView
+[selftest] functional: click travel-now at 747,501 in 836x583 -> DocumentView
+[selftest] functional: click travel-later at 798,501 in 836x583 -> DocumentView
+[selftest] functional: click travel-earlier at 697,501 in 836x583 -> DocumentView
+[selftest] functional: click control-add at 632,547 in 836x583 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (836.0, 641.0) window (48.0, 86.0, 836.0, 641.0) -> (48.0, 86.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 403,435 in 836x641 -> DocumentView
+[selftest] functional: click control-add at 632,605 in 836x641 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (836.0, 630.0) window (48.0, 97.0, 836.0, 630.0) -> (48.0, 97.0, 836.0, 630.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 725,594 in 836x630 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 218,94 in 836x630 -> DocumentView
+[selftest] fitWindow content (836.0, 583.0) window (48.0, 144.0, 836.0, 583.0) -> (48.0, 144.0, 836.0, 583.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 725,547 in 836x583 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (836.0, 641.0) window (48.0, 86.0, 836.0, 641.0) -> (48.0, 86.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] fitWindow content (932.0, 636.0) window (48.0, 103.0, 932.0, 624.0) -> (48.0, 91.0, 932.0, 636.0) titleBarInset 28.0
+[selftest] fitWindow content (932.0, 624.0) window (48.0, 91.0, 932.0, 636.0) -> (48.0, 103.0, 932.0, 624.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 842,117 in 932x624 -> DocumentView
+[selftest] functional: click travel-now at 832,533 in 932x624 -> DocumentView
+[selftest] functional: click travel-later at 889,533 in 932x624 -> DocumentView
+[selftest] functional: click travel-earlier at 775,533 in 932x624 -> DocumentView
+[selftest] functional: click control-add at 704,584 in 932x624 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (932.0, 636.0) window (48.0, 91.0, 932.0, 636.0) -> (48.0, 91.0, 932.0, 636.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 451,408 in 932x636 -> DocumentView
+[selftest] functional: click control-add at 704,596 in 932x636 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (932.0, 626.0) window (48.0, 101.0, 932.0, 626.0) -> (48.0, 101.0, 932.0, 626.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 808,586 in 932x626 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 244,103 in 932x626 -> DocumentView
+[selftest] fitWindow content (932.0, 624.0) window (48.0, 103.0, 932.0, 624.0) -> (48.0, 103.0, 932.0, 624.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 808,584 in 932x624 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (932.0, 636.0) window (48.0, 91.0, 932.0, 636.0) -> (48.0, 91.0, 932.0, 636.0) titleBarInset 28.0
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 109.0, 976.0, 618.0) -> (48.0, 95.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] fitWindow content (976.0, 618.0) window (48.0, 95.0, 976.0, 632.0) -> (48.0, 109.0, 976.0, 618.0) titleBarInset 28.0
+[selftest] functional: click hour-Tokyo-2 at 875,122 in 976x618 -> DocumentView
+[selftest] functional: click travel-now at 865,514 in 976x618 -> DocumentView
+[selftest] functional: click travel-later at 928,514 in 976x618 -> DocumentView
+[selftest] functional: click travel-earlier at 801,514 in 976x618 -> DocumentView
+[selftest] functional: click control-add at 720,572 in 976x618 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 95.0, 976.0, 632.0) -> (48.0, 95.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] functional: click result-0 at 473,373 in 976x632 -> DocumentView
+[selftest] functional: click control-add at 720,586 in 976x632 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click control-edit at 836,586 in 976x632 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] functional: click delete-London at 274,65 in 976x632 -> DocumentView
+[selftest] fitWindow content (976.0, 618.0) window (48.0, 109.0, 976.0, 618.0) -> (48.0, 109.0, 976.0, 618.0) titleBarInset 28.0
+[selftest] functional: click control-edit at 836,572 in 976x618 -> NSHostingView<ModifiedContent<AnyView, RootModifier>>
+[selftest] fitWindow content (976.0, 632.0) window (48.0, 95.0, 976.0, 632.0) -> (48.0, 95.0, 976.0, 632.0) titleBarInset 28.0
+[selftest] centre panel under menu bar item (781.0, 744.0, 32.0, 24.0): x 0.0 -> 232.0
+[selftest] keepOnScreen moved (232.0, 0.0, 792.0, 567.0) -> origin (232.0, 62.0) visible (0.0, 62.0, 1024.0, 681.0)
+[selftest] fitWindow content (836.0, 641.0) window (48.0, 144.0, 836.0, 583.0) -> (48.0, 86.0, 836.0, 641.0) titleBarInset 28.0
+[selftest] fitWindow content (792.0, 64.0) window (21.0, 175.0, 792.0, 567.0) -> (21.0, 678.0, 792.0, 64.0) titleBarInset 0.0
+[selftest] centre panel under menu bar item (781.0, 744.0, 32.0, 24.0): x 21.0 -> 232.0
+[selftest] fitWindow content (836.0, 583.0) window (48.0, 86.0, 836.0, 641.0) -> (48.0, 144.0, 836.0, 583.0) titleBarInset 28.0
+[selftest] fitWindow content (792.0, 567.0) window (232.0, 678.0, 792.0, 64.0) -> (232.0, 175.0, 792.0, 567.0) titleBarInset 0.0

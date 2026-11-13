@@ -1,0 +1,17 @@
+screen visible frame 0,62 1024x681
+extraSmall adding=false window 683x478 at 94,195 content 683x478 needs 0x0 fits onscreen
+small adding=false window 767x534 at 94,139 content 767x534 needs 0x0 fits onscreen
+medium adding=false window 836x583 at 94,90 content 836x583 needs 0x0 fits onscreen
+large adding=false window 932x624 at 92,62 content 932x624 needs 0x0 fits onscreen
+extraLarge adding=false window 976x618 at 48,76 content 976x618 needs 0x0 fits onscreen
+extraSmall adding=true window 683x650 at 48,62 content 683x650 needs 0x0 fits onscreen
+small adding=true window 767x646 at 48,66 content 767x646 needs 0x0 fits onscreen
+medium adding=true window 836x641 at 48,71 content 836x641 needs 0x0 fits onscreen
+large adding=true window 932x636 at 48,76 content 932x636 needs 0x0 fits onscreen
+extraLarge adding=true window 976x632 at 48,80 content 976x632 needs 0x0 fits onscreen
+position left: window x 16..852 top 727 expected x 16 top 727 OK
+position center: window x 94..930 top 727 expected x 94 top 727 OK
+position right: window x 172..1008 top 727 expected x 172 top 727 OK
+functional: 201 passed, 0 failed
+menu bar panel: item centre x 797, panel x 232..1024 centre 628, expected x 232 (screen 0..1024) OK
+widget file written, 4 cities

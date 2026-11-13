@@ -1,0 +1,1166 @@
+Link check for a2316813715d1db6457fc007e3852c0a4d0f1844 at 2026-11-13 19:15 UTC
+572 URLs: 489 OK, 0 BROKEN, 27 BLOCKED, 56 CITATION; 0 missing relative links; 1 unrendered pages; 6 source prefixes skipped
+
+== Live pages
+https://bradcowdrey.com/: HTTP 200, 53 links found (46 <a> tags, rendered by Chrome)
+https://bradcowdrey.com/meridian: HTTP 200, 10 links found (0 <a> tags, rendered by Chrome)
+https://bradcowdrey.com/meridian-app.html: HTTP 200, 20 links found (20 <a> tags, rendered by Chrome)
+https://bradcowdrey.com/legal: HTTP 200, 33 links found (55 <a> tags, rendered by Chrome)
+MISSING https://bradcowdrey.com/meridian: no <a> links (rendered by Chrome), so its links went unchecked
+
+== Relative links in README.md and docs/
+all present
+
+== URLs
+BLOCKED  403 -> https://openai.com/  https://clearpeak.com
+        found in: page https://bradcowdrey.com/
+BLOCKED  403  https://english.radio.cz/node/8059379
+        found in: docs/working-hours.md:62
+BLOCKED  401  https://hanoitimes.vn/vietnam-weighs-shorter-workweek-as-productivity-and-worker-health-collide.965294.html
+        found in: docs/working-hours.md:246
+BLOCKED  403  https://invest.vic.gov.au/set-up-your-business/Australian-business-culture
+        found in: docs/working-hours.md:168, docs/working-hours.md:20, docs/working-hours.md:45, docs/working-hours.md:60
+BLOCKED  403  https://jordantimes.com/news/local/ramadan-official-working-hours-set-10am-3pm
+        found in: docs/working-hours.md:118
+BLOCKED  403  https://llv.li/en/national-administration/government-chancellery-unit/registry
+        found in: docs/working-hours.md:134
+BLOCKED  403  https://mfa.gr/en/missions/azerbaijan
+        found in: docs/working-hours.md:23
+BLOCKED  403  https://osp.stat.gov.lt/en_GB/web/lsd/kontaktai-ir-asmenu-aptarnavimas
+        found in: docs/working-hours.md:138
+BLOCKED  403  https://ottawape.dfa.gov.ph/index.php/2016-04-12-08-35-52/office-hours
+        found in: docs/working-hours.md:182
+BLOCKED  403  https://southsudan.britishcouncil.org/contact
+        found in: docs/working-hours.md:213
+BLOCKED  403 -> https://www.unhcr.org/node/374  https://unhcr.org/node/374
+        found in: docs/working-hours.md:73
+BLOCKED  403  https://www.bayt.com/en/blog/31632/ramadan-2025-working-hours-in-bahrain/
+        found in: docs/working-hours.md:30
+BLOCKED  403  https://www.biv.com/news/human-resources-education/9-5-ok-canadian-workers-study-finds-8244755
+        found in: docs/working-hours.md:44
+BLOCKED  403  https://www.britishcouncil.co.ke/contact
+        found in: docs/working-hours.md:120
+BLOCKED  403  https://www.bssnews.net/news/374537
+        found in: docs/working-hours.md:26
+BLOCKED  403  https://www.camarazaragoza.com/wp-content/uploads/2013/08/Informacion-practica-Uruguay.pdf
+        found in: docs/working-hours.md:239
+BLOCKED  403  https://www.dhakatribune.com/bangladesh/government-affairs/406958/offices-to-follow-new-schedule-starting-sunday
+        found in: docs/working-hours.md:26
+BLOCKED  403  https://www.fodors.com/world/asia/vietnam/travel-tips/hours-of-operation-266563970
+        found in: docs/working-hours.md:246
+BLOCKED  403  https://www.hapag-lloyd.com/en/services-information/offices-localinfo/europe/hungary.html
+        found in: docs/working-hours.md:105
+BLOCKED  403  https://www.hapag-lloyd.com/en/services-information/offices-localinfo/latin-america/ecuador/quito.html
+        found in: docs/working-hours.md:69
+BLOCKED  403  https://www.hkpc.org/en/about-us/media-centre/press-releases/2006/hkpc-to-implement-five-day-week-in-september
+        found in: docs/working-hours.md:101
+BLOCKED  403  https://www.qureos.com/hr-news/ramadan-working-hours-in-pakistan
+        found in: docs/working-hours.md:183
+BLOCKED  403  https://www.regjeringen.no/en/topics/labour/the-working-environment-and-safety/innsikt/arbeidsmiljoloven/working-hours-in-norway/id448312/
+        found in: docs/working-hours.md:172
+BLOCKED  403  https://www.thenewhumanitarian.org/node/221348
+        found in: docs/working-hours.md:156
+BLOCKED  403  https://www.unhcr.org/ar/node/370
+        found in: docs/working-hours.md:69
+BLOCKED  403  https://www.unhcr.org/ie/node/441
+        found in: docs/working-hours.md:199
+BLOCKED  403  https://www.unhcr.org/rs/en/contact-us
+        found in: docs/working-hours.md:195
+CITATION 404 -> https://www.aetnainternational.com/en/individuals/destination-guides/south-africa-country-guide/better-business-relationships.html  https://aetnainternational.com/en/individuals/destination-guides/south-africa-country-guide/better-business-relationships.html
+        found in: docs/working-hours.md:252
+CITATION 000 (curl: (28) Connection timed out after 20002 milliseconds)  https://apps.viajandox.com/portal/venezuela-working-hours-whats-typical-for-offices-802425
+        found in: docs/working-hours.md:243
+CITATION 404 -> https://belarusbank.by/en_11052.htm/  https://belarusbank.by/en_11052.htm
+        found in: docs/working-hours.md:42
+CITATION 404  https://cigouk.ky/?p=148
+        found in: docs/working-hours.md:129
+CITATION 404  https://customs.gov.tl/enquiry-point-single/page/15/
+        found in: docs/working-hours.md:226
+CITATION 404  https://dphss.guam.gov/business-hours/
+        found in: docs/working-hours.md:154, docs/working-hours.md:98
+CITATION 000 (curl: (6) Could not resolve host: factsanddetails.com)  https://factsanddetails.com/southeast-asia/East_Timor/sub5_10h/entry-6729.html
+        found in: docs/working-hours.md:226
+CITATION 500 -> https://www.go-myanmar.com/node/678  https://go-myanmar.com/node/678
+        found in: docs/working-hours.md:151
+CITATION 404 -> https://www.government.fo/en/the-government/ministries/ministry-of-justice  https://government.fo/en/the-government/ministries/ministry-of-justice
+        found in: docs/working-hours.md:80
+CITATION 000 (curl: (28) Resolving timed out after 20000 milliseconds)  https://ifpnews.com/iranian-parliament-reduced-working-hours-thursday-closures-guardian-council-concerns/
+        found in: docs/working-hours.md:113
+CITATION 000 (curl: (6) Could not resolve host: ifpnews.com)  https://ifpnews.com/irans-parliament-thursday-holidays-government-offices/
+        found in: docs/working-hours.md:113
+CITATION 000 (curl: (28) Connection timed out after 20002 milliseconds)  https://itrpartners.co.uk/?p=8916
+        found in: docs/working-hours.md:202, docs/working-hours.md:22, docs/working-hours.md:76
+CITATION 000 (curl: (28) Connection timed out after 20002 milliseconds)  https://lawphil.net/executive/execord/eo1957/eo_251_1957.html
+        found in: docs/working-hours.md:182
+CITATION 404  https://lbbc.org.uk/wp-content/uploads/2022/03/Country-Guide-to-Libya-March-2022-2.pdf
+        found in: docs/working-hours.md:141
+CITATION 000 (curl: (35) TLS connect error: error:0A000438:SSL routines::tlsv1 alert internal error)  https://lr.eu.psf.lt/r/AskEurope/comments/113urct/how_long_do_europeans_work_on_fridays/j8tjfva/?context=3
+        found in: docs/working-hours.md:19
+CITATION 000 (how to fix it, please visit the webpage mentioned above.)  https://m.colombiaone.com/wordpress/c/0/i/223148/how-colombian-workday-works-hours-lunch-and-office-culture
+        found in: docs/working-hours.md:55
+CITATION 404  https://mail.ethioembassy.org.uk/trade_and_investment/business_information.htm
+        found in: docs/working-hours.md:75
+CITATION 404  https://mail.lagazettedescomores.com/assets/pdfs/QuarkXPress
+        found in: docs/working-hours.md:124
+CITATION 404 -> https://www.mfat.govt.nz:443/de/countries-and-regions/australia-and-pacific/tokelau/administrator-of-tokelau  https://mfat.govt.nz/de/countries-and-regions/australia-and-pacific/tokelau/administrator-of-tokelau
+        found in: docs/working-hours.md:225
+CITATION 000 (how to fix it, please visit the webpage mentioned above.)  https://mlmym.lemmy.dbzer0.com/comment/11416819
+        found in: docs/working-hours.md:202
+CITATION 000 (how to fix it, please visit the webpage mentioned above.)  https://moa.gov.jm/node/4262
+        found in: docs/working-hours.md:117
+CITATION 000 (curl: (28) Connection timed out after 20002 milliseconds)  https://mohre.gov.ae/en/media-center/news/15/3/2022/reducing-working-hours-by-two-hours-daily-for-private-sector-during-ramadan
+        found in: docs/working-hours.md:10
+CITATION 000 (curl: (28) Connection timed out after 20000 milliseconds)  https://nbu.uz/en/about-the-bank/the-procedure-and-operating-hours-of-the-national-bank-for-foreign-economic-activity-of-uzbekistan
+        found in: docs/working-hours.md:240
+CITATION 000 (curl: (6) Could not resolve host: normativa.cepb.org.bo)  https://normativa.cepb.org.bo/Normas/VerPdf/3423
+        found in: docs/working-hours.md:36
+CITATION 404  https://physicalplanning.gov.dm/about-us/office-hours
+        found in: docs/working-hours.md:66
+CITATION 000 (curl: (6) Could not resolve host: repositorio-iul.iscte.pt)  https://repositorio-iul.iscte.pt/handle/10071/36194?locale=en
+        found in: docs/working-hours.md:58, docs/working-hours.md:99
+CITATION 404 -> https://rivermate.com/guides/afghanistan  https://rivermate.com/guides/afghanistan/working-hours
+        found in: docs/working-hours.md:11
+CITATION 404 -> https://rivermate.com/guides/brunei-darussalam  https://rivermate.com/guides/brunei-darussalam/working-hours
+        found in: docs/working-hours.md:35
+CITATION 404 -> https://rivermate.com/guides/palestine  https://rivermate.com/guides/palestine/working-hours
+        found in: docs/working-hours.md:188
+CITATION 404  https://sites.wp.odu.edu/natalieheidgerkenspanish101/wp-content/uploads/sites/25429/2021/12/Module-3-Exploración-Cultural.pdf
+        found in: docs/working-hours.md:187
+CITATION 000 (curl: (28) Operation timed out after 20001 milliseconds with 0 bytes received)  https://sudexpert.gov.by/en/minsk-info.html
+        found in: docs/working-hours.md:42
+CITATION 302 (curl: (28) Connection timed out after 19527 milliseconds) -> http://www.tra.go.tz/makosa/404  https://tra.go.tz/index.php/faqs/80-taxpayer-s-charter/93-working-hours
+        found in: docs/working-hours.md:234
+CITATION 404  https://um.dk/portugal/en/about-denmark/greenland-and-the-faroe-islands/greenland/
+        found in: docs/working-hours.md:90
+CITATION 526 -> https://www.popster.pe/  https://visitkiribati.travel/?p=4133
+        found in: docs/working-hours.md:123
+CITATION 404  https://www.chinahighlights.com/travelguide/guidebook/china-business-hours.htm
+        found in: docs/working-hours.md:54
+CITATION 404  https://www.deloitte.com/mt/en/about/governance/summer-hours.html
+        found in: docs/working-hours.md:158
+CITATION 404  https://www.dfae.admin.ch/dam/countries/countries-content/ivory-coast/fr/Business-Travel-Guide-Cote-dIvoire_FR.pdf
+        found in: docs/working-hours.md:50
+CITATION 404  https://www.gov.bm/print/html/node/1179511
+        found in: docs/working-hours.md:34
+CITATION 503  https://www.gov.bw/civil-registration/charge-d-affaires?page=0
+        found in: docs/working-hours.md:41
+CITATION 404  https://www.knightfrank.com.kh/guides/cambodia-public-holidays
+        found in: docs/working-hours.md:122
+CITATION 404 -> https://www.legiscomex.com/ControlErrores/DefaultError/?error=404  https://www.legiscomex.com/BancoMedios/Documentos
+        found in: docs/working-hours.md:102, docs/working-hours.md:215
+CITATION 000 (how to fix it, please visit the webpage mentioned above.)  https://www.lusakamhc.gov.mw/index.php/search
+        found in: docs/working-hours.md:161
+CITATION 000 (curl: (28) Connection timed out after 20001 milliseconds)  https://www.mcs.gov.fj/contact.php
+        found in: docs/working-hours.md:77
+CITATION 404 -> https://www.mof.gov.bn/divisions/contact-us-investment.aspx  https://www.mofe.gov.bn/divisions/contact-us-investment.aspx
+        found in: docs/working-hours.md:35
+CITATION 410  https://www.newsofbahrain.com/bahrain/109045.html
+        found in: docs/working-hours.md:30
+CITATION 000 (curl: (92) HTTP/2 stream 1 was not closed cleanly: ENHANCE_YOUR_CALM (err 11))  https://www.polynesie-francaise.pref.gouv.fr/contenu/telechargement/51725/330195/file/HC987_Aff-PRU-2024_Modalites-accueil.pdf
+        found in: docs/working-hours.md:166
+CITATION 000 (curl: (92) HTTP/2 stream 1 was not closed cleanly: ENHANCE_YOUR_CALM (err 11))  https://www.polynesie-francaise.pref.gouv.fr/contenu/telechargement/51726/330200/file/HC987_Aff-PRU-2024_Modalites-accueil_vFALC.pdf
+        found in: docs/working-hours.md:180
+CITATION 404 -> https://rivermate.com/guides/burundi  https://www.rivermate.com/guides/burundi/working-hours
+        found in: docs/working-hours.md:31
+CITATION 404 -> https://rivermate.com/guides/djibouti  https://www.rivermate.com/guides/djibouti/working-hours
+        found in: docs/working-hours.md:64
+CITATION 404 -> https://rivermate.com/guides/north-korea  https://www.rivermate.com/guides/north-korea/working-hours
+        found in: docs/working-hours.md:126
+CITATION 404  https://www.sainthelena.gov.sh/?p=69317
+        found in: docs/working-hours.md:204
+CITATION 000 (curl: (6) Could not resolve host: www.tdh.metro.tokyo.jp)  https://www.tdh.metro.tokyo.jp/english/faq/living/style.html
+        found in: docs/working-hours.md:119
+CITATION 000 (curl: (6) Could not resolve host: www.tradeclub.standardbank.com)  https://www.tradeclub.standardbank.com/portal/en/market-potential/guatemala/opening-hours
+        found in: docs/working-hours.md:97
+CITATION 000 (curl: (6) Could not resolve host: www.tradeclub.standardbank.com)  https://www.tradeclub.standardbank.com/portal/en/market-potential/syria/opening-hours
+        found in: docs/working-hours.md:217
+CITATION 404  https://www.westerncape.gov.za/facility/wellington-magistrates-court
+        found in: docs/working-hours.md:252
+CITATION 000 (curl: (6) Could not resolve host: www2.cri.or.th)  https://www2.cri.or.th/icceoca4/AboutBKK_BusinessHours.php
+        found in: docs/working-hours.md:223
+OK       200  https://24.kg/english/260318_March_11_to_be_working_day_in_Kyrgyzstan
+        found in: docs/working-hours.md:121
+OK       200  https://24.kg/english/323687_Working_hours_of_Public_Service_Centers_changed
+        found in: docs/working-hours.md:121
+OK       200  https://achisystems.co.ke/directory/kcb-bank-opening-and-closing-hours/
+        found in: docs/working-hours.md:120
+OK       200  https://activetravel.asia/business-hours-in-laos-g77.html
+        found in: docs/working-hours.md:131
+OK       200 -> https://www.afintl.com/en/202406208642  https://afintl.com/en/202406208642
+        found in: docs/working-hours.md:11
+OK       200  https://africarrieres.com/burundi/en/guide/droit-du-travail/working-hours-leave
+        found in: docs/working-hours.md:31
+OK       200  https://africarrieres.com/madagascar/en/guide/droit-du-travail/working-hours-leave
+        found in: docs/working-hours.md:147
+OK       200 -> https://air-inc.expatarrivals.com/answers/work-culture-in-switzerland  https://air-inc.expatarrivals.com/node/2530
+        found in: docs/working-hours.md:19
+OK       200 -> https://alegatos.azc.uam.mx/index.php/ra/article/download/351/340  https://alegatos.azc.uam.mx/index.php/ra/article/view/351/340
+        found in: docs/working-hours.md:57
+OK       200 -> https://altstore.io/  https://altstore.io
+        found in: docs/sideload.md:24
+OK       200  https://api.github.com/repos/bradleycowdrey/meridian/releases/latest
+        found in: Sources/Meridian/Brand.swift:17
+OK       200  https://arynews.tv/cuba-adopts-urgent-measures-address-energy-crisis-minister
+        found in: docs/working-hours.md:57
+OK       200  https://asianhikingteam.com/office-hours-in-nepal.html
+        found in: docs/working-hours.md:173
+OK       200 -> https://asunciontimes.com/paraguay101/paraguays-professional-working-day-beyond-the-9-to-5/  https://asunciontimes.com/?p=13049
+        found in: docs/working-hours.md:191
+OK       200  https://blog.alegra.com/costa-rica/jornada-laboral-en-costa-rica/
+        found in: docs/working-hours.md:56
+OK       200  https://blog.iambeezy.app/fr/horaires-fonction-publique-congo-8h-15h-administrations-brazzaville/video/
+        found in: docs/working-hours.md:48
+OK       200  https://bolivianet.com/instantbolivia/InstantBoliviaPreparation.pdf
+        found in: docs/working-hours.md:36
+OK       200 -> https://boundlesshq.com/guides/croatia/hours-of-work/  https://boundlesshq.com/?p=2528
+        found in: docs/working-hours.md:195
+OK       200 -> https://boundlesshq.com/guides/lithuania/hours-of-work/  https://boundlesshq.com/?p=2656
+        found in: docs/working-hours.md:70
+OK       200 -> https://boundlesshq.com/guides/romania/hours-of-work/  https://boundlesshq.com/?p=2735
+        found in: docs/working-hours.md:194
+OK       200  https://boundlesshq.com/guides/ireland/hours-of-work/
+        found in: docs/working-hours.md:107
+OK       200  https://boundlesshq.com/guides/lithuania/hours-of-work/
+        found in: docs/working-hours.md:138
+OK       200  https://boundlesshq.com/guides/portugal/hours-of-work/
+        found in: docs/working-hours.md:189
+OK       200  https://boundlesshq.com/guides/singapore/hours-of-work/
+        found in: docs/working-hours.md:203
+OK       200  https://boundlesshq.com/guides/united-kingdom/hours-of-work/
+        found in: docs/working-hours.md:109, docs/working-hours.md:111, docs/working-hours.md:116, docs/working-hours.md:83, docs/working-hours.md:87
+OK       200 -> https://bradcowdrey.com/  https://bradcowdrey.com
+        found in: README.md:163, README.md:6, Sources/Meridian/Brand.swift:9, android/app/src/main/java/com/bradcowdrey/meridian/MainActivity.kt:171, ios/Meridian/Theme.swift:60, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/
+        found in: live page, page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/#about
+        found in: page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/#companies
+        found in: page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/#connect
+        found in: page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/#notes
+        found in: page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/0530561a-ea42-4497-8ecf-03f505423790/crypto-logo.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/0b18b759-b43e-48b3-a28d-51bfe30c886c/two-degrees.png
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/2d7149f3-ae3d-41c2-85fa-f4d6f1c95168/meridian-app.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/318ec085-b8b0-4606-bf5d-b95fbdb3ba16/kyee-wordmark-fixed.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/46644e02-88e9-4fa6-9173-4060d4d3f741/agi-logo.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/4b29e4c2-028a-4886-8b27-d73dfc558bab/github.svg
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/7757d208-b338-4f4a-8ee9-dd7b05ccf267/kyee-home.jpg
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/795c4249-d3d6-494e-9eae-c0c8ef6887c1/fellow-man-logo-centered.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/7b5e5d76-a141-4841-8116-d2236dc0441f/omnity-logo.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/820419af-c66f-4798-93e5-7b1199ec4231/clear-peak-logo.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/8323c615-b923-4aca-a4d7-3862fb2387cc/x.svg
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/aeb0f9a3-8a8b-4e0e-9ed5-7250f87b8e7c/ai-skills-bible-cover.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/c53df5a7-01bf-472c-9cc7-fec533a339e3/eveoy-y.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/d88d8e7f-0010-42b3-bf12-a795b606b566/linkedin.svg
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/e736bd5b-a36f-4eae-8f35-95aa23d30abe/instagram.svg
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/e94085cf-d94c-4d20-88f4-c8aa6a06543e/quantum-labs-logo.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/ebd4e1f7-9fbc-48ee-9c6b-18f441770254/cowdrey-md.png
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/f1c0337b-7ec1-4fb6-82da-9746df518efe/bradley-hero-enhanced.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/fd25eec8-53f5-4de3-a09d-e844a9a34529/bearings-screenshot.png
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/__l5e/assets-v1/fdf24a47-85ba-46fb-917c-1bd1e76dba51/karibu-logo.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/__l5e/events.270c78a44fc53e7b.js
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/apple-touch-icon.png
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/assets/bradley-site-B4vWlK35.js
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/assets/index-C8PPZKHc.js
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/assets/legal-Bc14lY1t.js
+        found in: page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/assets/legal-DBC-tDy3.js
+        found in: page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/assets/legal-DO2cwHaG.js
+        found in: page https://bradcowdrey.com/legal
+OK       200  https://bradcowdrey.com/assets/meridian-X2nlPReW.js
+        found in: page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/assets/routes-7Wo0Cth_.js
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/assets/silverlane-logo-De60CH5v.png
+        found in: page https://bradcowdrey.com/
+OK       200  https://bradcowdrey.com/assets/styles-XDd_gwNQ.css
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/bearings
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/cowdrey-md
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/cowdrey-pdf
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/cowdrey-pdf/screenshot.png
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/favicon-256.png
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/favicon.ico
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/legal
+        found in: CHANGELOG.md:158, README.md:159, Sources/Meridian/Brand.swift:10, android/app/src/main/java/com/bradcowdrey/meridian/MainActivity.kt:173, ios/Meridian/Theme.swift:62, ios/fastlane/metadata/en-US/privacy_url.txt:1, live page, page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/meridian
+        found in: README.md:109, README.md:116, README.md:12, README.md:17, README.md:18, Sources/Meridian/Brand.swift:16, android/app/src/main/java/com/bradcowdrey/meridian/MainActivity.kt:172, docs/index.html:13, docs/index.html:14, docs/index.html:8, docs/index.html:9, ios/Meridian/Theme.swift:61, ios/fastlane/metadata/en-US/marketing_url.txt:1, ios/fastlane/metadata/en-US/support_url.txt:1, live page, page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/meridian-app.html
+        found in: docs/embed.html:13, docs/embed.html:14, docs/embed.html:8, docs/embed.html:9, live page, page https://bradcowdrey.com/meridian
+OK       200  https://bradcowdrey.com/more-apps.js
+        found in: page https://bradcowdrey.com/meridian-app.html
+OK       200  https://bradcowdrey.com/two-degrees
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/meridian-app.html
+OK       200 -> https://burkina24.com/2017/11/08/burkina-un-nouvel-horaire-de-travail-a-compter-de-2018/  https://burkina24.com/?p=152312
+        found in: docs/working-hours.md:28
+OK       200 -> https://businessculture.org/northern-europe/iceland/work-life-balance/  https://businessculture.org/?p=3671
+        found in: docs/working-hours.md:76
+OK       200 -> https://businessculture.org/eastern-europe/hungary/work-life-balance/  https://businessculture.org/?p=3899
+        found in: docs/working-hours.md:105
+OK       200  https://businessculture.org/eastern-europe/latvia/work-life-balance/
+        found in: docs/working-hours.md:140
+OK       200  https://cate.blog/2013/08/16/north-korea-july-2013-day-2/
+        found in: docs/working-hours.md:126
+OK       200  https://commons.wikimedia.org/w/api.php
+        found in: ios/Meridian/Skyline.swift:723, ios/Meridian/Skyline.swift:793
+OK       200  https://commons.wikimedia.org/wiki/File:London_Skyline_(125508655).jpeg
+        found in: android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:57
+OK       200  https://commons.wikimedia.org/wiki/File:Manhattan_from_Weehawken,_NJ.jpg
+        found in: android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:55
+OK       200  https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_from_Coit_Tower.jpg
+        found in: android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:53
+OK       200  https://commons.wikimedia.org/wiki/File:Skyscrapers_of_Shinjuku_2009_January.jpg
+        found in: android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:59
+OK       200  https://companieshouse.gi/mobile.html
+        found in: docs/working-hours.md:89
+OK       200 -> https://www.consolatosanmarino.uk/en/contacts/  https://consolatosanmarino.uk/contacts/
+        found in: docs/working-hours.md:209
+OK       200  https://cookislands.org.uk/Tourism-offices-Cook-Islands.html
+        found in: docs/working-hours.md:51
+OK       200  https://cyprus-mail.com/public-holidays-working-hours/
+        found in: docs/working-hours.md:61
+OK       200  https://d2i2ns4m5kqy1i.cloudfront.net/media/files/postfiles/ComunicadoABPU.pdf
+        found in: docs/working-hours.md:239
+OK       200  https://d3ksf1fo7mxrnw.cloudfront.net/curacao/business-communications
+        found in: docs/working-hours.md:21, docs/working-hours.md:37, docs/working-hours.md:59
+OK       200  https://d3ksf1fo7mxrnw.cloudfront.net/denmark/business-communications
+        found in: docs/working-hours.md:65
+OK       200  https://d3ksf1fo7mxrnw.cloudfront.net/iceland/business-communications
+        found in: docs/working-hours.md:114
+OK       200  https://d3ksf1fo7mxrnw.cloudfront.net/pacific-islands-micronesia/marshall-islands/business-communications
+        found in: docs/working-hours.md:148
+OK       200  https://dailytimes.com.pk/272080/afghanistan-continues-to-move-behind-the-times/
+        found in: docs/working-hours.md:11
+OK       200 -> https://www.dfa.gov.pg/head-quarters/  https://dfa.gov.pg/?p=9483
+        found in: docs/working-hours.md:181
+OK       200  https://diariodecuba.com/cuba/1426058384_13336.html
+        found in: docs/working-hours.md:57
+OK       200 -> https://dirco.gov.za/mali/contact-us/  https://dirco.gov.za/mali/contact-us
+        found in: docs/working-hours.md:150
+OK       200 -> https://discovermni.com/2022/01/31/public-service-to-fully-reopen-tuesday-february-1/  https://discovermni.com/?p=80176
+        found in: docs/working-hours.md:157
+OK       200  https://dol.gov.vc/dol/index.php/contact
+        found in: docs/working-hours.md:242
+OK       200  https://dr1.com/living/customs/4.shtml
+        found in: docs/working-hours.md:67
+OK       200  https://e.vnexpress.net/news/trend/office-workers-lose-all-weekend-free-time-4597940.html
+        found in: docs/working-hours.md:246
+OK       200 -> https://www.easyexpat.com/default.php?lang=en&mode=guides&country=france&city=paris&section=work&title=work-usage&p=content  https://easyexpat.com/en/guides/france/paris/work/work-usage.htm
+        found in: docs/working-hours.md:81
+OK       200 -> https://www.easyexpat.com/default.php?lang=en&mode=guides&country=romania&city=bucharest&section=work&title=work-usage&p=content  https://easyexpat.com/en/guides/romania/bucharest/work/work-usage.htm
+        found in: docs/working-hours.md:194
+OK       200  https://embassies.net/andorra-in-spain/madrid
+        found in: docs/working-hours.md:9
+OK       200  https://embassies.net/anguilla-in-united-kingdom/london
+        found in: docs/working-hours.md:13
+OK       200  https://embassies.net/armenia-in-georgia/tbilisi
+        found in: docs/working-hours.md:15
+OK       200  https://embassies.net/australia-in-nauru/nauru
+        found in: docs/working-hours.md:174
+OK       200  https://embassies.net/eritrea-in-south-sudan/juba
+        found in: docs/working-hours.md:73
+OK       200  https://embassies.net/georgia-in-armenia/yerevan
+        found in: docs/working-hours.md:15
+OK       200  https://embassies.net/georgia-in-azerbaijan/baku
+        found in: docs/working-hours.md:23
+OK       200  https://embassies.net/haiti-in-dominican-republic/santo-domingo
+        found in: docs/working-hours.md:104
+OK       200  https://embassies.net/kiribati-in-fiji/suva
+        found in: docs/working-hours.md:123
+OK       200  https://embassies.net/kyrgyzstan-in-tajikistan/dushanbe
+        found in: docs/working-hours.md:224
+OK       200  https://embassies.net/liberia-in-sierra-leone/freetown
+        found in: docs/working-hours.md:136
+OK       200  https://embassies.net/malawi-in-zambia/lusaka
+        found in: docs/working-hours.md:161
+OK       200  https://embassies.net/moldova-in-romania/bucharest
+        found in: docs/working-hours.md:144
+OK       200  https://embassies.net/moldova-in-turkey/istanbul
+        found in: docs/working-hours.md:144
+OK       200  https://embassies.net/namibia-in-botswana/gaborone
+        found in: docs/working-hours.md:165
+OK       200  https://embassies.net/nauru-in-fiji/suva
+        found in: docs/working-hours.md:174
+OK       200  https://embassies.net/slovakia-in-hungary/budapest
+        found in: docs/working-hours.md:207
+OK       200  https://embassies.net/sudan-in-jordan/amman
+        found in: docs/working-hours.md:201
+OK       200  https://embassies.net/turkmenistan-in-kyrgyzstan/bishkek
+        found in: docs/working-hours.md:227
+OK       200  https://embassies.net/zimbabwe-in-mozambique/maputo
+        found in: docs/working-hours.md:254
+OK       200  https://emerhub.com/indonesia/doing-business-indonesia-during-ramadan-tips/
+        found in: docs/working-hours.md:106
+OK       200  https://en.hespress.com/81083-morocco-announces-altered-working-hours-for-ramadan-in-government-offices.html
+        found in: docs/working-hours.md:142
+OK       200  https://en.wikipedia.org/wiki/Business_hours
+        found in: docs/working-hours.md:18, docs/working-hours.md:187, docs/working-hours.md:237, docs/working-hours.md:238, docs/working-hours.md:245
+OK       200  https://eng.lsm.lv/article/economy/employment/14.05.2025-working-hours-are-fairly-long-in-latvia.a598619/
+        found in: docs/working-hours.md:140
+OK       200  https://eng.lsm.lv/article/economy/employment/28.05.2026-latvians-work-longer-hours-than-estonians-shorter-hours-than-lithuanians.a648600/
+        found in: docs/working-hours.md:70
+OK       200 -> https://english.ajel.sa/saudi-arabia/mhrsd-announces-ramadan-working-hours-for-private-sector  https://english.ajel.sa/news/saudi-arabia/mhrsd-announces-ramadan-working-hours-for-private-sector
+        found in: docs/working-hours.md:198
+OK       200  https://english.rijksdienstcn.com/economy--climate/rdi/contact
+        found in: docs/working-hours.md:37
+OK       200  https://event.mend-ooyo.mn/modules/practical-information.php
+        found in: docs/working-hours.md:152
+OK       200 -> https://www.eveoy.com/  https://eveoy.com
+        found in: page https://bradcowdrey.com/
+OK       200  https://exteriores.gob.es/Embajadas/liubliana/es/ViajarA/Paginas/Trabajar.aspx
+        found in: docs/working-hours.md:205
+OK       200 -> https://www.gov.fk/finance/contact-us/  https://falklands.gov.fk/finance/contact-us
+        found in: docs/working-hours.md:78
+OK       200  https://fellowman.us/
+        found in: page https://bradcowdrey.com/
+OK       200  https://fiji.embassy.gov.au/suva/contact-us.html
+        found in: docs/working-hours.md:77
+OK       200  https://finance.gov.vc/finance/index.php/news/339-covid-19-challenges-and-opportunities-for-small-businesses
+        found in: docs/working-hours.md:242
+OK       200  https://finance.yahoo.com/news/us-work-day-long-not-compared-country-173930021.html
+        found in: docs/working-hours.md:238
+OK       200  https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap
+        found in: page https://bradcowdrey.com/meridian-app.html
+OK       200 -> https://forbesafricalusofona.com/economista-alerta-para-falta-de-produtividade-na-funcao-publica-em-angola/  https://forbesafricalusofona.com/?p=41669
+        found in: docs/working-hours.md:16
+OK       200 -> https://forward.com/israel/330173/will-israel-switch-to-working-monday-thru-friday-and-get-a-real-weekend/  https://forward.com/israel/330173/will-israel-switch-to-working-monday-thru-friday-and-get-a-real-weekend
+        found in: docs/working-hours.md:108
+OK       200  https://foundation.wikimedia.org/wiki/Policy:Privacy_policy
+        found in: TERMS.md:210, page https://bradcowdrey.com/legal
+OK       200 -> https://gabonmediatime.com/gabon-le-ctri-appele-a-se-pencher-sur-le-respect-des-heures-de-travail-dans-la-fonction-publique/  https://gabonmediatime.com/gabon-le-ctri-appele-a-se-pencher-sur-le-respect-des-heures-de-travail-dans-la-fonction-publique
+        found in: docs/working-hours.md:82
+OK       200  https://genyo.com.br/horario-comercial/
+        found in: docs/working-hours.md:38
+OK       200  https://georgia.travel/coming-to-georgia/opening-hours-in-georgia
+        found in: docs/working-hours.md:85
+OK       200  https://github.com/bradleycowdrey
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://github.com/bradleycowdrey/meridian
+        found in: Sources/Meridian/Brand.swift:13, android/app/src/main/java/com/bradcowdrey/meridian/MainActivity.kt:174, ios/Meridian/Theme.swift:63, page https://bradcowdrey.com/meridian-app.html
+OK       200 -> https://github.com/bradleycowdrey/meridian  https://github.com/bradleycowdrey/meridian.git
+        found in: README.md:126
+OK       200  https://github.com/bradleycowdrey/meridian/blob/main/Resources/Data/skylines.json
+        found in: page https://bradcowdrey.com/meridian-app.html
+OK       200  https://github.com/bradleycowdrey/meridian/blob/main/docs/sideload.md
+        found in: page https://bradcowdrey.com/meridian-app.html
+OK       200  https://github.com/bradleycowdrey/meridian/issues
+        found in: README.md:13, Sources/Meridian/Brand.swift:18, android/app/src/main/java/com/bradcowdrey/meridian/MainActivity.kt:176, ios/Meridian/Theme.swift:64
+OK       200 -> https://raw.githubusercontent.com/bradleycowdrey/meridian/ci-android/Meridian-debug.apk  https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk
+        found in: README.md:108, README.md:11, page https://bradcowdrey.com/meridian-app.html
+OK       200 -> https://raw.githubusercontent.com/bradleycowdrey/meridian/ci-ios/Meridian-iOS.ipa  https://github.com/bradleycowdrey/meridian/raw/ci-ios/Meridian-iOS.ipa
+        found in: docs/sideload.md:11
+OK       200  https://github.com/bradleycowdrey/meridian/releases
+        found in: README.md:115, docs/sideload.md:10
+OK       200 -> https://release-assets.githubusercontent.com/github-production-release-asset/1422623506/4251d115-2890-402b-8b3f-0066e56f314a?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-11-13T20%3A03%3A27Z&rscd=attachment%3B+filename%3DMeridian-iOS.ipa&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-11-13T19%3A02%3A31Z&ske=2026-11-13T20%3A03%3A27Z&sks=b&skv=2018-11-09&sig=mkwBqrpjS7KV2viXstACC3eJ%2FwYe5z6O3DcYEb%2BagYI%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5NDU5OTAyNiwibmJmIjoxNzk0NTk3MjI2LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.Z8aRj3RmRQsYprRoOEAAvlJ0Kp84B6RdZDrzNE9X5G4&response-content-disposition=attachment%3B%20filename%3DMeridian-iOS.ipa&response-content-type=application%2Foctet-stream  https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian-iOS.ipa
+        found in: README.md:10, README.md:107, README.md:25, docs/sideload.md:9, page https://bradcowdrey.com/meridian-app.html
+OK       200 -> https://release-assets.githubusercontent.com/github-production-release-asset/1422623506/02881a5b-8832-4d13-a052-5a4f708bb357?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-11-13T19%3A58%3A02Z&rscd=attachment%3B+filename%3DMeridian.dmg&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-11-13T18%3A57%3A23Z&ske=2026-11-13T19%3A58%3A02Z&sks=b&skv=2018-11-09&sig=txDs6HuWwdOML0CZjsSF3AmN9coDScYxTz%2Bfbi01YSk%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5NDU5OTAyNywibmJmIjoxNzk0NTk3MjI3LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.D2nKZZGvL7TUX2MC6GPJnnggdpwwYF0WFXd_osk_W9U&response-content-disposition=attachment%3B%20filename%3DMeridian.dmg&response-content-type=application%2Foctet-stream  https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg
+        found in: CHANGELOG.md:5, README.md:115, README.md:9, android/app/src/main/java/com/bradcowdrey/meridian/MainActivity.kt:175, ios/Meridian/Theme.swift:65, page https://bradcowdrey.com/meridian-app.html
+OK       200  https://github.com/unicode-org/cldr-json/blob/main/cldr-json/cldr-core/supplemental/weekData.json
+        found in: docs/working-hours.md:108, docs/working-hours.md:11, docs/working-hours.md:110, docs/working-hours.md:192, docs/working-hours.md:198, docs/working-hours.md:201, docs/working-hours.md:217, docs/working-hours.md:236, docs/working-hours.md:250, docs/working-hours.md:30, docs/working-hours.md:68
+OK       200  https://globusbank.com.ua/en/tsentralne-viddilennia.html
+        found in: docs/working-hours.md:235
+OK       200 -> https://www.gobierno.aw/en/contact  https://gobierno.aw/en/contact
+        found in: docs/working-hours.md:21
+OK       200 -> https://gopalestine.org/business-hours-and-national-holidays/  https://gopalestine.org/business-hours-and-national-holidays
+        found in: docs/working-hours.md:188
+OK       200 -> https://gov.tc/mof/blog/  https://gov.tc/mof/?p=70
+        found in: docs/working-hours.md:219
+OK       200  https://gov.vg/organisation-directory
+        found in: docs/working-hours.md:244
+OK       200  https://grenadaparliament.gd/ova_doc/eastern-caribbean-asset-management-corporation-amendment-bill-2025-hor/
+        found in: docs/working-hours.md:84
+OK       200  https://gulfnews.com/world/gulf/kuwait/kuwait-announces-four-hour-workdays-for-ramadan-introduces-grace-periods-for-employees-1.1708168434683
+        found in: docs/working-hours.md:128
+OK       200  https://gulfnews.com/world/gulf/oman/ramadan-2026-oman-announces-reduced-working-hours-for-public-and-private-sectors-1.500438641
+        found in: docs/working-hours.md:177
+OK       200  https://hda.mod.gov.ua/en/contacts
+        found in: docs/working-hours.md:235
+OK       200  https://heuremondiale.pages.dev/en/time/andorre/
+        found in: docs/working-hours.md:9
+OK       200 -> https://housinganywhere.com/blog/working/working-hours-in-germany  https://housinganywhere.com/Germany/working-hours-in-germany
+        found in: docs/working-hours.md:63
+OK       200  https://i.ntnu.no/en/apningstider
+        found in: docs/working-hours.md:172
+OK       200 -> https://infos.cd/actualite/politique/rdc-desormais-les-fonctionnaires-de-letat-travailleront-cinq-jours-sur-sept/48486/  https://infos.cd/?p=48486
+        found in: docs/working-hours.md:46
+OK       200  https://ipoi.gov.ie/en/about-us/contact-us/
+        found in: docs/working-hours.md:107
+OK       200  https://istanbul.com/blog/living/official-holidays-working-hours
+        found in: docs/working-hours.md:230
+OK       200  https://jds-scholarship.org/country/laos/contact.html
+        found in: docs/working-hours.md:131
+OK       200  https://joinhorizons.freshdesk.com/en/support/solutions/articles/73000638610-what-are-the-standard-working-hours-in-india-
+        found in: docs/working-hours.md:110
+OK       200  https://joinhorizons.freshdesk.com/en/support/solutions/articles/73000639916-what-are-the-summer-working-hours-in-spain-
+        found in: docs/working-hours.md:74
+OK       200  https://kathmandupost.com/national/2026/04/05/government-announces-two-day-weekend-amid-fuel-crisis
+        found in: docs/working-hours.md:173
+OK       200  https://knowledge.dlapiper.com/dlapiperknowledge/globalemploymentlatestdevelopments/2025/chiles-40-hour-work-week-law-now-in-effect-key-considerations-for-employers
+        found in: docs/working-hours.md:52
+OK       200 -> https://support.remofirst.com/en-US/remofirst  https://knowledgebase.remofirst.com/hc/en-us/articles/46213628370324
+        found in: docs/working-hours.md:142
+OK       200  https://kpl.gov.la/asean2024/En/pages/entering-laos.aspx
+        found in: docs/working-hours.md:131
+OK       200 -> https://kyee.ai/  https://kyee.ai
+        found in: page https://bradcowdrey.com/
+OK       200  https://labour.gov.bb/footer/footer-1/
+        found in: docs/working-hours.md:25
+OK       200  https://lanouvelletribune.info/2020/11/benin-leventualite-dun-changement-des-horaires-de-travail-refait-surface/
+        found in: docs/working-hours.md:222, docs/working-hours.md:32
+OK       200  https://laparkan.com/locations/guyana/
+        found in: docs/working-hours.md:100
+OK       200  https://lawyerly.ph/laws/view/l5de1
+        found in: docs/working-hours.md:182
+OK       200  https://libyamonitor.com/news/government/official-ramadan-working-hours-announced
+        found in: docs/working-hours.md:141
+OK       200 -> https://www.lingoda.com/blog/en/work-culture-switzerland/  https://lingoda.com/blog/en/work-culture-switzerland
+        found in: docs/working-hours.md:134, docs/working-hours.md:49
+OK       200  https://ltl-school.com/working-for-a-chinese-company/
+        found in: docs/working-hours.md:54
+OK       200  https://macaubusiness.com/venezuela-reduces-public-sector-workday-to-save-energy/
+        found in: docs/working-hours.md:243
+OK       200  https://magicheidi.ch/en/working-hours-in-switzerland
+        found in: docs/working-hours.md:49
+OK       200  https://mail.yementourism.com/useful-tips/general-information
+        found in: docs/working-hours.md:250
+OK       200  https://maldives.unfpa.org/en/contact
+        found in: docs/working-hours.md:160
+OK       200  https://meinong.kcg.gov.tw/english/CP/4951/
+        found in: docs/working-hours.md:233
+OK       200 -> https://mercans.com/employer-of-record-payroll-peo/lebanon/  https://mercans.com/country-intel/lebanon
+        found in: docs/working-hours.md:132
+OK       200 -> https://www.mfat.govt.nz:443/en/countries-and-regions/australia-and-pacific/cook-islands/new-zealand-high-commission-to-the-cook-islands  https://mfat.govt.nz/en/countries-and-regions/australia-and-pacific/cook-islands/new-zealand-high-commission-to-the-cook-islands
+        found in: docs/working-hours.md:175
+OK       200  https://migaku.com/blog/language-fun/italian-work-culture-the-august-shutdown-and-office-norms
+        found in: docs/working-hours.md:115, docs/working-hours.md:209
+OK       200  https://migaku.com/blog/language-fun/what-working-in-portugal-is-really-like-office-norms-and-culture
+        found in: docs/working-hours.md:189
+OK       200 -> https://migracao.gov.tl/wp/  https://migracao.gov.tl/html/sub0104.php
+        found in: docs/working-hours.md:226
+OK       200 -> https://minepat.gov.cm/second-phase-of-the-cameroon-development-vision/  https://minepat.gov.cm/en/second-phase-of-the-cameroon-development-vision
+        found in: docs/working-hours.md:53
+OK       200  https://monic.mo/html/notice/2020/monic_OfficeTime_note_0630_eng.html
+        found in: docs/working-hours.md:153
+OK       200  https://monolith.law/fr/general-corporate/labor-law-working-hours-japan
+        found in: docs/working-hours.md:119
+OK       200 -> https://monservicepublic.gouv.mc/en/directory-of-government-departments/the-ministry-of-state/monaco-statistics  https://monservicepublic.gouv.mc/en/directory-of-government-services/the-ministry-of-state/monaco-statistics
+        found in: docs/working-hours.md:143
+OK       200  https://mothership.sg/2023/04/singapore-boss-work-hours/
+        found in: docs/working-hours.md:203
+OK       200 -> https://www.myjoyonline.com/gambias-president-barrow-scraps-jammehs-four-day-week/  https://myjoyonline.com/gambias-president-barrow-scraps-jammehs-four-day-week
+        found in: docs/working-hours.md:91
+OK       200  https://myrepublica.nagariknetwork.com/news/promise-of-ease-risk-of-inefficiency-92-34.html
+        found in: docs/working-hours.md:173
+OK       200 -> https://mzv.gov.cz/vatican/cz/o_velvyslanectvi/Kontaktni_informace/-mzv-publish-cz-o_ministerstvu-adresar_diplomatickych_misi-ceske_urady_v_zahranici-vatikan_velvyslanectvi_vatikan.html  https://mzv.gov.cz/vatican/cz/o_velvyslanectvi/Kontaktni_informace/index.html
+        found in: docs/working-hours.md:241
+OK       200  https://mzv.gov.cz/warsaw/en/general_information_on_the_embassy/index.html
+        found in: docs/working-hours.md:184
+OK       200 -> https://naked-science.ru/article/media/yandex-work-time-analysis  https://naked-science.ru/article/media/yandex-work-time-analysis/amp
+        found in: docs/working-hours.md:196
+OK       200  https://nakordoni.eu/en/p/customs-offices/mt
+        found in: docs/working-hours.md:158
+OK       200  https://nao.gov.vu/about/about-us
+        found in: docs/working-hours.md:247
+OK       200  https://natt.gov.tt/node/15
+        found in: docs/working-hours.md:231
+OK       200  https://nbcc.org.ng/get-in-touch/
+        found in: docs/working-hours.md:169
+OK       200 -> https://www.netherlandsworldwide.nl/contact/embassies-consulates-general/guyana/embassy-paramaribo  https://netherlandsworldwide.nl/contact/embassies-consulates-general/guyana/embassy-paramaribo
+        found in: docs/working-hours.md:212
+OK       200  https://news.abidjan.net/articles/404027/reforme-administrative-le-changement-horaire-porte-ses-fruits
+        found in: docs/working-hours.md:50
+OK       200  https://news.radioalgerie.dz/fr/node/79943
+        found in: docs/working-hours.md:68
+OK       200 -> https://ngavutours.pages.dev/blog/time-in-uganda/  https://ngavutours.pages.dev/blog/time-in-uganda
+        found in: docs/working-hours.md:236
+OK       200  https://nigeria.ahk.de/en/contact-us
+        found in: docs/working-hours.md:169
+OK       200 -> https://www.nst.com.my/amp/news/nation/2024/10/1116014/updated-johor-reverting-saturday-sunday-days-starting-jan-1  https://nst.com.my/amp/news/nation/2024/10/1116014/updated-johor-reverting-saturday-sunday-days-starting-jan-1
+        found in: docs/working-hours.md:163
+OK       200 -> https://open-meteo.com/  https://open-meteo.com
+        found in: TERMS.md:380, page https://bradcowdrey.com/legal
+OK       200 -> https://openfreemap.org/  https://openfreemap.org
+        found in: TERMS.md:383, page https://bradcowdrey.com/legal
+OK       200  https://opg.guamcourts.gov/about-office/contact-us
+        found in: docs/working-hours.md:98
+OK       200  https://oxfordbusinessgroup.com/reports/brunei-darussalam/2014-report/economy/facts-for-visitors-tips-for-first-time-travellers-to-the-sultanate
+        found in: docs/working-hours.md:35
+OK       200  https://oxfordbusinessgroup.com/reports/kuwait/2024-report/the-guide/facts-for-visitors-practical-tips-for-business-travellers-and-tourists-overview/
+        found in: docs/working-hours.md:128
+OK       200  https://oxfordbusinessgroup.com/reports/mongolia/2015-report/economy/useful-information-for-visitors-to-mongolia
+        found in: docs/working-hours.md:152
+OK       200  https://oxfordbusinessgroup.com/reports/peru/2017-report/economy/facts-for-visitors-essential-things-to-know-before-your-trip-to-peru
+        found in: docs/working-hours.md:179
+OK       200  https://panamericana.pe/nacionales/154179-dia-10-cosas-jornada-laboral-peru/amp
+        found in: docs/working-hours.md:179
+OK       200 -> https://www.playroll.com/working-hours/colombia  https://playroll.com/working-hours/colombia
+        found in: docs/working-hours.md:55
+OK       200 -> https://www.playroll.com/working-hours/croatia  https://playroll.com/working-hours/croatia
+        found in: docs/working-hours.md:103
+OK       200 -> https://www.playroll.com/working-hours/iraq  https://playroll.com/working-hours/iraq
+        found in: docs/working-hours.md:112
+OK       200 -> https://www.playroll.com/working-hours/mauritania  https://playroll.com/working-hours/mauritania
+        found in: docs/working-hours.md:156
+OK       200 -> https://www.playroll.com/working-hours/mexico  https://playroll.com/working-hours/mexico
+        found in: docs/working-hours.md:162
+OK       200 -> https://www.playroll.com/working-hours/republic-of-congo  https://playroll.com/working-hours/republic-of-congo
+        found in: docs/working-hours.md:48
+OK       200  https://propakistani.pk/2024/03/09/govt-announces-ramadan-timings-for-offices/amp/
+        found in: docs/working-hours.md:183
+OK       200  https://pso.gov.vu/index.php/about-us/our-offices
+        found in: docs/working-hours.md:247
+OK       200  https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/lovp_1vh6nnryer9kt9m5stv33tvsgk/7f8b23933b841dfb5e121f0ffb56cf3a_1794596364219.png
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal, page https://bradcowdrey.com/meridian
+OK       200  https://qogentglobal.com/blog/polish-work-culture-guide-international-students
+        found in: docs/working-hours.md:184
+OK       200  https://raw.githubusercontent.com/bradleycowdrey/cowdrey-md/main/TERMS.md
+        found in: Sources/Meridian/Model/TermsVersion.swift:11, android/app/src/main/java/com/bradcowdrey/meridian/Store.kt:593
+OK       200  https://raw.githubusercontent.com/bradleycowdrey/meridian/main/docs/icon.png
+        found in: page https://bradcowdrey.com/meridian-app.html
+OK       200  https://raw.githubusercontent.com/bradleycowdrey/meridian/main/docs/widgets.png
+        found in: page https://bradcowdrey.com/meridian-app.html
+OK       200  https://rcsprwanda.org/wp-content/uploads/2023/06/POLICY-BRIEF-ON-NEW-WORKING-HOURS-IN-RWANDA.pdf
+        found in: docs/working-hours.md:197
+OK       200 -> https://rivermate.com/guides/mauritius  https://rivermate.com/en/guides/mauritius/working-hours
+        found in: docs/working-hours.md:159
+OK       200 -> https://rivermate.com/guides/angola  https://rivermate.com/guides/angola/working-hours
+        found in: docs/working-hours.md:16
+OK       200 -> https://rivermate.com/guides/cambodia  https://rivermate.com/guides/cambodia/working-hours
+        found in: docs/working-hours.md:122
+OK       200 -> https://rivermate.com/guides/montenegro  https://rivermate.com/guides/montenegro/working-hours
+        found in: docs/working-hours.md:145
+OK       200 -> https://rivermate.com/guides/singapore  https://rivermate.com/guides/singapore/working-hours
+        found in: docs/working-hours.md:203
+OK       200  https://rmicourts.org/office-hours-and-public-holidays/
+        found in: docs/working-hours.md:148
+OK       200  https://rsms.me/inter/
+        found in: README.md:165
+OK       200 -> https://rudaw.net/english/categories/iraq/806894  https://rudaw.net/english/middleeast/iraq/22062024
+        found in: docs/working-hours.md:112
+OK       200 -> https://runahr.com/mx/recursos/nomina/horas-de-trabajo-en-mexico/  https://runahr.com/mx/recursos/horas-de-trabajo-en-mexico/
+        found in: docs/working-hours.md:162
+OK       200  https://s.thepeninsula.qa/article/14/02/2026/ministry-of-labour-announces-ramadan-working-hours-for-private-sector
+        found in: docs/working-hours.md:192
+OK       200 -> https://www.sacu.int/contact-us/national-contact-points  https://sacu.int/contact-us/national-contact-points
+        found in: docs/working-hours.md:137, docs/working-hours.md:218
+OK       200  https://sajurin.enriquebolanos.org/docs/JGRN_1340.pdf
+        found in: docs/working-hours.md:170
+OK       200 -> https://sec.gov.gh/contact/  https://sec.gov.gh/?p=13
+        found in: docs/working-hours.md:88
+OK       200 -> https://semver.org/  https://semver.org
+        found in: docs/versioning.md:4
+OK       200 -> https://sideloadly.io/  https://sideloadly.io
+        found in: docs/sideload.md:15
+OK       200 -> https://silverlane.io/  https://silverlane.io
+        found in: page https://bradcowdrey.com/
+OK       200  https://skopje.mfa.gov.rs/en/embassy/contact
+        found in: docs/working-hours.md:149
+OK       200 -> https://um.dk/somalia/en/about-us/official-closing-days  https://somalia.um.dk/en/about-us/official-closing-days
+        found in: docs/working-hours.md:211
+OK       200 -> https://www.sovereigngroup.com/sovereign-stories/winding-down-for-the-summer-not-likely/  https://sovereigngroup.com/?p=4208
+        found in: docs/working-hours.md:89
+OK       200  https://spainhandbook.com/spanish-work-culture-hours-holidays-and-workplace-etiquette/
+        found in: docs/working-hours.md:74
+OK       200  https://sprintlaw.com.au/articles/standard-working-hours-per-week-employers-compliance-guide/
+        found in: docs/working-hours.md:20
+OK       200 -> https://standard.mv/government-announces-official-working-hours-for-ramadan/  https://standard.mv/government-announces-official-working-hours-for-ramadan
+        found in: docs/working-hours.md:160
+OK       200  https://stat.uz/en/appeals/helplines
+        found in: docs/working-hours.md:240
+OK       200 -> https://www.statista.com/statistics/1241305/russia-schedule-of-office-workers-in-moscow/  https://statista.com/statistics/1241305/russia-schedule-of-office-workers-in-moscow
+        found in: docs/working-hours.md:196
+OK       200  https://syrianjihadism.com/2024/12/11/diary-of-the-syrian-transition-december-11-2024/
+        found in: docs/working-hours.md:217
+OK       200  https://thehimalayantimes.com/business/banks-to-follow-two-day-weekly-holiday-as-nrb-issues-directive
+        found in: docs/working-hours.md:173
+OK       200  https://thepoint.gm/africa/gambia/article/govt-announces-new-working-days-hours
+        found in: docs/working-hours.md:91
+OK       200 -> https://www.timeanddate.com/time/zone/equatorial-guinea  https://timeanddate.com/time/zone/equatorial-guinea
+        found in: docs/working-hours.md:94
+OK       200  https://timebutler.com/glossary/core-working-hours/
+        found in: docs/working-hours.md:63
+OK       200  https://tirana.mfa.gov.rs/en/embassy/contact
+        found in: docs/working-hours.md:14
+OK       200  https://tonga.embassy.gov.au/nkfa/Contact_Us.html
+        found in: docs/working-hours.md:229
+OK       200  https://total-croatia-news.com/news/living-in-croatia/time-in-croatia/
+        found in: docs/working-hours.md:103
+OK       200  https://tourism.gov.bb/Contact
+        found in: docs/working-hours.md:25
+OK       200 -> https://www.trade.gov/country-commercial-guides/greece-business-travel  https://trade.gov/country-commercial-guides/greece-business-travel
+        found in: docs/working-hours.md:95
+OK       200 -> https://www.trade.gov/country-commercial-guides/panama-local-time-business-hours-holidays  https://trade.gov/country-commercial-guides/panama-local-time-business-hours-holidays
+        found in: docs/working-hours.md:178
+OK       200 -> https://www.ttsec.org.tt/tag/reopening/  https://ttsec.org.tt/tag/reopening
+        found in: docs/working-hours.md:231
+OK       200  https://tuvalu.highcommission.gov.au/fnfu/Contact_details.html
+        found in: docs/working-hours.md:232
+OK       200 -> https://www.uio.no/english/for-employees/employment/working-hours-and-absence/working-hours/working-hours-technical-administrative.html  https://uio.no/english/for-employees/employment/working-hours-and-absence/working-hours/working-hours-technical-administrative.html
+        found in: docs/working-hours.md:172, docs/working-hours.md:206
+OK       200  https://vanuatucustoms.gov.vu/
+        found in: docs/working-hours.md:247
+OK       200  https://view.asiae.co.kr/en/article/2024102511154713248
+        found in: docs/working-hours.md:127
+OK       200  https://vlex.co.uk/vid/mauritania-1087552608
+        found in: docs/working-hours.md:156
+OK       200 -> https://www.walkersglobal.com/en/Contact-us  https://walkersglobal.com/en/Contact-us
+        found in: docs/working-hours.md:129, docs/working-hours.md:34
+OK       200  https://webarchive.library.unt.edu/eot2008/20081105144437/http:/www.buyusa.gov/caribbean/en/dr_business_travel.html
+        found in: docs/working-hours.md:67
+OK       200  https://webarchive.library.unt.edu/eot2008/20081105162424/http:/www.buyusa.gov/denmark/en/danish_business_culture.html
+        found in: docs/working-hours.md:65
+OK       200  https://webarchive.library.unt.edu/eot2008/20090508073104/http:/www.buyusa.gov/argentina/en/business_travel_informationa.html
+        found in: docs/working-hours.md:17
+OK       200  https://worksuite.com/glossary/colombian-labour-code-working-hours
+        found in: docs/working-hours.md:55
+OK       200 -> https://www.worldtravelguide.net/guides/europe/romania/business-communications/  https://worldtravelguide.net/guides/europe/romania/business-communications
+        found in: docs/working-hours.md:194
+OK       200 -> https://www.worldtravelguide.net/guides/oceania/new-zealand/business-communications/  https://worldtravelguide.net/guides/oceania/new-zealand/business-communications
+        found in: docs/working-hours.md:176, docs/working-hours.md:186
+OK       200  https://www.52spain.com/d/72130-analysis-of-madrids-working-hours-and-lifestyle-rhythm
+        found in: docs/working-hours.md:74
+OK       200  https://www.aes-elsalvador.com/en/caess-commercial-offices
+        found in: docs/working-hours.md:215
+OK       200  https://www.afrique-sur7.fr/senegal-le-gouvernement-lance-le-controle-de-presence-au-poste-des-agents-publics
+        found in: docs/working-hours.md:210
+OK       200  https://www.ajobthing.com/resources/blog/how-working-days-defined-apllied-malaysian-workplaces
+        found in: docs/working-hours.md:163
+OK       200 -> https://www.ajpark.com/contact-us/  https://www.ajpark.com/contact/
+        found in: docs/working-hours.md:176
+OK       200  https://www.alwihdainfo.com/tchad-le-gouverneur-du-kanem-exhorte-les-autorites-a-respecter-les-horaires-de-travail-a120967/
+        found in: docs/working-hours.md:220
+OK       200  https://www.angelone.in/news/personal-finance/how-many-days-do-government-employees-work-each-week-in-india
+        found in: docs/working-hours.md:110
+OK       200  https://www.annuaire-administration.com/prefecture/prefecture-guadeloupe-prefecture-97105-01.html
+        found in: docs/working-hours.md:146, docs/working-hours.md:33, docs/working-hours.md:93
+OK       200  https://www.annuaire-administration.com/prudhommes/conseil-de-prud-hommes-de-fort-de-france-prudhommes-97209-01.html
+        found in: docs/working-hours.md:155
+OK       200  https://www.annuaire-administration.com/tribunal-administratif/tribunal-administratif-cayenne-ta-97302-01.html
+        found in: docs/working-hours.md:86
+OK       202  https://www.argaam.com/en/article/articledetail/id/1457615
+        found in: docs/working-hours.md:198
+OK       200  https://www.bacn.gov.py/leyes-paraguayas/9216/ley-n-6531-establece-un-horario-de-trabajo-escalonado-y-jornada-acumulativa-voluntaria
+        found in: docs/working-hours.md:191
+OK       200  https://www.bancobmg.com.br/blog/educacao-financeira/o-que-e-e-como-funciona-o-horario-comercial/
+        found in: docs/working-hours.md:38
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/bosnia-and-herzegovina/opening-hours
+        found in: docs/working-hours.md:24
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/botswana/opening-hours
+        found in: docs/working-hours.md:41
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/cyprus/opening-hours
+        found in: docs/working-hours.md:61
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/egypt/opening-hours
+        found in: docs/working-hours.md:71
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/ethiopia/opening-hours
+        found in: docs/working-hours.md:75
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/greece/opening-hours
+        found in: docs/working-hours.md:95
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/iraq/opening-hours
+        found in: docs/working-hours.md:112
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/luxembourg/opening-hours
+        found in: docs/working-hours.md:139
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/malaysia/opening-hours
+        found in: docs/working-hours.md:163
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/malta/opening-hours
+        found in: docs/working-hours.md:158
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/mauritius/opening-hours
+        found in: docs/working-hours.md:159
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/pakistan/opening-hours
+        found in: docs/working-hours.md:183
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/seychelles/opening-hours
+        found in: docs/working-hours.md:200
+OK       200  https://www.bankofscotlandtrade.co.uk/en/market-potential/zambia/opening-hours
+        found in: docs/working-hours.md:253
+OK       200 -> https://www.banquedeluxembourg.com/en/bank/bl/become-a-client/our-locations  https://www.banquedeluxembourg.com/en/our-locations
+        found in: docs/working-hours.md:139, docs/working-hours.md:27
+OK       200  https://www.bbs.bt/159890/
+        found in: docs/working-hours.md:40
+OK       200 -> https://www.bbs.bt/159890/  https://www.bbs.bt/rcsc-revises-winter-timing
+        found in: docs/working-hours.md:40
+OK       200 -> https://www.bceao.int/fr  https://www.bceao.int/fr/etats-membres/benin
+        found in: docs/working-hours.md:32
+OK       200 -> https://www.bceao.int/fr  https://www.bceao.int/fr/etats-membres/niger
+        found in: docs/working-hours.md:167
+OK       200  https://www.benq.eu/en-eu/support/contact-us/call-us/luxemburg.html
+        found in: docs/working-hours.md:27
+OK       200  https://www.biposervice.com/wp-content/uploads/2022/11/BIPO-Times-November-2022-en.pdf
+        found in: docs/working-hours.md:35
+OK       200  https://www.bloomberglinea.com/latinoamerica/chile/como-regira-la-ley-de-las-40-horas-laborales-en-chile-este-2026/
+        found in: docs/working-hours.md:52
+OK       200  https://www.boca.gov.tw/cp-191-1858-01bf8-2.html
+        found in: docs/working-hours.md:233
+OK       200  https://www.brazilcounsel.com/blog/brazil-debates-the-future-of-the-workweek
+        found in: docs/working-hours.md:38
+OK       200  https://www.breakingbelizenews.com/2021/06/15/public-officers-officially-working-9-5-jobs/
+        found in: docs/working-hours.md:43
+OK       200  https://www.calendariochile.com/derecho/como-funciona-la-ley-de-40-horas-en-chile-guia-sobre-la-reduccion-de-jornada-y-derechos-laborales-en-2026
+        found in: docs/working-hours.md:52
+OK       200  https://www.caribbeannationalweekly.com/posts/opinion-flexi-work-marks-progress-but-not-a-cure-for-jamaicas-traffic-crisis
+        found in: docs/working-hours.md:117
+OK       200  https://www.cchatty.com/working-hours-in-beijing-g-101498
+        found in: docs/working-hours.md:54
+OK       200  https://www.centralbank.org.bz/contact-us
+        found in: docs/working-hours.md:43
+OK       200 -> https://www.cercli.com/resources/egypt-work-week/  https://www.cercli.com/resources/egypt-work-week
+        found in: docs/working-hours.md:71
+OK       200  https://www.dawan.africa/news/djibouti-sets-new-public-office-hours-for-summer
+        found in: docs/working-hours.md:64
+OK       200  https://www.dopusvi.org/wp-content/uploads/2025/02/Employee-Handbook_v2.pdf
+        found in: docs/working-hours.md:245
+OK       200  https://www.dpm.gov.pg/contact
+        found in: docs/working-hours.md:181
+OK       200  https://www.embassyofsierraleone.net/about-us-in-sierra-leone
+        found in: docs/working-hours.md:208
+OK       200  https://www.euroins.bg/en/contact?city=4307
+        found in: docs/working-hours.md:29
+OK       200  https://www.expat.com/en/forum/africa/kenya/nairobi/169474-how-is-working-culture-at-kenya.html
+        found in: docs/working-hours.md:120
+OK       200  https://www.expat.com/en/guide/middle-east/turkey/istanbul/20706-the-work-culture-in-istanbul.html
+        found in: docs/working-hours.md:230
+OK       200 -> https://www.expat.com/en/guide/south-america/argentina/buenos-aires/9392-find-a-job-in-buenos-aires.html  https://www.expat.com/en/guide/south-america/argentina/21529-the-work-culture-in-buenos-aires.html
+        found in: docs/working-hours.md:17
+OK       200 -> https://www.expatfocus.com/luxembourg/guide/luxembourg-employment-terms-and-conditions  https://www.expatfocus.com/?p=22975
+        found in: docs/working-hours.md:139
+OK       200 -> https://www.expatfocus.com/bulgaria/guide/bulgaria-finding-employment  https://www.expatfocus.com/?p=23102
+        found in: docs/working-hours.md:29
+OK       200 -> https://www.expatica.com/fr/working/employment-basics/french-business-etiquette-108353/  https://www.expatica.com/fr/working/employment-basics/french-business-culture-102491
+        found in: docs/working-hours.md:81
+OK       200  https://www.expats.cz/czech-news/article/work-practices-in-the-czech-republic
+        found in: docs/working-hours.md:62
+OK       200 -> https://www.financialafrik.com/2020/04/03/covid-19-un-nouveau-changement-dhoraires-dans-les-services-publics-et-prives-au-mali/  https://www.financialafrik.com/2020/04/03/covid-19-un-nouveau-changement-dhoraires-dans-les-services-publics-et-prives-au-mali
+        found in: docs/working-hours.md:150
+OK       200  https://www.finelib.com/listing/Federal-Civil-Service-Commission/2379/
+        found in: docs/working-hours.md:169
+OK       200 -> https://www.frommers.com/destinations/grand-turk/planning-a-trip/  https://www.frommers.com/destinations/grand-turk/planning-a-trip
+        found in: docs/working-hours.md:219
+OK       200 -> https://www.frommers.com/destinations/samoa/  https://www.frommers.com/destinations/samoa/fast-facts
+        found in: docs/working-hours.md:249
+OK       200 -> https://www.frommers.com/destinations/tonga/planning-a-trip/  https://www.frommers.com/destinations/tonga/planning-a-trip/fast-facts
+        found in: docs/working-hours.md:229
+OK       200 -> https://www.fu-berlin.de/en/sites/abt-1/referate/pe/welcome-service/einstieg/regelungen/arbeitszeit.html  https://www.fu-berlin.de/en/sites/abt-1/referate/1c/welcome-service/einstieg/regelungen/arbeitszeit.html
+        found in: docs/working-hours.md:63
+OK       200 -> https://www.gabonreview.com/gabon-30-minutes-de-pause-en-plus-dans-les-entreprises-pour-booster-leur-productivite/  https://www.gabonreview.com/gabon-30-minutes-de-pause-en-plus-dans-les-entreprises-pour-booster-leur-productivite
+        found in: docs/working-hours.md:82
+OK       200  https://www.gcs.gov.gi/contact-us
+        found in: docs/working-hours.md:89
+OK       200 -> https://www.geonames.org/  https://www.geonames.org
+        found in: TERMS.md:384, page https://bradcowdrey.com/legal
+OK       200  https://www.globalization-partners.com/fr/globalpedia/haiti/eor/
+        found in: docs/working-hours.md:104
+OK       200  https://www.goafricaonline.com/ci/785315-2ier-service
+        found in: docs/working-hours.md:50
+OK       200 -> https://www.gov.kn/human-resource-management-department-contact-us/  https://www.gov.kn/?p=610
+        found in: docs/working-hours.md:125
+OK       200  https://www.gov.uk/world/organisations/governors-office-stanley/office/governors-office-stanley
+        found in: docs/working-hours.md:78, docs/working-hours.md:96
+OK       200  https://www.gov.vg/attorney-generals-chambers
+        found in: docs/working-hours.md:244
+OK       200  https://www.government.fo/en/news/news/office-hours-for-government-of-the-faroe-islands-summer-2018
+        found in: docs/working-hours.md:80
+OK       200  https://www.gulf-times.com/story/400449/Qatar-regulations-on-Ramadan-working-hours
+        found in: docs/working-hours.md:192
+OK       200  https://www.hcamag.com/ca/specialization/employee-engagement/few-canadians-stick-to-9-to-5-as-overtime-and-pressure-mount-survey/548500
+        found in: docs/working-hours.md:44
+OK       200 -> https://hegyvidek.hu/english/personal-service-centre/hours-of-operation  https://www.hegyvidek.hu/english/personal-service-centre/hours-of-operation
+        found in: docs/working-hours.md:105
+OK       200  https://www.hkma.gov.hk/eng/news-and-media/press-releases/2006/06/20060627-4
+        found in: docs/working-hours.md:101
+OK       200  https://www.iamexpat.nl/career/working-in-the-netherlands/working-hours
+        found in: docs/working-hours.md:171
+OK       200  https://www.ice.it/it/mercati/kazakhstan/almaty
+        found in: docs/working-hours.md:130
+OK       200  https://www.impo.com.uy/bases/decretos/741-1985
+        found in: docs/working-hours.md:239
+OK       200  https://www.indochinatour.com/myanmar-guide/practical-information.html
+        found in: docs/working-hours.md:151
+OK       200  https://www.info.gov.hk/gia/general/200606/27/P200606270196.htm
+        found in: docs/working-hours.md:101
+OK       200 -> https://www.instagram.com/accounts/login/?next=https%3A%2F%2Fwww.instagram.com%2Fbradleycowdrey%2F&is_from_rle  https://www.instagram.com/bradleycowdrey/
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200  https://www.intellinews.com/office-hours-to-return-to-normal-schedule-in-iran-374426
+        found in: docs/working-hours.md:113
+OK       200 -> https://www.ipim.gov.mo/en?p=6257  https://www.ipim.gov.mo/en/?p=6257
+        found in: docs/working-hours.md:153
+OK       200  https://www.itu.int/en/ITU-R/seminars/rrs/RRS-13-Africa/Documents/RRS-13-Africa-Information-F.pdf
+        found in: docs/working-hours.md:47, docs/working-hours.md:53
+OK       200  https://www.jamaicaexperiences.com/blogs/details/article/opening-hours-in-jamaica-generally-speaking
+        found in: docs/working-hours.md:117
+OK       202  https://www.jdsupra.com/legalnews/uae-s-new-shorter-workweek-becomes-3435515
+        found in: docs/working-hours.md:10
+OK       200 -> https://www.jica.go.jp/Resource/nicaragua/espanol/office/c8h0vm0000f7nrym-att/holiday2023_sp.pdf  https://www.jica.go.jp/nicaragua/espanol/office/c8h0vm0000f7nrym-att/holiday2023_sp.pdf
+        found in: docs/working-hours.md:170
+OK       200 -> https://www.jica.go.jp/english/overseas/palau/office/index.html  https://www.jica.go.jp/palau/english/office/index.html
+        found in: docs/working-hours.md:190
+OK       200  https://www.jordannews.jo/Section-109/News/Private-sector-excluded-from-Ramadan-working-hours-39424
+        found in: docs/working-hours.md:118
+OK       200  https://www.justworks.com/global-hiring-guides/ireland/hours-of-work
+        found in: docs/working-hours.md:107
+OK       200  https://www.karibu.ai/
+        found in: page https://bradcowdrey.com/
+OK       200  https://www.lawinsider.com/dictionary/standard-working-hours
+        found in: docs/working-hours.md:83
+OK       200  https://www.leconomistemaghrebin.com/2026/07/01/seance-unique-leconomie-tunisienne-paie-t-elle-le-prix-des-horaires-dete/
+        found in: docs/working-hours.md:228
+OK       200 -> https://www.linkedin.com/in/cowdrey  https://www.linkedin.com/in/cowdrey/
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200 -> https://www.linkedin.com/in/cowdrey  https://www.linkedin.com/in/cowdrey/details/experience/
+        found in: page https://bradcowdrey.com/
+OK       200  https://www.linkedin.com/pulse/confirmation-bias-may-your-biggest-problem-too-brad-cowdrey
+        found in: page https://bradcowdrey.com/
+OK       200  https://www.linkedin.com/pulse/data-your-biggest-asset-why-treat-like-overhead-expense-brad-cowdrey
+        found in: page https://bradcowdrey.com/
+OK       200  https://www.linkedin.com/pulse/footballs-shoulder-pads-andpredictive-analytics-brad-cowdrey
+        found in: page https://bradcowdrey.com/
+OK       200  https://www.lloydsbanktrade.com/en/market-potential/jordan/opening-hours
+        found in: docs/working-hours.md:118
+OK       200  https://www.lloydsbanktrade.com/en/market-potential/lebanon/opening-hours
+        found in: docs/working-hours.md:132
+OK       200  https://www.lloydsbanktrade.com/en/market-potential/maldives/opening-hours
+        found in: docs/working-hours.md:160
+OK       200  https://www.lloydsbanktrade.com/en/market-potential/zambia/opening-hours
+        found in: docs/working-hours.md:253
+OK       200  https://www.lombardmalta.com/en/branch-opening-hours
+        found in: docs/working-hours.md:158
+OK       200  https://www.malaysiapublicholiday.my/en/blog/understanding-the-varying-weekend-patterns-across-malaysian-states-origins-and-impacts
+        found in: docs/working-hours.md:163
+OK       200  https://www.masaisrael.org/working-in-israel-what-to-expect/
+        found in: docs/working-hours.md:108
+OK       200 -> https://www.mayottehebdo.com/actualite/politique/comores-la-semaine-de-5-jours-adoptee-dans-ladministration/  https://www.mayottehebdo.com/?p=81434
+        found in: docs/working-hours.md:124, docs/working-hours.md:251
+OK       200  https://www.mfa.go.th/en/organization
+        found in: docs/working-hours.md:223
+OK       200 -> https://www.mofa.gov.ae/404?item=%2fmissions%2fmogadishu%2fthe-embassy%2fabout-the-embassy&user=extranet%5cAnonymous&site=LDSC  https://www.mofa.gov.ae/en/missions/mogadishu/the-embassy/about-the-embassy
+        found in: docs/working-hours.md:211
+OK       200 -> https://www.legal500.com/intelligence/indonesia/corporate-commercial-law/doing-business-in-indonesia-during-ramadan  https://www.mondaq.com/corporate-and-company-law/702410/doing-business-in-indonesia-during-ramadan
+        found in: docs/working-hours.md:106
+OK       200  https://www.moroccoworldnews.com/2025/02/171332/morocco-adopts-of-continuous-work-schedule-for-public-offices/
+        found in: docs/working-hours.md:142, docs/working-hours.md:72
+OK       200  https://www.mtss.go.cr/prensa/comunicados/2017/septiembre/horarios_escalonado_junio.html
+        found in: docs/working-hours.md:56
+OK       200 -> https://www.mycountrymobile.com/country-code/ghana/best-time-to-call/  https://www.mycountrymobile.com/country-code/ghana/best-time-to-call
+        found in: docs/working-hours.md:88
+OK       200  https://www.mycountrymobile.com/country-code/italy/best-time-to-call/
+        found in: docs/working-hours.md:115
+OK       200  https://www.mycountrymobile.com/country-code/mongolia/best-time-to-call/
+        found in: docs/working-hours.md:152
+OK       200  https://www.nature.org.vn/en/contact/office-hours/
+        found in: docs/working-hours.md:246
+OK       200 -> https://www.newtimes.co.rw/article/2572/news/education/officials-speak-out-on-new-school-working-time-directives  https://www.newtimes.co.rw/article/2572/news/education/officials-speak-out-on-new-school-working-time-directive
+        found in: docs/working-hours.md:197
+OK       200  https://www.newtimes.co.rw/article/2673/news/rwanda/psf-mulls-shift-work-to-deal-with-new-working-hours
+        found in: docs/working-hours.md:197
+OK       200 -> https://www.oas.org/ext/en/main/oas/member-states  https://www.oas.org/en/countries/member_state.asp?sCode=GUY
+        found in: docs/working-hours.md:100
+OK       200 -> https://www.omanobserver.om/article/32788/1003/ramadan-working-hours-for-private-sector-announced  https://www.omanobserver.om/ramadan-working-hours-for-private-sector-announced/
+        found in: docs/working-hours.md:177
+OK       200 -> https://www.omnity.io/  https://www.omnity.io
+        found in: page https://bradcowdrey.com/
+OK       200  https://www.openbaarministerie.org/en/new-public-opening-hours-for-prosecutors-office
+        found in: docs/working-hours.md:216
+OK       200 -> https://openmaptiles.org/  https://www.openmaptiles.org
+        found in: TERMS.md:383, page https://bradcowdrey.com/legal
+OK       200  https://www.openstreetmap.org/copyright
+        found in: TERMS.md:383, page https://bradcowdrey.com/legal
+OK       200  https://www.originaltravel.co.uk/travel-guide/thailand/travel-advice
+        found in: docs/working-hours.md:223
+OK       200  https://www.paragraf.ba/dnevne-vijesti/17062024/17062024-vijest2.html
+        found in: docs/working-hours.md:195
+OK       200  https://www.pixilegal.com/normativa/decreto-312-2009-09-30
+        found in: docs/working-hours.md:36
+OK       200  https://www.playroll.com/working-hours/brazil
+        found in: docs/working-hours.md:38
+OK       200  https://www.playroll.com/working-hours/djibouti
+        found in: docs/working-hours.md:64
+OK       200  https://www.playroll.com/working-hours/ecuador
+        found in: docs/working-hours.md:69
+OK       200  https://www.playroll.com/working-hours/iceland
+        found in: docs/working-hours.md:114
+OK       200  https://www.playroll.com/working-hours/libya
+        found in: docs/working-hours.md:141
+OK       200  https://www.playroll.com/working-hours/mozambique
+        found in: docs/working-hours.md:164
+OK       200  https://www.playroll.com/working-hours/north-macedonia
+        found in: docs/working-hours.md:149
+OK       200  https://www.playroll.com/working-hours/paraguay
+        found in: docs/working-hours.md:191
+OK       200  https://www.playroll.com/working-hours/peru
+        found in: docs/working-hours.md:179
+OK       200  https://www.playroll.com/working-hours/portugal
+        found in: docs/working-hours.md:189
+OK       200  https://www.playroll.com/working-hours/russia
+        found in: docs/working-hours.md:196
+OK       200  https://www.playroll.com/working-hours/senegal
+        found in: docs/working-hours.md:210
+OK       200  https://www.playroll.com/working-hours/south-africa
+        found in: docs/working-hours.md:252
+OK       200  https://www.playroll.com/working-hours/taiwan
+        found in: docs/working-hours.md:233
+OK       200  https://www.playroll.com/working-hours/turkey
+        found in: docs/working-hours.md:230
+OK       200  https://www.pma.ps/en/Press-Releases/press-release-by-palestine-monetary-authority-3
+        found in: docs/working-hours.md:188
+OK       200 -> https://www.pmoffice.gov.ck/ndp/annual-indicators/  https://www.pmoffice.gov.ck/?p=126
+        found in: docs/working-hours.md:51
+OK       200  https://www.radiotamazuj.org/en/news/article/sudanese-govt-announces-reduction-of-working-hours-during-ramadan
+        found in: docs/working-hours.md:201
+OK       200 -> https://www.rainviewer.com/  https://www.rainviewer.com
+        found in: TERMS.md:383, page https://bradcowdrey.com/legal
+OK       200  https://www.ral.gl/en/contact/
+        found in: docs/working-hours.md:90
+OK       200  https://www.reunion.aeroport.fr/en/fret/annuaire/douanes-francaises
+        found in: docs/working-hours.md:193
+OK       200  https://www.rferl.org/a/iran-economy-workers-saturday-off/32949834.html
+        found in: docs/working-hours.md:113
+OK       200 -> https://rivermate.com/de/leitfaden/albanien  https://www.rivermate.com/de/leitfaden/albania/arbeitszeiten
+        found in: docs/working-hours.md:14
+OK       200 -> https://rivermate.com/guides/congo  https://www.rivermate.com/guides/congo/working-hours
+        found in: docs/working-hours.md:46
+OK       200 -> https://rivermate.com/guides/egypt  https://www.rivermate.com/guides/egypt/working-hours
+        found in: docs/working-hours.md:71
+OK       200 -> https://rivermate.com/guides/mozambique  https://www.rivermate.com/guides/mozambique/working-hours
+        found in: docs/working-hours.md:164
+OK       200 -> https://rivermate.com/guides/south-korea  https://www.rivermate.com/guides/south-korea/working-hours
+        found in: docs/working-hours.md:127
+OK       200 -> https://www.sainthelena.gov.sh/tourism-office-extended-opening-hours/  https://www.sainthelena.gov.sh/?p=58268
+        found in: docs/working-hours.md:204
+OK       200 -> https://www.samoalawreform.gov.ws/contacts/  https://www.samoalawreform.gov.ws/?p=1894
+        found in: docs/working-hours.md:249
+OK       200  https://www.service-public.pf/sde/notre-organisation-2/
+        found in: docs/working-hours.md:180, docs/working-hours.md:248
+OK       200  https://www.slideshare.net/Arilak16/working-time-developments-2008
+        found in: docs/working-hours.md:207
+OK       200 -> https://www.stpairways.st/en/contacts/  https://www.stpairways.st/en/?p=261
+        found in: docs/working-hours.md:214
+OK       200  https://www.tbsnews.net/bangladesh/office-hours-back-9am-5pm-today-879546
+        found in: docs/working-hours.md:26
+OK       200  https://www.tcwglobal.com/hubfs/Country_Summaries/Sri_Lanka.pdf?hsLang=en
+        found in: docs/working-hours.md:135
+OK       200  https://www.thehagueinternationalcentre.nl/relocating/work-in-the-netherlands/workplace-culture
+        found in: docs/working-hours.md:171
+OK       200 -> https://www.thejakartapost.com/indonesia/2023/03/22/civil-servants-can-clock-out-at-2-p-m-during-ramadan  https://www.thejakartapost.com/indonesia/2023/03/22/civil-servants-can-clock-out-at-2-p-m-during-ramadan.html
+        found in: docs/working-hours.md:106
+OK       200  https://www.thelocal.es/20240724/whats-closed-and-what-stays-open-during-august-in-spain
+        found in: docs/working-hours.md:74
+OK       200  https://www.thelocal.fr/20230314/reader-question-when-does-the-working-day-start-and-end-for-french-employees
+        found in: docs/working-hours.md:143, docs/working-hours.md:185, docs/working-hours.md:221, docs/working-hours.md:81
+OK       200  https://www.themorning.lk/articles/92500
+        found in: docs/working-hours.md:135
+OK       200 -> https://www.thenationalnews.com/uae/government/2021/12/07/breaking-uae-makes-major-changes-to-working-week/  https://www.thenationalnews.com/uae/government/2021/12/07/breaking-uae-makes-major-changes-to-working-week
+        found in: docs/working-hours.md:10
+OK       200  https://www.thestar.com.my/aseanplus/aseanplus-news/2026/03/17/sri-lanka-announces-four-day-work-week-over-fears-conflict-will-drag
+        found in: docs/working-hours.md:135
+OK       200  https://www.tiger-consulting.net/!tiger/documents/cambodia_manual.pdf
+        found in: docs/working-hours.md:122
+OK       200  https://www.trade.gov/country-commercial-guides/guatemala-business-travel
+        found in: docs/working-hours.md:97
+OK       200  https://www.trade.gov/country-commercial-guides/kazakhstan-business-travel
+        found in: docs/working-hours.md:130
+OK       200  https://www.trade.gov/country-commercial-guides/kuwait-business-travel
+        found in: docs/working-hours.md:128
+OK       200  https://www.trade.gov/country-commercial-guides/lebanon-business-travel
+        found in: docs/working-hours.md:132
+OK       200  https://www.trade.gov/country-commercial-guides/mexico-business-travel-and-etiquette
+        found in: docs/working-hours.md:162
+OK       200  https://www.trade.gov/knowledge-product/honduras-local-time-business-hours-holidays
+        found in: docs/working-hours.md:102
+OK       200  https://www.tsa-algerie.com/ramadan-les-horaires-de-travail-dans-les-institutions-et-administrations-publiques-fixes/
+        found in: docs/working-hours.md:68
+OK       200  https://www.tuniscope.com/article/438505/actualites/tunisie/la-seance-unique-311213
+        found in: docs/working-hours.md:228
+OK       200  https://www.tunisienumerique.com/seance-unique-en-tunisie-les-horaires-applicables-jusquau-31-aout/
+        found in: docs/working-hours.md:228
+OK       200  https://www.unotv.com/internacional/sin-energia-sin-trabajo-venezuela-ordena-reduccion-de-jornada-laboral/
+        found in: docs/working-hours.md:243
+OK       200  https://www.ups.com/cr/en/locations
+        found in: docs/working-hours.md:56
+OK       200 -> https://www.usemultiplier.com/new-zealand/working-hours  https://www.usemultiplier.com/?p=126480
+        found in: docs/working-hours.md:176
+OK       200  https://www.usemultiplier.com/australia/working-hours
+        found in: docs/working-hours.md:20
+OK       200  https://www.usemultiplier.com/czech-republic/working-hours
+        found in: docs/working-hours.md:62
+OK       200  https://www.verangola.net/va/pt/082022/Sociedade/32352/Funcionários-públicos-passam-a-trabalhar-sete-horas-por-dia.htm
+        found in: docs/working-hours.md:16
+OK       200 -> https://www.visitcyprus.com/useful-info/time-working-hours-holidays/  https://www.visitcyprus.com/?p=269043
+        found in: docs/working-hours.md:61
+OK       200 -> https://www.visitsarajevo.ba/useful-information/  https://www.visitsarajevo.ba/useful-information
+        found in: docs/working-hours.md:24
+OK       200  https://www.voyageursdumonde.fr/voyage-sur-mesure/voyages/guide-voyage/madagascar/infos-pratiques/guide-de-voyage
+        found in: docs/working-hours.md:147
+OK       200  https://www.wakatsera.com/burkina-les-fonctionnaires-appeles-a-etre-a-lheure-au-travail/
+        found in: docs/working-hours.md:28
+OK       200 -> https://www.weather.gov/  https://www.weather.gov
+        found in: TERMS.md:382, page https://bradcowdrey.com/legal
+OK       200  https://www.wko.at/department/2313
+        found in: docs/working-hours.md:149
+OK       200  https://www.wko.at/department/2381
+        found in: docs/working-hours.md:145
+OK       200 -> https://www.worldtravelguide.net/guides/africa/guinea/business-communications/  https://www.worldtravelguide.net/guides/africa/guinea/business-communications
+        found in: docs/working-hours.md:92
+OK       200 -> https://www.worldtravelguide.net/guides/africa/mauritius/business-communications/  https://www.worldtravelguide.net/guides/africa/mauritius/business-communications
+        found in: docs/working-hours.md:159
+OK       200 -> https://www.worldtravelguide.net/guides/asia/myanmar/business-communications/  https://www.worldtravelguide.net/guides/asia/myanmar/business-communications
+        found in: docs/working-hours.md:151
+OK       200 -> https://www.worldtravelguide.net/guides/caribbean/antigua-and-barbuda/business-communications/  https://www.worldtravelguide.net/guides/caribbean/antigua-and-barbuda/business-communications
+        found in: docs/working-hours.md:12
+OK       200 -> https://www.worldtravelguide.net/guides/caribbean/bahamas/business-communications/  https://www.worldtravelguide.net/guides/caribbean/bahamas/business-communications
+        found in: docs/working-hours.md:39
+OK       200 -> https://www.worldtravelguide.net/guides/caribbean/st-lucia/business-communications/  https://www.worldtravelguide.net/guides/caribbean/st-lucia/business-communications
+        found in: docs/working-hours.md:133
+OK       200 -> https://www.worldtravelguide.net/guides/europe/greece/business-communications/  https://www.worldtravelguide.net/guides/europe/greece/business-communications
+        found in: docs/working-hours.md:95
+OK       200 -> https://www.worldtravelguide.net/guides/north-america/panama/business-communications/  https://www.worldtravelguide.net/guides/north-america/panama/business-communications
+        found in: docs/working-hours.md:178
+OK       200 -> https://www.worldtravelguide.net/guides/oceania/pacific-islands-of-micronesia/business-communications/  https://www.worldtravelguide.net/guides/oceania/pacific-islands-of-micronesia/business-communications
+        found in: docs/working-hours.md:190, docs/working-hours.md:79
+OK       200 -> https://www.worldtravelguide.net/guides/oceania/papua-new-guinea/business-communications/  https://www.worldtravelguide.net/guides/oceania/papua-new-guinea/business-communications
+        found in: docs/working-hours.md:181
+OK       200 -> https://www.worldtravelguide.net/guides/oceania/solomon-islands/business-communications/  https://www.worldtravelguide.net/guides/oceania/solomon-islands/business-communications
+        found in: docs/working-hours.md:199
+OK       200  https://www.yamaha.com/en/recruitment/new-graduates/faq/
+        found in: docs/working-hours.md:119
+OK       200  https://x.com/bradcowdrey
+        found in: page https://bradcowdrey.com/, page https://bradcowdrey.com/legal
+OK       200 -> https://yemen.unfpa.org/en/contact  https://yemen.unfpa.org/contact
+        found in: docs/working-hours.md:250
+
+== Skipped (source prefixes the app completes at run time)
+SKIPPED https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=10  (android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:352)
+SKIPPED https://commons.wikimedia.org/w/api.php?action=query&titles=  (android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:471)
+SKIPPED https://commons.wikimedia.org/wiki/  (android/app/src/main/java/com/bradcowdrey/meridian/Screens.kt:531)
+SKIPPED https://commons.wikimedia.org/wiki/File:  (android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:491, ios/Meridian/Skyline.swift:283, ios/Meridian/Skyline.swift:759)
+SKIPPED https://en.wikipedia.org/api/rest_v1/page/summary/  (android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:411, ios/Meridian/Skyline.swift:685)
+SKIPPED https://upload.wikimedia.org/wikipedia/commons/  (android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:360, android/app/src/main/java/com/bradcowdrey/meridian/Photos.kt:457)

@@ -4,6 +4,10 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 2.1.4 · 13 November 2026
+
+- **Soft edges**: each city's photo fades gently into the background at the edge of its row, and every hour tile has a thin, softly blurred outline instead of a hard edge. In the panel and the widgets.
+
 ## 2.1.3 · 10 November 2026
 
 - **Widgets laid out like the panel**: compact text, slim hour tiles and the city photo showing between them, with rows filling the widget evenly.

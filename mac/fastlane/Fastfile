@@ -461,8 +461,17 @@ platform :mac do
     begin
       run!("Making the installer key", openssl, "req", "-new", "-newkey", "rsa:2048", "-nodes",
            "-keyout", key, "-out", csr, "-subj", "/CN=Meridian CI Installer/C=US")
-      code, created = asc(:post, "v1/certificates", { data: { type: "certificates",
-        attributes: { certificateType: "MAC_INSTALLER_DISTRIBUTION", csrContent: File.read(csr) } } })
+      # Apple allows two Mac Installer Distribution certificates per team, and other apps' pipelines
+      # on the same team make short-lived ones too. Never revoke theirs: wait for a free slot (a 409)
+      # for up to 20 minutes, then give up with the list of what's holding it.
+      code, created = nil, nil
+      27.times do |attempt|
+        code, created = asc(:post, "v1/certificates", { data: { type: "certificates",
+          attributes: { certificateType: "MAC_INSTALLER_DISTRIBUTION", csrContent: File.read(csr) } } })
+        break unless code == 409
+        UI.message("Both installer certificate slots are in use (#{installer_certificates_summary}); waiting for one (#{attempt + 1}/27)")
+        sleep 45
+      end
       unless code.between?(200, 299)
         UI.error("App Store Connect would not create a Mac Installer Distribution certificate: #{code} #{api_errors(created)}")
         UI.error("Installer certificates on the account: #{installer_certificates_summary}")

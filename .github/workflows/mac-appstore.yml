@@ -1,0 +1,299 @@
+name: Mac App Store
+
+# The Mac App Store build of the Mac app: the same sources as the DMG, compiled with APPSTORE
+# (no self-updater, sandboxed), bundle ID com.bradcowdrey.meridian (one App Store record with the
+# iPhone app). Runs when mac/APPSTORE changes on main, or by hand (workflow_dispatch reads the
+# file as it is). Its first line is "<version> <mode>":
+#   2.1.4 build    builds, signs (Apple Distribution certificate, Mac App Store profiles fetched or
+#                  made through the App Store Connect API key), makes the .pkg and validates it
+#                  with App Store Connect. Nothing is uploaded or changed there.
+#   2.1.4 upload   also takes the Mac screenshots, makes sure a macOS App Store version 2.1.4
+#                  exists, and uploads the .pkg, the Mac listing and the screenshots. Not submitted.
+#   2.1.4 submit   the same, then submits the version for App Review.
+#   2.1.4 status   reports the macOS versions, builds and review state in App Store Connect.
+# The .pkg is signed with a Mac Installer Distribution certificate made for the run and revoked at
+# its end. Logs, screenshots and the listing go to the ci-mac-appstore branch (never secrets).
+# The Developer ID DMG (release.yml) is not affected.
+# Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's contents, Admin role),
+#          IOS_DIST_P12, IOS_DIST_P12_PASSWORD (Apple Distribution certificate, base64 .p12),
+#          APP_REVIEW_EMAIL, APP_REVIEW_PHONE (optional, as for the iPhone app).
+on:
+  push:
+    branches: [main]
+    paths: ["mac/APPSTORE"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One run at a time: a run's installer certificate is never revoked by another run's cleanup.
+concurrency:
+  group: mac-appstore
+  cancel-in-progress: false
+
+jobs:
+  appstore:
+    runs-on: macos-15
+    timeout-minutes: 150
+    env:
+      OUT: ${{ github.workspace }}/out
+      # Lines never written to logs: keys, and App Review contact details.
+      FILTER: "BEGIN PRIVATE|issuer_id|key_id|apikey|apiissuer|password|phone|email|@"
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # the build number is the commit count
+
+      - name: What to do (mac/APPSTORE)
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          mkdir -p "$OUT"
+          read -r V MODE < mac/APPSTORE || true
+          if [[ "$V" == status && -z "${MODE:-}" ]]; then MODE=status; V=""; fi
+          CHANGED=false
+          if [[ "$EVENT" == workflow_dispatch ]]; then CHANGED=true
+          elif [ -n "$BEFORE" ] && ! git diff --quiet "$BEFORE" HEAD -- mac/APPSTORE 2>/dev/null; then CHANGED=true; fi
+          RUN=false; SIGN=false; UPLOAD=false; SUBMIT=false
+          if [[ "$CHANGED" == true ]]; then
+            case "${MODE:-}" in
+              build|upload|submit)
+                if ! [[ "$V" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+                  echo "::error::mac/APPSTORE: '$V' is not a version like 2.1.4"; exit 1
+                fi
+                RUN=true; SIGN=true
+                [[ "$MODE" != build ]] && UPLOAD=true
+                [[ "$MODE" == submit ]] && SUBMIT=true ;;
+              status) RUN=true ;;
+              *) echo "::warning::mac/APPSTORE: unknown mode '${MODE:-}' (build, upload, submit or status); nothing to do" ;;
+            esac
+          fi
+          {
+            echo "RUN=$RUN"; echo "SIGN=$SIGN"; echo "UPLOAD=$UPLOAD"; echo "SUBMIT=$SUBMIT"
+            echo "MODE=${MODE:-}"; echo "VERSION=${V:-}"
+            echo "SIGNING=$RUNNER_TEMP/mas-signing"
+          } >> "$GITHUB_ENV"
+          echo "Mac App Store: ${V:-} ${MODE:-} (run=$RUN)" | tee "$OUT/request.txt"
+
+      - name: Use Xcode 26 (the App Store requires the macOS 26 SDK)
+        if: env.RUN == 'true'
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$X" ]; then echo "No Xcode 26 on this runner"; ls -d /Applications/Xcode*.app; exit 1; fi
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version | tee "$OUT/xcode.txt"
+
+      - name: Check App Store secrets
+        if: env.RUN == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          IOS_DIST_P12: ${{ secrets.IOS_DIST_P12 }}
+          IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+        run: |
+          missing=""
+          needed="ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8"
+          [ "$SIGN" = true ] && needed="$needed IOS_DIST_P12 IOS_DIST_P12_PASSWORD"
+          for s in $needed; do [ -z "${!s}" ] && missing="$missing $s"; done
+          if [ -n "$missing" ]; then echo "Missing secrets:$missing" | tee "$OUT/secrets.txt"; exit 1; fi
+
+      - name: fastlane and the App Store Connect API key
+        if: env.RUN == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          brew install fastlane >/dev/null
+          echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
+          "$(brew --prefix)/bin/fastlane" --version | tail -1
+          umask 077
+          # For fastlane (mac/fastlane/api_key.json) and for altool (~/.appstoreconnect/private_keys).
+          python3 -c 'import json, os; json.dump({"key_id": os.environ["ASC_KEY_ID"], "issuer_id": os.environ["ASC_ISSUER_ID"], "key": os.environ["ASC_KEY_P8"], "in_house": False}, open("mac/fastlane/api_key.json", "w"))'
+          mkdir -p ~/.appstoreconnect/private_keys
+          python3 -c 'import os; open(os.path.expanduser("~/.appstoreconnect/private_keys/AuthKey_" + os.environ["ASC_KEY_ID"] + ".p8"), "w").write(os.environ["ASC_KEY_P8"])'
+
+      - name: App Store status (macOS)
+        if: env.RUN == 'true' && env.MODE == 'status'
+        run: |
+          set -o pipefail
+          cd mac
+          fastlane status 2>&1 | grep -v -i -E "$FILTER" | tee "$OUT/status.txt"
+
+      # Screenshots come from the self-test of the ordinary build (the panel and the widgets are the
+      # same in both builds), so they're taken before any App Store signing is set up.
+      - name: Mac screenshots (self-test renders, 2880 x 1800)
+        if: env.UPLOAD == 'true'
+        run: |
+          set -o pipefail
+          ST="$OUT/selftest"; mkdir -p "$ST"
+          CODESIGN_IDENTITY=- scripts/build-app.sh "$VERSION" > "$OUT/selftest-build.log" 2>&1 \
+            || { tail -40 "$OUT/selftest-build.log"; exit 1; }
+          dist/Meridian.app/Contents/MacOS/Meridian --selftest "$ST" > "$ST/app.log" 2>&1 &
+          PID=$!
+          for i in $(seq 1 600); do [ -f "$ST/report.txt" ] && break; sleep 1; done
+          sleep 1; kill $PID 2>/dev/null || true
+          ls "$ST"
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q Pillow
+          SHOTS=mac/fastlane/screenshots/en-US
+          rm -rf "$SHOTS"; mkdir -p "$SHOTS" "$OUT/screenshots"
+          "$RUNNER_TEMP/venv/bin/python" scripts/mac-store-shots.py "$ST" "$SHOTS"
+          n=0
+          for f in "$SHOTS"/*.png; do
+            [ -f "$f" ] || continue
+            w=$(sips -g pixelWidth "$f" | awk '/pixelWidth/ {print $2}')
+            h=$(sips -g pixelHeight "$f" | awk '/pixelHeight/ {print $2}')
+            echo "$(basename "$f"): ${w}x${h}" | tee -a "$OUT/screenshot-sizes.txt"
+            if [ "$w" != 2880 ] || [ "$h" != 1800 ]; then echo "::error::$(basename "$f") is ${w}x${h}, not 2880x1800"; exit 1; fi
+            n=$((n + 1))
+          done
+          if [ "$n" -lt 1 ] || [ "$n" -gt 10 ]; then echo "::error::$n Mac screenshots; the App Store takes 1 to 10"; exit 1; fi
+          cp "$SHOTS"/*.png "$OUT/screenshots/"
+
+      - name: Import the Apple Distribution certificate
+        if: env.SIGN == 'true'
+        env:
+          P12: ${{ secrets.IOS_DIST_P12 }}
+          P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+          CERT_KIND: Apple Distribution
+        run: |
+          set -o pipefail
+          scripts/import-signing-cert.sh 2>&1 | tee "$OUT/certificate.txt"
+
+      - name: Signing (Mac App Store profiles, installer certificate for this run)
+        if: env.SIGN == 'true'
+        run: |
+          set -o pipefail
+          cd mac
+          fastlane prepare_signing out:"$SIGNING" 2>&1 | grep -v -i -E "$FILTER" | tee "$OUT/signing.log"
+
+      - name: Build and sign the App Store app
+        if: env.SIGN == 'true'
+        run: |
+          set -o pipefail
+          APPSTORE=1 scripts/build-app.sh "$VERSION" 2>&1 | tee "$OUT/build.log"
+          # What the App Store will see: signer, identifiers and entitlements of the app and the widget.
+          for b in dist/Meridian.app dist/Meridian.app/Contents/PlugIns/MeridianWidget.appex; do
+            echo "== $b"
+            codesign -dvv "$b" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier=|Runtime"
+            codesign -d --entitlements - --xml "$b" 2>/dev/null | plutil -p -
+            plutil -p "$b/Contents/Info.plist" | grep -E "CFBundleIdentifier|CFBundleShortVersionString|CFBundleVersion|ITSAppUsesNonExemptEncryption"
+          done | tee "$OUT/signature.txt"
+          grep -q '"com.bradcowdrey.meridian.widget"' "$OUT/signature.txt"
+          grep -q "2XV97FZ86G.com.bradcowdrey.meridian" "$OUT/signature.txt"
+          grep -q "com.apple.security.app-sandbox" "$OUT/signature.txt"
+          echo "BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' dist/Meridian.app/Contents/Info.plist)" >> "$GITHUB_ENV"
+
+      - name: Package (.pkg)
+        if: env.SIGN == 'true'
+        run: |
+          set -o pipefail
+          scripts/make-mas-pkg.sh "$VERSION" 2>&1 | tee "$OUT/pkg.log"
+          echo "PKG=$PWD/dist/Meridian-$VERSION.pkg" >> "$GITHUB_ENV"
+
+      - name: macOS App Store version
+        if: env.SIGN == 'true'
+        run: |
+          set -o pipefail
+          cd mac
+          if [ "$UPLOAD" = true ]; then CHECK=false; else CHECK=true; fi
+          fastlane ensure_mac_version version:"$VERSION" check:"$CHECK" 2>&1 | grep -v -i -E "$FILTER" | tee "$OUT/version.txt"
+
+      - name: Validate with App Store Connect
+        if: env.SIGN == 'true' && (env.UPLOAD != 'true' || env.MAC_VERSION_READY == 'true')
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set +e
+          xcrun altool --validate-app -f "$PKG" -t macos --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" > "$RUNNER_TEMP/validate.raw" 2>&1
+          STATUS=$?
+          grep -v -i -E "$FILTER" "$RUNNER_TEMP/validate.raw" | tee "$OUT/validate.log"
+          rm -f "$RUNNER_TEMP/validate.raw"
+          if [ "$STATUS" -ne 0 ]; then
+            if [ "${MAC_PLATFORM:-}" != true ]; then
+              echo "::warning::Validation needs macOS on the app in App Store Connect (Apps > Meridian > Add Platform > macOS). The build itself is signed and packaged."
+            else
+              echo "::error::App Store Connect validation failed (validate.log on ci-mac-appstore)"; exit 1
+            fi
+          else
+            echo "Validation passed"
+          fi
+
+      - name: Upload to App Store Connect
+        if: env.UPLOAD == 'true' && env.MAC_VERSION_READY == 'true'
+        env:
+          APP_REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
+          APP_REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}
+        run: |
+          set -o pipefail
+          cd mac
+          # App Review contact: the committed files win; otherwise the secrets, written for this
+          # run only (deleted after, and never published).
+          python3 - <<'PY'
+          import os
+          os.makedirs("fastlane/metadata/review_information", exist_ok=True)
+          written = []
+          for name in ("email_address", "phone_number"):
+              value = os.environ.get("APP_REVIEW_" + name.split("_")[0].upper(), "")
+              path = f"fastlane/metadata/review_information/{name}.txt"
+              if value and not os.path.exists(path):
+                  open(path, "w").write(value)
+                  written.append(path)
+          open(os.path.join(os.environ["RUNNER_TEMP"], "review-contact-written"), "w").write("\n".join(written))
+          PY
+          fastlane upload version:"$VERSION" pkg:"$PKG" submit:"$SUBMIT" 2>&1 \
+            | grep -v -i -E "$FILTER" | tee "$OUT/upload.log"
+
+      - name: Revoke this run's installer certificate
+        if: always() && env.SIGN == 'true'
+        run: |
+          if [ -f mac/fastlane/api_key.json ]; then
+            cd mac
+            fastlane revoke_installer_cert out:"$SIGNING" 2>&1 | grep -v -i -E "$FILTER" | tee "$OUT/revoke.log" || true
+          fi
+
+      - name: Remove keys and the build keychain
+        if: always()
+        run: |
+          rm -f mac/fastlane/api_key.json
+          rm -rf ~/.appstoreconnect/private_keys
+          if [ -f "$RUNNER_TEMP/review-contact-written" ]; then
+            (cd mac && xargs rm -f < "$RUNNER_TEMP/review-contact-written") || true
+          fi
+          security delete-keychain "$RUNNER_TEMP/build.keychain" 2>/dev/null || true
+          rm -rf "${SIGNING:-$RUNNER_TEMP/mas-signing}"
+
+      - name: Keep the .pkg (Actions artifact)
+        if: always() && env.PKG != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: Meridian-${{ env.VERSION }}-mas-pkg
+          path: ${{ env.PKG }}
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Publish to ci-mac-appstore branch
+        if: always() && env.RUN == 'true'
+        run: |
+          mkdir -p "$OUT"
+          if [ -d mac/fastlane/metadata ]; then
+            # The listing as uploaded, without App Review contact details.
+            rsync -a --exclude 'review_information/email_address.txt' --exclude 'review_information/phone_number.txt' \
+              mac/fastlane/metadata/ "$OUT/metadata/"
+          fi
+          [ -n "${PKG:-}" ] && [ -f "$PKG" ] && { ls -l "$PKG"; shasum -a 256 "$PKG"; } > "$OUT/pkg.txt"
+          cd "$OUT"
+          echo "$GITHUB_SHA $GITHUB_REF_NAME ${VERSION:-} ${MODE:-} build=${BUILD:-} version_ready=${MAC_VERSION_READY:-} ${{ job.status }}" > commit.txt
+          git init -q -b ci-mac-appstore
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -qm "Mac App Store run for $GITHUB_REF_NAME $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-mac-appstore
+
+      - name: Outcome
+        if: env.UPLOAD == 'true' && env.MAC_VERSION_READY != 'true'
+        run: |
+          echo "::error::Nothing was uploaded: there's no macOS App Store version $VERSION to upload to (version.txt on ci-mac-appstore says why). If macOS isn't on the app yet: App Store Connect > Apps > Meridian > Add Platform > macOS, then change mac/APPSTORE again."
+          exit 1

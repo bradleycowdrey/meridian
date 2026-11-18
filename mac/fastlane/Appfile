@@ -1,0 +1,3 @@
+# The Mac App Store build shares the iPhone app's App Store record (universal purchase).
+app_identifier("com.bradcowdrey.meridian")
+team_id("2XV97FZ86G")

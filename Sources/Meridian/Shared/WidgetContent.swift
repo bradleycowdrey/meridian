@@ -45,6 +45,16 @@ struct WidgetSnapshot: Codable, Equatable {
             ?? FileManager.default.temporaryDirectory)
             .appendingPathComponent("widget.json")
     }
+    #elseif APPSTORE
+    /// Mac App Store build: the app and its widget are both sandboxed and share this App Group
+    /// container (team-prefixed, so macOS needs no portal registration). Both entitlements files
+    /// (Resources/Meridian-AppStore.entitlements, Widget-AppStore.entitlements) list it.
+    static let appGroup = "2XV97FZ86G.com.bradcowdrey.meridian"
+    static var fileURL: URL {
+        (FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
+            ?? FileManager.default.temporaryDirectory)
+            .appendingPathComponent("widget.json")
+    }
     #else
     /// Mac: the widget is sandboxed, so this uses the real home folder rather than its container
     /// (its entitlements allow reading this one folder).

@@ -5,6 +5,8 @@ import WidgetKit
 /// Layout self-test, used by CI on a real Mac: `Meridian --selftest <dir>` opens the window,
 /// steps through every size (with and without the city search open), records the window size
 /// against the size the content needs, saves a PNG of each, writes report.txt, then quits.
+/// It also writes larger renders for the Mac App Store screenshots (store-panel.png,
+/// store-window.png, store-widget-*.png), which scripts/mac-store-shots.py composes.
 /// Inert unless that launch argument is present.
 @MainActor
 enum SelfTest {
@@ -34,13 +36,40 @@ enum SelfTest {
         let w = panel.frame.width
         let expected = min(max((item.midX - w / 2).rounded(), visible.minX), max(visible.minX, visible.maxX - w))
         let ok = abs(panel.frame.minX - expected) <= 1
-        if let view = panel.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
-            view.cacheDisplay(in: view.bounds, to: rep)
-            try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("menubar-panel.png"))
+        var storeShot = "store-panel.png: no view"
+        if let view = panel.contentView {
+            if let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("menubar-panel.png"))
+            }
+            // The same panel at 2x, for the Mac App Store screenshots (scripts/mac-store-shots.py).
+            storeShot = writeStorePNG(of: view, scale: 2, to: dir.appendingPathComponent("store-panel.png"))
         }
         panel.orderOut(nil)
         return "menu bar panel: item centre x \(Int(item.midX)), panel x \(Int(panel.frame.minX))..\(Int(panel.frame.maxX)) centre \(Int(panel.frame.midX)),"
-            + " expected x \(Int(expected)) (screen \(Int(visible.minX))..\(Int(visible.maxX))) \(ok ? "OK" : "WRONG")"
+            + " expected x \(Int(expected)) (screen \(Int(visible.minX))..\(Int(visible.maxX))) \(ok ? "OK" : "WRONG"); \(storeShot)"
+    }
+
+    /// Scale of the widget renders made for the App Store screenshots: above the 2x of a Retina
+    /// desktop, so scripts/mac-store-shots.py can place them larger and still downsample.
+    private static let storeWidgetScale: CGFloat = 3
+
+    /// Draws `view` into a bitmap at `scale` pixels per point, whatever the scale of the display
+    /// it's on (CI's virtual display is 1x), and writes it as a PNG. For the Mac App Store
+    /// screenshots, which are 2880x1800. Returns a line for report.txt.
+    private static func writeStorePNG(of view: NSView, scale: CGFloat, to url: URL) -> String {
+        let bounds = view.bounds
+        let width = Int((bounds.width * scale).rounded()), height = Int((bounds.height * scale).rounded())
+        guard width > 0, height > 0,
+              let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height,
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        else { return "\(url.lastPathComponent): no bitmap" }
+        rep.size = bounds.size   // points: drawing is scaled up to the pixel size
+        view.cacheDisplay(in: bounds, to: rep)
+        guard let png = rep.representation(using: .png, properties: [:]), (try? png.write(to: url)) != nil
+        else { return "\(url.lastPathComponent): not written" }
+        return "\(url.lastPathComponent) \(width)x\(height)"
     }
 
     /// Whether the bitmap's top row of pixels is free of red: every sample dark in red and with
@@ -133,6 +162,23 @@ enum SelfTest {
         try? results.joined(separator: "\n").write(to: dir.appendingPathComponent("functional.txt"), atomically: true, encoding: .utf8)
         lines.append(results[0])
 
+        // The desktop window at Large, at 2x, for the Mac App Store screenshots: after the
+        // functional test, so it shows the same cities as the menu bar panel. The size is put
+        // back before the panel check, so menubar-panel.png is unchanged.
+        adding.wrappedValue = false
+        editing.wrappedValue = false
+        let sizeBefore = store.uiSize
+        store.uiSize = .large
+        try? await Task.sleep(for: .seconds(1.5))
+        if let content = host.window?.contentView {
+            content.layoutSubtreeIfNeeded()
+            lines.append(writeStorePNG(of: content, scale: 2, to: dir.appendingPathComponent("store-window.png")))
+        } else {
+            lines.append("store-window.png: no window")
+        }
+        store.uiSize = sizeBefore
+        try? await Task.sleep(for: .seconds(1.5))
+
         // Menu bar panel: click Meridian's menu bar item; the panel should open centred under it
         // (moved sideways only as far as needed to stay on screen).
         lines.append(await menuBarPanelCheck(dir: dir, desktop: host.window))
@@ -163,6 +209,19 @@ enum SelfTest {
             if let tiff = renderer.nsImage?.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
                let png = rep.representation(using: .png, properties: [:]) {
                 try? png.write(to: dir.appendingPathComponent("widget-\(name).png"))
+            }
+        }
+        // The same faces (your cities) larger, for the Mac App Store screenshots.
+        for (name, family, size) in faces {
+            let renderer = ImageRenderer(content: WidgetFacePreview(snapshot: snapshot, date: store.now,
+                                                                    family: family, size: size))
+            renderer.scale = storeWidgetScale
+            let file = "store-widget-\(name).png"
+            if let tiff = renderer.nsImage?.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+               let png = rep.representation(using: .png, properties: [:]), (try? png.write(to: dir.appendingPathComponent(file))) != nil {
+                lines.append("\(file) \(rep.pixelsWide)x\(rep.pixelsHigh)")
+            } else {
+                lines.append("\(file): not written")
             }
         }
         try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)

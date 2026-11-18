@@ -8,7 +8,9 @@ struct MeridianApp: App {
 
     init() {
         FontRegistry.registerBundledFonts()
+        #if !APPSTORE
         Task { @MainActor in Updater.shared.start() }
+        #endif
         // Keep macOS pointed at this copy's widget (stale copies can hide it from Edit Widgets).
         WidgetRegistration.refresh()
         // Ask for agreement to the terms: the first time, and when they change (monthly at most).
@@ -54,9 +56,18 @@ struct MenuBarLabel: View {
         }
     }
 
+    /// A trailing dot in the menu bar whenever an update is waiting. Never in the Mac App Store
+    /// build: the App Store handles its updates.
+    private var updateDot: String {
+        #if APPSTORE
+        return ""
+        #else
+        return updater.latest == nil ? "" : " •"
+        #endif
+    }
+
     @ViewBuilder private var label: some View {
-        // A trailing dot in the menu bar whenever an update is waiting.
-        let dot = updater.latest == nil ? "" : " •"
+        let dot = updateDot
         if store.menuBarStyle == .cityTime, let place = store.menuBarPlace {
             // "+1 d" / "−1 d" when that city is already on tomorrow / still on yesterday.
             let shift = TimeMath.dayShift(store.now, zone: place.timeZone)

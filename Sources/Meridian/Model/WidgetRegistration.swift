@@ -11,6 +11,25 @@ import WidgetKit
 /// time a new version opens, and on Settings → Refresh Widgets, Meridian restarts it (macOS
 /// relaunches it straight away). It runs in the background and is silent; details go to
 /// ~/Library/Logs/Meridian-widget.log.
+///
+/// The Mac App Store build (APPSTORE) is sandboxed: it may not run lsregister, pluginkit or
+/// killall, or write to ~/Library/Logs, and the App Store installs one copy in Applications, so
+/// it only asks the widgets to redraw.
+#if APPSTORE
+enum WidgetRegistration {
+    /// True when running as an app bundle (the App Store installs it in Applications).
+    static var isInstalled: Bool { Bundle.main.bundleURL.pathExtension == "app" }
+
+    /// Asks the widgets to redraw; `restartService` is ignored (nothing outside the sandbox).
+    static func refresh(restartService: Bool = false, completion: (@MainActor () -> Void)? = nil) {
+        guard isInstalled, !SelfTest.isActive else { return }
+        Task { @MainActor in
+            WidgetCenter.shared.reloadAllTimelines()
+            completion?()
+        }
+    }
+}
+#else
 enum WidgetRegistration {
     static let bundleID = "me.bradcowdrey.comridian"
     static let widgetID = "me.bradcowdrey.comridian.widget"
@@ -112,3 +131,4 @@ enum WidgetRegistration {
         try? (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
     }
 }
+#endif

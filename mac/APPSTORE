@@ -1,0 +1,2 @@
+2.1.4 build
+# Mac App Store: "<version> build|upload|submit|status" (docs/versioning.md). Changing this file on main runs .github/workflows/mac-appstore.yml.

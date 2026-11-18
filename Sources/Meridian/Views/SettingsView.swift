@@ -158,6 +158,9 @@ private struct GeneralSettings: View {
             Section("Widget") {
                 Text("Add Meridian to your desktop or Notification Center: right-click the desktop, choose Edit Widgets, then search for Meridian. It shows your cities in the same order as here.")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
+                // Re-registering runs lsregister and pluginkit, which the Mac App Store build's
+                // sandbox doesn't allow (and the App Store installs only one copy anyway).
+                #if !APPSTORE
                 LabeledContent("Not in Edit Widgets?") {
                     Button(widgetRefreshed ? "Done" : "Refresh Widgets") {
                         WidgetRegistration.refresh(restartService: true) { widgetRefreshed = true }
@@ -165,8 +168,11 @@ private struct GeneralSettings: View {
                     .disabled(!WidgetRegistration.isInstalled)
                 }
                 .help(WidgetRegistration.isInstalled ? "Re-register Meridian's widget with macOS" : "Move Meridian to Applications first")
+                #endif
             }
+            #if !APPSTORE
             UpdateSettings()
+            #endif
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -174,6 +180,7 @@ private struct GeneralSettings: View {
     }
 }
 
+#if !APPSTORE
 private struct UpdateSettings: View {
     @EnvironmentObject private var updater: Updater
 
@@ -202,6 +209,7 @@ private struct UpdateSettings: View {
         }
     }
 }
+#endif
 
 private struct AboutView: View {
     @State private var showCredits = false
@@ -217,7 +225,10 @@ private struct AboutView: View {
             Text("Made by \(Brand.author)")
             HStack(spacing: 16) {
                 Link(Brand.websiteHost, destination: Brand.website)
+                #if !APPSTORE
+                // Not in the Mac App Store build: the repository's releases offer other downloads.
                 Link("Source on GitHub", destination: Brand.repository)
+                #endif
                 Link("Terms & Privacy", destination: Brand.legal)
                 Button("Photo Credits") { showCredits = true }
                     .buttonStyle(.link)

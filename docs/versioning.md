@@ -16,7 +16,7 @@ The rules:
 - **The build number is automatic and only ever goes up.**
   - iPhone: CI's run number, as `CFBundleVersion`.
   - Android: the commit count, as `versionCode`.
-  - Mac: the release build.
+  - Mac: the commit count, as `CFBundleVersion` (the DMG and the Mac App Store build alike).
 
   Several TestFlight builds of one version (2.0 build 187, 2.0 build 190) are normal. The version changes only when a release goes out.
 - **A version that has gone out is never reused.** That means on the App Store, in a GitHub release or as a shipped APK. To change what shipped, release the next number.
@@ -26,6 +26,13 @@ The rules:
     - `2.1 beta` uploads to TestFlight.
     - `2.1 submit` uploads and submits for App Review.
     - `status` reports what App Store Connect shows.
+  - The first word of `mac/APPSTORE` for the Mac App Store (the same App Store record as the iPhone app; the DMG from `VERSION` carries on unchanged). Changing the file on main runs `.github/workflows/mac-appstore.yml`:
+    - `2.1.4 build` builds the App Store variant (`APPSTORE=1 scripts/build-app.sh`), signs it, packages the .pkg (`scripts/make-mas-pkg.sh`) and validates it with App Store Connect. Nothing is uploaded.
+    - `2.1.4 upload` also takes the Mac screenshots, creates the macOS App Store version if it's missing, and uploads the .pkg, the Mac listing (`mac/fastlane/metadata`) and the screenshots. It doesn't submit.
+    - `2.1.4 submit` does the same and submits for App Review.
+    - `2.1.4 status` reports the macOS versions, builds and review state.
+
+    The first Mac upload needs macOS added to the app in App Store Connect (Add Platform > macOS); the run says so if it isn't. Logs go to the `ci-mac-appstore` branch.
   - `versionName` in `android/app/build.gradle.kts` for Android.
-- **Submitting while an earlier version waits for review** withdraws it first (`2.1 submit` does this automatically), so the newer build replaces it.
-- **Every release gets notes:** `CHANGELOG.md`, the README's "What's new", and `ios/fastlane/metadata/en-US/release_notes.txt` for the App Store.
+- **Submitting while an earlier version waits for review** withdraws it first (`2.1 submit` in `ios/APPSTORE` does this automatically), so the newer build replaces it. The Mac run doesn't: a macOS version waiting for review has to be removed from review in App Store Connect before the next `submit`.
+- **Every release gets notes:** `CHANGELOG.md`, the README's "What's new", and `ios/fastlane/metadata/en-US/release_notes.txt` for the App Store (`mac/fastlane/metadata/en-US/release_notes.txt` for the Mac App Store, from its second version on).

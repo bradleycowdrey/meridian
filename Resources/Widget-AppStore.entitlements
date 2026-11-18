@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Mac App Store build of the widget. The DMG build uses Widget.entitlements. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- Reads widget.json, which the app writes into this shared container. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>2XV97FZ86G.com.bradcowdrey.meridian</string>
+    </array>
+</dict>
+</plist>

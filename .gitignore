@@ -22,3 +22,8 @@ android/build/
 android/app/build/
 android/local.properties
 __pycache__/
+mac/fastlane/api_key.json
+mac/fastlane/screenshots/
+mac/fastlane/metadata-first-release/
+mac/fastlane/report.xml
+mac/fastlane/README.md

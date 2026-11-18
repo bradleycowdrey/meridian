@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Mac App Store build (APPSTORE=1 scripts/build-app.sh). The DMG build uses Meridian.entitlements. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- Outgoing connections: reverse geocoding for My Location, and the terms version check. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- Location Services, to name the city you're in (My Location). -->
+    <key>com.apple.security.personal-information.location</key>
+    <true/>
+    <!-- Shared with the widget: the app writes widget.json here and the widget reads it. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>2XV97FZ86G.com.bradcowdrey.meridian</string>
+    </array>
+</dict>
+</plist>

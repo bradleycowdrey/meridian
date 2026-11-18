@@ -1,0 +1,511 @@
+# Mac App Store signing, upload and submission for the Mac app, run by
+# .github/workflows/mac-appstore.yml (lanes run from mac/: `cd mac && fastlane <lane>`).
+# Same App Store record as the iPhone app (universal purchase, bundle ID com.bradcowdrey.meridian).
+# Uses an App Store Connect API key (fastlane/api_key.json, written by the workflow from GitHub
+# secrets) and the Apple Distribution certificate the workflow imports. Never prints secrets.
+#
+#   prepare_signing        Mac App Store profiles for the app and the widget, and a one-run
+#                          installer certificate (exports APP_PROFILE, WIDGET_PROFILE,
+#                          INSTALLER_IDENTITY, INSTALLER_CERT_ID)
+#   revoke_installer_cert  revokes that installer certificate (always run at the end)
+#   ensure_mac_version     makes sure a macOS App Store version exists (exports MAC_VERSION_READY,
+#                          MAC_PLATFORM); check:true only reports
+#   upload                 the .pkg, the Mac listing and screenshots; submit:true also submits
+#   status                 the macOS versions, their states and builds
+require "net/http"
+require "json"
+require "time"
+require "base64"
+require "openssl"
+require "digest"
+require "fileutils"
+require "securerandom"
+require "shellwords"
+
+default_platform(:mac)
+
+API_KEY = "fastlane/api_key.json"
+TEAM_ID = "2XV97FZ86G"
+BUNDLE_ID = "com.bradcowdrey.meridian"
+WIDGET_BUNDLE_ID = "com.bradcowdrey.meridian.widget"
+# Bundle ID -> the environment variable scripts/build-app.sh reads its profile path from.
+PROFILE_ENV = { BUNDLE_ID => "APP_PROFILE", WIDGET_BUNDLE_ID => "WIDGET_PROFILE" }
+# Version states in which the version can still be edited (and renamed).
+EDITABLE_STATES = %w[PREPARE_FOR_SUBMISSION DEVELOPER_REJECTED REJECTED METADATA_REJECTED INVALID_BINARY].freeze
+RELEASED_STATES = %w[READY_FOR_SALE READY_FOR_DISTRIBUTION REPLACED_WITH_NEW_VERSION REMOVED_FROM_SALE
+                     DEVELOPER_REMOVED_FROM_SALE PENDING_APPLE_RELEASE PENDING_DEVELOPER_RELEASE
+                     PROCESSING_FOR_APP_STORE PROCESSING_FOR_DISTRIBUTION ACCEPTED].freeze
+ADD_MACOS_HINT = "Add macOS to Meridian in App Store Connect first (Apps > Meridian > Add Platform, the + beside " \
+                 "\"iOS App\" in the sidebar > macOS), then change mac/APPSTORE again."
+
+platform :mac do
+  # --- Signing -------------------------------------------------------------------------------------
+
+  # Mac App Store provisioning profiles for the app and the widget, for the imported Apple
+  # Distribution certificate (an existing one is reused), and an installer signing identity for
+  # the .pkg: a Mac Installer Distribution certificate made for this run from a fresh key, imported
+  # into the build keychain and revoked again by revoke_installer_cert at the end of the run.
+  lane :prepare_signing do |options|
+    sign_in_api
+    out = signing_dir(options)
+    keychain = options[:keychain] || File.join(ENV.fetch("RUNNER_TEMP", "/tmp"), "build.keychain")
+    keychain_password = options[:keychain_password] || "ci"   # scripts/import-signing-cert.sh
+    cert_id = distribution_certificate_id(keychain)
+    PROFILE_ENV.each do |identifier, env_name|
+      path = File.join(out, "#{identifier}.provisionprofile")
+      mac_app_store_profile(identifier, cert_id, path)
+      export_env(env_name, path)
+    end
+    installer_identity(out, keychain, keychain_password)
+  end
+
+  # Revokes the installer certificate prepare_signing made (its ID is in the signing folder).
+  # Safe to run when there is none.
+  lane :revoke_installer_cert do |options|
+    file = File.join(signing_dir(options), "installer-cert-id")
+    id = File.exist?(file) ? File.read(file).strip : ENV["INSTALLER_CERT_ID"].to_s
+    if id.empty?
+      UI.message("No installer certificate to revoke")
+      next
+    end
+    sign_in_api
+    code, body = asc(:delete, "v1/certificates/#{id}")
+    if code.between?(200, 299) || code == 404
+      UI.success("Revoked this run's installer certificate")
+      File.delete(file) if File.exist?(file)
+    else
+      UI.important("Could not revoke this run's installer certificate (#{code}): #{api_errors(body)}. " \
+                   "The next run revokes it before making its own.")
+    end
+  end
+
+  # --- App Store version ----------------------------------------------------------------------------
+
+  # Makes sure the app (the iPhone app's record) has a macOS App Store version named
+  # options[:version]: an editable macOS version is renamed to it, otherwise one is created. If
+  # Apple refuses (macOS not yet added to the app), prints what to do and stops without failing;
+  # the workflow reads MAC_VERSION_READY. check:true only reports, changing nothing.
+  lane :ensure_mac_version do |options|
+    sign_in_api
+    version = options[:version].to_s
+    check_only = options[:check].to_s == "true"
+    UI.user_error!("ensure_mac_version needs version:") if version.empty?
+    export_env("MAC_VERSION_READY", "false")
+    export_env("MAC_PLATFORM", "false")
+    app = asc_app_id
+    unless app
+      UI.important("No app with bundle ID #{BUNDLE_ID} in App Store Connect.")
+      next
+    end
+    list = mac_versions(app)
+    export_env("MAC_PLATFORM", "true") unless list.empty?
+    list.each { |v| UI.message("macOS version #{v.dig("attributes", "versionString")}: #{version_state(v)}") }
+    UI.message("No macOS App Store version yet") if list.empty?
+
+    same = list.find { |v| v.dig("attributes", "versionString") == version }
+    if same
+      state = version_state(same)
+      if EDITABLE_STATES.include?(state)
+        UI.success("macOS version #{version} is ready for a build (#{state})")
+        export_env("MAC_VERSION_READY", "true")
+      elsif RELEASED_STATES.include?(state)
+        UI.important("macOS version #{version} has already gone out (#{state}). Put the next version number in mac/APPSTORE.")
+      else
+        UI.important("macOS version #{version} is #{state}, so it can't take a new build now. Wait for App Review, or reject it in App Store Connect first.")
+      end
+      next
+    end
+
+    editable = list.find { |v| EDITABLE_STATES.include?(version_state(v)) }
+    if check_only
+      UI.message(editable ? "Would rename macOS version #{editable.dig("attributes", "versionString")} to #{version}" :
+                            "Would create macOS version #{version}")
+      export_env("MAC_VERSION_READY", "true") if editable
+      next
+    end
+
+    if editable
+      code, body = asc(:patch, "v1/appStoreVersions/#{editable["id"]}", { data: { type: "appStoreVersions", id: editable["id"],
+        attributes: { versionString: version } } })
+      report("Rename macOS version #{editable.dig("attributes", "versionString")} -> #{version}", code, body)
+      export_env("MAC_VERSION_READY", "true") if code.between?(200, 299)
+      next
+    end
+
+    code, body = asc(:post, "v1/appStoreVersions", { data: { type: "appStoreVersions",
+      attributes: { platform: "MAC_OS", versionString: version, releaseType: "AFTER_APPROVAL" },
+      relationships: { app: { data: { type: "apps", id: app } } } } })
+    if code.between?(200, 299)
+      UI.success("Created macOS App Store version #{version}")
+      export_env("MAC_VERSION_READY", "true")
+      export_env("MAC_PLATFORM", "true")
+    else
+      UI.important("App Store Connect would not create macOS version #{version} (#{code}): #{api_errors(body)}")
+      UI.important(ADD_MACOS_HINT) if list.empty?
+    end
+  end
+
+  # --- Upload ---------------------------------------------------------------------------------------
+
+  # Uploads the .pkg, then the Mac listing (mac/fastlane/metadata) and screenshots
+  # (mac/fastlane/screenshots). Only version-level text is in the Mac metadata folder: the app's
+  # name, subtitle, privacy URL and categories are shared with the iPhone app and left alone.
+  # submit:true also submits the version for App Review.
+  lane :upload do |options|
+    submit = options[:submit].to_s == "true"
+    pkg = options[:pkg].to_s
+    UI.user_error!("upload needs pkg: (the .pkg from scripts/make-mas-pkg.sh)") if pkg.empty? || !File.exist?(pkg)
+    sign_in_api
+    ensure_review_detail
+    metadata = "fastlane/metadata"
+    # The first macOS version can't have "What's New" text; leave release notes out until one has shipped.
+    if first_mac_release?
+      first = File.join(mac_root, "fastlane", "metadata-first-release")
+      FileUtils.rm_rf(first)
+      FileUtils.cp_r(File.join(mac_root, "fastlane", "metadata"), first)
+      Dir.glob(File.join(first, "*", "release_notes.txt")).each { |f| File.delete(f) }
+      metadata = "fastlane/metadata-first-release"
+      UI.message("First macOS release: uploading without release notes")
+    end
+    begin
+      upload_to_app_store(
+        api_key_path: API_KEY,
+        app_identifier: BUNDLE_ID,
+        platform: "osx",
+        app_version: options[:version],
+        pkg: File.expand_path(pkg),
+        metadata_path: metadata,
+        screenshots_path: "fastlane/screenshots",
+        overwrite_screenshots: true,
+        ignore_language_directory_validation: true,
+        force: true,                          # no HTML preview to confirm on CI
+        run_precheck_before_submit: false,    # precheck can't run with an API key
+        submit_for_review: submit,
+        automatic_release: true,
+        submission_information: {
+          add_id_info_uses_idfa: false,
+          export_compliance_uses_encryption: false
+        }
+      )
+    rescue StandardError => e
+      explain_submission if submit
+      raise e
+    ensure
+      FileUtils.rm_rf(File.join(mac_root, "fastlane", "metadata-first-release"))
+    end
+  end
+
+  # A new version has no App Review contact record yet, and upload_to_app_store fails fetching it,
+  # so create it first (from mac/fastlane/metadata/review_information).
+  private_lane :ensure_review_detail do
+    sign_in_api
+    app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
+    version = app && app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::MAC_OS)
+    next if version.nil?
+    detail = begin
+      version.fetch_app_store_review_detail
+    rescue StandardError
+      nil
+    end
+    if detail
+      UI.message("App Review details already exist")
+    else
+      read = lambda do |name|
+        path = File.join(mac_root, "fastlane/metadata/review_information/#{name}.txt")
+        File.exist?(path) ? File.read(path).strip : nil
+      end
+      attributes = {
+        contact_first_name: read.call("first_name"),
+        contact_last_name: read.call("last_name"),
+        contact_email: read.call("email_address"),
+        contact_phone: read.call("phone_number"),
+        notes: read.call("notes"),
+        demo_account_required: false
+      }.compact
+      version.create_app_store_review_detail(attributes: attributes)
+      UI.success("Created App Review details")
+    end
+  rescue StandardError => e
+    UI.important("App Review details not created: #{e.message.lines.first.to_s.strip}")
+  end
+
+  # If App Store Connect refuses the submission, ask it why and print every reason.
+  private_lane :explain_submission do
+    sign_in_api
+    app = asc_app_id
+    _, versions = asc(:get, "v1/apps/#{app}/appStoreVersions?filter[platform]=MAC_OS&filter[appStoreState]=PREPARE_FOR_SUBMISSION")
+    version = versions.dig("data", 0, "id")
+    next UI.important("No macOS version waiting for submission") unless version
+    _, submissions = asc(:get, "v1/apps/#{app}/reviewSubmissions?filter[platform]=MAC_OS&filter[state]=READY_FOR_REVIEW,UNRESOLVED_ISSUES")
+    submission = submissions.dig("data", 0, "id")
+    unless submission
+      _, created = asc(:post, "v1/reviewSubmissions", { data: { type: "reviewSubmissions", attributes: { platform: "MAC_OS" },
+        relationships: { app: { data: { type: "apps", id: app } } } } })
+      submission = created.dig("data", "id")
+    end
+    code, body = asc(:post, "v1/reviewSubmissionItems", { data: { type: "reviewSubmissionItems", relationships: {
+      reviewSubmission: { data: { type: "reviewSubmissions", id: submission } },
+      appStoreVersion: { data: { type: "appStoreVersions", id: version } } } } })
+    UI.important("Why App Store Connect won't take the submission (#{code}):")
+    (body["errors"] || []).each do |e|
+      UI.important("- #{e["detail"] || e["title"]}")
+      (e.dig("meta", "associatedErrors") || {}).each do |_, list|
+        list.each { |a| UI.important("    * #{a["detail"] || a["title"]} (#{a["code"]})") }
+      end
+    end
+  rescue StandardError => e
+    UI.important("Could not ask why the submission failed: #{e.message.lines.first.to_s.strip}")
+  end
+
+  # --- Status ---------------------------------------------------------------------------------------
+
+  # Every macOS App Store version with its state and build, the latest macOS builds and their
+  # processing state, and any macOS review submission.
+  lane :status do
+    sign_in_api
+    app = asc_app_id
+    UI.user_error!("No app with bundle ID #{BUNDLE_ID} in App Store Connect") unless app
+    _, versions = asc(:get, "v1/apps/#{app}/appStoreVersions?filter[platform]=MAC_OS&include=build&limit=20")
+    builds = (versions["included"] || []).select { |i| i["type"] == "builds" }.to_h { |b| [b["id"], b] }
+    list = versions["data"] || []
+    UI.important("No macOS App Store version. #{ADD_MACOS_HINT}") if list.empty?
+    list.each do |v|
+      build = builds[v.dig("relationships", "build", "data", "id")]
+      UI.message("macOS version #{v.dig("attributes", "versionString")}: #{version_state(v)}; " \
+                 "build #{build&.dig("attributes", "version") || "none"}")
+    end
+    _, recent = asc(:get, "v1/builds?filter[app]=#{app}&filter[preReleaseVersion.platform]=MAC_OS&sort=-uploadedDate&limit=10&include=preReleaseVersion")
+    pre = (recent["included"] || []).select { |i| i["type"] == "preReleaseVersions" }.to_h { |p| [p["id"], p] }
+    UI.message("No macOS builds uploaded yet") if (recent["data"] || []).empty?
+    (recent["data"] || []).each do |b|
+      a = b["attributes"] || {}
+      marketing = pre[b.dig("relationships", "preReleaseVersion", "data", "id")]&.dig("attributes", "version")
+      UI.message("macOS build #{marketing || "?"} (#{a["version"]}): #{a["processingState"]}, uploaded #{a["uploadedDate"]}" \
+                 "#{a["expired"] ? ", expired" : ""}")
+    end
+    _, subs = asc(:get, "v1/reviewSubmissions?filter[app]=#{app}&filter[platform]=MAC_OS&limit=10")
+    (subs["data"] || []).each do |s|
+      UI.message("macOS review submission: #{s.dig("attributes", "state")} (#{s.dig("attributes", "submittedDate") || "not submitted"})")
+    end
+  end
+
+  # --- App Store Connect API (plain requests, as in ios/fastlane/Fastfile) --------------------------
+
+  def asc(method, path, body = nil)
+    uri = URI("https://api.appstoreconnect.apple.com/#{path}")
+    request = Net::HTTP.const_get(method.to_s.capitalize).new(uri)
+    request["Authorization"] = "Bearer #{Spaceship::ConnectAPI.token.text}"
+    request["Content-Type"] = "application/json"
+    request.body = body.to_json if body
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(request) }
+    [response.code.to_i, (JSON.parse(response.body) rescue {})]
+  end
+
+  def asc_app_id
+    _, apps = asc(:get, "v1/apps?filter[bundleId]=#{BUNDLE_ID}")
+    (apps["data"] || []).find { |a| a.dig("attributes", "bundleId") == BUNDLE_ID }&.dig("id")
+  end
+
+  def api_errors(body)
+    errors = (body || {})["errors"] || []
+    return "no details" if errors.empty?
+    errors.map { |e| [e["code"], e["detail"] || e["title"]].compact.join(": ") }.join("; ")
+  end
+
+  def report(label, code, body)
+    if code.between?(200, 299)
+      UI.success("#{label}: done")
+    else
+      UI.important("#{label}: #{code} #{api_errors(body)}")
+    end
+  end
+
+  def mac_versions(app)
+    _, versions = asc(:get, "v1/apps/#{app}/appStoreVersions?filter[platform]=MAC_OS&limit=50")
+    versions["data"] || []
+  end
+
+  def version_state(version)
+    version.dig("attributes", "appVersionState") || version.dig("attributes", "appStoreState")
+  end
+
+  def first_mac_release?
+    app = asc_app_id
+    return true unless app
+    mac_versions(app).none? { |v| RELEASED_STATES.include?(version_state(v)) }
+  end
+
+  # Lanes run from inside fastlane/; plain Ruby file paths start from mac/ (actions already do).
+  def mac_root
+    File.basename(Dir.pwd) == "fastlane" ? File.dirname(Dir.pwd) : Dir.pwd
+  end
+
+  def signing_dir(options)
+    dir = File.expand_path(options[:out] || File.join(ENV.fetch("RUNNER_TEMP", "/tmp"), "mas-signing"))
+    FileUtils.mkdir_p(dir)
+    dir
+  end
+
+  # For later workflow steps (GITHUB_ENV) and for this process.
+  def export_env(name, value)
+    ENV[name] = value
+    file = ENV["GITHUB_ENV"].to_s
+    File.open(file, "a") { |f| f.puts("#{name}=#{value}") } unless file.empty?
+  end
+
+  # Runs a command without echoing it (arguments may hold a one-run password); fails with label.
+  def run!(label, *command, env: {})
+    ok = system(env, *command, out: File::NULL, err: File::NULL)
+    UI.user_error!("#{label} failed") unless ok
+  end
+
+  # The App Store Connect ID of the imported Apple Distribution certificate (CODESIGN_IDENTITY),
+  # matched by its contents, so profiles are made for exactly that certificate.
+  def distribution_certificate_id(keychain)
+    identity = ENV["CODESIGN_IDENTITY"].to_s
+    UI.user_error!("CODESIGN_IDENTITY is not set: import the Apple Distribution certificate first") if identity.empty?
+    pem = `security find-certificate -a -c #{Shellwords.escape(identity)} -p #{Shellwords.escape(keychain)} 2>/dev/null`
+    local = pem.scan(/-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----/m)
+               .map { |p| Digest::SHA256.hexdigest(OpenSSL::X509::Certificate.new(p).to_der) }
+    UI.user_error!("The Apple Distribution certificate is not in the build keychain") if local.empty?
+    _, certs = asc(:get, "v1/certificates?filter[certificateType]=DISTRIBUTION,MAC_APP_DISTRIBUTION&limit=200")
+    match = (certs["data"] || []).find do |c|
+      content = c.dig("attributes", "certificateContent")
+      content && local.include?(Digest::SHA256.hexdigest(Base64.decode64(content)))
+    end
+    UI.user_error!("The imported certificate is not an active Apple Distribution certificate of this team " \
+                   "(revoked or expired?). Export a current one as IOS_DIST_P12.") unless match
+    UI.message("Apple Distribution certificate found (expires #{match.dig("attributes", "expirationDate")})")
+    match["id"]
+  end
+
+  # A Mac App Store profile for identifier that includes certificate cert_id, valid for at least a
+  # week (an existing one is reused, otherwise one is created), written to path.
+  def mac_app_store_profile(identifier, cert_id, path)
+    _, ids = asc(:get, "v1/bundleIds?filter[identifier]=#{identifier}&limit=200")
+    bundle = (ids["data"] || []).find { |b| b.dig("attributes", "identifier") == identifier }
+    UI.user_error!("Bundle ID #{identifier} is not registered in the developer account") unless bundle
+    platform = bundle.dig("attributes", "platform")
+    UI.message("Bundle ID #{identifier}: platform #{platform}")
+
+    _, profiles = asc(:get, "v1/bundleIds/#{bundle["id"]}/profiles?limit=200")
+    candidates = (profiles["data"] || []).select do |p|
+      a = p["attributes"] || {}
+      a["profileType"] == "MAC_APP_STORE" && a["profileState"] == "ACTIVE" && expires_after?(a["expirationDate"], 7 * 86_400)
+    end
+    profile = candidates.find do |p|
+      _, certs = asc(:get, "v1/profiles/#{p["id"]}/certificates?limit=50")
+      (certs["data"] || []).any? { |c| c["id"] == cert_id }
+    end
+
+    if profile
+      UI.message("Reusing Mac App Store profile #{profile.dig("attributes", "name")}")
+    else
+      name = "Meridian Mac App Store #{identifier} #{Time.now.utc.strftime("%Y%m%d%H%M%S")}"
+      code, created = asc(:post, "v1/profiles", { data: { type: "profiles",
+        attributes: { name: name, profileType: "MAC_APP_STORE" },
+        relationships: {
+          bundleId: { data: { type: "bundleIds", id: bundle["id"] } },
+          certificates: { data: [{ type: "certificates", id: cert_id }] } } } })
+      unless code.between?(200, 299)
+        UI.error("App Store Connect would not create a Mac App Store profile for #{identifier} " \
+                 "(bundle ID platform #{platform}): #{code} #{api_errors(created)}")
+        UI.error("If the bundle ID is limited to iOS, add macOS to the app in App Store Connect (Add Platform > macOS) " \
+                 "or enable macOS for the identifier in the developer account, then run again.")
+        UI.user_error!("No Mac App Store provisioning profile for #{identifier}")
+      end
+      profile = created["data"]
+      UI.success("Created Mac App Store profile #{name}")
+    end
+    content = profile.dig("attributes", "profileContent")
+    UI.user_error!("The profile for #{identifier} came back without its contents") if content.to_s.empty?
+    File.binwrite(path, Base64.decode64(content))
+  end
+
+  def expires_after?(date, seconds)
+    Time.parse(date.to_s) > Time.now + seconds
+  rescue StandardError
+    false
+  end
+
+  # Revokes installer certificates an earlier run made through the API and left behind (a run
+  # that was cancelled before its cleanup), so Apple's certificate limit never blocks this run.
+  # Runs never overlap (the workflow's concurrency group), so none of them is in use.
+  def prune_installer_certificates
+    _, certs = asc(:get, "v1/certificates?filter[certificateType]=MAC_INSTALLER_DISTRIBUTION&limit=200")
+    (certs["data"] || []).each do |c|
+      a = c["attributes"] || {}
+      next unless "#{a["name"]} #{a["displayName"]}".include?("Created via API")
+      code, body = asc(:delete, "v1/certificates/#{c["id"]}")
+      report("Revoked a leftover installer certificate (expires #{a["expirationDate"]})", code, body)
+    end
+  end
+
+  def installer_certificates_summary
+    _, certs = asc(:get, "v1/certificates?filter[certificateType]=MAC_INSTALLER_DISTRIBUTION&limit=200")
+    list = (certs["data"] || []).map { |c| "#{c["id"]} (expires #{c.dig("attributes", "expirationDate")})" }
+    list.empty? ? "none" : list.join(", ")
+  end
+
+  # A Mac Installer Distribution certificate for this run: a new key and CSR (made with macOS's own
+  # openssl, whose .p12 files the keychain reads), the certificate from the API, both imported into
+  # the build keychain. The key never leaves the runner; the certificate is revoked at the end.
+  def installer_identity(out, keychain, keychain_password)
+    prune_installer_certificates
+    openssl = File.exist?("/usr/bin/openssl") ? "/usr/bin/openssl" : "openssl"
+    key = File.join(out, "installer.key")
+    csr = File.join(out, "installer.csr")
+    cer = File.join(out, "installer.cer")
+    pem = File.join(out, "installer.pem")
+    p12 = File.join(out, "installer.p12")
+    begin
+      run!("Making the installer key", openssl, "req", "-new", "-newkey", "rsa:2048", "-nodes",
+           "-keyout", key, "-out", csr, "-subj", "/CN=Meridian CI Installer/C=US")
+      code, created = asc(:post, "v1/certificates", { data: { type: "certificates",
+        attributes: { certificateType: "MAC_INSTALLER_DISTRIBUTION", csrContent: File.read(csr) } } })
+      unless code.between?(200, 299)
+        UI.error("App Store Connect would not create a Mac Installer Distribution certificate: #{code} #{api_errors(created)}")
+        UI.error("Installer certificates on the account: #{installer_certificates_summary}")
+        UI.user_error!("No installer signing certificate")
+      end
+      cert = created["data"]
+      # Saved first, so the end-of-run cleanup revokes it even if a step below fails.
+      File.write(File.join(out, "installer-cert-id"), cert["id"])
+      export_env("INSTALLER_CERT_ID", cert["id"])
+
+      der = Base64.decode64(cert.dig("attributes", "certificateContent").to_s)
+      File.binwrite(cer, der)
+      x509 = OpenSSL::X509::Certificate.new(der)
+      run!("Converting the installer certificate", openssl, "x509", "-inform", "DER", "-in", cer, "-out", pem)
+      password = SecureRandom.hex(16)
+      run!("Packing the installer identity", openssl, "pkcs12", "-export", "-inkey", key, "-in", pem,
+           "-out", p12, "-passout", "env:MAS_P12_PASSWORD", env: { "MAS_P12_PASSWORD" => password })
+      run!("Importing the installer identity", "security", "import", p12, "-k", keychain, "-P", password,
+           "-T", "/usr/bin/productbuild", "-T", "/usr/bin/productsign", "-T", "/usr/bin/pkgbuild")
+      # Apple's intermediate certificate for the installer certificate (G3, G4, ...), for the chain.
+      issuer_ou = x509.issuer.to_a.find { |n, _, _| n == "OU" }&.dig(1).to_s
+      if issuer_ou.match?(/\AG\d+\z/)
+        ca = File.join(out, "AppleWWDRCA#{issuer_ou}.cer")
+        if system("curl", "-fsSL", "-o", ca, "https://www.apple.com/certificateauthority/AppleWWDRCA#{issuer_ou}.cer",
+                  out: File::NULL, err: File::NULL)
+          system("security", "import", ca, "-k", keychain, out: File::NULL, err: File::NULL)
+        end
+      end
+      run!("Allowing the signing tools to use the installer key", "security", "set-key-partition-list",
+           "-S", "apple-tool:,apple:", "-s", "-k", keychain_password, keychain)
+
+      name = x509.subject.to_a.find { |n, _, _| n == "CN" }&.dig(1).to_s
+      UI.user_error!("The installer certificate has no name") if name.empty?
+      export_env("INSTALLER_IDENTITY", name)
+      export_env("INSTALLER_KEYCHAIN", keychain)
+      UI.success("Installer identity ready (#{name.split(":").first}, expires #{cert.dig("attributes", "expirationDate")})")
+    ensure
+      [key, csr, cer, pem, p12].each { |f| File.delete(f) if File.exist?(f) }
+    end
+  end
+
+  private_lane :sign_in_api do
+    key = JSON.parse(File.read(File.join(mac_root, API_KEY)))
+    app_store_connect_api_key(key_id: key["key_id"], issuer_id: key["issuer_id"], key_content: key["key"])
+  end
+end

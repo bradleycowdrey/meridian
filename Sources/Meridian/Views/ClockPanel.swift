@@ -70,10 +70,13 @@ private struct ClockPanelContent: View {
             // (e.g. Extra Large with the city search open).
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: ui.m) {
-                    // Only takes space when there's something to say.
+                    #if !APPSTORE
+                    // Only takes space when there's something to say. (None in the Mac App Store
+                    // build: the App Store updates it.)
                     if updater.latest != nil || updater.notice != nil || updater.userChecking {
                         UpdateBanner()
                     }
+                    #endif
                     TravelBar()
 
                     if adding || store.places.isEmpty {
@@ -140,7 +143,9 @@ private struct ClockPanelContent: View {
         .environment(\.colorScheme, .dark)
         .onAppear {
             store.tick()
+            #if !APPSTORE
             Task { await Updater.shared.checkIfDue() }
+            #endif
         }
         .task {
             if !compact && SelfTest.isActive {
@@ -215,6 +220,7 @@ private struct ClockPanelContent: View {
                 .lineLimit(1)
                 .fixedSize()
             // The product page (Mac, iPhone and Android, and a live demo), not the source code.
+            // The Mac App Store build shares its App Store page instead (Brand.productPage).
             ShareLink(
                 item: Brand.productPage,
                 subject: Text("Meridian"),
@@ -567,11 +573,13 @@ private struct MoreMenu: View {
 
     var body: some View {
         Menu {
+            #if !APPSTORE
             if let release = updater.latest {
                 Button("Install Meridian \(release.version)…") { Task { await updater.install() } }
                     .disabled(updater.isBusy)
                 Divider()
             }
+            #endif
             Button("Copy This Moment") { store.copyMoment() }
                 .disabled(store.places.isEmpty)
             Divider()
@@ -612,8 +620,10 @@ private struct MoreMenu: View {
                 NSApp.activate(ignoringOtherApps: true)
             }
             Button("Terms & Privacy") { NSWorkspace.shared.open(Brand.legal) }
+            #if !APPSTORE
             Button("Check for Updates…") { Task { await updater.check(userInitiated: true) } }
                 .disabled(updater.isBusy || !updater.canSelfUpdate)
+            #endif
             Divider()
             Button("Quit Meridian") { NSApp.terminate(nil) }
         } label: {
@@ -633,6 +643,7 @@ private struct MoreMenu: View {
     }
 }
 
+#if !APPSTORE
 /// Shown only when a newer version is out: one line and one button.
 private struct UpdateBanner: View {
     @EnvironmentObject private var updater: Updater
@@ -720,6 +731,7 @@ private struct UpdateBanner: View {
             .transition(.move(edge: .top).combined(with: .opacity))
     }
 }
+#endif
 
 /// The moment you're looking at, apple.com-style, and the travel controls.
 struct TravelBar: View {

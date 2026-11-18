@@ -7,6 +7,10 @@ import CryptoKit
 /// Flow: fetch the latest release → compare versions → download the versioned DMG →
 /// verify its SHA-256 against the published .sha256 → mount, copy the app out, unmount →
 /// quit, swap the app bundle, relaunch (done by a tiny shell helper once we've exited).
+///
+/// The Mac App Store build (compiled with APPSTORE) never checks, downloads or installs anything:
+/// the App Store updates it. The type stays so the shared views compile; it simply never has an
+/// update to show, and every update control is compiled out of the views.
 @MainActor
 final class Updater: ObservableObject {
     static let shared = Updater()
@@ -51,11 +55,25 @@ final class Updater: ObservableObject {
         lastChecked = UserDefaults.standard.object(forKey: "updates.lastChecked") as? Date
     }
 
+    #if APPSTORE
+    /// The App Store updates the Mac App Store build.
+    var canSelfUpdate: Bool { false }
+    #else
     /// Only a real, installed .app can update itself (not `swift run`).
     var canSelfUpdate: Bool { Bundle.main.bundleURL.pathExtension == "app" }
+    #endif
 
     var isBusy: Bool { phase == .checking || phase == .downloading || phase == .installing }
 
+    #if APPSTORE
+    // Mac App Store build: no checks, downloads or installs (App Review 2.4.5); the App Store
+    // updates Meridian. These stay as no-ops so the shared code compiles in both builds.
+    func start() {}
+    func checkIfDue() async {}
+    func check(userInitiated: Bool) async {}
+    func install() async {}
+    func openReleasePage() {}
+    #else
     func start() {
         guard canSelfUpdate, timer == nil else { return }
         reportFailedInstall()
@@ -220,6 +238,7 @@ final class Updater: ObservableObject {
     echo "$(date) relaunching"
     /usr/bin/open "$TARGET"
     """
+    #endif
 
     // MARK: Helpers
 
@@ -285,6 +304,7 @@ final class Updater: ObservableObject {
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
+    #if !APPSTORE
     private static func extractApp(from dmg: URL, into work: URL) async throws -> URL {
         let mount = work.appendingPathComponent("mount", isDirectory: true)
         let staged = work.appendingPathComponent("Meridian.app", isDirectory: true)
@@ -332,6 +352,7 @@ final class Updater: ObservableObject {
             do { try process.run() } catch { continuation.resume(throwing: error) }
         }
     }
+    #endif
 
     /// Shows a message in the panel. Confirmations fade after a few seconds; errors stay until dismissed.
     private func post(_ text: String, error: Bool = false) {
@@ -346,10 +367,12 @@ final class Updater: ObservableObject {
 
     func dismissNotice() { notice = nil }
 
+    #if !APPSTORE
     /// Opens the release page in the browser as a manual fallback.
     func openReleasePage() {
         NSWorkspace.shared.open(latest?.page ?? Brand.repository.appendingPathComponent("releases/latest"))
     }
+    #endif
 }
 
 enum UpdateError: LocalizedError {

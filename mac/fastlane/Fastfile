@@ -294,7 +294,9 @@ platform :mac do
   def asc(method, path, body = nil)
     uri = URI("https://api.appstoreconnect.apple.com/#{path}")
     request = Net::HTTP.const_get(method.to_s.capitalize).new(uri)
-    request["Authorization"] = "Bearer #{Spaceship::ConnectAPI.token.text}"
+    token = Spaceship::ConnectAPI.token
+    token.refresh! if token.respond_to?(:expired?) && token.expired?  # tokens last 20 minutes
+    request["Authorization"] = "Bearer #{token.text}"
     request["Content-Type"] = "application/json"
     request.body = body.to_json if body
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(request) }
@@ -461,16 +463,22 @@ platform :mac do
     begin
       run!("Making the installer key", openssl, "req", "-new", "-newkey", "rsa:2048", "-nodes",
            "-keyout", key, "-out", csr, "-subj", "/CN=Meridian CI Installer/C=US")
-      # Apple allows two Mac Installer Distribution certificates per team, and other apps' pipelines
-      # on the same team make short-lived ones too. Never revoke theirs: wait for a free slot (a 409)
-      # for up to 20 minutes, then give up with the list of what's holding it.
+      # Apple allows two Mac Installer Distribution certificates per team, and other apps on the
+      # same team may hold them. Never revoke theirs: try a few times, then fall back to Xcode's
+      # cloud signing for the .pkg (scripts/export-mas-pkg.sh), which needs no local installer
+      # certificate. INSTALLER_IDENTITY stays empty and the workflow takes that path.
+      export_env("INSTALLER_IDENTITY", "")
       code, created = nil, nil
-      27.times do |attempt|
+      3.times do |attempt|
         code, created = asc(:post, "v1/certificates", { data: { type: "certificates",
           attributes: { certificateType: "MAC_INSTALLER_DISTRIBUTION", csrContent: File.read(csr) } } })
         break unless code == 409
-        UI.message("Both installer certificate slots are in use (#{installer_certificates_summary}); waiting for one (#{attempt + 1}/27)")
-        sleep 45
+        UI.message("Both installer certificate slots are in use (#{installer_certificates_summary}); trying again (#{attempt + 1}/3)")
+        sleep 45 if attempt < 2
+      end
+      if code == 409
+        UI.important("No free installer certificate slot (#{installer_certificates_summary}): the .pkg will be cloud-signed by Xcode instead")
+        return
       end
       unless code.between?(200, 299)
         UI.error("App Store Connect would not create a Mac Installer Distribution certificate: #{code} #{api_errors(created)}")

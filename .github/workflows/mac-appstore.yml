@@ -188,9 +188,17 @@ jobs:
 
       - name: Package (.pkg)
         if: env.SIGN == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -o pipefail
-          scripts/make-mas-pkg.sh "$VERSION" 2>&1 | tee "$OUT/pkg.log"
+          if [ -n "${INSTALLER_IDENTITY:-}" ]; then
+            scripts/make-mas-pkg.sh "$VERSION" 2>&1 | tee "$OUT/pkg.log"
+          else
+            # No free installer certificate slot on the team: Xcode's cloud signing makes the .pkg.
+            scripts/export-mas-pkg.sh "$VERSION" 2>&1 | grep -v -i -E "$FILTER" | tee "$OUT/pkg.log"
+          fi
           echo "PKG=$PWD/dist/Meridian-$VERSION.pkg" >> "$GITHUB_ENV"
 
       - name: macOS App Store version

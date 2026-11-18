@@ -1,2 +1,2 @@
 2.1.4 upload
-# Mac App Store: "<version> build|upload|submit|status" (docs/versioning.md). Changing this file on main runs .github/workflows/mac-appstore.yml. (retry 2026-11-18)
+# Mac App Store: "<version> build|upload|submit|status" (docs/versioning.md). Changing this file on main runs .github/workflows/mac-appstore.yml. (retry 2, cloud signing fallback)

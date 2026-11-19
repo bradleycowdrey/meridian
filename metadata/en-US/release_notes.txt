@@ -1,0 +1,3 @@
+Soft edges: each city's photo now fades gently into the background at the edge of its card, and every hour tile has a thin, softly blurred outline instead of a hard edge. The widgets match.
+
+Widgets show more: whether each city is working, off hours or on a weekend, off-hours tiles dimmed, and when the sun rises or sets there.

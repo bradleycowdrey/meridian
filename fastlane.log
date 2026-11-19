@@ -1,0 +1,160 @@
+[20:36:48]: [33mGet started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile[0m
+[20:36:48]: fastlane 2.242.0 (Ruby 4.0.9, homebrew)
+[20:36:50]: [32m------------------------------[0m
+[20:36:50]: [32m--- Step: default_platform ---[0m
+[20:36:50]: [32m------------------------------[0m
+[20:36:50]: [32mDriving the lane 'ios upload' 🚀[0m
+[20:36:50]: [32m--------------------------------------------------------[0m
+[20:36:50]: [32m--- Step: Switch to ios withdraw_pending_review lane ---[0m
+[20:36:50]: [32m--------------------------------------------------------[0m
+[20:36:50]: Cruising over to lane 'ios withdraw_pending_review' 🚖
+[20:36:50]: [32m--------------------------------------------[0m
+[20:36:50]: [32m--- Step: Switch to ios sign_in_api lane ---[0m
+[20:36:50]: [32m--------------------------------------------[0m
+[20:36:50]: Cruising over to lane 'ios sign_in_api' 🚖
+[20:36:50]: [32m---------------------------------------[0m
+[20:36:50]: [32m--- Step: app_store_connect_api_key ---[0m
+[20:36:50]: [32m---------------------------------------[0m
+[20:36:50]: Cruising back to lane 'ios withdraw_pending_review' 🚘
+[20:36:50]: No review submission to withdraw
+[20:36:50]: Cruising back to lane 'ios upload' 🚘
+[20:36:50]: [32m-----------------------------------------------------[0m
+[20:36:50]: [32m--- Step: Switch to ios ensure_review_detail lane ---[0m
+[20:36:50]: [32m-----------------------------------------------------[0m
+[20:36:50]: Cruising over to lane 'ios ensure_review_detail' 🚖
+[20:36:50]: [32m---------------------------------------[0m
+[20:36:50]: [32m--- Step: app_store_connect_api_key ---[0m
+[20:36:50]: [32m---------------------------------------[0m
+[20:36:51]: Cruising back to lane 'ios upload' 🚘
+[20:36:51]: [32m--------------------------------------------------[0m
+[20:36:51]: [32m--- Step: Switch to ios prepare_app_store lane ---[0m
+[20:36:51]: [32m--------------------------------------------------[0m
+[20:36:51]: Cruising over to lane 'ios prepare_app_store' 🚖
+[20:36:51]: [32m--------------------------------------------[0m
+[20:36:51]: [32m--- Step: Switch to ios sign_in_api lane ---[0m
+[20:36:51]: [32m--------------------------------------------[0m
+[20:36:51]: Cruising over to lane 'ios sign_in_api' 🚖
+[20:36:51]: [32m---------------------------------------[0m
+[20:36:51]: [32m--- Step: app_store_connect_api_key ---[0m
+[20:36:51]: [32m---------------------------------------[0m
+[20:36:51]: Cruising back to lane 'ios prepare_app_store' 🚘
+[20:36:53]: [32mContent rights: done[0m
+[20:36:54]: [32mAge rating: done[0m
+[20:36:55]: [32mPrice (Free): done[0m
+[20:36:55]: [33mAvailability (all countries): 409 An 'appAvailabilities' with a relationship to 'apps' with id '6826713540' already exists.[0m
+[20:36:55]: Cruising back to lane 'ios upload' 🚘
+[20:36:55]: [32m-----------------------------------------------[0m
+[20:36:55]: [32m--- Step: Switch to ios upload_listing lane ---[0m
+[20:36:55]: [32m-----------------------------------------------[0m
+[20:36:55]: Cruising over to lane 'ios upload_listing' 🚖
+[20:36:56]: [32m---------------------------------[0m
+[20:36:56]: [32m--- Step: upload_to_app_store ---[0m
+[20:36:56]: [32m---------------------------------[0m
+[20:36:56]: Creating authorization token for App Store Connect API
+
++---------------------------------------------------------------------------------------------------------+
+|                                         [32mdeliver 2.242.0 Summary[0m                                         |
++----------------------------------------------------------+----------------------------------------------+
+| api_key_path                                             | fastlane/api_key.json                        |
+| app_identifier                                           | com.bradcowdrey.meridian                     |
+| app_version                                              | 2.1                                          |
+| ipa                                                      | /Users/runner/work/_temp/export/Meridian.ipa |
+| metadata_path                                            | fastlane/metadata                            |
+| screenshots_path                                         | fastlane/screenshots                         |
+| overwrite_screenshots                                    | true                                         |
+| force                                                    | true                                         |
+| run_precheck_before_submit                               | false                                        |
+| submit_for_review                                        | true                                         |
+| automatic_release                                        | true                                         |
+| submission_information.add_id_info_uses_idfa             | false                                        |
+| submission_information.export_compliance_uses_encryption | false                                        |
+| platform                                                 | ios                                          |
+| edit_live                                                | false                                        |
+| use_live_version                                         | false                                        |
+| preview_frame_time_code                                  | 00:00:05:00                                  |
+| overwrite_preview_videos                                 | false                                        |
+| skip_binary_upload                                       | false                                        |
+| skip_screenshots                                         | false                                        |
+| skip_metadata                                            | false                                        |
+| skip_app_version_update                                  | false                                        |
+| screenshot_processing_timeout                            | 3600                                         |
+| sync_screenshots                                         | false                                        |
+| verify_only                                              | false                                        |
+| reject_if_possible                                       | false                                        |
+| version_check_wait_retry_limit                           | 7                                            |
+| phased_release                                           | false                                        |
+| reset_ratings                                            | false                                        |
+| precheck_default_rule_level                              | warn                                         |
+| ignore_language_directory_validation                     | false                                        |
+| precheck_include_in_app_purchases                        | true                                         |
++----------------------------------------------------------+----------------------------------------------+
+
+[20:36:56]: Making sure the latest version on App Store Connect matches '2.1'...
+[20:36:59]: [32mSuccessfully set the version to '2.1'[0m
+[20:36:59]: Loading 'fastlane/metadata/en-US/description.txt'...
+[20:36:59]: Loading 'fastlane/metadata/en-US/keywords.txt'...
+[20:36:59]: Loading 'fastlane/metadata/en-US/release_notes.txt'...
+[20:36:59]: Loading 'fastlane/metadata/en-US/support_url.txt'...
+[20:36:59]: Loading 'fastlane/metadata/en-US/marketing_url.txt'...
+[20:36:59]: Loading 'fastlane/metadata/en-US/promotional_text.txt'...
+[20:36:59]: Loading 'fastlane/metadata/en-US/subtitle.txt'...
+[20:36:59]: Loading 'fastlane/metadata/en-US/privacy_url.txt'...
+[20:36:59]: Loading 'fastlane/metadata/copyright.txt'...
+[20:36:59]: Loading 'fastlane/metadata/primary_category.txt'...
+[20:36:59]: Loading 'fastlane/metadata/secondary_category.txt'...
+[20:36:59]: Loading 'fastlane/metadata/review_information/first_name.txt'...
+[20:36:59]: Loading 'fastlane/metadata/review_information/last_name.txt'...
+[20:36:59]: Loading 'fastlane/metadata/review_information/notes.txt'...
+[20:37:01]: No changes to localized App Info detected. Skipping upload.
+[20:37:01]: [33mWill begin uploading metadata for '2.1' on App Store Connect[0m
+[20:37:01]: Uploading metadata to App Store Connect for version
+[20:37:06]: Uploading metadata to App Store Connect for localized version 'en-US'
+[20:37:08]: Uploading app review information to App Store Connect
+[20:37:10]: [33mWill begin uploading snapshots for '2.1' on App Store Connect[0m
+[20:37:10]: Starting with the upload of screenshots...
+[20:37:11]: [33mNumber of screenshots not deleted: 0[0m
+[20:37:11]: Successfully deleted all screenshots
+[20:37:14]: Uploaded 'fastlane/screenshots/en-US/04-date.png'... (2.140664 secs)
+[20:37:14]: Uploaded 'fastlane/screenshots/en-US/05-add.png'... (2.145109 secs)
+[20:37:14]: Uploaded 'fastlane/screenshots/en-US/03-widgets.png'... (2.19849 secs)
+[20:37:14]: Uploaded 'fastlane/screenshots/en-US/02-travel.png'... (2.269859 secs)
+[20:37:14]: Uploaded 'fastlane/screenshots/en-US/01-main.png'... (2.281137 secs)
+[20:37:14]: Waiting for all the screenshots to finish being processed...
+[20:37:20]: Successfully uploaded all screenshots
+[20:37:20]: Sorting screenshots uploaded...
+[20:37:20]: [32mSuccessfully uploaded screenshots to App Store Connect[0m
+[20:37:20]: Uploading binary to App Store Connect
+[20:37:20]: Going to upload updated app to App Store Connect
+[20:37:20]: [32mThis might take a few minutes. Please don't interrupt the script.[0m
+[20:38:05]: [32m--------------------------------------------------------------------[0m
+[20:38:05]: [32mSuccessfully uploaded package to App Store Connect. It might take a few minutes until it's visible online.[0m
+[20:38:05]: [32m--------------------------------------------------------------------[0m
+[20:38:05]: [32mFinished the upload to App Store Connect[0m
+[20:38:06]: Selecting the latest build...
+[20:38:06]: Waiting for processing on... app_id: 6826713540, app_version: 2.1, build_version: 290, platform: IOS
+[20:38:06]: [33mRead more information on why this build isn't showing up yet - https://github.com/fastlane/fastlane/issues/14997[0m
+[20:39:55]: [32mSuccessfully finished processing the build 2.1 - 290 for IOS[0m
+[20:39:55]: Selecting build 2.1 (290)...
+[20:39:57]: [32mSuccessfully selected build[0m
+[20:40:10]: [32mSuccessfully submitted the app for review![0m
+[20:40:10]: Cruising back to lane 'ios upload' 🚘
+
++-----------------------------------------------------------------+
+|                        [32mfastlane summary[0m                         |
++------+--------------------------------------------+-------------+
+| Step | Action                                     | Time (in s) |
++------+--------------------------------------------+-------------+
+| 1    | default_platform                           | 0           |
+| 2    | Switch to ios withdraw_pending_review lane | 0           |
+| 3    | Switch to ios sign_in_api lane             | 0           |
+| 4    | app_store_connect_api_key                  | 0           |
+| 5    | Switch to ios ensure_review_detail lane    | 0           |
+| 6    | app_store_connect_api_key                  | 0           |
+| 7    | Switch to ios prepare_app_store lane       | 0           |
+| 8    | Switch to ios sign_in_api lane             | 0           |
+| 9    | app_store_connect_api_key                  | 0           |
+| 10   | Switch to ios upload_listing lane          | 0           |
+| 11   | upload_to_app_store                        | 193         |
++------+--------------------------------------------+-------------+
+
+[20:40:10]: [32mfastlane.tools finished successfully 🎉[0m

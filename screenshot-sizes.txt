@@ -1,0 +1,15 @@
+/Users/runner/work/meridian/meridian/ios/fastlane/screenshots/en-US/01-main.png
+  pixelWidth: 1320
+  pixelHeight: 2868
+/Users/runner/work/meridian/meridian/ios/fastlane/screenshots/en-US/02-travel.png
+  pixelWidth: 1320
+  pixelHeight: 2868
+/Users/runner/work/meridian/meridian/ios/fastlane/screenshots/en-US/03-widgets.png
+  pixelWidth: 1320
+  pixelHeight: 2868
+/Users/runner/work/meridian/meridian/ios/fastlane/screenshots/en-US/04-date.png
+  pixelWidth: 1320
+  pixelHeight: 2868
+/Users/runner/work/meridian/meridian/ios/fastlane/screenshots/en-US/05-add.png
+  pixelWidth: 1320
+  pixelHeight: 2868

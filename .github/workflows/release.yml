@@ -85,7 +85,7 @@ jobs:
             # Notes: this version's section of CHANGELOG.md, then the install line.
             V="${TAG##*v}"
             awk -v v="$V" '/^## /{p = (index($0, "## " v " ") == 1)} p' CHANGELOG.md | sed '1d' > notes.md
-            printf '\n**Install:** download the DMG, open it and drag Meridian into Applications. Already installed? Meridian updates itself.\n\n**iPhone (sideload until it is on the App Store):** Meridian-iOS.ipa, installed with AltStore or Sideloadly. Steps: https://github.com/bradleycowdrey/meridian/blob/main/docs/sideload.md\n\nMade by Bradley Cowdrey · bradcowdrey.com\n' >> notes.md
+            printf '\n**Install:** download the DMG, open it and drag Meridian into Applications. Already installed? Meridian updates itself.\n\n**iPhone:** on the App Store, https://apps.apple.com/app/id6826713540 (Meridian-iOS.ipa here is for sideloading a build ahead of it: https://github.com/bradleycowdrey/meridian/blob/main/docs/sideload.md)\n\nMade by Bradley Cowdrey · bradcowdrey.com\n' >> notes.md
             IPA=(); [ -f dist/Meridian-iOS.ipa ] && IPA=(dist/Meridian-iOS.ipa)
             gh release create "$TAG" dist/*.dmg dist/*.sha256 "${IPA[@]}" \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" $KIND \

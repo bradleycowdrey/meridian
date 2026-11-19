@@ -7,7 +7,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 <p align="center">
   <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg"><b>Download for Mac</b></a> ·
-  <a href="https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian-iOS.ipa"><b>iPhone app file</b></a> (<a href="docs/sideload.md">how to install</a>, until it's on the App Store) ·
+  <a href="https://apps.apple.com/app/id6826713540"><b>iPhone: App Store</b></a> ·
   <a href="https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk"><b>Android APK</b></a> ·
   <a href="https://bradcowdrey.com/meridian">Try it in your browser</a> ·
   <a href="https://github.com/bradleycowdrey/meridian/issues">Report an issue</a>
@@ -22,7 +22,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ### What's new in 2.1
 
-Mac 2.1.4 is out and updates itself. iPhone 2.0 is on its way to App Review, with the same look. Until it's on the App Store, install it yourself: download [Meridian-iOS.ipa](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian-iOS.ipa) and follow the [sideload steps](docs/sideload.md) (AltStore or Sideloadly, about 5 minutes). Android has it in the latest APK.
+Mac 2.1.4 is out and updates itself. Meridian for iPhone is on the [App Store](https://apps.apple.com/app/id6826713540), with the same look. Android has it in the latest APK.
 
 - **City photos on every platform**: each city shows the city itself, by day or by night there, framed on its own skyline, on Mac, iPhone, Android and in the widgets.
 - **A larger Now tile** with room either side and one outline down every city, and hour tiles in blues that make working hours stand out.
@@ -104,13 +104,13 @@ Add Meridian to your desktop or Notification Center in three sizes: small (one c
 
 ## iPhone and Android
 
-- **iPhone** (iOS 17 or later): Meridian 2.0 is in TestFlight, on its way to App Review as Meridian: Every Time Zone. Each city a card on its photo, its time large, with a ruler you swipe to move through time; Find a Time; people and groups; clock-change notices; Home Screen widgets that fill themselves and Lock Screen widgets; My Location. Until it's on the App Store, [sideload it](docs/sideload.md): download [Meridian-iOS.ipa](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian-iOS.ipa) and install it with AltStore or Sideloadly. Source in [`ios/`](ios).
+- **iPhone** (iOS 17 or later): [Meridian: Every Time Zone on the App Store](https://apps.apple.com/app/id6826713540), free. Each city a card on its photo, its time large, with a ruler you swipe to move through time; Find a Time; people and groups; clock-change notices; Home Screen widgets that fill themselves and Lock Screen widgets; My Location. Source in [`ios/`](ios).
 - **Android** (8 or later): download [Meridian-debug.apk](https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk) on your phone and open it (allow installs from your browser if asked). The same design and features as the iPhone, home screen widgets in three sizes that fill themselves, My Location. Not on Google Play yet. Source in [`android/`](android).
 - **Web**: try it in your browser at [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), nothing to install.
 
 ## Install on Mac (sideload)
 
-Meridian for Mac is distributed directly, not through the Mac App Store.
+Download Meridian for Mac here; it updates itself. A Mac App Store version (the same app, sandboxed) is on its way through App Review.
 
 1. Download [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg) (all versions are on [Releases](https://github.com/bradleycowdrey/meridian/releases))
    or [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), where you can also try it in your browser.
@@ -132,7 +132,7 @@ scripts/make-dmg.sh 2.1.4         # dist/Meridian-2.1.4.dmg
 
 ## Releasing
 
-Bump the number in `VERSION` and push to `main`. GitHub Actions builds a universal app, packages a DMG and publishes it as release `v<VERSION>`, plus a stable `Meridian.dmg` that the download links always point to, and `Meridian-iOS.ipa` for sideloading. The iPhone app goes to TestFlight and App Review through `ios/APPSTORE`; see [docs/versioning.md](docs/versioning.md).
+Bump the number in `VERSION` and push to `main`. GitHub Actions builds a universal app, packages a DMG and publishes it as release `v<VERSION>`, plus a stable `Meridian.dmg` that the download links always point to, and `Meridian-iOS.ipa` (for sideloading a build ahead of the App Store). The iPhone app goes to TestFlight and App Review through `ios/APPSTORE`; see [docs/versioning.md](docs/versioning.md).
 
 Optional secrets for Developer ID signing and notarization (removes the Gatekeeper prompt):
 `DEVELOPER_ID_P12` (base64 .p12), `DEVELOPER_ID_P12_PASSWORD`, `CODESIGN_IDENTITY`,

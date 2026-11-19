@@ -1,7 +1,8 @@
 # Install Meridian on iPhone (sideload)
 
-Meridian 2.0 for iPhone is on its way to App Review. Until it's on the App Store, you can install it yourself with
-**AltStore** or **Sideloadly**. Both sign the app with your own Apple ID, so it runs on your iPhone
+**Meridian is on the App Store: [Meridian: Every Time Zone](https://apps.apple.com/app/id6826713540).** That's the easy way, with updates
+from the App Store. This page is only for installing a build yourself, for example one from `main` ahead of
+the App Store, with **AltStore** or **Sideloadly**. Both sign the app with your own Apple ID, so it runs on your iPhone
 like any other app, widgets included.
 
 You need an iPhone on iOS 17 or later, a Mac or Windows PC, a USB cable, and a free Apple ID.

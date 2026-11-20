@@ -1,0 +1,40 @@
+2026-11-20 15:38:41.768 xcodebuild[17180:50985] [MT] IDEDistribution: -[IDEDistributionLogging _createLoggingBundleAtPath:]: Created bundle at path "/var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/Meridian_2026-11-20_15-38-41.765.xcdistributionlogs".
+Exported Meridian to: /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/tmp.iEU6MEaBpS/export
+** EXPORT SUCCEEDED **
+
+Package "Meridian-2.1.4.pkg":
+   Status: signed by a developer certificate issued by Apple (Development)
+   Certificate Chain:
+    1. 3rd Party Mac Developer Installer: Bradley Cowdrey (2XV97FZ86G)
+       Expires: 2027-11-12 19:57:17 +0000
+       SHA256 Fingerprint:
+           82 40 4E 63 EE 07 39 E0 6B 82 B7 C1 25 21 76 C1 4E FC 5F 55 36 A0 
+           F5 DB 3D C3 DC 5E B3 DB AD 25
+       ------------------------------------------------------------------------
+    2. Apple Worldwide Developer Relations Certification Authority
+       Expires: 2030-02-20 00:00:00 +0000
+       SHA256 Fingerprint:
+           DC F2 18 78 C7 7F 41 98 E4 B4 61 4F 03 D6 96 D8 9C 66 C6 60 08 D4 
+           24 4E 1B 99 16 1A AC 91 60 1F
+       ------------------------------------------------------------------------
+    3. Apple Root CA
+       Expires: 2035-02-09 21:40:36 +0000
+       SHA256 Fingerprint:
+           B0 B1 73 0E CB C7 FF 45 05 14 2C 49 F1 29 5E 6E DA 6B CA ED 7E 2C 
+           68 C5 BE 91 B5 A1 10 01 F0 24
+
+Authority=Apple Distribution: Bradley Cowdrey (2XV97FZ86G)
+Authority=Apple Worldwide Developer Relations Certification Authority
+Authority=Apple Root CA
+TeamIdentifier=2XV97FZ86G
+{
+  "com.apple.application-identifier" => "2XV97FZ86G.com.bradcowdrey.meridian"
+  "com.apple.developer.team-identifier" => "2XV97FZ86G"
+  "com.apple.security.app-sandbox" => 1
+  "com.apple.security.application-groups" => [
+    0 => "2XV97FZ86G.com.bradcowdrey.meridian"
+  ]
+  "com.apple.security.network.client" => 1
+  "com.apple.security.personal-information.location" => 1
+}
+Packaged dist/Meridian-2.1.4.pkg (cloud-signed)

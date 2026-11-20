@@ -1,0 +1,17 @@
+[15:43:11]: [33mGet started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile[0m
+[15:43:11]: fastlane 2.242.0 (Ruby 4.0.9, homebrew)
+[15:43:12]: [32m------------------------------[0m
+[15:43:12]: [32m--- Step: default_platform ---[0m
+[15:43:12]: [32m------------------------------[0m
+[15:43:12]: [32mDriving the lane 'mac revoke_installer_cert' 🚀[0m
+[15:43:12]: No installer certificate to revoke
+
++---------------------------------------+
+|           [32mfastlane summary[0m            |
++------+------------------+-------------+
+| Step | Action           | Time (in s) |
++------+------------------+-------------+
+| 1    | default_platform | 0           |
++------+------------------+-------------+
+
+[15:43:12]: [32mfastlane.tools finished successfully 🎉[0m

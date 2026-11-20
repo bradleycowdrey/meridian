@@ -1,0 +1,9 @@
+Meridian is on the Mac App Store.
+
+City photos: each row shows its city by day or by night there, framed on its skyline, with hour tiles in blues and a larger Now tile outlined down every city.
+
+Every city has a status: Working, Off hours, Weekend, Day off or the holiday's name. Public holidays count as days off in every country.
+
+Desktop widgets in small, medium and large fill themselves: with fewer cities, the rows grow to fill the widget.
+
+Soft edges on every city row and hour tile.

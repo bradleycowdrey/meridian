@@ -1,0 +1,217 @@
+Mac App Store build: com.bradcowdrey.meridian 2.1.4 (291)
+0%: Compute target dependency graph
+Building targets in dependency order
+Target dependency graph (2 targets)
+0%: Gather provisioning inputs
+0%: Create build description
+0%: Discovering version info for clang
+0%: Discovering version info for swiftc
+0%: Discovering version info for ld
+Build description signature: 0c954794e3583789c904b2aca70b5a1b
+
+Build description path: /Users/runner/work/meridian/meridian/.build/appstore/apple/Intermediates.noindex/XCBuildData/0c954794e3583789c904b2aca70b5a1b.xcbuilddata
+
+0%: Create build directory $(TARGET_BUILD_DIR)
+0%: Create build directory $(OBJROOT)
+0%: Create build directory $(OBJROOT)/SwiftExplicitPrecompiledModules
+0%: Build stat cache for /Applications/Xcode_26.3.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk
+0%: Create build directory $(OBJROOT)/ExplicitPrecompiledModules
+0%: Create build directory $(TARGET_BUILD_DIR)/Release
+0%: Create build directory $(OBJROOT)/EagerLinkingTBDs/Release
+0%: Create build directory $(TARGET_BUILD_DIR)/Release/PackageFrameworks
+0%: Write Meridian_const_extract_protocols.json (x86_64)
+0%: Write Meridian.SwiftFileList (x86_64)
+0%: Write Meridian.LinkFileList (x86_64)
+0%: Write Meridian-OutputFileMap.json (x86_64)
+0%: Write Meridian_const_extract_protocols.json (arm64)
+0%: Write Meridian.SwiftFileList (arm64)
+0%: Write Meridian.LinkFileList (arm64)
+0%: Write Meridian-OutputFileMap.json (arm64)
+0%: Write Meridian.DependencyStaticMetadataFileList
+0%: Write Meridian.DependencyMetadataFileList
+51%: Planning Swift module Meridian (arm64)
+51%: Planning Swift module Meridian (x86_64)
+53%: Compile Meridian (x86_64)
+53%: Compiling Clang module _Builtin_float
+53%: Compiling Clang module DeveloperToolsSupport
+53%: Compiling Clang module SwiftShims
+20%: Compiling Clang module ptrauth
+20%: Compiling Clang module ptrcheck
+20%: Compiling Clang module _Builtin_stdbool
+20%: Compiling Clang module _SwiftConcurrencyShims
+17%: Compiling Clang module ActivityKit
+17%: Compiling Clang module _AvailabilityInternal
+17%: Compiling Clang module _Builtin_stdarg
+17%: Compiling Clang module _Builtin_stddef
+17%: Compile Meridian (arm64)
+17%: Compiling Clang module _AvailabilityInternal
+16%: Compiling Clang module ptrcheck
+16%: Compiling Clang module _Builtin_stdarg
+16%: Compiling Clang module _Builtin_float
+16%: Compiling Clang module _DarwinFoundation1
+16%: Compiling Clang module ActivityKit
+16%: Compiling Clang module _Builtin_stddef
+16%: Compiling Clang module _DarwinFoundation1
+21%: Compiling Clang module _SwiftConcurrencyShims
+21%: Compiling Clang module _DarwinFoundation2
+21%: Compiling Clang module ExtensionFoundation
+21%: Compiling Clang module ptrauth
+21%: Compiling Clang module _DarwinFoundation2
+23%: Compiling Clang module _Builtin_stdbool
+23%: Compiling Clang module _Builtin_limits
+23%: Compiling Clang module _Builtin_tgmath
+23%: Compiling Clang module _Builtin_stdint
+23%: Compiling Clang module sys_types
+23%: Compiling Clang module sys_types
+26%: Compiling Clang module _Builtin_stdint
+26%: Compiling Clang module _DarwinFoundation3
+26%: Compiling Clang module _Builtin_tgmath
+26%: Compiling Clang module _Builtin_stdatomic
+26%: Compiling Clang module _DarwinFoundation3
+26%: Compiling Clang module OpenGL
+29%: Compiling Clang module _Builtin_stdatomic
+29%: Compiling Clang module _Builtin_intrinsics
+29%: Compiling Clang module _Builtin_inttypes
+29%: Compiling Clang module libDER
+32%: Compiling Clang module _Builtin_intrinsics
+32%: Compiling Clang module OpenGL
+32%: Compiling Clang module Darwin
+33%: Compiling Clang module _Builtin_inttypes
+33%: Compiling Clang module SwiftShims
+33%: Compiling Clang module DeveloperToolsSupport
+35%: Compiling Clang module _Builtin_limits
+35%: Compiling Clang module ExtensionFoundation
+35%: Compiling Clang module simd
+35%: Compiling Clang module Darwin
+35%: Compiling Clang module simd
+37%: Compiling Clang module launch
+38%: Compiling Clang module libkern
+38%: Compiling Clang module Spatial
+38%: Compiling Clang module launch
+38%: Compiling Clang module CUPS
+40%: Compiling Clang module CUPS
+40%: Compiling Clang module MachO
+41%: Compiling Clang module MachO
+41%: Compiling Clang module Spatial
+41%: Compiling Clang module libkern
+41%: Compiling Clang module ObjectiveC
+43%: Compiling Clang module ObjectiveC
+43%: Compiling Clang module libDER
+43%: Compiling Clang module os_object
+45%: Compiling Clang module os_object
+45%: Compiling Clang module os_workgroup
+45%: Compiling Clang module os_workgroup
+45%: Compiling Clang module Dispatch
+47%: Compiling Clang module Dispatch
+47%: Compiling Clang module XPC
+47%: Compiling Clang module CoreFoundation
+47%: Compiling Clang module dnssd
+47%: Compiling Clang module XPC
+49%: Compiling Clang module dnssd
+49%: Compiling Clang module os
+49%: Compiling Clang module CoreFoundation
+49%: Compiling Clang module os
+49%: Compiling Clang module IOKit
+52%: Compiling Clang module Security
+52%: Compiling Clang module CFNetwork
+52%: Compiling Clang module IOKit
+54%: Compiling Clang module ColorSync
+54%: Compiling Clang module ColorSync
+55%: Compiling Clang module Security
+55%: Compiling Clang module CoreGraphics
+55%: Compiling Clang module DiskArbitration
+56%: Compiling Clang module DiskArbitration
+56%: Compiling Clang module ImageIO
+56%: Compiling Clang module CoreGraphics
+56%: Compiling Clang module CoreText
+58%: Compiling Clang module CoreServices
+58%: Compiling Clang module CFNetwork
+58%: Compiling Clang module CoreText
+60%: Compiling Clang module ImageIO
+60%: Compiling Clang module CoreServices
+61%: Compiling Clang module Foundation
+61%: Compiling Clang module Foundation
+62%: Compiling Clang module DataDetection
+62%: Compiling Clang module Symbols
+62%: Compiling Clang module WidgetKit
+62%: Compiling Clang module ApplicationServices
+62%: Compiling Clang module RelevanceKit
+62%: Compiling Clang module CoreData
+62%: Compiling Clang module UserNotifications
+66%: Compiling Clang module LocalAuthentication
+66%: Compiling Clang module CoreTransferable
+66%: Compiling Clang module ServiceManagement
+66%: Compiling Clang module IOSurface
+68%: Compiling Clang module RelevanceKit
+68%: Compiling Clang module Accessibility
+68%: Compiling Clang module Symbols
+68%: Compiling Clang module Network
+68%: Compiling Clang module Metal
+70%: Compiling Clang module AppIntents
+70%: Compiling Clang module AppIntents
+70%: Compiling Clang module DataDetection
+70%: Compiling Clang module CoreData
+72%: Compiling Clang module _LocationEssentials
+72%: Compiling Clang module UniformTypeIdentifiers
+72%: Compiling Clang module CoreLocation
+74%: Compiling Clang module CoreVideo
+74%: Compiling Clang module OSLog
+74%: Compiling Clang module CoreSpotlight
+76%: Compiling Clang module _LocationEssentials
+76%: Compiling Clang module CoreImage
+76%: Compiling Clang module QuartzCore
+76%: Compiling Clang module CoreLocation
+76%: Compiling Clang module Intents
+78%: Compiling Clang module CoreTransferable
+78%: Compiling Clang module ServiceManagement
+78%: Compiling Clang module SwiftUICore
+78%: Compiling Clang module AppKit
+80%: Compiling Clang module LocalAuthentication
+80%: Compiling Clang module Accessibility
+80%: Compiling Clang module WidgetKit
+82%: Compiling Clang module Network
+82%: Compiling Clang module IOSurface
+83%: Compiling Clang module UniformTypeIdentifiers
+83%: Compiling Clang module OSLog
+83%: Compiling Clang module CoreSpotlight
+83%: Compiling Clang module ApplicationServices
+85%: Compiling Clang module UserNotifications
+85%: Compiling Clang module Metal
+85%: Compiling Clang module Intents
+87%: Compiling Clang module SwiftUI
+87%: Compiling Clang module CoreVideo
+87%: Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift
+87%: Compile 23 Swift source files (arm64)
+88%: Compiling Clang module QuartzCore
+88%: Compiling Clang module CoreImage
+89%: Compiling Clang module SwiftUICore
+89%: Compiling Clang module AppKit
+90%: Compiling Clang module SwiftUI
+90%: Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift
+90%: Compile 23 Swift source files (x86_64)
+92%: Discovering Swift tasks after 'Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift'
+92%: Unblock downstream dependents of Meridian (arm64)
+92%: Link Meridian (arm64)
+92%: Copy Meridian.swiftmodule (arm64)
+92%: Copy Meridian.swiftdoc (arm64)
+92%: Copy Meridian.abi.json (arm64)
+92%: Copy Meridian.swiftsourceinfo (arm64)
+95%: Discovering Swift tasks after 'Compiling Brand.swift, MeridianApp.swift, CityDirectory.swift, Continent.swift, FunctionalTest.swift, Holidays.swift, MyLocation.swift, Place.swift, SelfTest.swift, Sun.swift, Terms.swift, TermsVersion.swift, Updater.swift, WidgetRegistration.swift, WorkWeek.swift, ZoneStore.swift, MacSkylines.swift, WidgetContent.swift, WorkHoursEditor.swift, ClockPanel.swift, Palette.swift, SettingsView.swift, StripView.swift'
+95%: Unblock downstream dependents of Meridian (x86_64)
+95%: Copy Meridian.swiftmodule (x86_64)
+95%: Copy Meridian.swiftdoc (x86_64)
+95%: Link Meridian (x86_64)
+95%: Copy Meridian.abi.json (x86_64)
+95%: Copy Meridian.swiftsourceinfo (x86_64)
+98%: Create universal binary Meridian
+98%: Generate Meridian.dSYM for Meridian
+99%: Register execution policy exception for Meridian
+100%: Build succeeded
+Build complete!
+Profile for com.bradcowdrey.meridian.widget: Meridian Mac App Store com.bradcowdrey.meridian.widget 20261118183130 (expires Tue Oct 26 20:39:03 UTC 2027)
+Profile for com.bradcowdrey.meridian: Meridian Mac App Store com.bradcowdrey.meridian 20261118183129 (expires Tue Oct 26 20:39:03 UTC 2027)
+dist/Meridian.app/Contents/PlugIns/MeridianWidget.appex: replacing existing signature
+dist/Meridian.app: replacing existing signature
+dist/Meridian.app: valid on disk
+dist/Meridian.app: satisfies its Designated Requirement
+Built dist/Meridian.app for the Mac App Store (com.bradcowdrey.meridian 2.1.4 build 291)

@@ -1,2 +1,2 @@
 2.1.4 submit
-# Mac App Store: "<version> build|upload|submit|status" (docs/versioning.md). Changing this file on main runs .github/workflows/mac-appstore.yml. (after approval)
+# Mac App Store: "<version> build|upload|submit|status" (docs/versioning.md). Changing this file on main runs .github/workflows/mac-appstore.yml. (submit, retry)

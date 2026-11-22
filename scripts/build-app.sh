@@ -110,10 +110,10 @@ else
   sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Widget-Info.plist > "$APPEX/Contents/Info.plist"
 fi
 
-# The widget is sandboxed: it reads its own smaller copies (600 px wide).
+# The widget is sandboxed: it reads its own smaller copies (1200 px wide: a 3:1 plate is then 400 px tall, enough for the square small widget at 2x).
 mkdir -p "$APPEX/Contents/Resources/Skylines"
 for f in "$APP/Contents/Resources/Skylines"/*.jpg; do
-  sips -Z 600 -s format jpeg -s formatOptions 72 "$f" --out "$APPEX/Contents/Resources/Skylines/$(basename "$f")" >/dev/null
+  sips -Z 1200 -s format jpeg -s formatOptions 76 "$f" --out "$APPEX/Contents/Resources/Skylines/$(basename "$f")" >/dev/null
 done
 cp Resources/Data/skylines.json "$APPEX/Contents/Resources/skylines.json"
 # The cities' public holidays, for the widget's status (Holidays loads from the appex's bundle).

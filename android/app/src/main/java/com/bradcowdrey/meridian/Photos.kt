@@ -32,7 +32,7 @@ data class PhotoCredit(val author: String, val license: String, val licenseUrl: 
 /**
  * The skyline photos built into the app: Resources/Data/skylines.json (written by the photo pipeline:
  * key, names and aliases, time zone, file, credit, "focus", from v2 `night`: {file, credit, focus} or null,
- * and from v3 "focusX" beside each "focus"), each a drawable "skyline_<key>" (the day photo) and, where
+ * and from v3 "focusX" beside each "focus", and optionally "top", the landmark's tip, 0..1 down the photo), each a drawable "skyline_<key>" (the day photo) and, where
  * there is one, "skyline_<key>_night". v1 and v2 are a bare array of entries; v3 is an object with
  * "version": 3 and the entries under one array-valued key ([readEntries]). Until the manifest lands (or
  * for a key it leaves out) the four original photos still work. A v1 manifest (no `night`) still reads:
@@ -41,19 +41,25 @@ data class PhotoCredit(val author: String, val license: String, val licenseUrl: 
 object SkylineManifest {
     /**
      * [focus] / [nightFocus]: the manifest's "focus" for the day photo and "night"."focus"; [focusX] / [nightFocusX]:
-     * its "focusX" (v3: the landmark's place across the photo) for each (null when it has none).
+     * its "focusX" (v3: the landmark's place across the photo) for each (null when it has none); [top] / [nightTop]:
+     * its "top" (the landmark's tip, 0..1 down the photo) for each (null when it has none: no tip rule).
      */
     data class Entry(val key: String, val names: List<String>, val zone: String?, val credit: PhotoCredit?, val nightCredit: PhotoCredit? = null,
-        val focus: Float? = null, val nightFocus: Float? = null, val focusX: Float? = null, val nightFocusX: Float? = null)
+        val focus: Float? = null, val nightFocus: Float? = null, val focusX: Float? = null, val nightFocusX: Float? = null,
+        val top: Float? = null, val nightTop: Float? = null)
 
     /**
      * A built-in photo for a card: its key, its day drawable, and its night one (0 for none), with where each
      * photo's skyline is ([focus] / [nightFocus]: 0..1 down the photo; [PhotoFocus.DEFAULT] when the manifest has none)
      * and its landmark ([focusX] / [nightFocusX]: 0..1 across the photo; [PhotoFocus.DEFAULT_X], the centre, when it has none).
+     * [plate] / [nightPlate]: the manifest gave that photo a focusX (an AI plate: its landmark goes to the clear right-hand
+     * column of a small widget, not the centre). [top] / [nightTop]: the landmark's tip, 0..1 down the photo (null: no tip rule).
      */
     data class Photo(val key: String, val resId: Int, val nightResId: Int = 0,
         val focus: Float = PhotoFocus.DEFAULT, val nightFocus: Float = PhotoFocus.DEFAULT,
-        val focusX: Float = PhotoFocus.DEFAULT_X, val nightFocusX: Float = PhotoFocus.DEFAULT_X)
+        val focusX: Float = PhotoFocus.DEFAULT_X, val nightFocusX: Float = PhotoFocus.DEFAULT_X,
+        val plate: Boolean = false, val nightPlate: Boolean = false,
+        val top: Float? = null, val nightTop: Float? = null)
 
     private val fallback = listOf(
         Entry("sanfrancisco", listOf("San Francisco"), "America/Los_Angeles",
@@ -129,12 +135,13 @@ object SkylineManifest {
                 if (key.isEmpty()) return@mapNotNull null
                 val names = o.optJSONArray("names")?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() } } ?: emptyList()
                 val credit = o.optJSONObject("credit")?.let { creditOf(it) }
-                // v2: "night": {file, credit, focus} or null (v1 has no "night"); v3 adds "focusX" there too.
+                // v2: "night": {file, credit, focus} or null (v1 has no "night"); v3 adds "focusX" (and optionally "top") there too.
                 val night = o.optJSONObject("night")
                 val nightCredit = night?.optJSONObject("credit")?.let { creditOf(it) }
                 Entry(key, names, str(o, "zone").ifBlank { null }, credit, nightCredit,
                     focus = PhotoFocus.read(o), nightFocus = night?.let { PhotoFocus.read(it) },
-                    focusX = PhotoFocus.readX(o), nightFocusX = night?.let { PhotoFocus.readX(it) })
+                    focusX = PhotoFocus.readX(o), nightFocusX = night?.let { PhotoFocus.readX(it) },
+                    top = PhotoFocus.readTop(o), nightTop = night?.let { PhotoFocus.readTop(it) })
             }
         }.getOrDefault(emptyList())
     }
@@ -172,7 +179,9 @@ object SkylineManifest {
         val id = resId(context, match.key)
         return if (id != 0) Photo(match.key, id, resId(context, match.key, night = true),
             focus = match.focus ?: PhotoFocus.DEFAULT, nightFocus = match.nightFocus ?: PhotoFocus.DEFAULT,
-            focusX = match.focusX ?: PhotoFocus.DEFAULT_X, nightFocusX = match.nightFocusX ?: PhotoFocus.DEFAULT_X) else null
+            focusX = match.focusX ?: PhotoFocus.DEFAULT_X, nightFocusX = match.nightFocusX ?: PhotoFocus.DEFAULT_X,
+            plate = match.focusX != null, nightPlate = match.nightFocusX != null,
+            top = match.top, nightTop = match.nightTop) else null
     }
 
     /** The built-in photos in this build, with their credits (Photo Credits): each day photo, then its night one. */
@@ -190,13 +199,19 @@ object SkylineManifest {
  * hour tiles; the middle of a small single-city widget), clamped so the photo still covers (no empty edge). Only when
  * that clamp keeps the landmark off the target is it zoomed, at most [MAX_ZOOM] times the cover scale, just enough
  * to reach it. Down: moved so the point [focus] of the way down the photo (the skyline, from the manifest; [DEFAULT]
- * without one) is at the middle of the height, clamped so it still covers.
+ * without one) is at the middle of the height; then, when the manifest gives the landmark's tip ("top", 0..1 down the
+ * photo), moved down as far as needed for the tip to sit at least [TIP_MARGIN] of the height below the frame's top edge;
+ * then clamped so it still covers (scripts/plate-fit.py geometry()).
  */
 object PhotoFocus {
     /** Where the skyline is when the manifest doesn't say (downloaded photos, old manifests). */
     const val DEFAULT = 0.62f
     /** Where the landmark is when the manifest doesn't say (downloaded photos, v1/v2 manifests): the centre. */
     const val DEFAULT_X = 0.5f
+    /** Where across a small single-city widget an AI plate's landmark goes: the clear right-hand column. */
+    const val SQUARE_TARGET_X = 0.78f
+    /** The least room (a fraction of the frame's height) between the frame's top edge and the landmark's tip. */
+    const val TIP_MARGIN = 0.08f
     private const val MAX_ZOOM = 1.15f
 
     /** An object's "focus" (0..1), or null when it has none. */
@@ -205,7 +220,11 @@ object PhotoFocus {
     /** An object's "focusX" (0..1, v3), or null when it has none. */
     fun readX(o: JSONObject): Float? = number(o, "focusX")
 
-    private fun number(o: JSONObject, name: String): Float? {
+    /** An object's "top" (0..1, the landmark's tip down the photo), or null when it has none. */
+    fun readTop(o: JSONObject): Float? = number(o, "top")
+
+    /** A number field (0..1), or null when it's missing, JSON null or not a number. */
+    fun number(o: JSONObject, name: String): Float? {
         val v = o.optDouble(name, Double.NaN)
         return if (v.isNaN()) null else v.toFloat().coerceIn(0f, 1f)
     }
@@ -216,9 +235,11 @@ object PhotoFocus {
     /**
      * The photo ([iw] by [ih]) drawn in a [w] by [h] box: its scale and its top-left offset in the box
      * (floatArrayOf(scale, offX, offY)). [targetX]: where across the box (px) the landmark goes; null for the
-     * box's middle. [landmark]: the landmark's place across the photo (0..1).
+     * box's middle. [landmark]: the landmark's place across the photo (0..1). [tip]: the landmark's tip, 0..1 down the
+     * photo (the manifest's "top"; null for no tip rule).
      */
-    fun place(iw: Float, ih: Float, w: Float, h: Float, focus: Float, targetX: Float? = null, landmark: Float = DEFAULT_X): FloatArray {
+    fun place(iw: Float, ih: Float, w: Float, h: Float, focus: Float, targetX: Float? = null, landmark: Float = DEFAULT_X,
+        tip: Float? = null): FloatArray {
         if (iw <= 0f || ih <= 0f) return floatArrayOf(1f, 0f, 0f)
         val cover = maxOf(w / iw, h / ih)
         val t = (targetX ?: (w / 2f)).coerceIn(0f, w)
@@ -231,15 +252,22 @@ object PhotoFocus {
         val s = (maxOf(needLeft, needRight) / iw).coerceIn(cover, cover * MAX_ZOOM)
         val dw = iw * s
         val dh = ih * s
-        return floatArrayOf(s, left(dw, w, t, l), top(dh, h, focus))
+        return floatArrayOf(s, left(dw, w, t, l), top(dh, h, focus, tip))
     }
 
     /** The left of a photo drawn [dw] wide in a box [w] wide: its point [landmark] of the way across at [targetX], still covering. */
     fun left(dw: Float, w: Float, targetX: Float, landmark: Float): Float =
         clampTo(targetX - landmark.coerceIn(0f, 1f) * dw, w - dw)
 
-    /** The top of a photo drawn [dh] high in a box [h] high: its point [focus] of the way down at the middle, still covering. */
-    fun top(dh: Float, h: Float, focus: Float): Float = clampTo(h / 2f - focus.coerceIn(0f, 1f) * dh, h - dh)
+    /**
+     * The top of a photo drawn [dh] high in a box [h] high: its point [focus] of the way down at the middle; then, with a
+     * [tip] (0..1 down the photo), no higher than keeps the tip [TIP_MARGIN] of [h] below the top edge; still covering.
+     */
+    fun top(dh: Float, h: Float, focus: Float, tip: Float? = null): Float {
+        var y = h / 2f - focus.coerceIn(0f, 1f) * dh
+        if (tip != null) y = maxOf(y, TIP_MARGIN * h - tip.coerceIn(0f, 1f) * dh)
+        return clampTo(y, h - dh)
+    }
 }
 
 /**
@@ -634,10 +662,14 @@ object WidgetPhotos {
     /**
      * A card's photo: [key] names the copy; [resId] (built in) or [slug] (downloaded) is where it came from.
      * [night]: the city has a night photo too (copied as <key>-night.jpg; built in from [nightResId]).
+     * [plate] / [nightPlate]: the manifest gave that photo a focusX (the small widget's landmark goes to
+     * PhotoFocus.SQUARE_TARGET_X); [top] / [nightTop]: its landmark's tip, 0..1 down the photo (null: no tip rule).
      */
     data class Ref(val key: String, val focus: Float, val resId: Int = 0, val slug: String? = null,
         val nightResId: Int = 0, val night: Boolean = false, val nightFocus: Float = PhotoFocus.DEFAULT,
-        val focusX: Float = PhotoFocus.DEFAULT_X, val nightFocusX: Float = PhotoFocus.DEFAULT_X)
+        val focusX: Float = PhotoFocus.DEFAULT_X, val nightFocusX: Float = PhotoFocus.DEFAULT_X,
+        val plate: Boolean = false, val nightPlate: Boolean = false,
+        val top: Float? = null, val nightTop: Float? = null)
 
     fun dir(context: Context): File = File(context.filesDir, DIR).apply { mkdirs() }
 
@@ -650,7 +682,8 @@ object WidgetPhotos {
         val city = city(context, place)
         SkylineManifest.photo(context, city, place.zoneId)?.let {
             return Ref(it.key, it.focus, resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0, nightFocus = it.nightFocus,
-                focusX = it.focusX, nightFocusX = it.nightFocusX)
+                focusX = it.focusX, nightFocusX = it.nightFocusX, plate = it.plate, nightPlate = it.nightPlate,
+                top = it.top, nightTop = it.nightTop)
         }
         val slug = CityPhotos.slug(city, place.zoneId)
         if (CityPhotos.file(context, slug) != null) return Ref("dl-$slug", PhotoFocus.DEFAULT, slug = slug, night = CityPhotos.nightFile(context, slug) != null)
@@ -699,9 +732,16 @@ object WidgetPhotos {
         }
         runCatching {
             val map = JSONObject()
-            refs.forEach { (id, r) -> map.put(id, JSONObject().put("key", r.key).put("focus", r.focus.toDouble())
-                .put("nightFocus", r.nightFocus.toDouble()).put("night", r.night)
-                .put("focusX", r.focusX.toDouble()).put("nightFocusX", r.nightFocusX.toDouble())) }
+            refs.forEach { (id, r) ->
+                val e = JSONObject().put("key", r.key).put("focus", r.focus.toDouble())
+                    .put("nightFocus", r.nightFocus.toDouble()).put("night", r.night)
+                    .put("focusX", r.focusX.toDouble()).put("nightFocusX", r.nightFocusX.toDouble())
+                    .put("plate", r.plate).put("nightPlate", r.nightPlate)
+                // The tips only where the manifest has them (missing: no tip rule).
+                r.top?.let { e.put("top", it.toDouble()) }
+                r.nightTop?.let { e.put("nightTop", it.toDouble()) }
+                map.put(id, e)
+            }
             val tmp = File(folder, "$MAP.part")
             tmp.writeText(map.toString())
             if (!tmp.renameTo(File(folder, MAP))) tmp.delete()
@@ -721,7 +761,10 @@ object WidgetPhotos {
                 nightFocus = e.optDouble("nightFocus", PhotoFocus.DEFAULT.toDouble()).toFloat(),
                 // A map.json from before v3 has no focusX: the centre, as before.
                 focusX = PhotoFocus.readX(e) ?: PhotoFocus.DEFAULT_X,
-                nightFocusX = e.optDouble("nightFocusX", PhotoFocus.DEFAULT_X.toDouble()).toFloat().coerceIn(0f, 1f))
+                nightFocusX = e.optDouble("nightFocusX", PhotoFocus.DEFAULT_X.toDouble()).toFloat().coerceIn(0f, 1f),
+                // Older map.json files have neither: no plate target and no tip rule, as before.
+                plate = e.optBoolean("plate"), nightPlate = e.optBoolean("nightPlate"),
+                top = PhotoFocus.readTop(e), nightTop = PhotoFocus.number(e, "nightTop"))
         }.toMap()
     }.getOrDefault(emptyMap())
 

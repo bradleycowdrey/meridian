@@ -7,19 +7,22 @@ PLATES_DIR holds <key>-day.jpg and <key>-night.jpg per city (1536x512, 3:1; <key
 Resources/Data/skylines.json, e.g. newyork). For each city with plates:
 
   1. The NIGHT plate is measured with scripts/plate-focus.py's measure(): focusX (the landmark's
-     horizontal position, 0-1) and focus (the skyline band's vertical centre, 0-1). Day and night
-     plates of a city share their framing, so the night reading is used for both (lit towers stand
-     out from a dark sky more reliably than from a bright one). A reading flagged check=true keeps
-     focusX 0.38 (the plates' composition rule) and prints a warning: look at that plate.
+     horizontal position, 0-1), focus (the skyline band's vertical centre, 0-1) and landmarkTop
+     (the height of the landmark's tip, 0-1), written as "top". Day and night plates of a city
+     share their framing, so the night reading is used for both (lit towers stand out from a dark
+     sky more reliably than from a bright one). A reading flagged check=true keeps focusX 0.38 and
+     top 0.40 (the plates' composition rule) and prints a warning: look at that plate.
   2. The plates are written to
        ios/Meridian/Assets.xcassets/Skyline-<key>.imageset/skyline-<key>.jpg       (+ Contents.json)
        ios/Meridian/Assets.xcassets/Skyline-<key>-night.imageset/skyline-<key>-night.jpg
        android/app/src/main/res/drawable-nodpi/skyline_<key>.jpg and skyline_<key>_night.jpg
      (the Mac app copies the Android JPEGs at build time, scripts/build-app.sh).
   3. Resources/Data/skylines.json is rewritten as {"version": 3, "cities": [...]}: every entry keeps
-     its key/names/zone; imported cities get file/credit/focus/focusX and night {file, credit, focus,
-     focusX} with the AI credit. Cities without plates in PLATES_DIR keep their photos and entry
-     untouched (only a missing "focusX" is added, as 0.5, the photo's centre).
+     its key/names/zone; imported cities get file/credit/focus/focusX/top and night {file, credit,
+     focus, focusX, top} with the AI credit. Cities without plates in PLATES_DIR keep their photos
+     and entry untouched: no "focusX" or "top" is added. The apps read a missing focusX as 0.5 (the
+     photo's centre) and apply no tip rule without "top"; the presence of "focusX" is also how they
+     tell an AI plate (landmark into the square widget's right-hand column) from an old photo.
 
 A city with only a day plate is imported with "night": null and its old night photo removed (a
 night photo with different framing would not line up with the new day plate). A city with only a
@@ -41,8 +44,8 @@ PLATE_SIZE = (1536, 512)
 JPEG_QUALITY = 74          # progressive; stepped down (not below JPEG_MIN_QUALITY) while over MAX_BYTES
 JPEG_MIN_QUALITY = 52
 MAX_BYTES = 200 * 1024
-DEFAULT_FOCUS_X = 0.5      # v2 entries (no focusX): the photo's centre
 PLATE_FOCUS_X = 0.38       # the plates' composition rule: the landmark at 38% of the width
+PLATE_TOP = 0.40           # ... and its tip at about 40% of the height
 AI_CREDIT = {"author": "Generated with AI for Meridian", "license": "AI-generated image", "source": ""}
 IMAGESET_CONTENTS = {"images": [{"filename": None, "idiom": "universal"}], "info": {"author": "xcode", "version": 1}}
 
@@ -135,15 +138,6 @@ def remove_android(drawables, res_name):
             os.remove(os.path.join(drawables, f))
 
 
-def add_missing_focus_x(entry):
-    """A kept (v2) entry: focusX 0.5 where it is missing, day and night; nothing else changes."""
-    if not isinstance(entry.get("focusX"), (int, float)):
-        entry["focusX"] = DEFAULT_FOCUS_X
-    night = entry.get("night")
-    if isinstance(night, dict) and not isinstance(night.get("focusX"), (int, float)):
-        night["focusX"] = DEFAULT_FOCUS_X
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("plates", help="folder of <key>-day.jpg / <key>-night.jpg plates (1536x512)")
@@ -173,7 +167,7 @@ def main():
         raise SystemExit(f"no usable plates in {args.plates}")
 
     measure = load_measure()
-    plan = {}  # key -> (day image, night image | None, focusX, focus)
+    plan = {}  # key -> (day image, night image | None, focusX, focus, top)
     for key in sorted(todo):
         p = todo[key]
         try:
@@ -188,29 +182,31 @@ def main():
             probe = os.path.join(tmp, f"{key}.png")
             src.save(probe)
             m = measure(probe)
-        fx, fy = float(m["focusX"]), float(m["focus"])
+        fx, fy, top = float(m["focusX"]), float(m["focus"]), float(m["landmarkTop"])
         which = "night" if night is not None else "day"
         if m.get("check"):
-            fx = PLATE_FOCUS_X
-            warn(f"{key}: landmark not found on the {which} plate; focusX kept at {PLATE_FOCUS_X}. Check it with plate-fit.py")
+            # the tip reading belongs to the same misdetection, so it is replaced too
+            fx, top = PLATE_FOCUS_X, PLATE_TOP
+            warn(f"{key}: landmark not found on the {which} plate; focusX kept at {PLATE_FOCUS_X:.2f}, top at {PLATE_TOP:.2f}. "
+                 "Check it with plate-fit.py")
         if night is None:
             warn(f"{key}: no night plate; measured the day plate, night set to null (the old night photo is removed)")
-        plan[key] = (day, night, round(fx, 3), round(fy, 3))
-        print(f"{key:16} focusX {fx:.3f}  focus {fy:.3f}  (from {which}{', CHECK' if m.get('check') else ''})"
+        plan[key] = (day, night, round(fx, 3), round(fy, 3), round(top, 3))
+        print(f"{key:16} focusX {fx:.3f}  focus {fy:.3f}  top {top:.3f}  (from {which}{', CHECK' if m.get('check') else ''})"
               f"  landmarkTop {m.get('landmarkTop')}  skyline {m.get('skyline')}")
 
     kept = [e.get("key") for e in entries if e.get("key") not in plan]
-    print(f"\n{len(plan)} cities to import, {len(kept)} kept as they are (focusX 0.5 added where missing)")
+    print(f"\n{len(plan)} cities to import, {len(kept)} kept as they are")
     if args.dry_run:
         for key in sorted(plan):
-            day, night, fx, fy = plan[key]
+            day, night, fx, fy, top = plan[key]
             print(f"  {key}: Skyline-{key}.imageset, skyline_{key}.jpg"
                   + (f"; Skyline-{key}-night.imageset, skyline_{key}_night.jpg" if night is not None else "; night: null"))
         print(f"  {manifest_path}: version 3, {len(entries)} cities")
         print("dry run: nothing written")
         return
 
-    for key, (day, night, fx, fy) in sorted(plan.items()):
+    for key, (day, night, fx, fy, top) in sorted(plan.items()):
         size = write_imageset(assets, f"Skyline-{key}", f"skyline-{key}.jpg", day)
         remove_android(drawables, f"skyline_{key}")
         save_jpeg(day, os.path.join(drawables, f"skyline_{key}.jpg"))
@@ -226,13 +222,13 @@ def main():
     for e in entries:
         key = e.get("key")
         if key not in plan:
-            add_missing_focus_x(e)
             out.append(e)
             continue
-        _, night, fx, fy = plan[key]
+        _, night, fx, fy, top = plan[key]
         new = {k: e[k] for k in ("key", "names", "zone") if k in e}
-        new.update({"file": f"skyline-{key}.jpg", "credit": dict(AI_CREDIT), "focus": fy, "focusX": fx})
-        new["night"] = ({"file": f"skyline-{key}-night.jpg", "credit": dict(AI_CREDIT), "focus": fy, "focusX": fx}
+        new.update({"file": f"skyline-{key}.jpg", "credit": dict(AI_CREDIT), "focus": fy, "focusX": fx, "top": top})
+        new["night"] = ({"file": f"skyline-{key}-night.jpg", "credit": dict(AI_CREDIT), "focus": fy, "focusX": fx,
+                         "top": top}
                         if night is not None else None)
         out.append(new)
     tmp = manifest_path + ".tmp"

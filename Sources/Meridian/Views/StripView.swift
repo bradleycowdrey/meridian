@@ -53,9 +53,9 @@ struct StripView: View {
                 // its row and reaching a little past it on both sides.
                 VStack(spacing: rowSpacing) {
                     ForEach(store.places) { place in
-                        MacSkylineBackdrop(name: place.name, timeZoneID: place.timeZoneID,
-                                           latitude: place.latitude, longitude: place.longitude,
-                                           date: moment, maxPixel: 1536, targetX: photoTargetX)
+                        StripRowBackdrop(name: place.name, timeZoneID: place.timeZoneID,
+                                         latitude: place.latitude, longitude: place.longitude,
+                                         date: moment, maxPixel: 1536, targetX: photoTargetX)
                             .overlay(scrim(textEnd: ui.cardOutset + labelWidth, cardWidth: cardWidth))
                             .clipShape(RoundedRectangle(cornerRadius: ui.cardRadius, style: .continuous))
                             // The card's edge feathers out over a thin band (4 pt) into the panel
@@ -755,5 +755,142 @@ private struct ScrollWheelCatcher: NSViewRepresentable {
         deinit {
             if let monitor { NSEvent.removeMonitor(monitor) }
         }
+    }
+}
+
+/// A panel row's photo: the city's photo for the sun there at `date` (its night photo after dark,
+/// else its day photo darkened), over the sky gradient, decoded off the main thread and faded in.
+/// Placed by WidgetPhotoPlacement as the widgets place theirs: the landmark (skylines.json
+/// "focusX") on `targetX` (points from the card's leading edge: the clear gap between the label
+/// and the hour tiles), the skyline band ("focus") at the row's middle, and, for a photo whose
+/// manifest gives its landmark's tip ("top"), slid down until the tip sits at least 8% of the row
+/// below its top edge, so the landmark shows whole. Fills its frame; no scrim, no clip.
+private struct StripRowBackdrop: View {
+    let name: String
+    let timeZoneID: String
+    let latitude: Double?
+    let longitude: Double?
+    let date: Date
+    let maxPixel: Int
+    let targetX: CGFloat
+
+    private struct Shown {
+        let id: String
+        let image: CGImage
+        let dimmed: Bool
+        /// The shown photo's skyline band, 0 (top) to 1 (bottom).
+        let focus: CGFloat
+        /// The shown photo's landmark, 0 (left) to 1 (right).
+        let focusX: CGFloat
+        /// The shown photo's landmark tip, 0 (top) to 1 (bottom); nil: no tip rule.
+        let top: CGFloat?
+    }
+
+    @State private var shown: Shown?
+
+    private static let daySky = [Color(red: 61 / 255.0, green: 116 / 255.0, blue: 176 / 255.0),
+                                 Color(red: 28 / 255.0, green: 58 / 255.0, blue: 94 / 255.0)]
+    private static let nightSky = [Color(red: 20 / 255.0, green: 30 / 255.0, blue: 60 / 255.0),
+                                   Color(red: 10 / 255.0, green: 14 / 255.0, blue: 28 / 255.0)]
+
+    var body: some View {
+        let night = MacSkylines.wantsNight(timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, at: date)
+        let hasPhoto = MacSkylines.key(name: name, timeZoneID: timeZoneID) != nil
+        let wanted = hasPhoto ? "\(name)|\(timeZoneID)|\(night)|\(maxPixel)" : ""
+        ZStack {
+            LinearGradient(colors: night ? Self.nightSky : Self.daySky, startPoint: .top, endPoint: .bottom)
+            if let shown {
+                photo(shown)
+                    .id(shown.id)
+                    .transition(.opacity)
+            }
+        }
+        .clipped()
+        .animation(.easeInOut(duration: 0.35), value: shown?.id)
+        .task(id: wanted) {
+            guard hasPhoto else {
+                shown = nil
+                return
+            }
+            let city = name, zone = timeZoneID, size = maxPixel
+            // Already decoded (the panel was open before): show it at once, no fade.
+            if let ready = StripRowPhotoCache.shared.get(wanted) {
+                var instant = Transaction()
+                instant.disablesAnimations = true
+                withTransaction(instant) {
+                    shown = Self.makeShown(id: wanted, image: ready.image, nightPhoto: ready.nightPhoto,
+                                           dimmed: night && !ready.nightPhoto, name: city, zone: zone)
+                }
+                return
+            }
+            var nightImage: CGImage? = nil
+            if night {
+                nightImage = await MacSkylines.load(name: city, timeZoneID: zone, night: true, maxPixel: size)
+            }
+            let image: CGImage?
+            if let nightImage {
+                image = nightImage
+            } else {
+                image = await MacSkylines.load(name: city, timeZoneID: zone, night: false, maxPixel: size)
+            }
+            guard !Task.isCancelled else { return }
+            guard let image else {
+                shown = nil
+                return
+            }
+            let isNightPhoto = nightImage != nil
+            StripRowPhotoCache.shared.set(wanted, image: image, nightPhoto: isNightPhoto)
+            shown = Self.makeShown(id: wanted, image: image, nightPhoto: isNightPhoto,
+                                   dimmed: night && !isNightPhoto, name: city, zone: zone)
+        }
+    }
+
+    /// The manifest's numbers for the photo actually shown: after dark with no night photo that
+    /// is the day photo, so its day focus, landmark and tip.
+    private static func makeShown(id: String, image: CGImage, nightPhoto: Bool, dimmed: Bool,
+                                  name: String, zone: String) -> Shown {
+        Shown(id: id, image: image, dimmed: dimmed,
+              focus: MacSkylines.focus(name: name, timeZoneID: zone, night: nightPhoto),
+              focusX: MacSkylines.focusX(name: name, timeZoneID: zone, night: nightPhoto),
+              top: MacSkylines.top(name: name, timeZoneID: zone, night: nightPhoto))
+    }
+
+    private func photo(_ shown: Shown) -> some View {
+        GeometryReader { geo in
+            let fit = WidgetPhotoPlacement.place(imageWidth: CGFloat(shown.image.width),
+                                                 imageHeight: CGFloat(shown.image.height),
+                                                 in: geo.size, focus: shown.focus, landmarkX: shown.focusX,
+                                                 targetX: targetX, top: shown.top)
+            Image(decorative: shown.image, scale: 1)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: fit.size.width, height: fit.size.height)
+                .offset(x: fit.offset.x, y: fit.offset.y)
+        }
+        .overlay { if shown.dimmed { Color.black.opacity(0.45) } }
+        .clipped()
+    }
+}
+
+/// The row photos already decoded, by row ("name|zone|night|maxPixel"), so reopening the panel
+/// shows them at once instead of fading them in again. Holds references to MacSkylines' own
+/// decoded images; a few dozen at most.
+private final class StripRowPhotoCache: @unchecked Sendable {
+    static let shared = StripRowPhotoCache()
+    private let lock = NSLock()
+    private var entries: [String: (image: CGImage, nightPhoto: Bool)] = [:]
+    private let limit = 48
+
+    func get(_ id: String) -> (image: CGImage, nightPhoto: Bool)? {
+        lock.lock()
+        defer { lock.unlock() }
+        return entries[id]
+    }
+
+    func set(_ id: String, image: CGImage, nightPhoto: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        if entries.count >= limit { entries.removeAll() }
+        entries[id] = (image: image, nightPhoto: nightPhoto)
     }
 }

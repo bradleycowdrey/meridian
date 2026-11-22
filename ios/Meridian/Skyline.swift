@@ -44,7 +44,8 @@ struct SkylinePhotoCredit: Codable, Hashable {
 /// One city of Resources/Data/skylines.json (written by the photo pipeline): its photo's key
 /// (asset "Skyline-<key>", the day photo), the names it goes by, its time zone, the day photo's
 /// credit, and (manifest v2) its night photo (asset "Skyline-<key>-night"), or none. Manifest v3
-/// adds each photo's "focusX": where across it the city's landmark stands (0…1; missing: 0.5).
+/// adds each photo's "focusX": where across it the city's landmark stands (0…1; missing: 0.5), and
+/// optionally "top": how far down it the landmark's tip sits (0…1; missing: no tip rule).
 struct SkylineManifestEntry: Decodable {
     /// A city's night photo: its file, credit, skyline focus and landmark.
     struct Night: Decodable {
@@ -54,8 +55,10 @@ struct SkylineManifestEntry: Decodable {
         var focus: Double?
         /// Where across the night photo its landmark stands (0…1), or nil (v2: its centre).
         var focusX: Double?
+        /// How far down the night photo its landmark's tip sits (0…1), or nil (no tip rule).
+        var top: Double?
 
-        private enum CodingKeys: String, CodingKey { case file, credit, focus, focusX }
+        private enum CodingKeys: String, CodingKey { case file, credit, focus, focusX, top }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -63,6 +66,7 @@ struct SkylineManifestEntry: Decodable {
             credit = try? c.decodeIfPresent(SkylinePhotoCredit.self, forKey: .credit)
             focus = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focus))
             focusX = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focusX))
+            top = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .top))
         }
     }
 
@@ -77,8 +81,10 @@ struct SkylineManifestEntry: Decodable {
     var focus: Double?
     /// Where across the day photo its landmark stands (0…1), or nil (v2: its centre).
     var focusX: Double?
+    /// How far down the day photo its landmark's tip sits (0…1), or nil (no tip rule).
+    var top: Double?
 
-    private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus, focusX }
+    private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus, focusX, top }
 
     /// A focus within 0…1, or nil when missing or not a number.
     static func unitFocus(_ value: Double?) -> Double? {
@@ -96,6 +102,7 @@ struct SkylineManifestEntry: Decodable {
         night = try? c.decodeIfPresent(Night.self, forKey: .night)
         focus = Self.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focus))
         focusX = Self.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focusX))
+        top = Self.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .top))
     }
 }
 
@@ -163,6 +170,9 @@ struct SkylinePhoto {
     /// Where across the photo its landmark stands (0…1), from the manifest's "focusX"; nil for a
     /// downloaded photo or a v2 manifest (its centre).
     var focusX: Double? = nil
+    /// How far down the photo its landmark's tip sits (0…1), from the manifest's "top"; nil when
+    /// unknown (no tip rule: placed as before).
+    var top: Double? = nil
 }
 
 /// A credit as Settings → About → Photo Credits lists it.
@@ -272,7 +282,8 @@ enum SkylineArt {
     /// The card's day photo: bundled, else the one downloaded for it; nil to draw one.
     static func photo(for place: Place, downloaded: UIImage?) -> SkylinePhoto? {
         if let key = key(for: place), let image = UIImage(named: "Skyline-\(key)") {
-            return SkylinePhoto(id: "b:" + key, image: image, focus: byKey[key]?.focus, focusX: byKey[key]?.focusX)
+            return SkylinePhoto(id: "b:" + key, image: image, focus: byKey[key]?.focus, focusX: byKey[key]?.focusX,
+                                top: byKey[key]?.top)
         }
         if let downloaded { return SkylinePhoto(id: "d:" + slug(for: place), image: downloaded) }
         return nil
@@ -285,7 +296,7 @@ enum SkylineArt {
         if let key = key(for: place), UIImage(named: "Skyline-\(key)") != nil {
             return UIImage(named: "Skyline-\(key)-night").map {
                 SkylinePhoto(id: "b:" + key + "-night", image: $0, night: true, focus: byKey[key]?.night?.focus,
-                             focusX: byKey[key]?.night?.focusX)
+                             focusX: byKey[key]?.night?.focusX, top: byKey[key]?.night?.top)
             }
         }
         return downloaded.map { SkylinePhoto(id: "d:" + slug(for: place) + "-night", image: $0, night: true) }
@@ -403,17 +414,18 @@ enum SkylineArt {
     /// width; nil: its centre) lands on `targetX` (points from the card's left edge, the gap
     /// between its text and its tiles; nil: the card's centre), zoomed up to 15% beyond cover only
     /// when the photo's edge would otherwise stop the landmark short of it; moved up or down so the
-    /// point `focus` of the way down the photo sits at the card's vertical centre. Always clamped
-    /// so the photo covers the card.
+    /// point `focus` of the way down the photo sits at the card's vertical centre, then down as far
+    /// as needed to keep the landmark's tip (`top`, 0…1 of its height; nil: no rule) at least 8% of
+    /// the card's height below its top edge. Always clamped so the photo covers the card.
     static func photoRect(image: CGSize, in box: CGSize, focus: Double?, focusX: Double? = nil,
-                          targetX: CGFloat? = nil) -> CGRect {
+                          targetX: CGFloat? = nil, top: Double? = nil) -> CGRect {
         guard image.width > 0, image.height > 0, box.width > 0, box.height > 0 else {
             return CGRect(origin: .zero, size: box)
         }
         let fit = WidgetPhotoPlacement.place(imageWidth: image.width, imageHeight: image.height, in: box,
                                              focus: CGFloat(focus ?? defaultFocus),
                                              landmarkX: CGFloat(focusX ?? Double(WidgetPhotoPlacement.defaultLandmarkX)),
-                                             targetX: targetX)
+                                             targetX: targetX, top: top.map { CGFloat($0) })
         return CGRect(origin: fit.offset, size: fit.size)
     }
 
@@ -1012,31 +1024,37 @@ enum WidgetPhotoExport {
     /// A city's night photo's key in the index.
     nonisolated static func nightID(_ id: String) -> String { id + "|night" }
 
-    /// skylines.json's "focus" (how far down the photo its skyline band sits, 0…1) and "focusX"
-    /// (where across it its landmark stands, 0…1; v3) by photo id: "b:<key>" for a day photo,
-    /// "b:<key>-night" for a night one. Downloaded photos have none.
-    nonisolated private static let bundledPlacement: (focus: [String: Double], focusX: [String: Double]) = {
+    /// skylines.json's "focus" (how far down the photo its skyline band sits, 0…1), "focusX"
+    /// (where across it its landmark stands, 0…1; v3) and "top" (how far down it the landmark's
+    /// tip sits, 0…1; optional) by photo id: "b:<key>" for a day photo, "b:<key>-night" for a night
+    /// one. Downloaded photos have none.
+    nonisolated private static let bundledPlacement: (focus: [String: Double], focusX: [String: Double],
+                                                      top: [String: Double]) = {
         struct Night: Decodable {
             var focus: Double?
             var focusX: Double?
+            var top: Double?
         }
         struct Item: Decodable {
             var key: String?
             var focus: Double?
             var focusX: Double?
+            var top: Double?
             var night: Night?
         }
-        guard let list = SkylineManifestFile<Item>.bundled() else { return ([:], [:]) }
-        var focus: [String: Double] = [:], focusX: [String: Double] = [:]
+        guard let list = SkylineManifestFile<Item>.bundled() else { return ([:], [:], [:]) }
+        var focus: [String: Double] = [:], focusX: [String: Double] = [:], top: [String: Double] = [:]
         for item in list {
             guard let key = item.key else { continue }
             let day = "b:" + key, night = "b:" + key + "-night"
             if focus[day] == nil, let f = SkylineManifestEntry.unitFocus(item.focus) { focus[day] = f }
             if focusX[day] == nil, let f = SkylineManifestEntry.unitFocus(item.focusX) { focusX[day] = f }
+            if top[day] == nil, let f = SkylineManifestEntry.unitFocus(item.top) { top[day] = f }
             if focus[night] == nil, let f = SkylineManifestEntry.unitFocus(item.night?.focus) { focus[night] = f }
             if focusX[night] == nil, let f = SkylineManifestEntry.unitFocus(item.night?.focusX) { focusX[night] = f }
+            if top[night] == nil, let f = SkylineManifestEntry.unitFocus(item.night?.top) { top[night] = f }
         }
-        return (focus, focusX)
+        return (focus, focusX, top)
     }()
 
     /// The bundled photo's skyline focus for a SkylinePhoto id, or nil (downloaded, or not measured).
@@ -1044,6 +1062,9 @@ enum WidgetPhotoExport {
 
     /// The bundled photo's landmark across it for a SkylinePhoto id, or nil (downloaded, or v2).
     nonisolated static func focusX(forID id: String) -> Double? { bundledPlacement.focusX[id] }
+
+    /// The bundled photo's landmark tip down it for a SkylinePhoto id, or nil (downloaded, or none).
+    nonisolated static func top(forID id: String) -> Double? { bundledPlacement.top[id] }
 
     /// The copy written for a photo of `size`: 300 pt tall, its own width kept between 2:1 and 3:1
     /// (a 3:1 city plate whole at 900×300; a wider photo cropped to 3:1, a narrower one to 2:1,
@@ -1060,8 +1081,8 @@ enum WidgetPhotoExport {
         return (canvas, CGRect(x: (canvas.width - w) / 2, y: (canvas.height - h) / 2, width: w, height: h))
     }
 
-    /// A photo's focus (`vertical`) or focusX, 0…1 of the photo, as the same fraction of the copy
-    /// written for it (moved by any crop), or nil when unknown.
+    /// A photo's focus or top (`vertical`) or focusX, 0…1 of the photo, as the same fraction of the
+    /// copy written for it (moved by any crop), or nil when unknown.
     nonisolated static func exportFraction(_ value: Double?, size: CGSize, vertical: Bool) -> Double? {
         guard let value, value.isFinite else { return nil }
         let g = exportGeometry(size)
@@ -1071,14 +1092,15 @@ enum WidgetPhotoExport {
         return Double(min(max(point / span, 0), 1))
     }
 
-    /// A photo's index entry: its file, where it came from, its focus and landmark mapped into the
-    /// written copy (a downloaded photo with none gets the landmark at its centre, which stays
-    /// there), and the copy's format.
+    /// A photo's index entry: its file, where it came from, its focus, landmark and landmark tip
+    /// mapped into the written copy (a downloaded photo with none gets the landmark at its centre,
+    /// which stays there, and no tip rule), and the copy's format.
     private static func entry(file: String, photo: SkylinePhoto) -> WidgetSkylines.Entry {
         let size = photo.image.size
         return WidgetSkylines.Entry(file: file, source: photo.id,
                                     focus: exportFraction(focus(forID: photo.id), size: size, vertical: true),
                                     focusX: exportFraction(focusX(forID: photo.id), size: size, vertical: false),
+                                    top: exportFraction(top(forID: photo.id), size: size, vertical: true),
                                     format: WidgetSkylines.exportFormat)
     }
 
@@ -1105,6 +1127,11 @@ enum WidgetPhotoExport {
                 let place = Place(name: c.name, timeZoneID: c.timeZoneID)
                 let shown = night ? SkylineArt.nightPhoto(for: place, downloaded: nil) : SkylineArt.photo(for: place, downloaded: nil)
                 return shown.flatMap { WidgetPhotoExport.focusX(forID: $0.id) }
+            }
+            WidgetSkylines.inAppTop = { c, night in
+                let place = Place(name: c.name, timeZoneID: c.timeZoneID)
+                let shown = night ? SkylineArt.nightPhoto(for: place, downloaded: nil) : SkylineArt.photo(for: place, downloaded: nil)
+                return shown.flatMap { WidgetPhotoExport.top(forID: $0.id) }
             }
             return
         }
@@ -1233,7 +1260,7 @@ struct SkylineBackdrop: View {
             // Filling the card, its skyline band (the photo's focus) at the card's centre and its
             // landmark (focusX) on the gap between the text and the tiles.
             let rect = SkylineArt.photoRect(image: photo.image.size, in: size, focus: photo.focus,
-                                            focusX: photo.focusX, targetX: targetX)
+                                            focusX: photo.focusX, targetX: targetX, top: photo.top)
             Image(uiImage: photo.image)
                 .resizable()
                 .frame(width: rect.width, height: rect.height)
@@ -1397,7 +1424,7 @@ enum BannerInk {
 
         let luminance: Double?
         if let photo {
-            luminance = photoLuminance(photo.image, focus: photo.focus, focusX: photo.focusX, targetX: targetX,
+            luminance = photoLuminance(photo.image, focus: photo.focus, focusX: photo.focusX, top: photo.top, targetX: targetX,
                                        phase: SkylineArt.tintPhase(phase, photo: photo), size: size, region: area)
         } else {
             luminance = drawnLuminance(seed: seed, phase: phase, size: size, region: area)
@@ -1430,14 +1457,14 @@ enum BannerInk {
     /// The photo's area behind the time, as the card crops it (SkylineArt.photoRect: filling it,
     /// its focus at the card's centre, its landmark on `targetX`), drawn into a small bitmap, then
     /// saturated and tinted as the card shades it, darkened by the scrim, and averaged.
-    private static func photoLuminance(_ photo: UIImage, focus: Double?, focusX: Double?, targetX: CGFloat?,
+    private static func photoLuminance(_ photo: UIImage, focus: Double?, focusX: Double?, top: Double?, targetX: CGFloat?,
                                        phase: Sky.Phase, size: CGSize, region: CGRect) -> Double? {
         guard let cg = photo.cgImage else { return nil }
         let iw = CGFloat(cg.width), ih = CGFloat(cg.height)
         guard iw > 0, ih > 0 else { return nil }
         // The card's frame in the photo's pixels (the inverse of the photo's frame in the card).
         let rect = SkylineArt.photoRect(image: CGSize(width: iw, height: ih), in: size, focus: focus,
-                                        focusX: focusX, targetX: targetX)
+                                        focusX: focusX, targetX: targetX, top: top)
         guard rect.width > 0, rect.height > 0 else { return nil }
         let s = rect.width / iw
         let visible = CGRect(x: -rect.minX / s, y: -rect.minY / s, width: size.width / s, height: size.height / s)

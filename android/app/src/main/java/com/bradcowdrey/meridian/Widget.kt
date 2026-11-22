@@ -935,7 +935,9 @@ private object WidgetSky {
      * The picture for a card [wDp] by [hDp], at most [maxPx] wide (the layout stretches it to fit), so all
      * a widget's pictures stay small. The photo covers the picture with its skyline (the manifest's focus) at the
      * middle of the height and its landmark (the manifest's focusX) at the target across (PhotoFocus.place): in a row
-     * ([focusDp] set) the middle of its clear gap, dp from its left; in the small widget the middle. It may zoom up to
+     * ([focusDp] set) the middle of its clear gap, dp from its left; in the small widget the clear right-hand column
+     * (PhotoFocus.SQUARE_TARGET_X of the width) for an AI plate (a manifest focusX), else the middle. Where the manifest
+     * gives the landmark's tip ("top"), the photo moves down as needed to keep it 8% below the top edge. It may zoom up to
      * 15% more only when covering would otherwise keep the landmark off the target. In a row the only darkening is over its text block (to [textEndDp]): black 45% at the left edge easing
      * (smoothstep) to nothing at the block's end, none over the gap and the tiles. The small widget ([focusDp] null):
      * the photo cropped to fill as the cards, darkened only behind its words at the bottom: black 45% at the bottom
@@ -953,7 +955,7 @@ private object WidgetSky {
         val c = Canvas(out)
         val w = bw.toFloat()
         val h = bh.toFloat()
-        // Where a row's photo landmark goes (px): the middle of its clear gap (null: the small widget's middle).
+        // Where a row's photo landmark goes (px): the middle of its clear gap (null: the small widget, below).
         val fx = focusDp?.let { (it * scale).coerceIn(0f, w) }
         // After sunset with sunrise over an hour away ([wantsNight]): the night photo as taken. Else (or with no night
         // photo) the day photo, shaded as before.
@@ -966,10 +968,15 @@ private object WidgetSky {
         if (photo != null && ref != null) {
             val iw = photo.width.toFloat()
             val ih = photo.height.toFloat()
-            // The photo's skyline (the manifest's focus for the photo drawn) at the middle of the height, and its landmark
-            // (its focusX) at fx, or the middle in the small widget, as the cards.
-            val at = PhotoFocus.place(iw, ih, w, h, if (night != null) ref.nightFocus else ref.focus, fx,
-                landmark = if (night != null) ref.nightFocusX else ref.focusX)
+            // The photo's skyline (the manifest's focus for the photo drawn) at the middle of the height, its tip (its
+            // "top") kept below the top edge, and its landmark (its focusX) at fx, as the cards; in the small widget an AI
+            // plate's landmark (the photo drawn has a manifest focusX) goes to the clear right-hand column, away from
+            // the words bottom-left, and any other photo's to the middle, as before.
+            val plate = if (night != null) ref.nightPlate else ref.plate
+            val target = fx ?: if (plate) w * PhotoFocus.SQUARE_TARGET_X else null
+            val at = PhotoFocus.place(iw, ih, w, h, if (night != null) ref.nightFocus else ref.focus, target,
+                landmark = if (night != null) ref.nightFocusX else ref.focusX,
+                tip = if (night != null) ref.nightTop else ref.top)
             val dw = iw * at[0]
             val dh = ih * at[0]
             val offX = at[1]

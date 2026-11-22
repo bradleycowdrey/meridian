@@ -35,8 +35,11 @@ enum MacSkylines {
         /// The night photo's landmark: its horizontal position, 0 (left) to 1 (right). Manifest v3;
         /// nil in v2 files (then 0.5, the photo's middle).
         var focusX: Double?
+        /// The night photo's landmark tip: its height, 0 (top) to 1 (bottom). Optional; nil: no
+        /// tip rule.
+        var top: Double?
 
-        private enum CodingKeys: String, CodingKey { case file, credit, focus, focusX }
+        private enum CodingKeys: String, CodingKey { case file, credit, focus, focusX, top }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -44,6 +47,7 @@ enum MacSkylines {
             credit = try? c.decodeIfPresent(Credit.self, forKey: .credit)
             focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
             focusX = try? c.decodeIfPresent(Double.self, forKey: .focusX)
+            top = try? c.decodeIfPresent(Double.self, forKey: .top)
         }
     }
 
@@ -60,8 +64,10 @@ enum MacSkylines {
         /// The day photo's landmark: its horizontal position, 0 (left) to 1 (right). Manifest v3;
         /// nil in v2 files (then 0.5, the photo's middle).
         var focusX: Double?
+        /// The day photo's landmark tip: its height, 0 (top) to 1 (bottom). Optional; nil: no tip rule.
+        var top: Double?
 
-        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus, focusX }
+        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus, focusX, top }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -73,6 +79,7 @@ enum MacSkylines {
             night = try? c.decodeIfPresent(Night.self, forKey: .night)
             focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
             focusX = try? c.decodeIfPresent(Double.self, forKey: .focusX)
+            top = try? c.decodeIfPresent(Double.self, forKey: .top)
         }
     }
 
@@ -342,6 +349,29 @@ enum MacSkylines {
         let entry = byKey[key]
         let value = night ? entry?.night?.focusX : entry?.focusX
         guard let value, value.isFinite else { return defaultFocusX }
+        return CGFloat(min(max(value, 0), 1))
+    }
+
+    /// Whether the city's day (`night` false) or night photo has a measured landmark (skylines.json
+    /// v3 "focusX": an AI plate). The small widget then puts the landmark in its clear right-hand
+    /// column; otherwise the photo stays centred. Pass the photo actually shown, as for `focusX`.
+    static func landmarkKnown(name: String, timeZoneID: String, night: Bool) -> Bool {
+        guard let key = key(name: name, timeZoneID: timeZoneID) else { return false }
+        let entry = byKey[key]
+        let value = night ? entry?.night?.focusX : entry?.focusX
+        guard let value else { return false }
+        return value.isFinite
+    }
+
+    /// The height of the landmark's tip in the city's day (`night` false) or night photo, 0 (top)
+    /// to 1 (bottom), from skylines.json ("top"); nil when it has none (no tip rule: the photo is
+    /// placed as before). Pass the photo actually shown: after dark with no night photo that is the
+    /// day photo, so `night: false`.
+    static func top(name: String, timeZoneID: String, night: Bool) -> CGFloat? {
+        guard let key = key(name: name, timeZoneID: timeZoneID) else { return nil }
+        let entry = byKey[key]
+        let value = night ? entry?.night?.top : entry?.top
+        guard let value, value.isFinite else { return nil }
         return CGFloat(min(max(value, 0), 1))
     }
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Measures a city plate for placement: focusX = the landmark's horizontal position (the tallest
-structure poking into the sky), focus = the skyline band's vertical centre. Prints JSON per file.
+structure poking into the sky), focus = the skyline band's vertical centre, landmarkTop = the
+height of the landmark's tip (0 top, 1 bottom; the manifest's "top"). Prints JSON per file.
 Usage: plate-focus.py PLATE.jpg ..."""
 import json, sys
 from PIL import Image, ImageFilter
@@ -43,8 +44,12 @@ def measure(path):
     check = abs(lx / W - 0.38) > 0.12
     if check:
         lx = int(0.38 * W)
+    # the tip: the highest raw (unsmoothed) column top within 1% of the width of the landmark, so a
+    # thin spire isn't averaged down by the 5-column smoothing; never lower than the smoothed peak
+    r = max(1, int(W * 0.01))
+    tip = min(float(tops[max(0, lx - r):lx + r + 1].min()), float(peak))
     return {"file": path.split("/")[-1], "focusX": round(lx / W, 3), "check": check, "focus": round(focus, 3),
-            "landmarkTop": round(peak / H, 3), "skyline": round(skyline / H, 3)}
+            "landmarkTop": round(tip / H, 3), "skyline": round(skyline / H, 3)}
 
 if __name__ == "__main__":
     for p in sys.argv[1:]:

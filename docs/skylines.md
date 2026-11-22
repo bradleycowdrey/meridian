@@ -9,6 +9,8 @@ both with one set of numbers.
 - 1536 x 512 JPEG (3:1).
 - The city's signature landmark stands at about **38% of the width**. The apps move that point
   into the gap between the name/time text and the hour tiles.
+- The landmark's **tip is at about 40% of the height**, and its base stands in the skyline band.
+  The apps keep that tip in view at every size.
 - The **far-left quarter is calm** (low, hazy, no landmark), because the text sits there.
 - The **right half is even cityscape**, because the hour tiles cover it.
 - The **skyline band sits around 70-75% of the height**, with calm sky above it.
@@ -31,7 +33,10 @@ Save them as `<key>-day.jpg` and `<key>-night.jpg` in one folder. `<key>` is the
 
 - `focusX`: where the landmark stands across the image, from 0 (left) to 1 (right). Plates come out at about 0.38.
 - `focus`: the vertical centre of the skyline band, from 0 (top) to 1 (bottom).
+- `landmarkTop`: the height of the landmark's tip, from 0 (top) to 1 (bottom). Plates come out at about 0.40.
+  The manifest stores it as `top`.
 - `check`: true when the reading is far from 0.38 (it probably caught an edge or a cloud). focusX is then kept at 0.38.
+  The importer also sets `top` to 0.40, because the tip reading came from the same wrong spot.
 
 Measure the **night** plate: lit towers stand out from a dark sky much more reliably than from a
 bright one. The importer does this for you.
@@ -45,8 +50,9 @@ scripts/import-plates.py ~/plates             # write the photos and the manifes
 
 For each city with plates, the script:
 
-1. measures the night plate and uses that reading for the day plate too. A `check` reading keeps
-   0.38 and prints a warning, so look at that plate.
+1. measures the night plate and uses that reading (`focusX`, `focus` and `top`, rounded to 3
+   decimals) for the day plate too. A `check` reading keeps focusX 0.38 and top 0.40 and prints a
+   warning, so look at that plate. A city with only a day plate is measured on the day plate.
 2. writes the photos:
    - iOS: `ios/Meridian/Assets.xcassets/Skyline-<key>.imageset/skyline-<key>.jpg` and
      `Skyline-<key>-night.imageset/skyline-<key>-night.jpg`, each with its `Contents.json`.
@@ -60,14 +66,16 @@ For each city with plates, the script:
  {"key": "paris", "names": ["Paris", "CDG"], "zone": "Europe/Paris",
   "file": "skyline-paris.jpg",
   "credit": {"author": "Generated with AI for Meridian", "license": "AI-generated image", "source": ""},
-  "focus": 0.772, "focusX": 0.365,
-  "night": {"file": "skyline-paris-night.jpg", "credit": {...same...}, "focus": 0.772, "focusX": 0.365}}
+  "focus": 0.762, "focusX": 0.363, "top": 0.375,
+  "night": {"file": "skyline-paris-night.jpg", "credit": {...same...}, "focus": 0.762, "focusX": 0.363, "top": 0.375}}
 ]}
 ```
 
-Cities with no plates in the folder keep their current photos and entry. If an entry has no
-`focusX`, the script adds 0.5 (the photo's centre), which is what the apps assume for a v2 entry
-anyway. A city with only a day plate is imported with `"night": null`, and its old night photo is
+Cities with no plates in the folder keep their current photos and entry, untouched. The script
+adds neither `focusX` nor `top` to them: the apps read a missing `focusX` as 0.5 (the photo's
+centre), and a photo without `top` gets no tip rule (it is placed exactly as before). Leaving
+`focusX` out matters: its presence is how the apps tell an AI plate from an old photo (see the
+square-widget target below). A city with only a day plate is imported with `"night": null`, and its old night photo is
 removed. The apps then draw their own night sky for it. A key the manifest doesn't have is skipped,
 because the script has no names or time zone for it.
 
@@ -76,22 +84,32 @@ because the script has no names or time zone for it.
 ## 4. Check
 
 ```sh
-scripts/plate-fit.py sheet.png ~/plates/paris-night.jpg:0.365:0.772:0.255
+scripts/plate-fit.py sheet.png ~/plates/paris-night.jpg:0.363:0.762:0.375
 ```
 
 This draws a contact sheet: the plate in every row shape the apps use (from the square small widget
 to the very wide web row), with the text block and hour tiles drawn on top. Each argument is
-`PLATE:focusX:focus:landmarkTop`, using the importer's printed numbers. Look for a calm patch behind
-the text, the landmark in the gap, and its tip in view.
+`PLATE:focusX:focus:top`, using the importer's printed numbers. Look for a calm patch behind
+the text, the landmark in the gap, and its tip in view. `plate-fit.py`'s `geometry()` is the
+reference for the placement rule below; the apps follow it.
 
 ## How the apps place a plate
 
 All platforms use the same rule:
 
 1. Cover-fit the plate into the frame.
-2. Slide it sideways so the image point at `focusX` lands on the gap between the text and the
-   tiles (the frame's centre in a small single-city widget). Clamp it so the photo always covers
-   the frame. If clamping keeps the landmark from reaching the gap, zoom in by up to 15% more.
-3. Vertically, put the skyline band (`focus`) at the row's anchor.
+2. Slide it sideways so the image point at `focusX` lands on the target. In rows and wide widgets
+   the target is the gap between the text and the tiles. In a square or small single-city widget
+   (text bottom-left, no tiles) it is **78% of the frame's width**, the clear right-hand column,
+   for a photo with a manifest `focusX` (an AI plate); a photo without `focusX` targets the
+   frame's centre. Clamp it so the photo always covers the frame. If clamping keeps the landmark
+   from reaching the target, zoom in by up to 15% more.
+3. Vertically, put the skyline band (`focus`) at the row's anchor:
+   `y = anchorY * frameH - focus * scaledH`.
+4. The tip rule, when the photo has `top`: `y = max(y, 0.08 * frameH - top * scaledH)`, so the
+   landmark's tip sits at least 8% of the frame's height below its top edge (pushing the photo
+   down, never up). Then clamp `y` to `[frameH - scaledH, 0]` as always, so the photo still covers
+   the frame. In a very wide, short row the clamp can win and crop the tip; that is the photo
+   covering the frame, not a bug.
 
-A v2 entry (no `focusX`) is read as 0.5.
+A v2 entry (no `focusX`) is read as 0.5. An entry without `top` skips step 4.

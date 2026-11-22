@@ -967,11 +967,14 @@ object Skyline {
     /**
      * Where a photo sits in its card: [focus], how far down the photo its skyline is; [focusX], how far across it its
      * landmark is (skylines.json "focusX"; the centre without one); [targetX], where across the card (a fraction of
-     * its width) the landmark goes: the clear gap between the name column and the hour tiles.
+     * its width) the landmark goes: the clear gap between the name column and the hour tiles; [top], the landmark's tip,
+     * 0..1 down the photo (skylines.json "top"; null for none: no tip rule), kept PhotoFocus.TIP_MARGIN below the top edge.
      */
-    data class Placement(val focus: Float = PhotoFocus.DEFAULT, val focusX: Float = PhotoFocus.DEFAULT_X, val targetX: Float = 0.5f) {
-        /** For the measured looks' keys: the landmark and target to 0.01 (the focus is the photo's own, in its id). */
-        val key: String get() = "${(focusX * 100).roundToInt()}>${(targetX * 100).roundToInt()}"
+    data class Placement(val focus: Float = PhotoFocus.DEFAULT, val focusX: Float = PhotoFocus.DEFAULT_X, val targetX: Float = 0.5f,
+        val top: Float? = null) {
+        /** For the measured looks' keys: the landmark, target and tip to 0.01 (the focus is the photo's own, in its id). */
+        val key: String get() = "${(focusX * 100).roundToInt()}>${(targetX * 100).roundToInt()}" +
+            (top?.let { "^${(it * 100).roundToInt()}" } ?: "")
     }
 
     /**
@@ -981,21 +984,22 @@ object Skyline {
     data class PlacedCrop(val at: Placement) : ContentScale {
         override fun computeScaleFactor(srcSize: Size, dstSize: Size): androidx.compose.ui.layout.ScaleFactor {
             val s = PhotoFocus.place(srcSize.width, srcSize.height, dstSize.width, dstSize.height, at.focus,
-                at.targetX * dstSize.width, at.focusX)[0]
+                at.targetX * dstSize.width, at.focusX, at.top)[0]
             return androidx.compose.ui.layout.ScaleFactor(s, s)
         }
     }
 
     /**
      * Where a photo (already scaled by [PlacedCrop]) sits in its card: its landmark at the target across and the
-     * point [Placement.focus] of the way down it (its skyline) at the card's middle, clamped so it still covers.
+     * point [Placement.focus] of the way down it (its skyline) at the card's middle, moved down if needed to keep its
+     * landmark's tip ([Placement.top]) below the top edge, clamped so it still covers.
      */
     data class PlacedAlign(val at: Placement) : Alignment {
         override fun align(size: androidx.compose.ui.unit.IntSize, space: androidx.compose.ui.unit.IntSize,
             layoutDirection: androidx.compose.ui.unit.LayoutDirection): androidx.compose.ui.unit.IntOffset {
             val w = space.width.toFloat()
             val x = PhotoFocus.left(size.width.toFloat(), w, at.targetX * w, at.focusX)
-            val y = PhotoFocus.top(size.height.toFloat(), space.height.toFloat(), at.focus)
+            val y = PhotoFocus.top(size.height.toFloat(), space.height.toFloat(), at.focus, at.top)
             return androidx.compose.ui.unit.IntOffset(kotlin.math.round(x).toInt(), kotlin.math.round(y).toInt())
         }
     }
@@ -1312,7 +1316,7 @@ object Skyline {
         // PlacedCrop, then PlacedAlign, as the Image draws it.
         val bw = aspect
         val bh = 1f
-        val at = PhotoFocus.place(iw, ih, bw, bh, place.focus, place.targetX * bw, place.focusX)
+        val at = PhotoFocus.place(iw, ih, bw, bh, place.focus, place.targetX * bw, place.focusX, place.top)
         val s = at[0]
         val offX = at[1]
         val offY = at[2]
@@ -1670,8 +1674,14 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
             nightShown -> photo.nightFocusX
             else -> photo.focusX
         }
+        // The landmark's tip (the manifest's "top" for the photo shown; none for downloads): kept below the card's top edge.
+        val tip = when {
+            photo == null -> null
+            nightShown -> photo.nightTop
+            else -> photo.top
+        }
         val gapTarget = if (maxWidth > 0.dp) ((Rows.padH + Rows.labelWidth(maxWidth) + Strip.labelGap / 2) / maxWidth).coerceIn(0f, 1f) else 0.5f
-        val placement = Skyline.Placement(focus, focusX, gapTarget)
+        val placement = Skyline.Placement(focus, focusX, gapTarget, tip)
         val id = (if (photo != null) "res:${photo.key}" else "dl:$slug") + if (nightShown) ":night" else ""
         // The scrim's boost behind the name column (so the white name, zone and status keep 4.5:1) and the adaptive
         // ink for the time (dark numbers on a bright photo), measured off the main thread after the shading and scrim.

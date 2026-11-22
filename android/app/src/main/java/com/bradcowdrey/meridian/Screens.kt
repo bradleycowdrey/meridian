@@ -486,8 +486,9 @@ private fun StepperRow(label: String, down: () -> Unit, up: () -> Unit) {
 }
 
 /**
- * Photo Credits: the skyline photos built in (skylines.json) and those downloaded for other cities,
- * each with its author and licence; tap one to open its page on Wikimedia Commons.
+ * Photo Credits: the skyline pictures built in (skylines.json) and the photos downloaded for other cities,
+ * each with its author and licence; tap one with a source to open its page on Wikimedia Commons. The built-in
+ * pictures are AI-generated plates ("Generated with AI for Meridian", no source or licence link), shown without a link.
  */
 @Composable
 fun PhotoCreditsScreen(onBack: () -> Unit) {
@@ -504,7 +505,10 @@ fun PhotoCreditsScreen(onBack: () -> Unit) {
     Screen("Photo Credits", onBack, back = true) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Note("City skyline photos from Wikimedia Commons, under the licence shown for each.")
+            // AI plates have no source page; older built-in photos (and downloads) are from Wikimedia Commons.
+            val allGenerated = bundled.isNotEmpty() && bundled.all { it.second?.source.isNullOrBlank() }
+            Note(if (allGenerated) "Built-in city pictures are generated with AI for Meridian. Downloaded photos are from Wikimedia Commons, under the licence shown for each."
+                else "City skyline photos from Wikimedia Commons, under the licence shown for each.")
             GlassCard("Built In", null, spacing = 0.dp) {
                 bundled.forEach { (city, credit) -> CreditRow(city, credit) { open(it) } }
             }
@@ -518,7 +522,10 @@ fun PhotoCreditsScreen(onBack: () -> Unit) {
     }
 }
 
-/** A photo's city, author and licence, opening its source page (and its licence from the licence line). */
+/**
+ * A photo's city, author and licence, opening its source page (and its licence from the licence line). An AI plate
+ * ("Generated with AI for Meridian", empty source, no licenseUrl) shows its byline only: no link, no arrow.
+ */
 @Composable
 private fun CreditRow(city: String, credit: PhotoCredit?, open: (String) -> Unit) {
     val source = credit?.source.orEmpty()

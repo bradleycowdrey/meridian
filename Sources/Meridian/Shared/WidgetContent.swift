@@ -962,7 +962,7 @@ struct WidgetClockView: View {
             let outlineX: CGFloat = tilesX + CGFloat(half) * (tw + spacing) + (tw - outlineWidth) / 2
             let tileTop: CGFloat = headerHeight + headerGap + (rowHeight - th) / 2
             let outlineY: CGFloat = tileTop - th * grow - inset
-            // The photo: its centre in the middle of the clear gap; its skyline lower in tall rows
+            // The photo: its landmark in the middle of the clear gap; its skyline lower in tall rows
             // (50% down at 60 pt, 58% from 100 pt); the only darkening a light fade behind the text.
             let focus: CGFloat = pad + textWidth + clear / 2
             let anchorY: CGFloat = 0.5 + 0.08 * min(1, max(0, (rowHeight - 60) / 40))
@@ -1309,34 +1309,51 @@ struct WidgetTileHalo: View {
     }
 }
 
-/// Where a photo sits in a widget row (both platforms): scaled just enough to cover the frame
-/// (aspect-fill), and up to 15% more only so its horizontal centre can slide toward `focusX` (the
-/// clear gap's centre; nil: centred), never further; the point `focus` (0…1) of the way down the
-/// photo (its skyline band) at `anchorY` (0…1) of the way down the frame (default: its vertical
-/// centre; the Mac's tall widget rows put it lower). Both offsets are clamped so the photo
-/// still covers the frame. Returns the photo's size and its top-left offset in the frame.
+/// Where a photo sits in a widget row or card (both platforms, and the iPhone app's cards): scaled
+/// to cover the frame (aspect-fill), then slid across so the photo's landmark (`landmarkX`, 0…1 of
+/// its width: skylines.json's "focusX"; 0.5, its centre, when unknown) lands on `targetX` (points
+/// from the frame's left edge: the middle of the clear gap between a row's text and its tiles; nil:
+/// the frame's centre, as in the small one-city widget). Zoomed up to 15% beyond cover only when
+/// the photo's edge would otherwise stop the landmark short of the target, never further. The point
+/// `focus` (0…1) of the way down the photo (its skyline band) goes to `anchorY` (0…1) of the way
+/// down the frame (default: its vertical centre; the Mac's tall widget rows put it lower). Both
+/// offsets are clamped so the photo always covers the frame (no empty edge). Returns the photo's
+/// size and its top-left offset in the frame.
 enum WidgetPhotoPlacement {
     /// The skyline's usual height in a photo with no measured focus (downloaded photos, old indexes).
     static let defaultFocus: CGFloat = 0.62
+    /// The landmark's place across a photo with no measured focusX (v2 manifests, downloaded photos).
+    static let defaultLandmarkX: CGFloat = 0.5
+    /// The most a photo is zoomed beyond cover to bring its landmark to the target.
+    static let maxExtraZoom: CGFloat = 1.15
 
+    /// With offset = T - L·w (T the target, L the landmark fraction, w the scaled width) kept within
+    /// [frameW - w, 0]: offset <= 0 needs w >= T / L, offset >= frameW - w needs
+    /// w >= (frameW - T) / (1 - L). The smallest scale meeting both, capped at cover × 1.15.
     static func place(imageWidth: CGFloat, imageHeight: CGFloat, in frame: CGSize, focus: CGFloat,
-                      focusX: CGFloat?, anchorY: CGFloat = 0.5) -> (size: CGSize, offset: CGPoint) {
+                      landmarkX: CGFloat, targetX: CGFloat?, anchorY: CGFloat = 0.5) -> (size: CGSize, offset: CGPoint) {
         let fw = max(frame.width, 1), fh = max(frame.height, 1)
         let iw = max(imageWidth, 1), ih = max(imageHeight, 1)
         let cover: CGFloat = max(fw / iw, fh / ih)
-        var scale: CGFloat = cover
-        var centreX: CGFloat = fw / 2
-        if let focusX {
-            let target = min(max(focusX, 0), fw)
-            let needed: CGFloat = 2 * max(target, fw - target) / iw
-            scale = min(max(cover, needed), cover * 1.15)
-            centreX = target
-        }
+        let l: CGFloat = landmarkX.isFinite ? min(max(landmarkX, 0), 1) : defaultLandmarkX
+        let t: CGFloat = min(max(targetX ?? fw / 2, 0), fw)
+        var needed: CGFloat = cover
+        if l > 0 { needed = max(needed, t / (l * iw)) }
+        if l < 1 { needed = max(needed, (fw - t) / ((1 - l) * iw)) }
+        let scale: CGFloat = min(needed, cover * maxExtraZoom)
         let w = iw * scale, h = ih * scale
-        let x = min(max(centreX - w / 2, fw - w), 0)
+        let x = min(max(t - l * w, fw - w), 0)
         let f = min(max(focus, 0), 1)
         let y = min(max(fh * min(max(anchorY, 0), 1) - f * h, fh - h), 0)
         return (CGSize(width: w, height: h), CGPoint(x: x, y: y))
+    }
+
+    /// The earlier form: the photo's centre (not its landmark) slid toward `focusX` (points from the
+    /// left; nil: centred). Kept for callers that have no landmark; same as landmarkX 0.5.
+    static func place(imageWidth: CGFloat, imageHeight: CGFloat, in frame: CGSize, focus: CGFloat,
+                      focusX: CGFloat?, anchorY: CGFloat = 0.5) -> (size: CGSize, offset: CGPoint) {
+        place(imageWidth: imageWidth, imageHeight: imageHeight, in: frame, focus: focus,
+              landmarkX: defaultLandmarkX, targetX: focusX, anchorY: anchorY)
     }
 }
 
@@ -1344,8 +1361,9 @@ enum WidgetPhotoPlacement {
 /// Mac: a widget row's photo (the widget's own 600 px copies; the night photo after dark, or the
 /// day photo darkened when the city has none), sharp, placed by WidgetPhotoPlacement: its skyline
 /// band (MacSkylines.focus) `anchorY` of the way down the row (0.5 to about 0.58 in tall rows, so
-/// more of the city and less empty sky shows), its centre slid toward `focusX` (points from the
-/// frame's left edge) by at most 15% extra zoom. A city with no photo keeps its sky.
+/// more of the city and less empty sky shows), its landmark (skylines.json's "focusX") on `focusX`
+/// (points from the frame's left edge: the clear gap's centre), by at most 15% extra zoom. A city
+/// with no photo keeps its sky.
 private struct MacWidgetRowPhoto: View {
     let city: WidgetSnapshot.City
     let date: Date
@@ -1361,13 +1379,15 @@ private struct MacWidgetRowPhoto: View {
             ?? MacSkylines.image(name: city.name, timeZoneID: city.timeZoneID, night: false, maxPixel: 600)
         let dimmed = night && nightPhoto == nil
         let focus: CGFloat = MacSkylines.focus(name: city.name, timeZoneID: city.timeZoneID, night: nightPhoto != nil)
+        let landmark: CGFloat = MacSkylines.focusX(name: city.name, timeZoneID: city.timeZoneID,
+                                                   night: nightPhoto != nil)
         ZStack {
             if let photo {
                 GeometryReader { geo in
                     let fit = WidgetPhotoPlacement.place(imageWidth: CGFloat(photo.width),
                                                          imageHeight: CGFloat(photo.height),
-                                                         in: geo.size, focus: focus, focusX: focusX,
-                                                         anchorY: anchorY)
+                                                         in: geo.size, focus: focus, landmarkX: landmark,
+                                                         targetX: focusX, anchorY: anchorY)
                     Image(decorative: photo, scale: 1)
                         .resizable()
                         .interpolation(.high)
@@ -1609,14 +1629,22 @@ enum WidgetSkylines {
     #if os(iOS)
     /// A city's photo in the index: its file in Skylines, where it came from ("b:london" built
     /// in, "d:<slug>" downloaded), so the app rewrites it only when that changes, and its night
-    /// photo's file when it has one (nil: the day photo is darkened at night, as before), and how
-    /// far down the photo its skyline band sits (0…1, from skylines.json; nil: unknown).
+    /// photo's file when it has one (nil: the day photo is darkened at night, as before), how
+    /// far down the photo its skyline band sits and where across it its landmark stands (0…1 each,
+    /// from skylines.json's "focus" and "focusX", already mapped into the written copy's own frame;
+    /// nil: unknown), and the copy's format (`exportFormat`; nil: an older copy, rewritten).
     struct Entry: Codable, Equatable {
         var file: String
         var source: String
         var night: String? = nil
         var focus: Double? = nil
+        var focusX: Double? = nil
+        var format: Int? = nil
     }
+
+    /// The written copies' format: 2 keeps the photo's own width up to 3:1 (900×300 for a city
+    /// plate) instead of cropping every photo to 600×300 from its centre.
+    static let exportFormat = 2
 
     /// A photo the widget shows: the image, whether it is a real night photo (shown as taken) and
     /// a key naming the file it came from (for the brightness cache).
@@ -1626,9 +1654,13 @@ enum WidgetSkylines {
         let key: String
         /// How far down the photo its skyline band sits (WidgetPhotoPlacement centres it in the row).
         var focus: CGFloat = WidgetPhotoPlacement.defaultFocus
+        /// Where across the photo its landmark stands (WidgetPhotoPlacement puts it on the row's
+        /// clear gap, or the small widget's centre).
+        var focusX: CGFloat = WidgetPhotoPlacement.defaultLandmarkX
     }
 
-    static let maxPixels = 600
+    /// The longer side a photo is read at: a whole 900×300 copy, unscaled.
+    static let maxPixels = 900
 
     static var directory: URL? {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: WidgetSnapshot.appGroup)?
@@ -1658,9 +1690,17 @@ enum WidgetSkylines {
     static var inAppNightImage: ((WidgetSnapshot.City) -> CGImage?)?
     /// Screenshot mode: the in-app photo's skyline focus (day or night), nil when unknown.
     static var inAppFocus: ((WidgetSnapshot.City, Bool) -> Double?)?
+    /// Screenshot mode: the in-app photo's landmark across it (day or night), nil when unknown.
+    static var inAppFocusX: ((WidgetSnapshot.City, Bool) -> Double?)?
 
     private static func focus(_ value: Double?) -> CGFloat {
-        value.map { CGFloat(min(max($0, 0), 1)) } ?? WidgetPhotoPlacement.defaultFocus
+        guard let value, value.isFinite else { return WidgetPhotoPlacement.defaultFocus }
+        return CGFloat(min(max(value, 0), 1))
+    }
+
+    private static func landmark(_ value: Double?) -> CGFloat {
+        guard let value, value.isFinite else { return WidgetPhotoPlacement.defaultLandmarkX }
+        return CGFloat(min(max(value, 0), 1))
     }
 
     /// The photo the city shows at `date`: by day its day photo (which WidgetSky.look then tints for
@@ -1676,7 +1716,10 @@ enum WidgetSkylines {
     static func image(for city: WidgetSnapshot.City, night: Bool) -> Photo? {
         if let provide = night ? inAppNightImage : inAppImage {
             let f = focus(inAppFocus?(city, night))
-            return provide(city).map { Photo(image: $0, isNight: night, key: "app|\(city.id)|\(night)", focus: f) }
+            let fx = landmark(inAppFocusX?(city, night))
+            return provide(city).map {
+                Photo(image: $0, isNight: night, key: "app|\(city.id)|\(night)", focus: f, focusX: fx)
+            }
         }
         if inAppImage != nil { return nil }   // screenshot mode with no night photos given
         guard let dir = directory, let indexURL = indexURL else { return nil }
@@ -1693,6 +1736,7 @@ enum WidgetSkylines {
         guard let entry = entries[city.id] else { return nil }
         let file: String
         let photoFocus = focus(night ? entries[city.id + "|night"]?.focus : entry.focus)
+        let photoFocusX = landmark(night ? entries[city.id + "|night"]?.focusX : entry.focusX)
         if night {
             // The entry's night file; else one indexed under "<id>|night"; else "<key>-night.jpg"
             // beside the day photo.
@@ -1708,7 +1752,9 @@ enum WidgetSkylines {
         let url = dir.appendingPathComponent(file)
         guard let fileStamp = modified(url) else { return nil }
         let key = "\(file)|\(fileStamp.timeIntervalSinceReferenceDate)"
-        if let hit = images[key] { return Photo(image: hit, isNight: night, key: key, focus: photoFocus) }
+        if let hit = images[key] {
+            return Photo(image: hit, isNight: night, key: key, focus: photoFocus, focusX: photoFocusX)
+        }
         guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary)
         else { return nil }
         let options: [CFString: Any] = [
@@ -1721,7 +1767,7 @@ enum WidgetSkylines {
         // A widget has little memory: keep only a few (a large widget shows five, by day or night).
         if images.count >= 10 { images.removeAll() }
         images[key] = image
-        return Photo(image: image, isNight: night, key: key, focus: photoFocus)
+        return Photo(image: image, isNight: night, key: key, focus: photoFocus, focusX: photoFocusX)
     }
 
     /// What the scrim behind a card's text has to do: `boost`, a flat layer of extra black over the
@@ -2141,15 +2187,16 @@ private extension View {
 
 /// A city's photo, sharp across the whole space, or its sky when there's no photo. Placed by
 /// WidgetPhotoPlacement: its skyline band (`photo.focus`) at the frame's vertical centre, scaled to
-/// cover, and slid toward `focusX` (points from the left: the middle of the clear gap between a
-/// row's text and its tiles; nil: centred) by at most 15% extra zoom.
+/// cover, and its landmark (`photo.focusX`) slid onto `targetX` (points from the left: the middle
+/// of the clear gap between a row's text and its tiles; nil: the frame's centre, as in the small
+/// widget) by at most 15% extra zoom.
 /// The only darkening is WidgetTextShade over the text on the left. A night photo shows as taken;
 /// a day photo as taken by day, lightly warmed in twilight. Crossfades when the photo changes.
 struct WidgetCityBackdrop: View {
     let city: WidgetSnapshot.City
     let date: Date
     let photo: WidgetSkylines.Photo?
-    var focusX: CGFloat? = nil
+    var targetX: CGFloat? = nil
     /// Where the left shade ends, as a fraction of the width.
     var shadeEnd: CGFloat = 0.7
 
@@ -2161,7 +2208,8 @@ struct WidgetCityBackdrop: View {
                 GeometryReader { geo in
                     let fit = WidgetPhotoPlacement.place(imageWidth: CGFloat(photo.image.width),
                                                          imageHeight: CGFloat(photo.image.height),
-                                                         in: geo.size, focus: photo.focus, focusX: focusX)
+                                                         in: geo.size, focus: photo.focus,
+                                                         landmarkX: photo.focusX, targetX: targetX)
                     Image(decorative: photo.image, scale: 1)
                         .resizable()
                         .saturation(look.saturation)
@@ -2385,7 +2433,7 @@ struct WidgetPhotoRows: View {
         let status = WidgetWorkStatus.of(city, snapshot: snapshot, at: date)
         // The row: [time, name, status] [clear gap] [tiles]. The text may take what the tiles leave
         // less the 40 pt clear gap (never under 104 pt while the row has it); the block's own width
-        // is measured, so the photo's centre can sit in the middle of what is really clear.
+        // is measured, so the photo's landmark can sit in the middle of what is really clear.
         let type = WidgetType.scale(typeSize)
         let tilesWidth = 2 * tileWidth + Self.nowWidth(tileWidth) + 2 * Self.nowGap
         let inner = width - 2 * Self.sidePadding
@@ -2401,7 +2449,7 @@ struct WidgetPhotoRows: View {
         let labelRoom = max(0, inner - tilesWidth - Self.clearGap)
         let labelScale = min(1.25, scale, max(1, min(textMax, labelRoom) / max(nameWidth, pillWidth, 1)))
         let block = min(textMax, max(timeWidth, nameWidth * labelScale, pillWidth * labelScale).rounded(.up))
-        // The middle of the clear gap, from the row's left edge: where the photo's centre goes.
+        // The middle of the clear gap, from the row's left edge: where the photo's landmark goes.
         let focus = Self.sidePadding + block + (inner - tilesWidth - block) / 2
         let anchor = Calendar.current.dateInterval(of: .hour, for: date)?.start ?? date
         // AM/PM goes under the hour whenever the tile is tall enough (inline "11 AM" filled a 40 pt
@@ -2422,7 +2470,7 @@ struct WidgetPhotoRows: View {
         return ZStack(alignment: .bottomLeading) {
             // The card's edge fades out over 3 pt into the widget's sky (the photo and its shade
             // only; the text, pill and tiles above stay fully opaque).
-            WidgetCityBackdrop(city: city, date: date, photo: photo, focusX: focus,
+            WidgetCityBackdrop(city: city, date: date, photo: photo, targetX: focus,
                                shadeEnd: (Self.sidePadding + block) / max(width, 1))
                 .mask { WidgetCardFeather(radius: Self.radius) }
             HStack(alignment: .bottom, spacing: 0) {

@@ -14,8 +14,9 @@ struct MacPhotoCredit: Identifiable, Hashable {
 
 /// The city photos bundled with the Mac app and its widget: Resources/Skylines/skyline_<key>.jpg
 /// (day) and skyline_<key>_night.jpg, named by Resources/skylines.json. scripts/build-app.sh
-/// copies them in; the app holds the full 1000 px photos and the widget, which is sandboxed, its
-/// own 600 px copies. Without them (a bare `swift run`) every city shows the sky gradient.
+/// copies them in; the app holds the full-size photos (the 1536 x 512 city plates) and the widget,
+/// which is sandboxed, its own 600 px copies. Without them (a bare `swift run`) every city shows
+/// the sky gradient.
 enum MacSkylines {
     // MARK: The manifest
 
@@ -31,14 +32,18 @@ enum MacSkylines {
         var credit: Credit?
         /// The night photo's skyline band: its vertical centre, 0 (top) to 1 (bottom).
         var focus: Double?
+        /// The night photo's landmark: its horizontal position, 0 (left) to 1 (right). Manifest v3;
+        /// nil in v2 files (then 0.5, the photo's middle).
+        var focusX: Double?
 
-        private enum CodingKeys: String, CodingKey { case file, credit, focus }
+        private enum CodingKeys: String, CodingKey { case file, credit, focus, focusX }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             file = try? c.decodeIfPresent(String.self, forKey: .file)
             credit = try? c.decodeIfPresent(Credit.self, forKey: .credit)
             focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
+            focusX = try? c.decodeIfPresent(Double.self, forKey: .focusX)
         }
     }
 
@@ -52,8 +57,11 @@ enum MacSkylines {
         var night: Night?
         /// The day photo's skyline band: its vertical centre, 0 (top) to 1 (bottom).
         var focus: Double?
+        /// The day photo's landmark: its horizontal position, 0 (left) to 1 (right). Manifest v3;
+        /// nil in v2 files (then 0.5, the photo's middle).
+        var focusX: Double?
 
-        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus }
+        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus, focusX }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -64,6 +72,7 @@ enum MacSkylines {
             credit = try? c.decodeIfPresent(Credit.self, forKey: .credit)
             night = try? c.decodeIfPresent(Night.self, forKey: .night)
             focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
+            focusX = try? c.decodeIfPresent(Double.self, forKey: .focusX)
         }
     }
 
@@ -73,13 +82,51 @@ enum MacSkylines {
         init(from decoder: Decoder) throws { entry = try? Entry(from: decoder) }
     }
 
-    /// skylines.json from the bundle; empty when it isn't there.
+    /// Any JSON object key, for reading the v3 file's top level.
+    private struct AnyKey: CodingKey {
+        let stringValue: String
+        let intValue: Int? = nil
+        init?(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { return nil }
+    }
+
+    /// The whole file. v2 is a bare array of entries; v3 is an object with "version": 3 and the
+    /// entries under one array-valued key ("entries", "cities", "skylines" or "photos" preferred,
+    /// else the first other key holding an array of entries).
+    private struct ManifestFile: Decodable {
+        var entries: [Entry] = []
+
+        init(from decoder: Decoder) throws {
+            if let list = try? decoder.singleValueContainer().decode([LenientEntry].self) {
+                entries = list.compactMap { $0.entry }
+                return
+            }
+            let c = try decoder.container(keyedBy: AnyKey.self)
+            let preferred = ["entries", "cities", "skylines", "photos"]
+            let first: [AnyKey] = preferred.compactMap { AnyKey(stringValue: $0) }.filter { c.contains($0) }
+            let others: [AnyKey] = c.allKeys
+                .filter { !preferred.contains($0.stringValue) && $0.stringValue != "version" }
+                .sorted { $0.stringValue < $1.stringValue }
+            let keys = first + others
+            for key in keys {
+                if let list = try? c.decode([LenientEntry].self, forKey: key) {
+                    let found = list.compactMap { $0.entry }
+                    if !found.isEmpty {
+                        entries = found
+                        return
+                    }
+                }
+            }
+        }
+    }
+
+    /// skylines.json (v2 or v3) from the bundle; empty when it isn't there.
     private static let manifest: [Entry] = {
         guard let url = Bundle.main.url(forResource: "skylines", withExtension: "json"),
               let data = try? Data(contentsOf: url),
-              let list = try? JSONDecoder().decode([LenientEntry].self, from: data)
+              let file = try? JSONDecoder().decode(ManifestFile.self, from: data)
         else { return [] }
-        return list.compactMap { $0.entry }
+        return file.entries
     }()
 
     /// The manifest's entries by every name they go by (normalised).
@@ -247,11 +294,16 @@ enum MacSkylines {
     /// (darkened after dark). nil when the city has no photo.
     fileprivate static func pick(name: String, timeZoneID: String, night: Bool) -> MacSkylinePick? {
         guard let key = key(name: name, timeZoneID: timeZoneID) else { return nil }
-        guard night else { return MacSkylinePick(key: key, night: false, dimmed: false, focus: focus(key: key, night: false)) }
-        if files.contains(fileName(key: key, night: true)) {
-            return MacSkylinePick(key: key, night: true, dimmed: false, focus: focus(key: key, night: true))
+        guard night else {
+            return MacSkylinePick(key: key, night: false, dimmed: false,
+                                  focus: focus(key: key, night: false), focusX: focusX(key: key, night: false))
         }
-        return MacSkylinePick(key: key, night: false, dimmed: true, focus: focus(key: key, night: false))
+        if files.contains(fileName(key: key, night: true)) {
+            return MacSkylinePick(key: key, night: true, dimmed: false,
+                                  focus: focus(key: key, night: true), focusX: focusX(key: key, night: true))
+        }
+        return MacSkylinePick(key: key, night: false, dimmed: true,
+                              focus: focus(key: key, night: false), focusX: focusX(key: key, night: false))
     }
 
     // MARK: Framing
@@ -274,24 +326,49 @@ enum MacSkylines {
         return CGFloat(min(max(value, 0), 1))
     }
 
+    /// Where a photo's landmark sits when the manifest doesn't say (v2 files): its middle.
+    static let defaultFocusX: CGFloat = 0.5
+
+    /// The horizontal position of the landmark in the city's day (`night` false) or night photo,
+    /// 0 (left) to 1 (right), from skylines.json (v3 "focusX"); `defaultFocusX` when it has none.
+    /// Pass the photo actually shown: after dark with no night photo that is the day photo, so
+    /// `night: false`.
+    static func focusX(name: String, timeZoneID: String, night: Bool) -> CGFloat {
+        guard let key = key(name: name, timeZoneID: timeZoneID) else { return defaultFocusX }
+        return focusX(key: key, night: night)
+    }
+
+    private static func focusX(key: String, night: Bool) -> CGFloat {
+        let entry = byKey[key]
+        let value = night ? entry?.night?.focusX : entry?.focusX
+        guard let value, value.isFinite else { return defaultFocusX }
+        return CGFloat(min(max(value, 0), 1))
+    }
+
     /// Where to draw a `imageSize` photo so it fills a `frame`-sized box: the rect (in the box's
-    /// coordinates) for the scaled photo. Scaled just enough to cover the box; with `focusX` (from
-    /// the box's leading edge) up to 15 % more, used only to slide the photo's centre toward
-    /// `focusX`, never more. Vertically the point `focusY` of the way down the photo sits at the
-    /// box's middle. Always clamped so the photo covers the box, with no empty edge.
-    static func photoRect(imageSize: CGSize, in frame: CGSize, focusX: CGFloat?, focusY: CGFloat) -> CGRect {
+    /// coordinates) for the scaled photo. Scaled just enough to cover the box, then slid so the
+    /// photo's landmark (`landmark`, 0-1 of its width) lands at `targetX` (points from the box's
+    /// leading edge; nil = the box's middle). When covering the box keeps it from getting there,
+    /// it is scaled up to 15 % more, only as much as reaching the target takes, never more.
+    /// Vertically the point `focusY` of the way down the photo sits at the box's middle. Always
+    /// clamped so the photo covers the box, with no empty edge.
+    static func photoRect(imageSize: CGSize, in frame: CGSize, targetX: CGFloat?, landmark: CGFloat,
+                          focusY: CGFloat) -> CGRect {
         let iw = max(imageSize.width, 1), ih = max(imageSize.height, 1)
         let fw = max(frame.width, 0), fh = max(frame.height, 0)
         let cover = max(fw / iw, fh / ih)
-        var scale = cover
-        var centre = fw / 2
-        if let focusX {
-            centre = min(max(focusX, 0), fw)
-            let wanted = 2 * max(centre, fw - centre) / iw
-            scale = max(cover, min(cover * 1.15, wanted))
-        }
+        let target = min(max(targetX ?? fw / 2, 0), fw)
+        let l = landmark.isFinite ? min(max(landmark, 0), 1) : defaultFocusX
+        // The least scale at which target - l * w lies within [fw - w, 0]: the landmark's left
+        // side must reach the target (l * w >= target) and so must its right side
+        // ((1 - l) * w >= fw - target). A landmark at an edge can't get there at any scale, so
+        // that takes the full 15 %, as close as it may come.
+        var wanted: CGFloat = 0
+        if target > 0 { wanted = max(wanted, l > 0 ? target / (l * iw) : .infinity) }
+        if target < fw { wanted = max(wanted, l < 1 ? (fw - target) / ((1 - l) * iw) : .infinity) }
+        let scale = max(cover, min(cover * 1.15, wanted))
         let w = iw * scale, h = ih * scale
-        let x = min(max(centre - w / 2, fw - w), 0)
+        let x = min(max(target - l * w, fw - w), 0)
         let y = min(max(fh / 2 - focusY * h, fh - h), 0)
         return CGRect(x: x, y: y, width: w, height: h)
     }
@@ -304,17 +381,31 @@ enum MacSkylines {
         for entry in manifest {
             guard seen.insert(entry.key).inserted else { continue }
             let city = entry.names.first ?? entry.key
-            out.append(MacPhotoCredit(id: entry.key, city: city, author: entry.credit?.author,
-                                      license: entry.credit?.license,
-                                      source: entry.credit?.source.flatMap { URL(string: $0) }))
+            out.append(MacPhotoCredit(id: entry.key, city: city, author: text(entry.credit?.author),
+                                      license: text(entry.credit?.license), source: link(entry.credit?.source)))
             if let night = entry.night, night.file != nil || night.credit != nil {
                 out.append(MacPhotoCredit(id: entry.key + "-night", city: city + ", night",
-                                          author: night.credit?.author, license: night.credit?.license,
-                                          source: night.credit?.source.flatMap { URL(string: $0) }))
+                                          author: text(night.credit?.author), license: text(night.credit?.license),
+                                          source: link(night.credit?.source)))
             }
         }
         return out.sorted { $0.city.localizedCaseInsensitiveCompare($1.city) == .orderedAscending }
     }()
+
+    /// A credit's text, nil when missing or blank.
+    private static func text(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
+    /// A credit's source as a link, nil when missing, blank or not a web address (an AI plate has
+    /// "source": ""), so the list never shows a link that goes nowhere.
+    private static func link(_ value: String?) -> URL? {
+        guard let string = text(value), let url = URL(string: string),
+              let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              url.host?.isEmpty == false else { return nil }
+        return url
+    }
 
     /// The bundled photos' credits (day, and night where there is one), A to Z by city.
     static var credits: [MacPhotoCredit] { creditList }
@@ -328,6 +419,8 @@ fileprivate struct MacSkylinePick {
     let dimmed: Bool
     /// The shown photo's skyline band, 0 (top) to 1 (bottom).
     let focus: CGFloat
+    /// The shown photo's landmark, 0 (left) to 1 (right).
+    let focusX: CGFloat
 
     func id(maxPixel: Int) -> String { "\(key)|\(night)|\(maxPixel)|\(dimmed)" }
 }
@@ -336,19 +429,21 @@ fileprivate func macSkylineTone(_ hex: UInt32) -> Color {
     Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
 }
 
-/// A photo filling its frame, laid out by `MacSkylines.photoRect`: scaled just enough to cover it
-/// (up to 15 % more to slide its centre toward `focusX`, points from the frame's leading edge),
-/// with the skyline band (`focusY` of the way down the photo) at the frame's vertical middle.
+/// A photo filling its frame, laid out by `MacSkylines.photoRect`: scaled just enough to cover it,
+/// its landmark (`focusX`, 0-1 of the photo's width) slid to `targetX` (points from the frame's
+/// leading edge; nil = the middle) with up to 15 % more zoom when needed, and the skyline band
+/// (`focusY` of the way down the photo) at the frame's vertical middle.
 fileprivate struct MacSkylinePhoto: View {
     let image: CGImage
     let dimmed: Bool
-    var focusX: CGFloat? = nil
+    var targetX: CGFloat? = nil
+    var focusX: CGFloat = MacSkylines.defaultFocusX
     var focusY: CGFloat = MacSkylines.defaultFocus
 
     var body: some View {
         GeometryReader { geo in
             let rect = MacSkylines.photoRect(imageSize: CGSize(width: image.width, height: image.height),
-                                             in: geo.size, focusX: focusX, focusY: focusY)
+                                             in: geo.size, targetX: targetX, landmark: focusX, focusY: focusY)
             Image(decorative: image, scale: 1)
                 .resizable()
                 .interpolation(.high)
@@ -370,22 +465,24 @@ struct MacSkylineBackdrop: View {
     private let date: Date
     private let maxPixel: Int
     private let synchronous: Bool
-    private let focusX: CGFloat?
+    private let targetX: CGFloat?
 
     private struct Shown {
         let id: String
         let image: CGImage
         let dimmed: Bool
         let focus: CGFloat
+        let focusX: CGFloat
     }
 
     @State private var shown: Shown?
 
     /// `synchronous` decodes in `body` (widgets and ImageRenderer, which never run tasks);
-    /// otherwise the photo is decoded off the main thread and fades in. `focusX` (points from the
-    /// leading edge) puts the photo's centre there rather than in the middle of the frame.
+    /// otherwise the photo is decoded off the main thread and fades in. `targetX` (points from the
+    /// leading edge) is where the photo's landmark (skylines.json "focusX") goes: in a panel row
+    /// the gap between the label and the hour tiles; nil puts it in the middle of the frame.
     init(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
-         date: Date, maxPixel: Int = 1000, synchronous: Bool = false, focusX: CGFloat? = nil) {
+         date: Date, maxPixel: Int = 1000, synchronous: Bool = false, targetX: CGFloat? = nil) {
         self.name = name
         self.timeZoneID = timeZoneID
         self.latitude = latitude
@@ -393,7 +490,7 @@ struct MacSkylineBackdrop: View {
         self.date = date
         self.maxPixel = maxPixel
         self.synchronous = synchronous
-        self.focusX = focusX
+        self.targetX = targetX
     }
 
     private static let daySky = [macSkylineTone(0x3D74B0), macSkylineTone(0x1C3A5E)]
@@ -407,10 +504,12 @@ struct MacSkylineBackdrop: View {
             LinearGradient(colors: night ? Self.nightSky : Self.daySky, startPoint: .top, endPoint: .bottom)
             if synchronous {
                 if let pick, let image = MacSkylines.image(key: pick.key, night: pick.night, maxPixel: maxPixel) {
-                    MacSkylinePhoto(image: image, dimmed: pick.dimmed, focusX: focusX, focusY: pick.focus)
+                    MacSkylinePhoto(image: image, dimmed: pick.dimmed, targetX: targetX,
+                                    focusX: pick.focusX, focusY: pick.focus)
                 }
             } else if let shown {
-                MacSkylinePhoto(image: shown.image, dimmed: shown.dimmed, focusX: focusX, focusY: shown.focus)
+                MacSkylinePhoto(image: shown.image, dimmed: shown.dimmed, targetX: targetX,
+                                focusX: shown.focusX, focusY: shown.focus)
                     .id(shown.id)
                     .transition(.opacity)
             }
@@ -427,7 +526,9 @@ struct MacSkylineBackdrop: View {
             if let ready = MacSkylines.cached(key: pick.key, night: pick.night, maxPixel: maxPixel) {
                 var instant = Transaction()
                 instant.disablesAnimations = true
-                withTransaction(instant) { shown = Shown(id: wanted, image: ready, dimmed: pick.dimmed, focus: pick.focus) }
+                withTransaction(instant) {
+                    shown = Shown(id: wanted, image: ready, dimmed: pick.dimmed, focus: pick.focus, focusX: pick.focusX)
+                }
                 return
             }
             let key = pick.key, isNight = pick.night, size = maxPixel
@@ -435,7 +536,7 @@ struct MacSkylineBackdrop: View {
                 MacSkylines.image(key: key, night: isNight, maxPixel: size)
             }.value
             guard !Task.isCancelled else { return }
-            shown = image.map { Shown(id: wanted, image: $0, dimmed: pick.dimmed, focus: pick.focus) }
+            shown = image.map { Shown(id: wanted, image: $0, dimmed: pick.dimmed, focus: pick.focus, focusX: pick.focusX) }
         }
     }
 }

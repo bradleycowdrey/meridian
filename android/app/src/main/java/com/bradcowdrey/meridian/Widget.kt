@@ -502,7 +502,8 @@ object MeridianWidgets {
         val phase = WidgetSky.phase(place, now)
         // A row is [text block] [clear gap] [tiles]: the text column (weight 1 beside the tiles' TILES_WEIGHT) keeps
         // only what its widest line needs (the time, the name or the status pill); the rest of it, with LABEL_GAP,
-        // is the clear gap, never under MIN_CLEAR. The photo slides toward the middle of that gap (PhotoFocus.place).
+        // is the clear gap, never under MIN_CLEAR. The photo's landmark (skylines.json "focusX") goes to the middle of
+        // that gap (PhotoFocus.place).
         var focusDp: Float? = null
         var textEndDp = 0f
         var padEndDp = 0f
@@ -933,8 +934,9 @@ private object WidgetSky {
     /**
      * The picture for a card [wDp] by [hDp], at most [maxPx] wide (the layout stretches it to fit), so all
      * a widget's pictures stay small. The photo covers the picture with its skyline (the manifest's focus) at the
-     * middle of the height (PhotoFocus.place); a row ([focusDp] set: the middle of its clear gap, dp from its left)
-     * may zoom up to 15% more only to move the photo's centre toward there. In a row the only darkening is over its text block (to [textEndDp]): black 45% at the left edge easing
+     * middle of the height and its landmark (the manifest's focusX) at the target across (PhotoFocus.place): in a row
+     * ([focusDp] set) the middle of its clear gap, dp from its left; in the small widget the middle. It may zoom up to
+     * 15% more only when covering would otherwise keep the landmark off the target. In a row the only darkening is over its text block (to [textEndDp]): black 45% at the left edge easing
      * (smoothstep) to nothing at the block's end, none over the gap and the tiles. The small widget ([focusDp] null):
      * the photo cropped to fill as the cards, darkened only behind its words at the bottom: black 45% at the bottom
      * easing to nothing 45% up. No blur; the words carry their own halo (and the status its pill).
@@ -951,21 +953,23 @@ private object WidgetSky {
         val c = Canvas(out)
         val w = bw.toFloat()
         val h = bh.toFloat()
-        // A row's photo centre (px), in the middle of its clear gap.
+        // Where a row's photo landmark goes (px): the middle of its clear gap (null: the small widget's middle).
         val fx = focusDp?.let { (it * scale).coerceIn(0f, w) }
         // After sunset with sunrise over an hour away ([wantsNight]): the night photo as taken. Else (or with no night
         // photo) the day photo, shaded as before.
-        // Cropped to fill, at most 15% more on a row (only to move its centre toward fx): see PhotoFocus.place.
+        // Cropped to fill, at most 15% more (only to bring the landmark to its target): see PhotoFocus.place.
         // Decoded at about the width it is drawn (never over 600 px), so it stays sharp and small.
-        val needW = if (fx != null) w * 1.15f else w
+        val needW = w * 1.15f
         val decodeW = minOf(needW.roundToInt().coerceAtLeast(bw), 600)
         val night = if (wantsNight && ref != null) WidgetPhotos.loadNight(context, ref, decodeW) else null
         val photo = night ?: ref?.let { WidgetPhotos.load(context, it, decodeW) }
         if (photo != null && ref != null) {
             val iw = photo.width.toFloat()
             val ih = photo.height.toFloat()
-            // The photo's skyline (the manifest's focus for the photo drawn) at the middle of the height, as the cards.
-            val at = PhotoFocus.place(iw, ih, w, h, if (night != null) ref.nightFocus else ref.focus, fx)
+            // The photo's skyline (the manifest's focus for the photo drawn) at the middle of the height, and its landmark
+            // (its focusX) at fx, or the middle in the small widget, as the cards.
+            val at = PhotoFocus.place(iw, ih, w, h, if (night != null) ref.nightFocus else ref.focus, fx,
+                landmark = if (night != null) ref.nightFocusX else ref.focusX)
             val dw = iw * at[0]
             val dh = ih * at[0]
             val offX = at[1]

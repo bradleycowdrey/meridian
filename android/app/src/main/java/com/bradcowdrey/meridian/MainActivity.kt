@@ -965,15 +965,38 @@ object Skyline {
         SkylineManifest.photo(context, city, zoneId)
 
     /**
-     * Where a photo sits in its card (cropped to fill): centred across, and moved so the point [focus] of the way
-     * down it (its skyline) is at the card's middle, clamped so it still covers (PhotoFocus.place, as the widgets).
+     * Where a photo sits in its card: [focus], how far down the photo its skyline is; [focusX], how far across it its
+     * landmark is (skylines.json "focusX"; the centre without one); [targetX], where across the card (a fraction of
+     * its width) the landmark goes: the clear gap between the name column and the hour tiles.
      */
-    fun align(focus: Float): Alignment = object : Alignment {
+    data class Placement(val focus: Float = PhotoFocus.DEFAULT, val focusX: Float = PhotoFocus.DEFAULT_X, val targetX: Float = 0.5f) {
+        /** For the measured looks' keys: the landmark and target to 0.01 (the focus is the photo's own, in its id). */
+        val key: String get() = "${(focusX * 100).roundToInt()}>${(targetX * 100).roundToInt()}"
+    }
+
+    /**
+     * How a photo is scaled in its card: just enough to cover, or up to 15% more only when covering would keep its
+     * landmark off the target (PhotoFocus.place, as the widgets). Paired with [PlacedAlign] on the same [Placement].
+     */
+    data class PlacedCrop(val at: Placement) : ContentScale {
+        override fun computeScaleFactor(srcSize: Size, dstSize: Size): androidx.compose.ui.layout.ScaleFactor {
+            val s = PhotoFocus.place(srcSize.width, srcSize.height, dstSize.width, dstSize.height, at.focus,
+                at.targetX * dstSize.width, at.focusX)[0]
+            return androidx.compose.ui.layout.ScaleFactor(s, s)
+        }
+    }
+
+    /**
+     * Where a photo (already scaled by [PlacedCrop]) sits in its card: its landmark at the target across and the
+     * point [Placement.focus] of the way down it (its skyline) at the card's middle, clamped so it still covers.
+     */
+    data class PlacedAlign(val at: Placement) : Alignment {
         override fun align(size: androidx.compose.ui.unit.IntSize, space: androidx.compose.ui.unit.IntSize,
             layoutDirection: androidx.compose.ui.unit.LayoutDirection): androidx.compose.ui.unit.IntOffset {
-            // size is already scaled to cover (ContentScale.Crop): centred across, the skyline at the middle (PhotoFocus.top).
-            val y = PhotoFocus.top(size.height.toFloat(), space.height.toFloat(), focus)
-            return androidx.compose.ui.unit.IntOffset((space.width - size.width) / 2, kotlin.math.round(y).toInt())
+            val w = space.width.toFloat()
+            val x = PhotoFocus.left(size.width.toFloat(), w, at.targetX * w, at.focusX)
+            val y = PhotoFocus.top(size.height.toFloat(), space.height.toFloat(), at.focus)
+            return androidx.compose.ui.unit.IntOffset(kotlin.math.round(x).toInt(), kotlin.math.round(y).toInt())
         }
     }
 
@@ -1158,22 +1181,22 @@ object Skyline {
         CardLook(boost = if (nightPhoto || Diag.has("scrim")) 0f else BOOST_MAX, bright = false)
 
     private fun stepOf(width: Int, height: Int): Int = (width.toFloat() / height * 20f).roundToInt().coerceAtLeast(1)
-    private fun boostKey(id: String, shade: Shade, width: Int, height: Int) = "$id/${shade.name}/${stepOf(width, height)}"
-    private fun brightKey(id: String, shade: Shade, width: Int, height: Int, region: TimeRegion, boost: Float) =
-        "$id/${shade.name}/${stepOf(width, height)}/$boost/${region.key}"
+    private fun boostKey(id: String, at: Placement, shade: Shade, width: Int, height: Int) = "$id/${at.key}/${shade.name}/${stepOf(width, height)}"
+    private fun brightKey(id: String, at: Placement, shade: Shade, width: Int, height: Int, region: TimeRegion, boost: Float) =
+        "$id/${at.key}/${shade.name}/${stepOf(width, height)}/$boost/${region.key}"
 
     /** The card's look if it's been measured (map reads only: safe in composition), else null. */
-    fun cachedLook(id: String, shade: Shade, width: Int, height: Int, region: TimeRegion): CardLook? {
+    fun cachedLook(id: String, at: Placement, shade: Shade, width: Int, height: Int, region: TimeRegion): CardLook? {
         if (width <= 0 || height <= 0) return null
-        val boost = if (Diag.has("scrim")) 0f else synchronized(boosts) { boosts[boostKey(id, shade, width, height)] } ?: return null
-        val bright = synchronized(brightness) { brightness[brightKey(id, shade, width, height, region, boost)] } ?: return null
+        val boost = if (Diag.has("scrim")) 0f else synchronized(boosts) { boosts[boostKey(id, at, shade, width, height)] } ?: return null
+        val bright = synchronized(brightness) { brightness[brightKey(id, at, shade, width, height, region, boost)] } ?: return null
         return CardLook(boost, bright)
     }
 
     /** Measures the card's look on its photo (crops, scales and sorts pixels): call off the main thread. */
-    fun look(id: String, bitmap: ImageBitmap, focus: Float, shade: Shade, width: Int, height: Int, region: TimeRegion): CardLook {
-        val boost = if (Diag.has("scrim")) 0f else scrimBoost(id, bitmap, focus, shade, width, height)
-        return CardLook(boost, photoIsBright(id, bitmap, focus, shade, width, height, region, boost))
+    fun look(id: String, bitmap: ImageBitmap, at: Placement, shade: Shade, width: Int, height: Int, region: TimeRegion): CardLook {
+        val boost = if (Diag.has("scrim")) 0f else scrimBoost(id, bitmap, at, shade, width, height)
+        return CardLook(boost, photoIsBright(id, bitmap, at, shade, width, height, region, boost))
     }
 
     /**
@@ -1181,13 +1204,13 @@ object Skyline {
      * (fractions of its width and height) where the time is drawn, as the photo is cropped and aligned
      * there, after the time-of-day shading and the card's scrim (with its [boost]) at that spot.
      */
-    fun photoIsBright(id: String, bitmap: ImageBitmap, focus: Float, shade: Shade, width: Int, height: Int, region: TimeRegion, boost: Float = 0f): Boolean {
+    fun photoIsBright(id: String, bitmap: ImageBitmap, at: Placement, shade: Shade, width: Int, height: Int, region: TimeRegion, boost: Float = 0f): Boolean {
         if (width <= 0 || height <= 0) return false
         val step = stepOf(width, height)
-        val key = brightKey(id, shade, width, height, region, boost)
+        val key = brightKey(id, at, shade, width, height, region, boost)
         synchronized(brightness) { brightness[key]?.let { return it } }
         val bright = try {
-            val lum = regionLuminance(bitmap.asAndroidBitmap(), focus, gain(shade), step / 20f, region)
+            val lum = regionLuminance(bitmap.asAndroidBitmap(), at, gain(shade), step / 20f, region)
             // The scrim blends in sRGB-encoded values, so in linear light it darkens by about (1 - a)^2.2.
             val a = scrimAlpha(region.centerX, region.centerY, boost)
             (lum * Math.pow(1.0 - a, 2.2).toFloat()) > 0.40f
@@ -1203,15 +1226,15 @@ object Skyline {
      * enough that the 95th-percentile pixel over the whole name, zone and status rectangle, after the shading
      * and the scrim as drawn at each spot, is no brighter than [LABEL_MAX], so the text keeps about 6:1 on bright day photos.
      */
-    fun scrimBoost(id: String, bitmap: ImageBitmap, focus: Float, shade: Shade, width: Int, height: Int): Float {
+    fun scrimBoost(id: String, bitmap: ImageBitmap, at: Placement, shade: Shade, width: Int, height: Int): Float {
         if (width <= 0 || height <= 0) return 0f
         val step = stepOf(width, height)
-        val key = boostKey(id, shade, width, height)
+        val key = boostKey(id, at, shade, width, height)
         synchronized(boosts) { boosts[key]?.let { return it } }
         val boost = try {
             // Every sample over the whole label rectangle, each under the scrim as drawn at its own spot (the
             // left scrim eases out across the column, so the right end of a long name sits on the lightest part).
-            val lums = regionSamples(bitmap.asAndroidBitmap(), focus, gain(shade), step / 20f, LABELS)
+            val lums = regionSamples(bitmap.asAndroidBitmap(), at, gain(shade), step / 20f, LABELS)
             val n = lums.size
             // Each sample's spot, worked out once.
             val xs = FloatArray(n) { i -> LABELS.x0 + (i % SAMPLES_W + 0.5f) / SAMPLES_W * (LABELS.x1 - LABELS.x0) }
@@ -1282,14 +1305,14 @@ object Skyline {
      * The relative luminance (after [gain]) of [region] of the photo as the card crops it, as a grid of
      * [SAMPLES_W] x [SAMPLES_H] samples, row by row from the top left (empty if the photo is too small).
      */
-    private fun regionSamples(src: android.graphics.Bitmap, focus: Float, gain: FloatArray, aspect: Float, region: TimeRegion): DoubleArray {
+    private fun regionSamples(src: android.graphics.Bitmap, place: Placement, gain: FloatArray, aspect: Float, region: TimeRegion): DoubleArray {
         val iw = src.width.toFloat()
         val ih = src.height.toFloat()
         if (iw < 2f || ih < 2f) return DoubleArray(0)
-        // ContentScale.Crop, then Skyline.align(focus), as the Image draws it.
+        // PlacedCrop, then PlacedAlign, as the Image draws it.
         val bw = aspect
         val bh = 1f
-        val at = PhotoFocus.place(iw, ih, bw, bh, focus)
+        val at = PhotoFocus.place(iw, ih, bw, bh, place.focus, place.targetX * bw, place.focusX)
         val s = at[0]
         val offX = at[1]
         val offY = at[2]
@@ -1315,8 +1338,8 @@ object Skyline {
         return lums
     }
 
-    private fun regionLuminance(src: android.graphics.Bitmap, focus: Float, gain: FloatArray, aspect: Float, region: TimeRegion, quantile: Float? = null): Float {
-        val lums = regionSamples(src, focus, gain, aspect, region)
+    private fun regionLuminance(src: android.graphics.Bitmap, place: Placement, gain: FloatArray, aspect: Float, region: TimeRegion, quantile: Float? = null): Float {
+        val lums = regionSamples(src, place, gain, aspect, region)
         if (lums.isEmpty()) return 0f
         if (quantile != null) {
             lums.sort()
@@ -1406,7 +1429,7 @@ data class TimeRegion(val x0: Float, val y0: Float, val x1: Float, val y1: Float
 }
 
 /** A card's photo as drawn: the bitmap, its time-of-day shade, and its measured look (scrim boost and ink). */
-data class ShownPhoto(val bitmap: ImageBitmap, val shade: Skyline.Shade, val look: Skyline.CardLook, val focus: Float = PhotoFocus.DEFAULT)
+data class ShownPhoto(val bitmap: ImageBitmap, val shade: Skyline.Shade, val look: Skyline.CardLook, val at: Skyline.Placement = Skyline.Placement())
 
 /** How much a card's time grows with large text: a third of the font scale's growth, up to 1.3x. */
 object BannerGrow {
@@ -1634,24 +1657,33 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         // or is still on its way): the drawn night skyline, not the day photo darkened. Drawing only: the photos above
         // still load and prefetch as before, so a jump back to day shows the day photo at once.
         val drawnNight = shade == Skyline.Shade.NIGHT && (photo == null || nightResId == 0)
-        // Where this photo's skyline is (the manifest's focus for the day or night photo; downloads the default).
+        // Where this photo's skyline is (the manifest's focus for the day or night photo; downloads the default), and
+        // its landmark (the manifest's focusX; downloads the centre), which goes to the middle of the clear gap
+        // between the name column and the hour tiles (as the Row below lays them out), as a fraction of the card's width.
         val focus = when {
             photo == null -> PhotoFocus.DEFAULT
             nightShown -> photo.nightFocus
             else -> photo.focus
         }
+        val focusX = when {
+            photo == null -> PhotoFocus.DEFAULT_X
+            nightShown -> photo.nightFocusX
+            else -> photo.focusX
+        }
+        val gapTarget = if (maxWidth > 0.dp) ((Rows.padH + Rows.labelWidth(maxWidth) + Strip.labelGap / 2) / maxWidth).coerceIn(0f, 1f) else 0.5f
+        val placement = Skyline.Placement(focus, focusX, gapTarget)
         val id = (if (photo != null) "res:${photo.key}" else "dl:$slug") + if (nightShown) ":night" else ""
         // The scrim's boost behind the name column (so the white name, zone and status keep 4.5:1) and the adaptive
         // ink for the time (dark numbers on a bright photo), measured off the main thread after the shading and scrim.
-        val lookKey = "$id/${shade.name}"
+        val lookKey = "$id/${placement.key}/${shade.name}"
         var measured by remember(city, place.zoneId) { mutableStateOf<Pair<String, Skyline.CardLook>?>(null) }
-        if (bitmap != null) LaunchedEffect(id, bitmap, shade, widthPx, heightPx, region) {
+        if (bitmap != null) LaunchedEffect(id, bitmap, shade, widthPx, heightPx, region, placement) {
             val b = bitmap
-            val got = Skyline.cachedLook(id, shade, widthPx, heightPx, region)
-                ?: withContext(Skyline.measures) { Skyline.look(id, b, focus, shade, widthPx, heightPx, region) }
+            val got = Skyline.cachedLook(id, placement, shade, widthPx, heightPx, region)
+                ?: withContext(Skyline.measures) { Skyline.look(id, b, placement, shade, widthPx, heightPx, region) }
             measured = lookKey to got
         }
-        val look = if (bitmap == null) null else Skyline.cachedLook(id, shade, widthPx, heightPx, region)
+        val look = if (bitmap == null) null else Skyline.cachedLook(id, placement, shade, widthPx, heightPx, region)
             ?: measured?.takeIf { it.first == lookKey }?.second
         // What's drawn: the photo as soon as it's decoded. While its look is measured, the last photo shown stays;
         // with none yet, the new photo shows at once with a safe look (full boost on a day photo, white ink) that the
@@ -1660,8 +1692,8 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         val shown = when {
             // Never back to the drawn skyline while this city's photo was shown and its photo is on its way.
             bitmap == null -> if (photo != null && usePhotos) last[0] else null
-            look != null -> ShownPhoto(bitmap, shade, look, focus).also { last[0] = it }
-            else -> last[0] ?: ShownPhoto(bitmap, shade, Skyline.provisionalLook(nightPhoto = nightShown), focus)
+            look != null -> ShownPhoto(bitmap, shade, look, placement).also { last[0] = it }
+            else -> last[0] ?: ShownPhoto(bitmap, shade, Skyline.provisionalLook(nightPhoto = nightShown), placement)
         }
         // The boost eases (0.25 s) from the provisional look to the measured one, so the name column never flashes dark.
         val boostTarget = if (drawnNight) 0f else shown?.look?.boost ?: 0f
@@ -1679,8 +1711,8 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
             Crossfade(targetState = shown != null && !drawnNight, modifier = Modifier.matchParentSize(), animationSpec = tween(300), label = "drawn night") { photoShown ->
                 if (photoShown && shown != null) {
                     // Photo to photo (day to night, and back) crossfades over 0.3 s; the first photo just appears.
-                    Crossfade(targetState = Triple(shown.bitmap, shown.shade, shown.focus), modifier = Modifier.fillMaxSize(), animationSpec = tween(300), label = "skyline") { (pic, how, at) ->
-                        Image(pic, contentDescription = null, contentScale = ContentScale.Crop, alignment = Skyline.align(at),
+                    Crossfade(targetState = Triple(shown.bitmap, shown.shade, shown.at), modifier = Modifier.fillMaxSize(), animationSpec = tween(300), label = "skyline") { (pic, how, at) ->
+                        Image(pic, contentDescription = null, contentScale = Skyline.PlacedCrop(at), alignment = Skyline.PlacedAlign(at),
                             colorFilter = if (Diag.has("shade")) null else Skyline.filter(how), modifier = Modifier.fillMaxSize())
                     }
                 } else {

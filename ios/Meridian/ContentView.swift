@@ -1052,9 +1052,11 @@ struct CityRow: View {
                                      downloadedNight: store.downloadCityPhotos ? photos.nightImage(for: place) : nil,
                                      nightSearched: store.downloadCityPhotos && photos.nightSearched(for: place))
         let size = CGSize(width: cardWidth, height: height)
+        // Where the photo's landmark goes: the gap between the name column and the tiles.
+        let photoTarget = SkylineArt.gapTarget(cardWidth: cardWidth)
         // Dark digits where the card is bright behind the time, white ones where it's dark.
         let bright = BannerInk.isBright(photo: photo, seed: place.name, phase: phase, size: size,
-                                        region: clockRegion(size: size, clockSize: clockSize))
+                                        region: clockRegion(size: size, clockSize: clockSize), targetX: photoTarget)
         let content = max(0, cardWidth - 2 * RowCard.sidePadding)
         let tileHeight = min(RowCard.tileHeight, max(28, height - RowCard.topPadding - RowCard.bottomPadding))
         return ZStack(alignment: .bottomLeading) {
@@ -1064,7 +1066,7 @@ struct CityRow: View {
             // stay fully opaque, and the mask leaves the layout as it was.
             ZStack {
                 Theme.tile
-                SkylineBackdrop(seed: place.name, photo: photo, phase: phase)
+                SkylineBackdrop(seed: place.name, photo: photo, phase: phase, targetX: photoTarget)
                 CardScrim()
             }
             .mask {

@@ -72,7 +72,7 @@ struct SettingsView: View {
                         HStack {
                             Text("Photo Credits")
                             Spacer()
-                            Text("Wikimedia Commons")
+                            Text(SkylineArt.creditsSummary)
                                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                         }
                     }

@@ -10,7 +10,7 @@ struct StripView: View {
     var cellWidth: CGFloat = 52
     var rowHeight: CGFloat = 84
     var labelWidth: CGFloat = 200
-    /// Clear space between a row's label and its hour tiles: the city's photo is centred here.
+    /// Clear space between a row's label and its hour tiles: the city's landmark is placed here.
     var gapWidth: CGFloat = 170
     var editing = false
 
@@ -44,8 +44,9 @@ struct StripView: View {
                 + ui.lensCore / 2 + ui.lensEdge).rounded(.up)
             let tileBottom = max(0, min(max(ui.tileBottom(row: rowHeight), lensReach), rowHeight - tileHeight))
             let cardWidth = labelWidth + gapWidth + stripWidth + 2 * ui.cardOutset
-            // The photo's centre: the middle of the clear gap, from the card's leading edge.
-            let focusX = ui.cardOutset + labelWidth + gapWidth / 2
+            // Where each photo's landmark (skylines.json "focusX") goes: the middle of the clear
+            // gap between the label and the hour tiles, from the card's leading edge.
+            let photoTargetX = ui.cardOutset + labelWidth + gapWidth / 2
 
             ZStack(alignment: .topLeading) {
                 // Each city's photo (day or night by the sun there at the shown moment), behind
@@ -54,7 +55,7 @@ struct StripView: View {
                     ForEach(store.places) { place in
                         MacSkylineBackdrop(name: place.name, timeZoneID: place.timeZoneID,
                                            latitude: place.latitude, longitude: place.longitude,
-                                           date: moment, maxPixel: 1000, focusX: focusX)
+                                           date: moment, maxPixel: 1536, targetX: photoTargetX)
                             .overlay(scrim(textEnd: ui.cardOutset + labelWidth, cardWidth: cardWidth))
                             .clipShape(RoundedRectangle(cornerRadius: ui.cardRadius, style: .continuous))
                             // The card's edge feathers out over a thin band (4 pt) into the panel

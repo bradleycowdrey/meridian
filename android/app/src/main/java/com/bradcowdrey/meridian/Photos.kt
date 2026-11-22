@@ -31,22 +31,29 @@ data class PhotoCredit(val author: String, val license: String, val licenseUrl: 
 
 /**
  * The skyline photos built into the app: Resources/Data/skylines.json (written by the photo pipeline:
- * key, names and aliases, time zone, file, credit, and from v2 `night`: {file, credit} or null), each a
- * drawable "skyline_<key>" (the day photo) and, where there is one, "skyline_<key>_night". Until the
- * manifest lands (or for a key it leaves out) the four original photos still work. A v1 manifest (no
- * `night`) still reads: a night drawable is found by its name alone.
+ * key, names and aliases, time zone, file, credit, "focus", from v2 `night`: {file, credit, focus} or null,
+ * and from v3 "focusX" beside each "focus"), each a drawable "skyline_<key>" (the day photo) and, where
+ * there is one, "skyline_<key>_night". v1 and v2 are a bare array of entries; v3 is an object with
+ * "version": 3 and the entries under one array-valued key ([readEntries]). Until the manifest lands (or
+ * for a key it leaves out) the four original photos still work. A v1 manifest (no `night`) still reads:
+ * a night drawable is found by its name alone.
  */
 object SkylineManifest {
-    /** [focus] / [nightFocus]: the manifest's "focus" for the day photo and "night"."focus" (null when it has none). */
+    /**
+     * [focus] / [nightFocus]: the manifest's "focus" for the day photo and "night"."focus"; [focusX] / [nightFocusX]:
+     * its "focusX" (v3: the landmark's place across the photo) for each (null when it has none).
+     */
     data class Entry(val key: String, val names: List<String>, val zone: String?, val credit: PhotoCredit?, val nightCredit: PhotoCredit? = null,
-        val focus: Float? = null, val nightFocus: Float? = null)
+        val focus: Float? = null, val nightFocus: Float? = null, val focusX: Float? = null, val nightFocusX: Float? = null)
 
     /**
      * A built-in photo for a card: its key, its day drawable, and its night one (0 for none), with where each
-     * photo's skyline is ([focus] / [nightFocus]: 0..1 down the photo; [PhotoFocus.DEFAULT] when the manifest has none).
+     * photo's skyline is ([focus] / [nightFocus]: 0..1 down the photo; [PhotoFocus.DEFAULT] when the manifest has none)
+     * and its landmark ([focusX] / [nightFocusX]: 0..1 across the photo; [PhotoFocus.DEFAULT_X], the centre, when it has none).
      */
     data class Photo(val key: String, val resId: Int, val nightResId: Int = 0,
-        val focus: Float = PhotoFocus.DEFAULT, val nightFocus: Float = PhotoFocus.DEFAULT)
+        val focus: Float = PhotoFocus.DEFAULT, val nightFocus: Float = PhotoFocus.DEFAULT,
+        val focusX: Float = PhotoFocus.DEFAULT_X, val nightFocusX: Float = PhotoFocus.DEFAULT_X)
 
     private val fallback = listOf(
         Entry("sanfrancisco", listOf("San Francisco"), "America/Los_Angeles",
@@ -86,24 +93,48 @@ object SkylineManifest {
             }
         }
 
+    /** Entry keys a v3 file's entries are looked for under first (then any other array-valued key, by name). */
+    private val ENTRY_KEYS = listOf("entries", "cities", "skylines", "photos")
+
+    /**
+     * The entries of a manifest: v1/v2 are a bare array; v3 is an object ("version": 3) with the entries under
+     * one array-valued key ([ENTRY_KEYS] first, else the first other key, by name, holding an array of objects).
+     */
+    private fun readEntries(text: String): JSONArray? {
+        val trimmed = text.trimStart()
+        if (trimmed.startsWith("[")) return JSONArray(trimmed)
+        val o = JSONObject(trimmed)
+        val others = o.keys().asSequence().filter { it !in ENTRY_KEYS && it != "version" }.sorted().toList()
+        for (k in ENTRY_KEYS + others) {
+            val a = o.optJSONArray(k) ?: continue
+            if ((0 until a.length()).any { a.optJSONObject(it)?.optString("key")?.isNotBlank() == true }) return a
+        }
+        return null
+    }
+
+    /** A string field, "" when it's missing or JSON null (optString would give "null"). */
+    private fun str(o: JSONObject, name: String): String = if (o.isNull(name)) "" else o.optString(name).trim()
+
+    /** A credit object: an AI plate's has no licenseUrl and an empty source, which Photo Credits shows without a link. */
+    private fun creditOf(c: JSONObject): PhotoCredit =
+        PhotoCredit(str(c, "author"), str(c, "license"), str(c, "licenseUrl").ifBlank { null }, str(c, "source"))
+
     private fun parse(text: String?): List<Entry> {
         if (text.isNullOrBlank()) return emptyList()
         return runCatching {
-            val array = JSONArray(text)
+            val array = readEntries(text) ?: return@runCatching emptyList<Entry>()
             (0 until array.length()).mapNotNull { i ->
                 val o = array.optJSONObject(i) ?: return@mapNotNull null
                 val key = o.optString("key").trim()
                 if (key.isEmpty()) return@mapNotNull null
                 val names = o.optJSONArray("names")?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotBlank() } } ?: emptyList()
-                val credit = o.optJSONObject("credit")?.let { c ->
-                    PhotoCredit(c.optString("author"), c.optString("license"), c.optString("licenseUrl").ifBlank { null }, c.optString("source"))
-                }
-                // v2: "night": {file, credit} or null (v1 has no "night").
-                val nightCredit = o.optJSONObject("night")?.optJSONObject("credit")?.let { c ->
-                    PhotoCredit(c.optString("author"), c.optString("license"), c.optString("licenseUrl").ifBlank { null }, c.optString("source"))
-                }
-                Entry(key, names, o.optString("zone").ifBlank { null }, credit, nightCredit,
-                    focus = PhotoFocus.read(o), nightFocus = o.optJSONObject("night")?.let { PhotoFocus.read(it) })
+                val credit = o.optJSONObject("credit")?.let { creditOf(it) }
+                // v2: "night": {file, credit, focus} or null (v1 has no "night"); v3 adds "focusX" there too.
+                val night = o.optJSONObject("night")
+                val nightCredit = night?.optJSONObject("credit")?.let { creditOf(it) }
+                Entry(key, names, str(o, "zone").ifBlank { null }, credit, nightCredit,
+                    focus = PhotoFocus.read(o), nightFocus = night?.let { PhotoFocus.read(it) },
+                    focusX = PhotoFocus.readX(o), nightFocusX = night?.let { PhotoFocus.readX(it) })
             }
         }.getOrDefault(emptyList())
     }
@@ -140,7 +171,8 @@ object SkylineManifest {
             ?: return null
         val id = resId(context, match.key)
         return if (id != 0) Photo(match.key, id, resId(context, match.key, night = true),
-            focus = match.focus ?: PhotoFocus.DEFAULT, nightFocus = match.nightFocus ?: PhotoFocus.DEFAULT) else null
+            focus = match.focus ?: PhotoFocus.DEFAULT, nightFocus = match.nightFocus ?: PhotoFocus.DEFAULT,
+            focusX = match.focusX ?: PhotoFocus.DEFAULT_X, nightFocusX = match.nightFocusX ?: PhotoFocus.DEFAULT_X) else null
     }
 
     /** The built-in photos in this build, with their credits (Photo Credits): each day photo, then its night one. */
@@ -152,19 +184,29 @@ object SkylineManifest {
 }
 
 /**
- * Where a photo sits in a card or a widget row (all much wider than the 2:1 photos, so only a band of each shows):
- * scaled just enough to cover (aspect-fill), at most [MAX_ZOOM] times that, the extra only to slide the photo's
- * centre toward [centerX] (a row's clear gap); and moved so the point [focus] of the way down the photo (the
- * skyline, from the manifest; [DEFAULT] without one) is at the middle of the height, clamped so it still covers.
+ * Where a photo sits in a card or a widget (the v3 plates are 3:1, the old photos about 2:1): scaled just enough to
+ * cover (aspect-fill), then moved across so the photo's landmark (its "focusX", [landmark], a fraction of its width;
+ * [DEFAULT_X], the centre, without one) lands on the frame's target x (a row's clear gap between its words and its
+ * hour tiles; the middle of a small single-city widget), clamped so the photo still covers (no empty edge). Only when
+ * that clamp keeps the landmark off the target is it zoomed, at most [MAX_ZOOM] times the cover scale, just enough
+ * to reach it. Down: moved so the point [focus] of the way down the photo (the skyline, from the manifest; [DEFAULT]
+ * without one) is at the middle of the height, clamped so it still covers.
  */
 object PhotoFocus {
     /** Where the skyline is when the manifest doesn't say (downloaded photos, old manifests). */
     const val DEFAULT = 0.62f
+    /** Where the landmark is when the manifest doesn't say (downloaded photos, v1/v2 manifests): the centre. */
+    const val DEFAULT_X = 0.5f
     private const val MAX_ZOOM = 1.15f
 
     /** An object's "focus" (0..1), or null when it has none. */
-    fun read(o: JSONObject): Float? {
-        val v = o.optDouble("focus", Double.NaN)
+    fun read(o: JSONObject): Float? = number(o, "focus")
+
+    /** An object's "focusX" (0..1, v3), or null when it has none. */
+    fun readX(o: JSONObject): Float? = number(o, "focusX")
+
+    private fun number(o: JSONObject, name: String): Float? {
+        val v = o.optDouble(name, Double.NaN)
         return if (v.isNaN()) null else v.toFloat().coerceIn(0f, 1f)
     }
 
@@ -173,19 +215,28 @@ object PhotoFocus {
 
     /**
      * The photo ([iw] by [ih]) drawn in a [w] by [h] box: its scale and its top-left offset in the box
-     * (floatArrayOf(scale, offX, offY)).
+     * (floatArrayOf(scale, offX, offY)). [targetX]: where across the box (px) the landmark goes; null for the
+     * box's middle. [landmark]: the landmark's place across the photo (0..1).
      */
-    fun place(iw: Float, ih: Float, w: Float, h: Float, focus: Float, centerX: Float? = null): FloatArray {
+    fun place(iw: Float, ih: Float, w: Float, h: Float, focus: Float, targetX: Float? = null, landmark: Float = DEFAULT_X): FloatArray {
         if (iw <= 0f || ih <= 0f) return floatArrayOf(1f, 0f, 0f)
         val cover = maxOf(w / iw, h / ih)
-        // Wide enough for the photo's centre to sit at centerX, but never past MAX_ZOOM times the cover scale.
-        val s = if (centerX == null) cover
-            else (2f * maxOf(centerX, w - centerX) / iw).coerceIn(cover, cover * MAX_ZOOM)
+        val t = (targetX ?: (w / 2f)).coerceIn(0f, w)
+        val l = landmark.coerceIn(0f, 1f)
+        // The drawn width at which the landmark can sit at t with the photo still covering: wide enough on the left
+        // (t <= l * dw) and on the right (w - t <= (1 - l) * dw). A landmark at the photo's very edge can't move inward
+        // by zooming, so that side asks nothing. Never past MAX_ZOOM times the cover scale.
+        val needLeft = if (l > 0.001f) t / l else 0f
+        val needRight = if (l < 0.999f) (w - t) / (1f - l) else 0f
+        val s = (maxOf(needLeft, needRight) / iw).coerceIn(cover, cover * MAX_ZOOM)
         val dw = iw * s
         val dh = ih * s
-        val offX = if (centerX == null) (w - dw) / 2f else clampTo(centerX - dw / 2f, w - dw)
-        return floatArrayOf(s, offX, top(dh, h, focus))
+        return floatArrayOf(s, left(dw, w, t, l), top(dh, h, focus))
     }
+
+    /** The left of a photo drawn [dw] wide in a box [w] wide: its point [landmark] of the way across at [targetX], still covering. */
+    fun left(dw: Float, w: Float, targetX: Float, landmark: Float): Float =
+        clampTo(targetX - landmark.coerceIn(0f, 1f) * dw, w - dw)
 
     /** The top of a photo drawn [dh] high in a box [h] high: its point [focus] of the way down at the middle, still covering. */
     fun top(dh: Float, h: Float, focus: Float): Float = clampTo(h / 2f - focus.coerceIn(0f, 1f) * dh, h - dh)
@@ -585,7 +636,8 @@ object WidgetPhotos {
      * [night]: the city has a night photo too (copied as <key>-night.jpg; built in from [nightResId]).
      */
     data class Ref(val key: String, val focus: Float, val resId: Int = 0, val slug: String? = null,
-        val nightResId: Int = 0, val night: Boolean = false, val nightFocus: Float = PhotoFocus.DEFAULT)
+        val nightResId: Int = 0, val night: Boolean = false, val nightFocus: Float = PhotoFocus.DEFAULT,
+        val focusX: Float = PhotoFocus.DEFAULT_X, val nightFocusX: Float = PhotoFocus.DEFAULT_X)
 
     fun dir(context: Context): File = File(context.filesDir, DIR).apply { mkdirs() }
 
@@ -597,7 +649,8 @@ object WidgetPhotos {
     fun ref(context: Context, place: Place): Ref? {
         val city = city(context, place)
         SkylineManifest.photo(context, city, place.zoneId)?.let {
-            return Ref(it.key, it.focus, resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0, nightFocus = it.nightFocus)
+            return Ref(it.key, it.focus, resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0, nightFocus = it.nightFocus,
+                focusX = it.focusX, nightFocusX = it.nightFocusX)
         }
         val slug = CityPhotos.slug(city, place.zoneId)
         if (CityPhotos.file(context, slug) != null) return Ref("dl-$slug", PhotoFocus.DEFAULT, slug = slug, night = CityPhotos.nightFile(context, slug) != null)
@@ -647,7 +700,8 @@ object WidgetPhotos {
         runCatching {
             val map = JSONObject()
             refs.forEach { (id, r) -> map.put(id, JSONObject().put("key", r.key).put("focus", r.focus.toDouble())
-                .put("nightFocus", r.nightFocus.toDouble()).put("night", r.night)) }
+                .put("nightFocus", r.nightFocus.toDouble()).put("night", r.night)
+                .put("focusX", r.focusX.toDouble()).put("nightFocusX", r.nightFocusX.toDouble())) }
             val tmp = File(folder, "$MAP.part")
             tmp.writeText(map.toString())
             if (!tmp.renameTo(File(folder, MAP))) tmp.delete()
@@ -664,7 +718,10 @@ object WidgetPhotos {
             val e = o.optJSONObject(id) ?: return@mapNotNull null
             val key = e.optString("key").ifBlank { return@mapNotNull null }
             id to Ref(key, PhotoFocus.read(e) ?: PhotoFocus.DEFAULT, night = e.optBoolean("night"),
-                nightFocus = e.optDouble("nightFocus", PhotoFocus.DEFAULT.toDouble()).toFloat())
+                nightFocus = e.optDouble("nightFocus", PhotoFocus.DEFAULT.toDouble()).toFloat(),
+                // A map.json from before v3 has no focusX: the centre, as before.
+                focusX = PhotoFocus.readX(e) ?: PhotoFocus.DEFAULT_X,
+                nightFocusX = e.optDouble("nightFocusX", PhotoFocus.DEFAULT_X.toDouble()).toFloat().coerceIn(0f, 1f))
         }.toMap()
     }.getOrDefault(emptyMap())
 

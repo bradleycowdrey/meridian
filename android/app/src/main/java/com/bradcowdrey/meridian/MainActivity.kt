@@ -11,6 +11,13 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
@@ -28,7 +35,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -37,6 +43,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -72,8 +79,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -168,6 +173,11 @@ object Palette {
     val moon = Color(0xFFEFE3CC)
     val pickerAccent = Color(0xFF3D74B0)
     val switchOn = Color(0xFF3D74B0)
+    /** Shared finish tokens (as the iPhone and Mac): quiet control fill, hairline separator, glass edge, sheet. */
+    val fill = Color(0x14FFFFFF)          // white .08
+    val separator = Color(0x1AFFFFFF)     // white .10
+    val divider = Color(0x1FFFFFFF)       // white .12, inside the +/pencil capsule
+    val sheet = Color(0xFF1C1C1E)
     const val WEBSITE = "https://bradcowdrey.com"
     const val APP_PAGE = "https://bradcowdrey.com/meridian"
     const val LEGAL = "https://bradcowdrey.com/legal"
@@ -196,9 +206,57 @@ object Glyphs {
         glyph("Clock", "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zM12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z")
     }
 
+    /** Material "ios_share": the iPhone's share symbol. */
+    val share: ImageVector by lazy {
+        glyph("Share", "M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z")
+    }
+
+    /** Material "more_horiz": the iPhone's ellipsis. */
+    val more: ImageVector by lazy {
+        glyph("More", "M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z")
+    }
+
     /** Material "grid_view". */
     val grid: ImageVector by lazy {
         glyph("Grid", "M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z")
+    }
+}
+
+/** The one motion curve, as the iPhone and Mac: cubic-bezier(.32, .72, 0, 1). */
+object Motion {
+    val ease = CubicBezierEasing(0.32f, 0.72f, 0f, 1f)
+    /** Sheets and expanding. */
+    const val DURATION = 350
+    /** Press feedback. */
+    const val PRESS = 200
+}
+
+/** Scale to .94 while pressed, on the standard curve. */
+@Composable
+fun Modifier.pressScale(interaction: MutableInteractionSource): Modifier {
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.94f else 1f, tween(Motion.PRESS, easing = Motion.ease), label = "press")
+    return this.graphicsLayer { scaleX = scale; scaleY = scale }
+}
+
+/**
+ * A glass circle action, as the iPhone's toolbar buttons: white .08 fill, a 0.5 dp white .10 edge, a 20 dp
+ * rounded symbol. The ripple stays inside the circle; the touch target is at least 48 dp.
+ */
+@Composable
+fun GlassCircleButton(
+    icon: ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 36.dp,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(modifier.minimumInteractiveComponentSize().pressScale(interaction).size(size).clip(CircleShape)
+        .background(Palette.fill).border(0.5.dp, Palette.separator, CircleShape)
+        .clickable(interactionSource = interaction, indication = LocalIndication.current, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center) {
+        Icon(icon, contentDescription = contentDescription, tint = white(0.9f), modifier = Modifier.size(20.dp))
     }
 }
 
@@ -230,13 +288,13 @@ fun GlassCard(
     spacing: Dp = 10.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(16.dp)
-    Column(modifier.fillMaxWidth().clip(shape).background(Palette.cardFill).border(1.dp, Palette.cardBorder, shape).padding(padding),
+    val shape = RoundedCornerShape(20.dp)
+    Column(modifier.fillMaxWidth().clip(shape).background(Palette.cardFill).border(0.5.dp, Palette.cardBorder, shape).padding(padding),
         verticalArrangement = Arrangement.spacedBy(spacing)) {
         if (title != null) {
             Row(Modifier.semantics { heading() }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (icon != null) Icon(icon, contentDescription = null, tint = white(0.6f), modifier = Modifier.size(14.dp))
-                Text(title.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = white(0.6f), maxLines = 1)
+                if (icon != null) Icon(icon, contentDescription = null, tint = white(0.64f), modifier = Modifier.size(14.dp))
+                Text(title.uppercase(), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.3.sp, color = white(0.64f), maxLines = 1)
             }
         }
         content()
@@ -415,10 +473,11 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
         containerColor = Palette.bg,
         topBar = {
             Column(Modifier.fillMaxWidth().background(Palette.black).statusBarsPadding()) {
-                Box(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 4.dp)) {
+                // 10 dp in, so the glass circles (36 dp in a 48 dp target) sit 16 dp from the edges, as on the iPhone.
+                Box(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 10.dp)) {
                     // Share, as in Cowdrey.MD: Meridian or this moment, or copy a link or a ready-to-send message.
                     Box(Modifier.align(Alignment.CenterStart)) {
-                        IconButton(onClick = { shareMenu = true }) { Icon(Icons.Filled.Share, contentDescription = "Share", tint = Palette.primary) }
+                        GlassCircleButton(Glyphs.share, contentDescription = "Share") { shareMenu = true }
                         DropdownMenu(expanded = shareMenu, onDismissRequest = { shareMenu = false }) {
                             DropdownMenuItem(text = { Text("Share Meridian…") }, onClick = {
                                 shareMenu = false; share("Share Meridian", "Meridian", "${Palette.SHARE_MESSAGE} ${Palette.APP_PAGE}")
@@ -436,16 +495,18 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                         }
                     }
                     // The title, small and centred between Share and the controls (never large).
-                    // Kept clear of Share (48 dp) and the +/pencil capsule and More (≈131 dp) at any font size.
-                    Text("Meridian", fontSize = (17f / maxOf(1f, LocalDensity.current.fontScale / 1.15f)).sp, fontWeight = FontWeight.SemiBold,
+                    // Kept clear of Share (48 dp) and the +/pencil capsule and More (≈131 dp from the bar's padding) at any font size.
+                    Text("Meridian", fontSize = (17f / maxOf(1f, LocalDensity.current.fontScale / 1.15f)).sp, fontWeight = FontWeight.Medium,
                         color = Palette.primary, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.align(Alignment.Center).padding(horizontal = 132.dp).semantics { heading() })
-                    Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
+                    // 2 dp apart, plus More's 6 dp of extra touch target: 8 dp between the capsule and the circle.
+                    Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     ListControls(adding = adding, editing = editing, canAdd = store.canAdd, canEdit = store.places.isNotEmpty(),
                         onAdd = { if (adding) closeSearch() else { editing = false; adding = true } },
                         onEdit = { if (adding) closeSearch(); editing = !editing })
                     Box {
-                        IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More", tint = Palette.primary) }
+                        GlassCircleButton(Glyphs.more, contentDescription = "More") { menu = true }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             DropdownMenuItem(text = { Text("Edit List") }, enabled = store.places.isNotEmpty(), onClick = {
                                 menu = false; if (adding) closeSearch(); editing = true
@@ -479,15 +540,15 @@ fun MainScreen(store: Store, initialQuery: String = "", initialEditing: Boolean 
                 else if (showGroupBar) {
                     Column(Modifier.fillMaxWidth().background(Palette.barBg)) {
                         GroupBar(store, open)
-                        HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))
+                        HorizontalDivider(thickness = 0.5.dp, color = Palette.separator)
                     }
                 }
             }
         },
         bottomBar = {
             if (showBar) {
-                Column(Modifier.fillMaxWidth().background(Palette.barBg).navigationBarsPadding()) {
-                    HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))
+                Column(Modifier.fillMaxWidth().background(Palette.barBg).navigationBarsPadding().padding(bottom = 8.dp)) {
+                    HorizontalDivider(thickness = 0.5.dp, color = Palette.separator)
                     if (!Diag.has("footer")) TimeShifter(store) { open("date") }
                 }
             }
@@ -796,17 +857,18 @@ fun TimeShifter(store: Store, goToTime: () -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         if (!store.hasScrubbed) {
             // The iPhone's words; two lines allowed at large text (1.3x and up), so it never ends in an ellipsis.
-            Text("Drag the hours or the ruler.", fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium,
-                color = white(0.7f), textAlign = TextAlign.Center, maxLines = if (LocalDensity.current.fontScale >= 1.3f) 2 else 1,
+            Text("Drag the hours or the ruler.", fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Normal,
+                color = white(0.5f), textAlign = TextAlign.Center, maxLines = if (LocalDensity.current.fontScale >= 1.3f) 2 else 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 16.dp, end = 16.dp).heightIn(min = 17.dp))
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp, start = 16.dp, end = 16.dp).heightIn(min = 16.dp))
         }
         // Now on the left, the ruler filling the middle, Go to a Time at the far right.
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 4.dp).height(48.dp),
+        // 16 dp margins: Now at the edge, the calendar circle (34 dp in a 48 dp target) 9 + 7 dp in.
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 9.dp, top = 6.dp).height(48.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NowButton(store)
             Box(Modifier.weight(1f)) { TimeRuler(store) }
-            IconButton(onClick = goToTime) { Icon(Icons.Filled.DateRange, contentDescription = "Go to a Time", tint = Palette.primary) }
+            GlassCircleButton(Icons.Rounded.DateRange, contentDescription = "Go to a Time", size = 34.dp, onClick = goToTime)
         }
     }
 }
@@ -819,14 +881,17 @@ fun TimeShifter(store: Store, goToTime: () -> Unit) {
 fun NowButton(store: Store) {
     val atNow = store.isNow
     val shape = RoundedCornerShape(50)
-    Box(Modifier.defaultMinSize(minWidth = 68.dp, minHeight = 44.dp).height(44.dp).clip(shape)
-        .background(if (atNow) white(0.14f) else NowFill)
-        .then(if (atNow) Modifier.border(0.5.dp, white(0.25f), shape) else Modifier)
-        .clickable(enabled = !atNow, onClickLabel = "Back to now") { store.backToNow() }
+    val interaction = remember { MutableInteractionSource() }
+    // A 34 dp capsule (as the iPhone's) in a 48 dp touch target.
+    Box(Modifier.minimumInteractiveComponentSize().pressScale(interaction).defaultMinSize(minWidth = 60.dp).height(34.dp).clip(shape)
+        .background(if (atNow) Palette.fill else NowFill)
+        .then(if (atNow) Modifier.border(0.5.dp, Palette.separator, shape) else Modifier)
+        .clickable(interactionSource = interaction, indication = LocalIndication.current, enabled = !atNow,
+            onClickLabel = "Back to now") { store.backToNow() }
         .semantics { contentDescription = if (atNow) "Now" else "Back to now" }
-        .padding(horizontal = 18.dp),
+        .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center) {
-        Text("Now", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (atNow) NowFill else NowInk,
+        Text("Now", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = if (atNow) NowFill else NowInk,
             maxLines = 1, softWrap = false)
     }
 }
@@ -2546,20 +2611,25 @@ private fun RulerTick(at: java.time.ZonedDateTime, use24h: Boolean, centre: Bool
  */
 @Composable
 fun ListControls(adding: Boolean, editing: Boolean, canAdd: Boolean, canEdit: Boolean, onAdd: () -> Unit, onEdit: () -> Unit) {
-    Row(Modifier.padding(end = 2.dp).clip(RoundedCornerShape(50)).background(Palette.chipOff).padding(2.dp),
+    // One 34 dp glass capsule, each half 40 dp (38 plus the 2 dp inset), split by a 0.5 dp white .12 divider.
+    val shape = RoundedCornerShape(50)
+    Row(Modifier.height(34.dp).clip(shape).background(Palette.fill).border(0.5.dp, Palette.separator, shape).padding(2.dp),
         verticalAlignment = Alignment.CenterVertically) {
-        ControlButton(if (adding) Icons.Filled.Check else Icons.Filled.Add, adding, if (adding) "Done adding" else "Add a city", canAdd || adding, onAdd)
-        Box(Modifier.width(0.5.dp).height(14.dp).background(if (adding || editing) Color.Transparent else white(0.2f)))
-        ControlButton(if (editing) Icons.Filled.Check else Icons.Filled.Edit, editing, if (editing) "Done editing" else "Edit list", canEdit || editing, onEdit)
+        ControlButton(if (adding) Icons.Rounded.Check else Icons.Rounded.Add, adding, if (adding) "Done adding" else "Add a city", canAdd || adding, onAdd)
+        Box(Modifier.width(0.5.dp).height(16.dp).background(if (adding || editing) Color.Transparent else Palette.divider))
+        ControlButton(if (editing) Icons.Rounded.Check else Icons.Rounded.Edit, editing, if (editing) "Done editing" else "Edit list", canEdit || editing, onEdit)
     }
 }
 
 @Composable
 private fun ControlButton(icon: ImageVector, on: Boolean, label: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(Modifier.width(38.dp).height(30.dp).clip(RoundedCornerShape(50)).background(if (on) Palette.primary else Color.Transparent)
-        .clickable(enabled = enabled, onClickLabel = label, onClick = onClick), contentAlignment = Alignment.Center) {
-        Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp),
-            tint = if (on) Palette.black else if (enabled) Palette.primary else white(0.35f))
+    val interaction = remember { MutableInteractionSource() }
+    val fill by animateColorAsState(if (on) Palette.primary else Color.Transparent, tween(Motion.PRESS, easing = Motion.ease), label = "control")
+    Box(Modifier.pressScale(interaction).width(38.dp).height(30.dp).clip(RoundedCornerShape(50)).background(fill)
+        .clickable(interactionSource = interaction, indication = LocalIndication.current, enabled = enabled,
+            onClickLabel = label, role = Role.Button, onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp),
+            tint = if (on) Palette.black else if (enabled) white(0.9f) else white(0.35f))
     }
 }
 

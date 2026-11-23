@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mac App Store screenshots for Meridian, composed from the self-test's renders.
 
-    scripts/mac-store-shots.py <selftest dir> <out dir> [--photos <dir>]
+    scripts/mac-store-shots.py <selftest dir> <out dir>
 
 <selftest dir> is what `Meridian --selftest <dir>` wrote. It reads:
   store-panel.png        the menu bar panel at 2x (falls back to menubar-panel.png, upscaled)
@@ -11,32 +11,40 @@
   store-window.png       the desktop window at Large, 2x (optional)
 
 and writes 01-*.png ... into <out dir>: 3 to 5 images, each exactly 2880x1800 RGB (no alpha),
-the size the Mac App Store takes for 16:10 screenshots. Each puts the app on a dark desktop made
-from a blurred night skyline (Android's copies of the city photos; a navy gradient without them)
-with one caption line in white, set in Inter from Resources/Fonts.
+the size the Mac App Store takes for 16:10 screenshots. Each has a headline and subline over a
+dark navy backdrop (with a glow made from the app itself), and the app as a floating window with
+Apple's soft two-layer shadow; the first hangs the panel from a translucent menu bar.
 
 A missing optional input skips that shot. It always makes at least 3 from the panel and the
 widgets, and exits with an error if it can't (no panel at all).
 
-Python 3 and Pillow only.
+Fonts: SF Pro when present (macOS), else Inter from Resources/Fonts. Python 3 and Pillow only.
 """
 import argparse
 import os
 import sys
 
-from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageStat
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import store_frame as sf  # noqa: E402
 
 W, H = 2880, 1800
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FONT_DIR = os.path.join(ROOT, "Resources", "Fonts")
-PHOTO_DIR = os.path.join(ROOT, "android", "app", "src", "main", "res", "drawable-nodpi")
 
-# Caption band at the top, the app below it.
-CAPTION_Y = 150          # top of the caption line
-CAPTION_SIZE = 84
-STAGE_TOP = 330          # where the app's area starts
-STAGE_BOTTOM = H - 120   # and ends
-NAVY = (9, 14, 34)
+HEADLINE_TOP = 120
+HEADLINE_SIZE = 88
+HEADLINE_TRACKING = -1.2 * 104 / 88    # store_frame scales tracking by size/104; this gives -1.2 at 88
+SUBLINE_SIZE = 44
+SUBLINE_GAP = 18
+TEXT_WIDTH = 2400
+CLEARANCE = 64                         # text to frame top, at least
+
+STAGE_TOP = 400                        # the frame's top
+STAGE_W, STAGE_H = 2240, 1300          # the largest a frame gets
+WINDOW_RADIUS = 20
+
+MENU_BAR_Y = 372                       # the menu bar strip in the first shot
+MENU_BAR_H = 74
 
 
 def log(message):
@@ -106,181 +114,198 @@ def pick_window(src):
 # ---------------------------------------------------------------------------------------------
 # Drawing
 
-def font(size):
-    for name in ("Inter-Medium.ttf", "Inter-SemiBold.ttf", "Inter-Regular.ttf"):
-        path = os.path.join(FONT_DIR, name)
-        if os.path.exists(path):
-            return ImageFont.truetype(path, size)
-    for path in ("/System/Library/Fonts/SFNS.ttf", "/System/Library/Fonts/Helvetica.ttc",
-                 "/Library/Fonts/Arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
-        if os.path.exists(path):
-            try:
-                return ImageFont.truetype(path, size)
-            except OSError:
-                pass
-    try:
-        return ImageFont.load_default(size)   # Pillow 10.1+
-    except TypeError:
-        return ImageFont.load_default()
-
-
-def backdrop(photo_key, photos):
-    """A dark desktop: the city's night skyline, blurred and dimmed, under a navy wash."""
-    canvas = None
-    path = os.path.join(photos, f"skyline_{photo_key}_night.jpg") if photo_key else ""
-    if path and os.path.exists(path):
-        try:
-            photo = Image.open(path).convert("RGB")
-            # Cover 16:10, blur small (fast and smooth), then scale up.
-            pw, ph = photo.size
-            target = 16 / 10
-            if pw / ph > target:
-                cw = int(ph * target)
-                photo = photo.crop(((pw - cw) // 2, 0, (pw - cw) // 2 + cw, ph))
-            else:
-                ch = int(pw / target)
-                photo = photo.crop((0, (ph - ch) // 2, pw, (ph - ch) // 2 + ch))
-            small = photo.resize((360, 225), Image.LANCZOS).filter(ImageFilter.GaussianBlur(9))
-            small = ImageEnhance.Color(small).enhance(1.25)
-            canvas = small.resize((W, H), Image.BICUBIC)
-        except OSError:
-            canvas = None
-    if canvas is None:
-        canvas = Image.new("RGB", (W, H), NAVY)
-
-    # Navy wash: heavier at the top (behind the caption) and the bottom, lighter in the middle.
-    wash = Image.new("RGB", (W, H), NAVY)
-    mask = Image.new("L", (1, H))
-    for y in range(H):
-        t = y / (H - 1)
-        mask.putpixel((0, y), int(255 * (0.74 - 0.34 * (1 - abs(2 * t - 0.9)))))
-    canvas = Image.composite(wash, canvas, mask.resize((W, H)))
-
-    # Soft vignette towards the corners.
-    vignette = Image.new("L", (W // 8, H // 8), 0)
-    ImageDraw.Draw(vignette).ellipse((-W // 40, -H // 40, W // 8 + W // 40, H // 8 + H // 40), fill=255)
-    vignette = vignette.filter(ImageFilter.GaussianBlur(40)).resize((W, H), Image.BICUBIC)
-    canvas = Image.composite(canvas, Image.new("RGB", (W, H), (0, 0, 0)), vignette.point(lambda v: 110 + v * 145 // 255))
-
-    # A touch of grain so the gradients don't band.
-    noise = Image.effect_noise((W // 2, H // 2), 6).resize((W, H), Image.NEAREST)
-    canvas = Image.blend(canvas, Image.merge("RGB", (noise, noise, noise)), 0.025)
-    return canvas
-
-
-def rounded(image, radius):
-    """The image with rounded corners (combined with any transparency it already has)."""
-    mask = Image.new("L", (image.width * 2, image.height * 2), 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, mask.width - 1, mask.height - 1), radius * 2, fill=255)
-    mask = mask.resize(image.size, Image.LANCZOS)
-    out = image.copy()
-    out.putalpha(ImageChops.multiply(image.getchannel("A"), mask))
-    return out
-
-
-def hairline(image, radius, alpha=40):
-    """A faint light edge, as macOS draws round dark windows."""
-    line = Image.new("L", (image.width * 2, image.height * 2), 0)
-    ImageDraw.Draw(line).rounded_rectangle((1, 1, line.width - 2, line.height - 2), radius * 2, outline=alpha, width=3)
-    line = line.resize(image.size, Image.LANCZOS)
-    white = Image.new("RGBA", image.size, (255, 255, 255, 0))
-    white.putalpha(line)
-    return Image.alpha_composite(image, white)
-
-
-def place(canvas, image, x, y):
-    """Pastes the image with a soft drop shadow, as a window on the desktop."""
-    alpha = image.getchannel("A")
-    pad = 160
-    shadow = Image.new("L", (image.width + 2 * pad, image.height + 2 * pad), 0)
-    shadow.paste(alpha.point(lambda a: a * 150 // 255), (pad, pad))
-    shadow = shadow.resize((shadow.width // 4, shadow.height // 4), Image.LANCZOS)
-    shadow = shadow.filter(ImageFilter.GaussianBlur(14)).resize((image.width + 2 * pad, image.height + 2 * pad), Image.BICUBIC)
-    black = Image.new("RGB", shadow.size, (0, 0, 0))
-    canvas.paste(black, (x - pad, y - pad + 28), shadow)
-    canvas.paste(image, (x, y), image)
-
-
 def scaled(image, factor):
     return image.resize((max(1, round(image.width * factor)), max(1, round(image.height * factor))), Image.LANCZOS)
 
 
-def fit(image, max_w, max_h, max_factor):
+def stage(headline, subline, glow_source, glow_box):
+    """The backdrop and the headline; returns the canvas and the text's bottom edge."""
+    canvas = sf.background((W, H), glow_source, glow_box, plate_scale=1.3, plate_alpha=0.26)
+    block = sf.headline_block(W, headline, subline, HEADLINE_SIZE, SUBLINE_SIZE, HEADLINE_TRACKING,
+                              TEXT_WIDTH, SUBLINE_GAP)
+    bottom = sf.draw_headline(canvas, block, HEADLINE_TOP, W)
+    return canvas, bottom
+
+
+def check_clear(bottom, frame_top):
+    if frame_top - bottom < CLEARANCE:
+        log(f"warning: text ends {frame_top - bottom:.0f} px above the frame (want {CLEARANCE})")
+
+
+def window(canvas, art, x, y, radius=WINDOW_RADIUS):
+    """A floating window: continuous corners, a 1 px white .14 edge, and the two-layer shadow
+    (0 50 140 black .6, plus 0 10 30 black .4)."""
+    box = (x, y, x + art.width, y + art.height)
+    mask = sf.shape_mask(canvas.size, box, radius)
+    sf.drop_shadow(canvas, mask, 50, 140, 0.60)
+    sf.drop_shadow(canvas, mask, 10, 30, 0.40)
+    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    layer.paste(art.convert("RGBA"), (x, y))
+    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), mask))
+    canvas.alpha_composite(layer)
+    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, 36), sf.ring_mask(canvas.size, box, radius, 1)))
+
+
+def widget(canvas, art, x, y):
+    """A widget face (its own rounded alpha), lifted: 0 24 60 black .55, plus 0 2 6 black .35,
+    with a faint light edge as macOS draws it."""
+    alpha = Image.new("L", canvas.size, 0)
+    alpha.paste(art.getchannel("A"), (x, y))
+    sf.drop_shadow(canvas, alpha, 24, 60, 0.55)
+    sf.drop_shadow(canvas, alpha, 2, 6, 0.35)
+    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    layer.paste(art, (x, y))
+    canvas.alpha_composite(layer)
+    edge = ImageChops.subtract(alpha, alpha.filter(ImageFilter.MinFilter(3)))
+    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, 26), edge))
+
+
+def fit(image, max_w=STAGE_W, max_h=STAGE_H, max_factor=1.4):
     return scaled(image, min(max_w / image.width, max_h / image.height, max_factor))
 
 
-def caption(canvas, text):
-    draw = ImageDraw.Draw(canvas)
-    face = font(CAPTION_SIZE)
-    size = CAPTION_SIZE
-    while draw.textlength(text, font=face) > W - 320 and size > 48:
-        size -= 4
-        face = font(size)
-    width = draw.textlength(text, font=face)
-    draw.text(((W - width) / 2, CAPTION_Y), text, font=face, fill=(255, 255, 255))
+# ---------------------------------------------------------------------------------------------
+# Menu bar (first shot)
+
+def _icon_layer(size_px, draw_fn, ss=4):
+    big = Image.new("L", (size_px * ss, size_px * ss), 0)
+    draw_fn(ImageDraw.Draw(big), size_px * ss)
+    return big.resize((size_px, size_px), Image.LANCZOS)
 
 
-def finish(canvas, out_dir, name):
-    image = canvas.convert("RGB")
-    assert image.size == (W, H), image.size
-    path = os.path.join(out_dir, name)
-    image.save(path, "PNG", optimize=True)
-    log(f"wrote {name} {image.width}x{image.height} {image.mode}")
-    return path
+def _globe(draw, s):
+    w = max(1, round(s * 0.075))
+    pad = w
+    draw.ellipse((pad, pad, s - pad, s - pad), outline=255, width=w)
+    draw.ellipse((s * 0.30, pad, s * 0.70, s - pad), outline=255, width=w)
+    draw.line((pad, s / 2, s - pad, s / 2), fill=255, width=w)
+    draw.arc((s * 0.08, s * 0.10, s * 0.92, s * 0.50), 20, 160, fill=255, width=w)
+    draw.arc((s * 0.08, s * 0.50, s * 0.92, s * 0.90), 200, 340, fill=255, width=w)
+
+
+def _wifi(draw, s):
+    w = max(1, round(s * 0.10))
+    cx, cy = s / 2, s * 0.86
+    for r in (0.80, 0.54):
+        R = s * r
+        draw.arc((cx - R, cy - R, cx + R, cy + R), 225, 315, fill=255, width=w)
+    R = s * 0.28
+    draw.pieslice((cx - R, cy - R, cx + R, cy + R), 225, 315, fill=255)
+
+
+def _battery(draw, s):
+    w = max(1, round(s * 0.06))
+    top, bottom = s * 0.30, s * 0.70
+    draw.rounded_rectangle((s * 0.02, top, s * 0.86, bottom), radius=s * 0.10, outline=255, width=w)
+    draw.rounded_rectangle((s * 0.02 + w * 2, top + w * 2, s * 0.86 - w * 2, bottom - w * 2), radius=s * 0.05, fill=255)
+    draw.rounded_rectangle((s * 0.90, s * 0.43, s * 0.97, s * 0.57), radius=s * 0.03, fill=255)
+
+
+def menu_bar(canvas, icon_x):
+    """A 2880-wide translucent menu bar strip with Meridian's globe highlighted at icon_x."""
+    y0, y1 = MENU_BAR_Y, MENU_BAR_Y + MENU_BAR_H
+    region = canvas.crop((0, y0, W, y1)).convert("RGB")
+    blurred = region.resize((W // 8, MENU_BAR_H // 8 or 1), Image.BOX).filter(ImageFilter.GaussianBlur(3))
+    blurred = blurred.resize((W, MENU_BAR_H), Image.BICUBIC)
+    strip = Image.blend(blurred, Image.new("RGB", blurred.size, (0, 0, 0)), 0.35).convert("RGBA")
+    canvas.paste(strip, (0, y0))
+    hair = Image.new("L", canvas.size, 0)
+    ImageDraw.Draw(hair).rectangle((0, y1 - 1, W, y1 - 1), fill=255)
+    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, 18), hair))
+    hair = Image.new("L", canvas.size, 0)
+    ImageDraw.Draw(hair).rectangle((0, y0, W, y0), fill=255)
+    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, 14), hair))
+
+    cy = y0 + MENU_BAR_H / 2
+    # The front app's menus on the left (Finder, as on a fresh desktop).
+    text = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    x = 56
+    for i, title in enumerate(("Finder", "File", "Edit", "View", "Go", "Window", "Help")):
+        face, _ = sf.font("semibold" if i == 0 else "regular", 27)
+        ascent, descent = face.getmetrics()
+        sf.draw_tracked(text, (x, cy + (ascent - descent) / 2), title, face, 0, (255, 255, 255, 235))
+        x += face.getlength(title) + 44
+    canvas.alpha_composite(text)
+    # The Meridian item, highlighted as it is while its panel is open.
+    hw, hh = 76, 50
+    sel = (icon_x - hw / 2, cy - hh / 2, icon_x + hw / 2, cy + hh / 2)
+    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, 52), sf.shape_mask(canvas.size, sel, 10)))
+    items = [(icon_x, 32, _globe, 255)]
+    # The system items to its right.
+    x = icon_x + hw / 2 + 52
+    for fn, size in ((_wifi, 34), (_battery, 46)):
+        items.append((x + size / 2, size, fn, 235))
+        x += size + 40
+    for cx, size, fn, alpha in items:
+        m = _icon_layer(size, fn)
+        layer = Image.new("L", canvas.size, 0)
+        layer.paste(m, (round(cx - size / 2), round(cy - size / 2)))
+        canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, alpha), layer))
+    return y1
 
 
 # ---------------------------------------------------------------------------------------------
 # The shots
 
-def panel_shot(panel, text, photo, photos):
-    canvas = backdrop(photo, photos)
-    caption(canvas, text)
-    art = fit(panel, W - 640, STAGE_BOTTOM - STAGE_TOP, 1.35)
-    art = hairline(rounded(art, round(22 * art.width / panel.width)), round(22 * art.width / panel.width))
-    place(canvas, art, (W - art.width) // 2, STAGE_TOP + (STAGE_BOTTOM - STAGE_TOP - art.height) // 2)
+def menu_bar_shot(panel, headline, subline):
+    art = fit(panel, STAGE_W, H - (MENU_BAR_Y + MENU_BAR_H + 12) - 90, 1.1)
+    # Hang it at the right third, under the menu bar item.
+    icon_x = round(W * 2 / 3)
+    x = min(max(icon_x - art.width // 2, 140), W - 140 - art.width)
+    y = MENU_BAR_Y + MENU_BAR_H + 12
+    canvas, bottom = stage(headline, subline, panel, (x, y, x + art.width, y + art.height))
+    check_clear(bottom, MENU_BAR_Y)
+    menu_bar(canvas, icon_x)
+    window(canvas, art, x, y, radius=round(WINDOW_RADIUS * art.width / panel.width * 1.1))
     return canvas
 
 
-def widgets_shot(large, medium, small, text, photo, photos):
+def framed_shot(image, headline, subline):
+    art = fit(image)
+    x = (W - art.width) // 2
+    canvas, bottom = stage(headline, subline, image, (x, STAGE_TOP, x + art.width, STAGE_TOP + art.height))
+    check_clear(bottom, STAGE_TOP)
+    window(canvas, art, x, STAGE_TOP)
+    return canvas
+
+
+def widgets_shot(large, medium, small, headline, subline):
     """Large on the left; medium over small on the right, as on a desktop."""
-    canvas = backdrop(photo, photos)
-    caption(canvas, text)
-    gap_pt = 24
-    # Work in the widgets' own points (3x renders), then scale the group to fit.
+    gap_pt = 28
     lw, lh = large.width / 3, large.height / 3
     right = [w for w in (medium, small) if w is not None]
     rw = max((w.width / 3 for w in right), default=0)
     group_w = lw + (gap_pt + rw if right else 0)
     group_h = max(lh, sum(w.height / 3 for w in right) + gap_pt * (len(right) - 1))
-    factor = min((W - 700) / group_w, (STAGE_BOTTOM - STAGE_TOP) / group_h, 3.2)
+    factor = min(STAGE_W / group_w, STAGE_H / group_h, 3.2)
     x0 = round((W - group_w * factor) / 2)
-    y0 = round(STAGE_TOP + (STAGE_BOTTOM - STAGE_TOP - group_h * factor) / 2)
-    place(canvas, scaled(large, factor / 3), x0, y0)
+    y0 = STAGE_TOP + round((STAGE_H - group_h * factor) / 2 * 0.6)
+    canvas, bottom = stage(headline, subline, large, (x0, y0, x0 + round(group_w * factor), y0 + round(group_h * factor)))
+    check_clear(bottom, y0)
+    widget(canvas, scaled(large, factor / 3), x0, y0)
     y = y0
     for w in right:
         art = scaled(w, factor / 3)
-        place(canvas, art, round(x0 + (lw + gap_pt) * factor), y)
+        widget(canvas, art, round(x0 + (lw + gap_pt) * factor), y)
         y += art.height + round(gap_pt * factor)
     return canvas
 
 
-def panel_and_widget_shot(panel, widget, text, photo, photos):
-    """The panel with a widget beside it, as on a desktop in use."""
-    canvas = backdrop(photo, photos)
-    caption(canvas, text)
-    stage_h = STAGE_BOTTOM - STAGE_TOP
-    gap = 64
-    # Widget about as tall as the stage allows, the panel taking the rest of the width.
-    wgt = scaled(widget, min((stage_h - 120) / widget.height, 1.0))
-    p = fit(panel, W - 2 * 130 - gap - wgt.width, stage_h - 120, 1.25)
-    if p.height > wgt.height:   # keep the pair balanced
-        wgt = scaled(widget, p.height / widget.height)
-    radius = round(22 * p.width / panel.width)
-    p = hairline(rounded(p, radius), radius)
-    total = p.width + gap + wgt.width
+def panel_and_widget_shot(panel, large, headline, subline):
+    """The panel with the large widget beside it, at the same physical scale (2x and 3x renders)."""
+    gap = 96
+    w_art = scaled(large, 2 / 3)
+    group_w = panel.width + gap + w_art.width
+    group_h = max(panel.height, w_art.height)
+    factor = min(STAGE_W / group_w, STAGE_H / group_h, 1.3)
+    p = scaled(panel, factor)
+    wg = scaled(w_art, factor)
+    total = p.width + round(gap * factor) + wg.width
     x = (W - total) // 2
-    place(canvas, p, x, STAGE_TOP + (stage_h - p.height) // 2)
-    place(canvas, wgt, x + p.width + gap, STAGE_TOP + (stage_h - wgt.height) // 2)
+    canvas, bottom = stage(headline, subline, panel, (x, STAGE_TOP, x + total, STAGE_TOP + p.height))
+    check_clear(bottom, STAGE_TOP)
+    window(canvas, p, x, STAGE_TOP)
+    widget(canvas, wg, x + p.width + round(gap * factor), STAGE_TOP + (p.height - wg.height) // 2)
     return canvas
 
 
@@ -288,10 +313,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("selftest_dir")
     parser.add_argument("out_dir")
-    parser.add_argument("--photos", default=PHOTO_DIR, help="folder of skyline_<city>_night.jpg backdrops")
     args = parser.parse_args()
 
-    src, out, photos = args.selftest_dir, args.out_dir, args.photos
+    src, out = args.selftest_dir, args.out_dir
     os.makedirs(out, exist_ok=True)
     # Clear earlier shots so a skipped one can't linger and be uploaded.
     for name in os.listdir(out):
@@ -303,33 +327,36 @@ def main():
         sys.exit("[store-shots] no panel render (store-panel.png or menubar-panel.png) in " + src)
     log(f"panel from {panel_source}, {panel.width}x{panel.height}")
     large, medium, small = (pick_widget(src, n) for n in ("large", "medium", "small"))
-    window = pick_window(src)
+    win = pick_window(src)
     log("widgets: " + ", ".join(f"{n} {'yes' if w is not None else 'missing'}"
                                 for n, w in (("large", large), ("medium", medium), ("small", small))))
-    log(f"window: {'yes' if window is not None else 'missing'}")
+    log(f"window: {'yes' if win is not None else 'missing'}")
+    _, family = sf.font("semibold", 20)
+    log(f"font: {'SF Pro' if family == 'sf' else 'Inter'}")
 
-    shots = [("01-menu-bar.png", lambda: panel_shot(
-        panel, "Every time zone at a glance, in your menu bar.", "newyork", photos))]
+    shots = [("01-menu-bar.png", lambda: menu_bar_shot(
+        panel, "The world, from your menu bar.", "One click shows every city you follow."))]
     if large is not None:
         shots.append(("02-widgets.png", lambda: widgets_shot(
-            large, medium, small, "Desktop widgets, each city on its skyline.", "tokyo", photos)))
+            large, medium, small, "Time zones on your desktop.", "Widgets in every size.")))
         shots.append(("03-working-hours.png", lambda: panel_and_widget_shot(
-            panel, large, "Working hours, weekends and holidays for every country.", "paris", photos)))
+            panel, large, "See who’s at work.", "Working and off hours for every city.")))
     elif medium is not None:
         shots.append(("02-widgets.png", lambda: widgets_shot(
-            medium, None, small, "Desktop widgets, each city on its skyline.", "tokyo", photos)))
-    if window is not None:
-        shots.append(("04-window.png", lambda: panel_shot(
-            window, "Open it as a window, in five sizes.", "london", photos)))
-    # Never fewer than three: more of the panel, on other cities.
-    extra = [("05-day-and-night.png", "Each city by day or by night, on its own skyline.", "hongkong"),
-             ("06-who-is-working.png", "See who is working, wherever they are.", "sydney")]
+            medium, None, small, "Time zones on your desktop.", "Widgets in every size.")))
+    if win is not None:
+        shots.append(("04-window.png", lambda: framed_shot(
+            win, "Plan across time zones.", "Drag the hours to find a time for everyone.")))
+    # Never fewer than three: the panel again, framed as a window.
+    extra = [("05-working-hours.png", "See who’s at work.", "Working and off hours for every city."),
+             ("06-plan.png", "Plan across time zones.", "Drag the hours to find a time for everyone.")]
     while len(shots) < 3 and extra:
-        name, text, photo = extra.pop(0)
-        shots.append((name, lambda text=text, photo=photo: panel_shot(panel, text, photo, photos)))
+        name, text, sub = extra.pop(0)
+        shots.append((name, lambda text=text, sub=sub: framed_shot(panel, text, sub)))
 
     for name, make in shots[:5]:
-        finish(make(), out, name)
+        image = sf.finish(sf.dither(make()), (W, H), os.path.join(out, name))
+        log(f"wrote {name} {image.width}x{image.height} {image.mode}")
     log(f"{min(len(shots), 5)} screenshots in {out}")
 
 

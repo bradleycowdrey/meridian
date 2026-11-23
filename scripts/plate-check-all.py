@@ -36,7 +36,7 @@ def check(pdir, out):
                 line = buf.getvalue()
                 shown = float(line.split("landmark shown ")[1].split("%")[0]) / 100 if "landmark shown" in line else 0
                 tip = "tip ok" in line
-                need = 0.0 if "web" in label else 0.85
+                need = 0.0 if "web" in label else 0.75 if "8:1" in label else 0.85   # thin rows trim the base
                 if shown < need or not tip:
                     res["fails"].append(f"{variant} {label}: shown {shown:.0%}{'' if tip else ', tip hidden'}")
                 if label.startswith(("small", "iPhone", "Mac")):

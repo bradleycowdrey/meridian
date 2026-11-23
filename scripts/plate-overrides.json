@@ -1,0 +1,4 @@
+{
+  "_note": "Hand-checked landmark positions where a taller tower beside the landmark fools plate-focus.py. Applied to both day and night.",
+  "calgary": {"focusX": 0.385, "top": 0.455}
+}

@@ -18,6 +18,12 @@ enum Theme {
     static let faint = Color.white.opacity(0.4)
     /// The Terms "I Agree" capsule: white, as Two Degrees.
     static let cream = Color.white
+    /// Raised surfaces and sheets' grouped rows: Apple's dark secondary grouped background.
+    static let raised = rgb(0x1C1C1E)
+    /// Hairlines: 0.5 pt of white at 10%.
+    static let separator = Color.white.opacity(0.10)
+    /// The inner edge highlight on glass (buttons, pills): 0.5 pt of white at 10%.
+    static let edge = Color.white.opacity(0.10)
 
     /// A colour from 0xRRGGBB (the iOS app has no `Color(hex:)`).
     static func rgb(_ hex: UInt32) -> Color {
@@ -57,6 +63,9 @@ enum Theme {
         static let rowFill = 0.07
     }
 
+    /// The one easing curve, as in Cowdrey One: cubic-bezier(.32, .72, 0, 1), 0.35 s.
+    static let ease = Animation.timingCurve(0.32, 0.72, 0, 1, duration: 0.35)
+
     static let website = URL(string: "https://bradcowdrey.com")!
     static let appPage = URL(string: "https://bradcowdrey.com/meridian")!
     static let legal = URL(string: "https://bradcowdrey.com/legal")!
@@ -71,7 +80,7 @@ enum Theme {
 
 /// Cards on the sheets and the clock-change notices (the cities are rows in one panel: `Strip`).
 enum Card {
-    static let radius: CGFloat = 16
+    static let radius: CGFloat = 20
     static let padding: CGFloat = 14
     static let gap: CGFloat = 10
     static let margin: CGFloat = 16
@@ -157,7 +166,8 @@ struct CardCaption: View {
         // Footnote (13 pt), not caption: in capitals its cap height is ~9.2 pt (was 8.5 pt).
         Label(title.uppercased(), systemImage: symbol)
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(Color.white.opacity(Theme.Op.caption))
+            .tracking(0.3)
+            .foregroundStyle(Color.white.opacity(0.64))
     }
 }
 
@@ -179,13 +189,14 @@ struct PillChip: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
             .frame(minHeight: 32)
-            .background(Capsule().fill(isOn ? Color.white : Color.white.opacity(Theme.Op.fill)))
-            .foregroundStyle(isOn ? Color.black : Color.white)
+            .background(Capsule().fill(isOn ? Color.white : Color.white.opacity(0.10)))
+            .overlay(Capsule().strokeBorder(Color.white.opacity(isOn ? 0 : 0.08), lineWidth: 0.5))
+            .foregroundStyle(isOn ? Color.black : Color.white.opacity(Theme.Op.strong))
             .fixedSize()
             .frame(minHeight: 44)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale())
         // Grows with the reader's text size, up to a size that keeps the chip rows one line high.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityAddTraits(isOn ? .isSelected : [])
@@ -215,9 +226,27 @@ extension View {
         }
     }
 
-    /// A form section's rows: a faint white fill on the sheet's background.
+    /// A form section's rows: Apple's dark grouped card (#1C1C1E) on the sheet's black.
     func meridianSection() -> some View {
-        listRowBackground(Color.white.opacity(Theme.Op.rowFill))
+        listRowBackground(Theme.raised)
+    }
+
+    /// A sheet, as Apple's: 28 pt corners, the drag indicator, a thick glass behind.
+    func meridianSheet() -> some View {
+        self
+            .presentationCornerRadius(28)
+            .presentationDragIndicator(.visible)
+            .presentationBackground(.thickMaterial)
+    }
+
+    /// A 34 pt glass circle behind a toolbar glyph, with a 0.5 pt edge highlight.
+    func glassCircle(_ size: CGFloat = 34) -> some View {
+        self
+            .frame(width: size, height: size)
+            .background(.ultraThinMaterial, in: Circle())
+            .overlay(Circle().strokeBorder(Theme.edge, lineWidth: 0.5))
+            .contentShape(Circle())
+            .environment(\.colorScheme, .dark)
     }
 
     /// A form on the sheet's background, with white controls. Toggles take `Theme.switchOn` and
@@ -227,5 +256,29 @@ extension View {
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
             .tint(.white)
+    }
+}
+
+/// A press: scales to 94% on the house curve.
+struct PressScale: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .animation(Theme.ease, value: configuration.isPressed)
+    }
+}
+
+/// The primary action on a sheet: 50 pt high, 14 pt corners, white with black 17 pt semibold.
+struct PrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .foregroundStyle(Color.black)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white))
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .animation(Theme.ease, value: configuration.isPressed)
     }
 }

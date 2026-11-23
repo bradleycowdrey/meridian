@@ -18,8 +18,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -67,13 +67,13 @@ internal fun Screen(title: String, onBack: () -> Unit, back: Boolean = false, co
     Scaffold(
         containerColor = Palette.bg,
         topBar = {
-            Row(Modifier.fillMaxWidth().background(Palette.bg).statusBarsPadding().padding(horizontal = 4.dp, vertical = 4.dp),
+            // The glass circle 16 dp from the edge (36 dp in a 48 dp target), as the main screen's.
+            Row(Modifier.fillMaxWidth().background(Palette.bg).statusBarsPadding().padding(horizontal = 10.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    if (back) Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Palette.primary)
-                    else Icon(Icons.Filled.Close, "Close", tint = Palette.primary)
-                }
-                Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Palette.primary, maxLines = 1,
+                if (back) GlassCircleButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = onBack)
+                else GlassCircleButton(Icons.Rounded.Close, contentDescription = "Close", onClick = onBack)
+                Spacer(Modifier.width(4.dp))
+                Text(title, fontSize = 17.sp, fontWeight = FontWeight.Medium, color = Palette.primary, maxLines = 1,
                     modifier = Modifier.weight(1f).semantics { heading() })
             }
         },
@@ -569,7 +569,7 @@ fun TermsScreen(changed: Boolean = false, onAgree: () -> Unit) {
             Text("Meridian is free and provided as is, without warranty. You use it at your own risk: always confirm meeting and travel times. Your cities stay on your phone. If you allow it, your location is used only to name the city you're\u00A0in.\n\nBy tapping I Agree and using Meridian, you agree to the Terms of Use and Privacy at bradcowdrey.com/legal.",
                 fontSize = 17.sp, lineHeight = 24.sp, color = white(0.85f), textAlign = TextAlign.Center)
             Spacer(Modifier.weight(1f))
-            Button(onClick = onAgree, shape = RoundedCornerShape(50),
+            Button(onClick = onAgree, shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                 modifier = Modifier.fillMaxWidth().height(50.dp)) {
                 Text("I Agree", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -764,11 +764,11 @@ fun DateJumpScreen(store: Store, onDone: () -> Unit) {
           }
             // Go, in a bar at the bottom as in Two Degrees.
             Column(Modifier.fillMaxWidth().background(Palette.barBg).navigationBarsPadding()) {
-                HorizontalDivider(thickness = 0.5.dp, color = white(0.15f))
-                Button(onClick = { store.jump(moment); onDone() }, shape = RoundedCornerShape(50),
+                HorizontalDivider(thickness = 0.5.dp, color = Palette.separator)
+                Button(onClick = { store.jump(moment); onDone() }, shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).height(50.dp)) {
-                    Text("Go to This Time", fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                    Text("Go to This Time", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

@@ -213,19 +213,15 @@ struct DateJumpView: View {
             dismiss()
         } label: {
             Text("Go to This Time")
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 50)
-                .background(Capsule().fill(Color.white))
-                .foregroundStyle(Color.black)
-                .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        // 50 pt high, 14 pt corners, white with black 17 pt semibold, 16 pt side margins.
+        .buttonStyle(PrimaryButtonStyle())
         .padding(.horizontal, Card.margin)
         .padding(.vertical, 8)
-        // Opaque, as the main screen's bars: nothing shows through behind the button.
+        // Opaque (glass here showed the month's digits as ghosts under the button), with a hairline.
         .background(Theme.bar, ignoresSafeAreaEdges: .bottom)
         .overlay(alignment: .top) {
-            Rectangle().fill(Color.white.opacity(Theme.Op.track)).frame(height: 0.5).accessibilityHidden(true)
+            Rectangle().fill(Theme.separator).frame(height: 0.5).accessibilityHidden(true)
         }
         .environment(\.colorScheme, .dark)
     }

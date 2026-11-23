@@ -38,7 +38,7 @@ private struct ClockPanelContent: View {
     /// Tallest the scrolling body may be so the whole panel stays on screen at any size.
     private var maxBodyHeight: CGFloat {
         let screen = NSScreen.main?.visibleFrame.height ?? 800
-        let chrome = ui.l + ui.xs + ui.pt(32) + ui.m   // header
+        let chrome = ui.l + ui.xs + ui.pt(26) + ui.m   // header: 26 pt controls
         return max(ui.pt(240), screen - chrome - ui.pt(compact ? 32 : 40))
     }
 
@@ -47,7 +47,7 @@ private struct ClockPanelContent: View {
     /// always there (moment line, strip tile and its header row, footer); the city search and
     /// update banner are left out on purpose, so rows don't jump when Add City opens.
     private var rowHeight: CGFloat {
-        let fixed = ui.xs + ui.pt(28) + ui.m + 2 * ui.tilePadding + ui.pt(20) + ui.gutter + ui.m + ui.pt(16) + ui.l + ui.xs
+        let fixed = ui.xs + ui.pt(26) + ui.m + 2 * ui.tilePadding + ui.pt(20) + ui.gutter + ui.m + ui.pt(16) + ui.l + ui.xs
         return ui.rowHeight(compact: compact, rows: store.places.count, room: maxBodyHeight - fixed)
     }
 
@@ -155,12 +155,12 @@ private struct ClockPanelContent: View {
         .focusable()
         .focusEffectDisabled()
         .onChange(of: store.places.isEmpty) { _, empty in if empty { editing = false } }
-        .onChange(of: store.canAdd) { _, canAdd in if !canAdd { withAnimation(.snappy) { adding = false } } }
+        .onChange(of: store.canAdd) { _, canAdd in if !canAdd { withAnimation(Palette.ease) { adding = false } } }
         .onKeyPress(.leftArrow) { store.travel(-1); return .handled }
         .onKeyPress(.rightArrow) { store.travel(1); return .handled }
         .onKeyPress(.escape) {
             guard adding || editing else { return .ignored }
-            withAnimation(.snappy) { adding = false; editing = false }
+            withAnimation(Palette.ease) { adding = false; editing = false }
             return .handled
         }
         .onKeyPress(characters: CharacterSet(charactersIn: "+=-"), phases: .down) { press in
@@ -212,10 +212,10 @@ private struct ClockPanelContent: View {
 
     private var header: some View {
         HStack(spacing: ui.m) {
-            AppMark(size: ui.pt(28))
+            AppMark(size: ui.pt(22))
+            // The Mac's own panel title: 13 pt semibold.
             Text(Brand.appName)
-                .font(ui.title)
-                .tracking(-0.2)
+                .font(ui.font(13, .semibold))
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
                 .fixedSize()
@@ -285,29 +285,50 @@ private struct WindowDragHandle: NSViewRepresentable {
     func updateNSView(_ view: DragView, context: Context) { view.onTearOff = onTearOff }
 }
 
-/// Outlined circle button matching the ⋯ menu, for header actions.
+/// A 26 pt header circle, matching the ⋯ menu: white .08, .14 on hover, .20 pressed; 12 pt medium symbol.
 private struct HeaderCircleButton: View {
-    @Environment(\.metrics) private var ui
     let symbol: String
     let help: String
     let action: () -> Void
-    @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(ui.font(13, .semibold))
-                .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
-                .frame(width: ui.pt(32), height: ui.pt(32))
-                .background(Circle().fill(hovering ? Palette.border : Palette.raisedTile))
-                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5).allowsHitTesting(false))
-                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .animation(.easeOut(duration: 0.15), value: hovering)
+        .buttonStyle(GlassCircleStyle())
         .help(help)
         .accessibilityLabel(help)
+    }
+}
+
+/// The header's glass circle: 26 pt, white .08 fill, .14 on hover, .20 pressed, a 0.5 pt edge.
+struct GlassCircleStyle: ButtonStyle {
+    var diameter: CGFloat = 26
+
+    func makeBody(configuration: Configuration) -> some View {
+        GlassCircleBody(configuration: configuration, diameter: diameter)
+    }
+
+    private struct GlassCircleBody: View {
+        let configuration: ButtonStyleConfiguration
+        let diameter: CGFloat
+        @Environment(\.metrics) private var ui
+        @Environment(\.isEnabled) private var isEnabled
+        @State private var hovering = false
+
+        var body: some View {
+            configuration.label
+                // 12 pt in the 26 pt header circles; the larger 34 pt dismiss circle keeps a 14 pt glyph.
+                .font(ui.font(diameter >= 34 ? 14 : 12, .medium))
+                .foregroundStyle(isEnabled ? (hovering ? Palette.textPrimary : Palette.textSecondary) : Palette.textFaint)
+                .frame(width: ui.pt(diameter), height: ui.pt(diameter))
+                .background(Circle().fill(configuration.isPressed ? Palette.fillPressed : (hovering && isEnabled ? Palette.fillHover : Palette.fill)))
+                .overlay(Circle().strokeBorder(Palette.separator, lineWidth: 0.5).allowsHitTesting(false))
+                .contentShape(Circle())
+                .onHover { hovering = $0 }
+                .animation(Palette.easeQuick, value: hovering)
+                .animation(Palette.easeQuick, value: configuration.isPressed)
+        }
     }
 }
 
@@ -499,10 +520,10 @@ private struct ListControls: View {
                 enabled: store.canAdd || adding,
                 help: store.canAdd ? "Add a city" : "You can track up to \(ZoneStore.maxPlaces) cities"
             ) {
-                withAnimation(.snappy) { adding.toggle(); if adding { editing = false } }
+                withAnimation(Palette.ease) { adding.toggle(); if adding { editing = false } }
             }
             .testID("control-add")
-            Palette.borderStrong.frame(width: 0.5, height: ui.pt(14))
+            Palette.capsuleDivider.frame(width: 0.5, height: ui.pt(14))
                 .opacity(adding || editing ? 0 : 1)
             Segment(
                 symbol: editing ? "checkmark" : "pencil",
@@ -512,15 +533,16 @@ private struct ListControls: View {
                 enabled: !store.places.isEmpty,
                 help: "Remove or reorder cities"
             ) {
-                withAnimation(.snappy) { editing.toggle(); if editing { adding = false } }
+                withAnimation(Palette.ease) { editing.toggle(); if editing { adding = false } }
             }
             .testID("control-edit")
         }
-        .padding(ui.pt(3))
-        .background(Capsule().fill(Palette.raisedTile))
+        // 2 pt inset around 22 pt segments: 26 pt tall, level with the header circles.
+        .padding(ui.pt(2))
+        .background(Capsule().fill(Palette.fill))
         // Outlines are drawn on top, so they mustn't take clicks: at Extra Small the outline's
         // own hit test caught clicks along its centre line, before Add City and Edit saw them.
-        .overlay(Capsule().strokeBorder(Palette.borderStrong, lineWidth: 0.5).allowsHitTesting(false))
+        .overlay(Capsule().strokeBorder(Palette.separator, lineWidth: 0.5).allowsHitTesting(false))
     }
 
     private struct Segment: View {
@@ -539,22 +561,22 @@ private struct ListControls: View {
             Button(action: action) {
                 HStack(spacing: ui.pt(6)) {
                     Image(systemName: symbol)
-                        .font(ui.font(11, .semibold))
+                        .font(ui.font(11, active ? .semibold : .medium))
                     Text(title)
-                        .font(ui.font(13, .medium))
+                        .font(ui.font(12, active ? .semibold : .medium))
                 }
-                .frame(width: width, height: max(24, ui.pt(26)))
+                .frame(width: width, height: max(20, ui.pt(22)))
                 .foregroundStyle(active ? Palette.bg : (enabled ? (hovering ? Palette.textPrimary : Palette.textSecondary) : Palette.textFaint))
                 .background(
-                    Capsule().fill(active ? Palette.cream : (hovering && enabled ? Palette.border : .clear))
+                    Capsule().fill(active ? Palette.cream : (hovering && enabled ? Palette.fillHover : .clear))
                 )
                 .contentShape(Capsule())
             }
             .buttonStyle(.plain)
             .disabled(!enabled)
             .onHover { hovering = $0 }
-            .animation(.easeOut(duration: 0.15), value: hovering)
-            .animation(.snappy, value: active)
+            .animation(Palette.easeQuick, value: hovering)
+            .animation(Palette.ease, value: active)
             .help(help)
         }
     }
@@ -570,6 +592,7 @@ private struct MoreMenu: View {
     let compact: Bool
     /// Closes the menu bar panel this menu lives in.
     let closeHost: () -> Void
+    @State private var hovering = false
 
     var body: some View {
         Menu {
@@ -628,17 +651,19 @@ private struct MoreMenu: View {
             Button("Quit Meridian") { NSApp.terminate(nil) }
         } label: {
             Image(systemName: "ellipsis")
-                .font(ui.font(13, .semibold))
-                .foregroundStyle(Palette.textSecondary)
-                .frame(width: ui.pt(32), height: ui.pt(32))
-                .background(Circle().fill(Palette.raisedTile))
-                .overlay(Circle().strokeBorder(Palette.borderStrong, lineWidth: 0.5).allowsHitTesting(false))
+                .font(ui.font(12, .medium))
+                .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
+                .frame(width: ui.pt(26), height: ui.pt(26))
+                .background(Circle().fill(hovering ? Palette.fillHover : Palette.fill))
+                .overlay(Circle().strokeBorder(Palette.separator, lineWidth: 0.5).allowsHitTesting(false))
                 .contentShape(Circle())
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
+        .onHover { hovering = $0 }
+        .animation(Palette.easeQuick, value: hovering)
         .help("More")
     }
 }
@@ -708,9 +733,9 @@ private struct UpdateBanner: View {
                 }
             }
         }
-        .animation(.snappy, value: updater.notice)
-        .animation(.snappy, value: updater.userChecking)
-        .animation(.snappy, value: updater.latest)
+        .animation(Palette.ease, value: updater.notice)
+        .animation(Palette.ease, value: updater.userChecking)
+        .animation(Palette.ease, value: updater.latest)
     }
 
     private func message(_ text: String) -> some View {
@@ -773,7 +798,7 @@ struct TravelBar: View {
             IconButton(symbol: "chevron.right", help: "One hour later", small: true) { store.travel(1) }
                 .testID("travel-later")
         }
-        .animation(.snappy, value: store.offsetHours)
+        .animation(Palette.ease, value: store.offsetHours)
     }
 
     /// Calendar days between today and the moment being viewed (your own time zone).
@@ -878,7 +903,7 @@ struct AddCityField: View {
 
     private func add(_ entry: CityEntry) {
         guard store.canAdd else { return }
-        withAnimation(.snappy) { store.add(entry) }
+        withAnimation(Palette.ease) { store.add(entry) }
         query = ""
     }
 }
@@ -909,25 +934,18 @@ struct AppMark: View {
 }
 
 struct IconButton: View {
-    @Environment(\.metrics) private var ui
     let symbol: String
     let help: String
     var small = false
     let action: () -> Void
-    @State private var hovering = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(ui.font(small ? 12 : 14, .semibold))
-                .foregroundStyle(hovering ? Palette.textPrimary : Palette.textSecondary)
-                .frame(width: ui.pt(small ? 28 : 34), height: ui.pt(small ? 28 : 34))
-                .background(Circle().fill(hovering ? Palette.borderStrong : Palette.border))
-                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
+        .buttonStyle(GlassCircleStyle(diameter: small ? 26 : 34))
         .help(help)
+        .accessibilityLabel(help)
     }
 }
 
@@ -950,18 +968,24 @@ struct PillButtonStyle: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(ui.font(small ? 13 : 14, .semibold))
-                .padding(.horizontal, ui.pt(small ? 14 : 20))
-                .frame(height: ui.pt(small ? 28 : 34))
+                .font(ui.font(small ? 12 : 14, .semibold))
+                .padding(.horizontal, ui.pt(small ? 12 : 20))
+                .frame(height: ui.pt(small ? 26 : 34))
                 .foregroundStyle(prominent ? Palette.bg : (isEnabled ? Palette.textPrimary : Palette.textMuted))
                 .background(
-                    Capsule().fill(prominent ? (hovering ? Color(white: 0.88) : Color.white) : (hovering && isEnabled ? Palette.borderStrong : Palette.border))
+                    Capsule().fill(prominent ? (hovering ? Color(white: 0.88) : Color.white)
+                                   : (configuration.isPressed ? Palette.fillPressed : (hovering && isEnabled ? Palette.fillHover : Palette.fill)))
                 )
-                .opacity(configuration.isPressed ? 0.8 : 1)
-                .scaleEffect(configuration.isPressed ? 0.97 : 1)
+                .overlay {
+                    if !prominent {
+                        Capsule().strokeBorder(Palette.separator, lineWidth: 0.5).allowsHitTesting(false)
+                    }
+                }
+                .scaleEffect(configuration.isPressed ? 0.96 : 1)
                 .contentShape(Capsule())
                 .onHover { hovering = $0 }
-                .animation(.easeOut(duration: 0.15), value: hovering)
+                .animation(Palette.easeQuick, value: hovering)
+                .animation(Palette.easeQuick, value: configuration.isPressed)
         }
     }
 }
@@ -979,6 +1003,11 @@ struct Tile<Content: View>: View {
             .padding(ui.pt(20))
             .padding(.top, tightTop ? -ui.pt(12) : 0)
             .background(RoundedRectangle(cornerRadius: ui.pt(22), style: .continuous).fill(Palette.raisedTile))
+            .overlay(
+                RoundedRectangle(cornerRadius: ui.pt(22), style: .continuous)
+                    .strokeBorder(Palette.cardStroke, lineWidth: 0.5)
+                    .allowsHitTesting(false)
+            )
     }
 }
 

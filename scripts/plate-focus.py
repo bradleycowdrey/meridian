@@ -29,9 +29,11 @@ def measure(path):
         else:
             tops[x] = H - 1
     smooth = np.convolve(tops, np.ones(5) / 5, mode="same")
-    margin = int(W * 0.06)
-    inner = smooth[margin:W - margin]
-    lx = int(np.argmin(inner)) + margin
+    # The plates put the landmark at 38% of the width: look for it there (26-52%), so a taller tower
+    # elsewhere in the city (Austin's Frost Tower, Calgary's Bow) is not mistaken for it.
+    lo, hi = int(W * 0.26), int(W * 0.52)
+    inner = smooth[lo:hi]
+    lx = int(np.argmin(inner)) + lo
     # the landmark spans the columns within 6% of its peak height; take their middle
     peak = smooth[lx]
     band = np.where(smooth <= peak + H * 0.02)[0]
@@ -48,8 +50,19 @@ def measure(path):
     # thin spire isn't averaged down by the 5-column smoothing; never lower than the smoothed peak
     r = max(1, int(W * 0.01))
     tip = min(float(tops[max(0, lx - r):lx + r + 1].min()), float(peak))
-    return {"file": path.split("/")[-1], "focusX": round(lx / W, 3), "check": check, "focus": round(focus, 3),
+    result = {"file": path.split("/")[-1], "focusX": round(lx / W, 3), "check": check, "focus": round(focus, 3),
             "landmarkTop": round(tip / H, 3), "skyline": round(skyline / H, 3)}
+    # Hand-checked positions (scripts/plate-overrides.json) win over the measurement.
+    import os
+    key = os.path.basename(path).rsplit("-", 1)[0]
+    try:
+        over = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "plate-overrides.json"))).get(key)
+    except (OSError, ValueError):
+        over = None
+    if over:
+        result.update(check=False, focusX=over.get("focusX", result["focusX"]),
+                      landmarkTop=over.get("top", result["landmarkTop"]))
+    return result
 
 if __name__ == "__main__":
     for p in sys.argv[1:]:

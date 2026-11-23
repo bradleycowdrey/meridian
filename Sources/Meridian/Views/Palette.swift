@@ -42,6 +42,26 @@ enum Palette {
     static let destructive = Color(red: 1, green: 0.27, blue: 0.23)
     /// Photo scrims and the plates behind pills.
     static let scrim = Color.black
+
+    // Finish tokens shared with iPhone and Android.
+    /// Quiet control fill (header circles, the +/pencil capsule).
+    static let fill = Color.white.opacity(0.08)
+    /// The same control, hovered.
+    static let fillHover = Color.white.opacity(0.14)
+    /// The same control, pressed.
+    static let fillPressed = Color.white.opacity(0.20)
+    /// 0.5 pt hairlines between areas and the glass edge highlight.
+    static let separator = Color.white.opacity(0.10)
+    /// 0.5 pt inner stroke on cards and tiles.
+    static let cardStroke = Color.white.opacity(0.08)
+    /// The divider inside a split capsule.
+    static let capsuleDivider = Color.white.opacity(0.12)
+
+    // The one motion curve on every platform: cubic-bezier(.32, .72, 0, 1).
+    /// Expanding, collapsing and state changes.
+    static let ease = Animation.timingCurve(0.32, 0.72, 0, 1, duration: 0.35)
+    /// Hover and press feedback.
+    static let easeQuick = Animation.timingCurve(0.32, 0.72, 0, 1, duration: 0.2)
 }
 
 /// The five interface sizes. Everything (type, cells, spacing, popover width) scales together,

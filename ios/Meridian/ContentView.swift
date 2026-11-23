@@ -39,6 +39,11 @@ struct ContentView: View {
     @State private var barHeight: CGFloat = 0
     /// Each clock-change notice's height, taken out of what the cards share.
     @State private var noticeHeights: [String: CGFloat] = [:]
+    /// Where the header (top bar and chips) ends and where the cards begin, both on screen: once the
+    /// cards have moved up under the header it turns to glass and shows its hairline, as Apple's bars.
+    @State private var headerBottom: CGFloat = 0
+    /// The cards' top is above `headerBottom` (a Bool, so scrolling updates the view only when it flips).
+    @State private var scrolledUnder = false
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var textScale: CGFloat = 1
 
@@ -55,11 +60,11 @@ struct ContentView: View {
     private var screen: some View {
         styledList
             .toolbar { toolbarContent }
-            .sheet(isPresented: $showingSettings) { SettingsView() }
-            .sheet(isPresented: $showingDate) { DateJumpView() }
-            .sheet(isPresented: $showingFind) { FindTimeView() }
-            .sheet(item: $groupPickerFor) { place in GroupPicker(placeID: place.id) }
-            .sheet(item: $groupsRoute) { route in GroupsSheet(route: route) }
+            .sheet(isPresented: $showingSettings) { SettingsView().meridianSheet() }
+            .sheet(isPresented: $showingDate) { DateJumpView().meridianSheet() }
+            .sheet(isPresented: $showingFind) { FindTimeView().meridianSheet() }
+            .sheet(item: $groupPickerFor) { place in GroupPicker(placeID: place.id).meridianSheet() }
+            .sheet(item: $groupsRoute) { route in GroupsSheet(route: route).meridianSheet() }
             .alert("Add a Person in \(personFor?.isMyLocation == true ? (store.hereCity ?? "My Location") : personFor?.name ?? "")", isPresented: isAddingPerson) {
                 TextField("Name", text: $personName).textInputAutocapitalization(.words)
                 Button("Cancel", role: .cancel) { personFor = nil }
@@ -105,6 +110,7 @@ struct ContentView: View {
                     .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { workFor = nil } } }
                 }
                 .presentationDetents([.medium, .large])
+                .meridianSheet()
                 .preferredColorScheme(.dark)
             }
             .task { await openScreenshotScreen() }
@@ -137,8 +143,9 @@ struct ContentView: View {
             .navigationTitle("Meridian")
             // The title sits small in the bar, between Share and the + and pencil; never large.
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Theme.bg, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            // The bar's own background is hidden: one glass header (`topBar`) runs from the top of
+            // the screen down past the chips, so the title, the buttons and the chips sit on one pane.
+            .toolbarBackground(.hidden, for: .navigationBar)
             .environment(\.editMode, $editMode)
             // The group chips pinned at the top.
             .safeAreaInset(edge: .top, spacing: 0) { topBar }
@@ -160,20 +167,38 @@ struct ContentView: View {
     /// The group chips: once there's a group to pick (a custom one, or two continents).
     private var showGroupBar: Bool { showBar && (!store.customGroups.isEmpty || store.continentChipCount >= 2) }
 
-    /// The group chips (the ruler in the bottom bar moves the time; there are no column labels).
-    @ViewBuilder private var topBar: some View {
-        if showGroupBar {
-            VStack(spacing: 0) {
+    /// Content is under the header: the cards have scrolled up, or the search or Edit List rows show.
+    private var underHeader: Bool { adding || editMode.isEditing || scrolledUnder }
+
+    /// The header under the top bar's title and buttons, and the group chips when there are groups
+    /// (the ruler in the bottom bar moves the time; there are no column labels). Black at rest, so
+    /// it is one with the screen; glass (ultra-thin, dimmed to 72% black, so the chips' labels keep
+    /// their contrast over a bright photo) with a 0.5 pt hairline once anything is under it.
+    private var topBar: some View {
+        VStack(spacing: 0) {
+            if showGroupBar {
                 GroupBar(open: { groupsRoute = $0 }, openSettings: { showingSettings = true })
+                    // The chips are 32 pt in a 44 pt tap row: 8 pt clear above them, 10 below.
+                    .padding(.top, 2)
+                    .padding(.bottom, 4)
             }
-            .frame(maxWidth: .infinity)
-            // Opaque, so a photo scrolled under the chips never shows through behind their labels.
-            .background(Theme.bar)
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color.white.opacity(Theme.Op.track)).frame(height: 0.5)
-            }
-            .environment(\.colorScheme, .dark)
         }
+        .frame(maxWidth: .infinity)
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { headerBottom = $0 }
+        .background {
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial).opacity(underHeader ? 1 : 0)
+                Theme.bg.opacity(underHeader ? 0.72 : 1)
+            }
+            .ignoresSafeArea(edges: .top)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.separator).frame(height: 0.5)
+                .opacity(underHeader ? 1 : 0)
+                .accessibilityHidden(true)
+        }
+        .animation(Theme.ease, value: underHeader)
+        .environment(\.colorScheme, .dark)
     }
 
     private var bottomBar: some View {
@@ -185,16 +210,16 @@ struct ContentView: View {
             }
             if showBar {
                 TimeShifter(goToTime: { showingDate = true })
-                    .padding(.top, 6)
-                    .padding(.bottom, 2)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
                     .frame(maxWidth: .infinity)
-                    // Opaque, down to the screen's bottom edge, so nothing in the list (the last
-                    // card's name and tiles, the Now capsule) shows through behind the hint, Now
-                    // and the ruler's hours.
-                    .background(Theme.bar, ignoresSafeAreaEdges: .bottom)
+                    // A glass bar down to the screen's bottom edge, as Apple's tab bars: regular
+                    // material (dense enough that the hint, Now and the ruler's hours keep their
+                    // contrast over whatever card scrolls under it), with a 0.5 pt hairline on top.
+                    .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
                     // Its height (hint, Now and ruler, not the brief Copied pill), for `listHeight`.
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { barHeight = $0 }
-                    .overlay(alignment: .top) { Rectangle().fill(Color.white.opacity(Theme.Op.track)).frame(height: 0.5).accessibilityHidden(true) }
+                    .overlay(alignment: .top) { Rectangle().fill(Theme.separator).frame(height: 0.5).accessibilityHidden(true) }
                     .environment(\.colorScheme, .dark)
             }
         }
@@ -256,6 +281,9 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .onGeometryChange(for: Bool.self) { [headerBottom] proxy in
+                proxy.frame(in: .global).minY < headerBottom - 0.5
+            } action: { scrolledUnder = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
     }
@@ -348,7 +376,7 @@ struct ContentView: View {
             .disabled(added || !store.canAdd)
             .listRowInsets(EdgeInsets(top: 10, leading: Card.margin, bottom: 10, trailing: Card.margin))
             .listRowBackground(Color.clear)
-            .listRowSeparatorTint(Color.white.opacity(Theme.Op.track))
+            .listRowSeparatorTint(Theme.separator)
             .alignmentGuide(.listRowSeparatorTrailing) { $0[.trailing] }
             .accessibilityHint(added ? "Already added" : "Adds \(entry.name)")
         }
@@ -547,7 +575,10 @@ struct ContentView: View {
                 Link(destination: Theme.legal) { Label("Terms & Privacy", systemImage: "doc.text") }
                 Link(destination: Theme.issues) { Label("Report an Issue", systemImage: "exclamationmark.bubble") }
             } label: {
-                Image(systemName: "ellipsis.circle").font(.system(size: 19))
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(Theme.Op.strong))
+                    .glassCircle()
             }
             .accessibilityLabel("More")
         }
@@ -564,27 +595,30 @@ struct ContentView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { searchFocused = true }
                 }
             }
-            Color.white.opacity(Theme.Op.track).frame(width: 0.5, height: 14).opacity(adding || editMode.isEditing ? 0 : 1)
+            Color.white.opacity(0.12).frame(width: 0.5, height: 18).opacity(adding || editMode.isEditing ? 0 : 1)
             controlButton(symbol: editMode.isEditing ? "checkmark" : "pencil", on: editMode.isEditing,
                           label: editMode.isEditing ? "Done Editing" : "Edit List", enabled: !store.places.isEmpty || editMode.isEditing) {
                 if adding { closeSearch() }
                 withAnimation(.snappy) { editMode = editMode.isEditing ? .inactive : .active }
             }
         }
-        .padding(2)
-        .background(Capsule().fill(Color.white.opacity(Theme.Op.fill)))
+        // One 34 pt glass capsule, as the glass circles beside it.
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Theme.edge, lineWidth: 0.5))
+        .environment(\.colorScheme, .dark)
     }
 
     private func controlButton(symbol: String, on: Bool, label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 13, weight: .semibold))
-                .frame(width: 34, height: 28)
-                .background(Capsule().fill(on ? Color.white : .clear))
-                .foregroundStyle(on ? Color.black : Color.white.opacity(enabled ? 1 : Theme.Op.faint))
+                .font(.system(size: 15, weight: on ? .semibold : .medium))
+                .frame(width: 40, height: 34)
+                // On (✓): white, inset 2 pt within the glass capsule, with a black glyph.
+                .background(Capsule().fill(on ? Color.white : .clear).padding(2))
+                .foregroundStyle(on ? Color.black : Color.white.opacity(enabled ? Theme.Op.strong : Theme.Op.faint))
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale())
         .disabled(!enabled)
         .accessibilityLabel(label)
     }
@@ -609,6 +643,11 @@ struct ContentView: View {
             }
         } label: {
             Image(systemName: "square.and.arrow.up")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color.white.opacity(Theme.Op.strong))
+                // Optically centred: the arrow's box sits low in the circle.
+                .offset(y: -1)
+                .glassCircle()
         }
         .accessibilityLabel("Share")
     }
@@ -705,23 +744,25 @@ struct TimeShifter: View {
     @EnvironmentObject private var store: CityStore
     @Environment(\.dynamicTypeSize) private var typeSize
     let goToTime: () -> Void
-    /// Go to a Time's glyph grows with the text (as Now does): 17 pt at the default size, up to 26 pt.
-    @ScaledMetric(relativeTo: .body) private var calendarMetric: CGFloat = 17
-    private var calendarIcon: CGFloat { min(max(calendarMetric, 17), 26) }
+    /// Go to a Time's glyph grows with the text (as Now does): 15 pt at the default size, up to 22 pt,
+    /// in a 34 pt glass circle that grows with it.
+    @ScaledMetric(relativeTo: .subheadline) private var calendarMetric: CGFloat = 15
+    private var calendarIcon: CGFloat { min(max(calendarMetric, 15), 22) }
+    private var calendarCircle: CGFloat { max(34, calendarIcon + 19) }
 
     /// White, and the black set on it (as a selected chip).
     private static let light = Color.white
     private static let ink = Color.black
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             if !store.hasScrubbed {
                 // One line up to .xxLarge (it may shrink to 90% rather than truncate); from .xxxLarge
                 // up it may wrap to two, so it never ends in an ellipsis on a 320 pt-wide iPhone SE.
                 // Shown only until the first drag.
                 Text("Drag the hours or the ruler.")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(Color.white.opacity(Theme.Op.label))
+                    .font(.caption)
+                    .foregroundStyle(Color.white.opacity(0.5))
                     .multilineTextAlignment(.center)
                     .lineLimit(typeSize >= .xxxLarge ? 2 : 1)
                     .minimumScaleFactor(0.9)
@@ -738,11 +779,13 @@ struct TimeShifter: View {
                 Button(action: goToTime) {
                     Image(systemName: "calendar")
                         .font(.system(size: calendarIcon, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(minWidth: 36, minHeight: 44)
+                        .foregroundStyle(Color.white.opacity(Theme.Op.strong))
+                        .glassCircle(calendarCircle)
+                        // A 44 pt target around the 34 pt circle.
+                        .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressScale())
                 .accessibilityLabel("Go to a Time")
             }
             .padding(.horizontal, 12)
@@ -755,19 +798,21 @@ struct TimeShifter: View {
     private var nowButton: some View {
         Button { if !store.isNow { store.backToNow() } } label: {
             Text("Now")
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
                 .fixedSize()
-                .padding(.horizontal, 18)
-                .frame(minWidth: 68, minHeight: 44)
+                .padding(.horizontal, 16)
+                // A 34 pt capsule (it grows with the text) in a 44 pt tap target.
+                .frame(minWidth: 64, minHeight: 34)
                 .foregroundStyle(store.isNow ? Self.light : Self.ink)
                 .background(Capsule().fill(store.isNow ? Color.white.opacity(0.14) : Self.light))
                 .overlay(Capsule().strokeBorder(Color.white.opacity(store.isNow ? 0.25 : 0), lineWidth: 0.5))
-                .contentShape(Capsule())
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressScale())
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
-        .animation(.snappy, value: store.isNow)
+        .animation(Theme.ease, value: store.isNow)
         .accessibilityLabel(store.isNow ? "Now" : "Back to now")
         .accessibilityHint(store.isNow ? "" : "Returns every city to the current time.")
     }
@@ -904,21 +949,22 @@ private struct RulerTick: View {
             Group {
                 if minute == 0 {
                     Text(label(hour: hour, weekday: parts.weekday ?? 1))
-                        .font(.footnote.weight(hour == 0 ? .semibold : .medium))
-                        .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : Theme.Op.body))
+                        .font(.caption2.weight(hour == 0 ? .semibold : .medium))
+                        .foregroundStyle(Color.white.opacity(hour == 0 ? 1 : 0.64))
                         .monospacedDigit()
                         .fixedSize()
                         .visualEffect { [rulerWidth] content, proxy in
                             content.opacity(Self.labelOpacity(proxy.frame(in: .named(RulerTick.space)), width: rulerWidth))
                         }
                 } else {
-                    Text(" ").font(.footnote)
+                    Text(" ").font(.caption2)
                 }
             }
             .frame(height: labelHeight)
             Capsule()
-                .fill(Color.white.opacity(minute == 0 ? Theme.Op.caption : (minute == 30 ? Theme.Op.faint : 0.25)))
-                .frame(width: minute == 0 ? 1.5 : 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))
+                // Hairline ticks, as a dial: 1 pt, the hours at 55% white, the rest at 30%.
+                .fill(Color.white.opacity(minute == 0 ? 0.55 : 0.30))
+                .frame(width: 1, height: minute == 0 ? 14 : (minute == 30 ? 9 : 5))
                 .visualEffect { [rulerWidth] content, proxy in
                     content.opacity(Self.tickOpacity(proxy.frame(in: .named(RulerTick.space)), width: rulerWidth))
                 }
@@ -1235,7 +1281,7 @@ private struct SearchResultRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 // As Two Degrees: a quiet check after the name of a city already in the list (the times keep their column).
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(entry.name).font(.headline).foregroundStyle(.white).lineLimit(1)
+                    Text(entry.name).font(.body).foregroundStyle(.white).lineLimit(1)
                     if added {
                         Image(systemName: "checkmark").font(.footnote.weight(.semibold))
                             .foregroundStyle(Color.white.opacity(Theme.Op.caption)).accessibilityHidden(true)
@@ -1244,7 +1290,7 @@ private struct SearchResultRow: View {
                 // "California, United States" from the city list (as on Android), else the country.
                 Text(entry.countryCode != nil ? entry.region
                      : WorkWeek.countryName(zoneID: entry.timeZoneID) ?? entry.region.replacingOccurrences(of: "_", with: " "))
-                    .font(.subheadline).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                    .font(.subheadline).foregroundStyle(Color.white.opacity(0.64))
             }
             Spacer()
             if let zone = TimeZone(identifier: entry.timeZoneID) {
@@ -1252,7 +1298,8 @@ private struct SearchResultRow: View {
                     Text(TimeMath.time(store.now, in: zone, use24h: store.use24h))
                         .font(.body).foregroundStyle(.white).monospacedDigit()
                     Text(TimeMath.offsetLabel(seconds: zone.secondsFromGMT(for: store.now)))
-                        .font(.footnote).foregroundStyle(Color.white.opacity(Theme.Op.caption))
+                        // 50%, not fainter: 5.3:1 on black, so the 13 pt offset keeps AA contrast.
+                        .font(.footnote).foregroundStyle(Color.white.opacity(0.5))
                 }
             }
         }

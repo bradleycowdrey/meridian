@@ -88,7 +88,8 @@ struct SettingsView: View {
             }
             .meridianForm()
             .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
+            // A large title (34 pt bold), as the Settings app; the other sheets keep inline titles.
+            .navigationBarTitleDisplayMode(.large)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
         .tint(.white)

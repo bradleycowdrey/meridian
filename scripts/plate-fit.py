@@ -38,7 +38,7 @@ def place(plate, w, h, fx, fy, top=None):
     img = plate.resize((round(pw), round(ph)), Image.LANCZOS)
     return img.crop((round(-x), round(-y), round(-x) + w, round(-y) + h))
 
-def row(plate, w, h, fx, fy, label, top=None):
+def row(plate, w, h, fx, fy, label, top=None, name="Paris", debug=True):
     tile = place(plate, w, h, fx, fy, top).convert("RGB")
     pw, ph, ox, oy = geometry(plate, w, h, fx, fy, top)
     d = ImageDraw.Draw(tile, "RGBA")
@@ -51,7 +51,7 @@ def row(plate, w, h, fx, fy, label, top=None):
     stat = ImageStat.Stat(tile.crop(region).convert("L"))
     mean, sd = stat.mean[0], stat.stddev[0]
     d.text((tx, ty), "20:39", fill="white", font=font(th), stroke_width=0)
-    d.text((tx, ty + int(th * 1.05)), "Paris", fill="white", font=font(int(th * 0.55)))
+    d.text((tx, ty + int(th * 1.05)), name, fill="white", font=font(int(th * 0.55)))
     # five hour tiles on the right (bottom row for the square widget)
     n, gap = 5, max(3, int(h * 0.03))
     if square:
@@ -78,14 +78,16 @@ def row(plate, w, h, fx, fy, label, top=None):
         shown = (area(vis) - hidden) / full if full else 0
         tip_ok = 0 <= ly0 <= h and not any(b[0] <= (lx0 + lx1) / 2 <= b[2] and b[1] <= ly0 <= b[3] for b in boxes)
         lm = (shown, tip_ok)
-        d.rectangle((lx0, ly0, lx1, ly1), outline=(255, 80, 80, 160))
+        if debug:
+            d.rectangle((lx0, ly0, lx1, ly1), outline=(255, 80, 80, 160))
     # verdict: text over a busy or bright patch is bad
     ok = mean < 150 and sd < 55
     lmtxt = "" if lm is None else f"  landmark shown {lm[0]*100:.0f}% tip {'ok' if lm[1] else 'HIDDEN'}"
     if lm is not None and (lm[0] < 0.6 or not lm[1]):
         ok = False
     print(f"{label}: text L={mean:.0f} sd={sd:.0f}{lmtxt}")
-    d.text((4, h - 14), f"{label}  text bg L={mean:.0f} sd={sd:.0f}{lmtxt} {'OK' if ok else 'CHECK'}",
+    if debug:
+        d.text((4, h - 14), f"{label}  text bg L={mean:.0f} sd={sd:.0f}{lmtxt} {'OK' if ok else 'CHECK'}",
            fill=(255, 255, 0) if not ok else (180, 255, 180), font=font(10))
     return tile, ok
 

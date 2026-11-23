@@ -213,6 +213,10 @@ object PhotoFocus {
     /** The least room (a fraction of the frame's height) between the frame's top edge and the landmark's tip. */
     const val TIP_MARGIN = 0.08f
     private const val MAX_ZOOM = 1.15f
+    /** How far past cover a phone card may zoom to make its landmark fill the card. */
+    private const val MAX_FILL_ZOOM = 1.6f
+    /** How much of a card's height an AI plate's landmark (tip to skyline) fills. */
+    const val CARD_FILL = 0.55f
 
     /** An object's "focus" (0..1), or null when it has none. */
     fun read(o: JSONObject): Float? = number(o, "focus")
@@ -239,7 +243,7 @@ object PhotoFocus {
      * photo (the manifest's "top"; null for no tip rule).
      */
     fun place(iw: Float, ih: Float, w: Float, h: Float, focus: Float, targetX: Float? = null, landmark: Float = DEFAULT_X,
-        tip: Float? = null): FloatArray {
+        tip: Float? = null, fill: Float? = null): FloatArray {
         if (iw <= 0f || ih <= 0f) return floatArrayOf(1f, 0f, 0f)
         val cover = maxOf(w / iw, h / ih)
         val t = (targetX ?: (w / 2f)).coerceIn(0f, w)
@@ -249,7 +253,14 @@ object PhotoFocus {
         // by zooming, so that side asks nothing. Never past MAX_ZOOM times the cover scale.
         val needLeft = if (l > 0.001f) t / l else 0f
         val needRight = if (l < 0.999f) (w - t) / (1f - l) else 0f
-        val s = (maxOf(needLeft, needRight) / iw).coerceIn(cover, cover * MAX_ZOOM)
+        var s = (maxOf(needLeft, needRight) / iw).coerceIn(cover, cover * MAX_ZOOM)
+        // Phone cards ([fill], a fraction of the box's height): zoom in until the landmark, from its tip down to the
+        // skyline band, spans that much of the card, up to MAX_FILL_ZOOM times cover (a plate is as wide as a card,
+        // so otherwise its open sky fills the card and the city sits small behind the tiles).
+        if (fill != null && tip != null && focus > tip) {
+            val wanted = h * fill / ((focus.coerceIn(0f, 1f) - tip.coerceIn(0f, 1f)) * ih)
+            s = maxOf(s, minOf(wanted, cover * MAX_FILL_ZOOM))
+        }
         val dw = iw * s
         val dh = ih * s
         return floatArrayOf(s, left(dw, w, t, l), top(dh, h, focus, tip))

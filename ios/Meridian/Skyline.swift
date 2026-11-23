@@ -417,6 +417,9 @@ enum SkylineArt {
     /// point `focus` of the way down the photo sits at the card's vertical centre, then down as far
     /// as needed to keep the landmark's tip (`top`, 0…1 of its height; nil: no rule) at least 8% of
     /// the card's height below its top edge. Always clamped so the photo covers the card.
+    /// How much of a card's height an AI plate's landmark (tip to skyline) fills.
+    static let cardLandmarkFill: CGFloat = 0.55
+
     static func photoRect(image: CGSize, in box: CGSize, focus: Double?, focusX: Double? = nil,
                           targetX: CGFloat? = nil, top: Double? = nil) -> CGRect {
         guard image.width > 0, image.height > 0, box.width > 0, box.height > 0 else {
@@ -425,7 +428,9 @@ enum SkylineArt {
         let fit = WidgetPhotoPlacement.place(imageWidth: image.width, imageHeight: image.height, in: box,
                                              focus: CGFloat(focus ?? defaultFocus),
                                              landmarkX: CGFloat(focusX ?? Double(WidgetPhotoPlacement.defaultLandmarkX)),
-                                             targetX: targetX, top: top.map { CGFloat($0) })
+                                             targetX: targetX, top: top.map { CGFloat($0) },
+                                             // An AI plate (measured landmark) fills 55% of the card's height.
+                                             fill: focusX != nil ? cardLandmarkFill : nil)
         return CGRect(origin: fit.offset, size: fit.size)
     }
 

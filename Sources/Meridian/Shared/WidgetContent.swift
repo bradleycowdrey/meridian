@@ -1344,6 +1344,8 @@ enum WidgetPhotoPlacement {
     static let defaultLandmarkX: CGFloat = 0.5
     /// The most a photo is zoomed beyond cover to bring its landmark to the target.
     static let maxExtraZoom: CGFloat = 1.15
+    /// How far past cover a phone card may zoom to make its landmark fill the card (`fill`).
+    static let maxFillZoom: CGFloat = 1.6
     /// The least room kept above the landmark's tip, as a fraction of the frame's height.
     static let tipMargin: CGFloat = 0.08
     /// Square and single-city small widgets: where an AI plate's landmark goes, as a fraction of
@@ -1362,7 +1364,7 @@ enum WidgetPhotoPlacement {
     /// `top`: the landmark tip's height in the photo (0…1), or nil (no tip rule, as before v3 "top").
     static func place(imageWidth: CGFloat, imageHeight: CGFloat, in frame: CGSize, focus: CGFloat,
                       landmarkX: CGFloat, targetX: CGFloat?, anchorY: CGFloat = 0.5,
-                      top: CGFloat? = nil) -> (size: CGSize, offset: CGPoint) {
+                      top: CGFloat? = nil, fill: CGFloat? = nil) -> (size: CGSize, offset: CGPoint) {
         let fw = max(frame.width, 1), fh = max(frame.height, 1)
         let iw = max(imageWidth, 1), ih = max(imageHeight, 1)
         let cover: CGFloat = max(fw / iw, fh / ih)
@@ -1371,7 +1373,15 @@ enum WidgetPhotoPlacement {
         var needed: CGFloat = cover
         if l > 0 { needed = max(needed, t / (l * iw)) }
         if l < 1 { needed = max(needed, (fw - t) / ((1 - l) * iw)) }
-        let scale: CGFloat = min(needed, cover * maxExtraZoom)
+        var scale: CGFloat = min(needed, cover * maxExtraZoom)
+        // Phone cards (`fill`, a fraction of the frame's height): zoom in until the landmark, from its tip
+        // (`top`) down to the skyline band (`focus`), spans that much of the card, up to maxFillZoom times
+        // cover. A plate is as wide as a phone card, so without this its open sky fills the card and the
+        // city sits small along the bottom, behind the tiles.
+        if let fill, let top, top.isFinite, fill.isFinite, focus > top {
+            let wanted = fh * fill / ((min(max(focus, 0), 1) - min(max(top, 0), 1)) * ih)
+            scale = max(scale, min(wanted, cover * maxFillZoom))
+        }
         let w = iw * scale, h = ih * scale
         let x = min(max(t - l * w, fw - w), 0)
         let f = min(max(focus, 0), 1)

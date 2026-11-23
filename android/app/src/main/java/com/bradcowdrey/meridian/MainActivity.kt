@@ -1048,8 +1048,9 @@ object Skyline {
      */
     data class PlacedCrop(val at: Placement) : ContentScale {
         override fun computeScaleFactor(srcSize: Size, dstSize: Size): androidx.compose.ui.layout.ScaleFactor {
+            // An AI plate (it has a measured tip) fills PhotoFocus.CARD_FILL of the card's height with its landmark.
             val s = PhotoFocus.place(srcSize.width, srcSize.height, dstSize.width, dstSize.height, at.focus,
-                at.targetX * dstSize.width, at.focusX, at.top)[0]
+                at.targetX * dstSize.width, at.focusX, at.top, if (at.top != null) PhotoFocus.CARD_FILL else null)[0]
             return androidx.compose.ui.layout.ScaleFactor(s, s)
         }
     }
@@ -1381,7 +1382,8 @@ object Skyline {
         // PlacedCrop, then PlacedAlign, as the Image draws it.
         val bw = aspect
         val bh = 1f
-        val at = PhotoFocus.place(iw, ih, bw, bh, place.focus, place.targetX * bw, place.focusX, place.top)
+        val at = PhotoFocus.place(iw, ih, bw, bh, place.focus, place.targetX * bw, place.focusX, place.top,
+            if (place.top != null) PhotoFocus.CARD_FILL else null)
         val s = at[0]
         val offX = at[1]
         val offY = at[2]

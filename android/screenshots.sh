@@ -4,6 +4,9 @@ OUT="$1"; mkdir -p "$OUT"
 APK=android/app/build/outputs/apk/debug/app-debug.apk
 adb install -r "$APK" > "$OUT/install.txt" 2>&1
 # A tidy status bar: 9:41, full battery and signal.
+# No "isn't responding" dialogs from the emulator's own apps (the launcher) over the screenshots.
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell settings put global anr_show_background 0 || true
 adb shell settings put global sysui_demo_allowed 1
 adb shell am broadcast -a com.android.systemui.demo -e command enter
 adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0941

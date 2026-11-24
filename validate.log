@@ -1,0 +1,7 @@
+Running altool at path '/Applications/Xcode_26.3.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources/altool'...
+
+2026-11-24 01:49:47.447  INFO: [ContentDelivery.Uploader.60000194C4C0] 
+==========================================
+VERIFY SUCCEEDED with no errors
+==========================================
+No errors validating archive at '/Users/runner/work/meridian/meridian/dist/Meridian-2.1.5.pkg'.

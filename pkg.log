@@ -1,0 +1,29 @@
+productbuild: Adding component at /Users/runner/work/meridian/meridian/dist/Meridian.app
+productbuild: Signing product with identity "3rd Party Mac Developer Installer: Bradley Cowdrey (2XV97FZ86G)" from keychain /Users/runner/work/_temp/build.keychain
+productbuild: Adding certificate "Apple Worldwide Developer Relations Certification Authority"
+productbuild: Adding certificate "Apple Root CA"
+productbuild: Wrote product to dist/Meridian-2.1.5.pkg
+productbuild: Supported OS versions: [Min: 14.0, Before: None]
+Package "Meridian-2.1.5.pkg":
+   Status: signed by a developer certificate issued by Apple (Development)
+   Certificate Chain:
+    1. 3rd Party Mac Developer Installer: Bradley Cowdrey (2XV97FZ86G)
+       Expires: 2027-11-24 01:36:58 +0000
+       SHA256 Fingerprint:
+           02 50 63 51 57 35 8C 25 24 4F 74 AC 3B 61 41 64 14 75 50 DD 56 91 
+           23 AC D7 D7 7B CC AC 20 7C 86
+       ------------------------------------------------------------------------
+    2. Apple Worldwide Developer Relations Certification Authority
+       Expires: 2030-02-20 00:00:00 +0000
+       SHA256 Fingerprint:
+           DC F2 18 78 C7 7F 41 98 E4 B4 61 4F 03 D6 96 D8 9C 66 C6 60 08 D4 
+           24 4E 1B 99 16 1A AC 91 60 1F
+       ------------------------------------------------------------------------
+    3. Apple Root CA
+       Expires: 2035-02-09 21:40:36 +0000
+       SHA256 Fingerprint:
+           B0 B1 73 0E CB C7 FF 45 05 14 2C 49 F1 29 5E 6E DA 6B CA ED 7E 2C 
+           68 C5 BE 91 B5 A1 10 01 F0 24
+
+f2596a212c51989a5489cbe2ca00f827bc89ef851eb534bba7c965325f580cfa  dist/Meridian-2.1.5.pkg
+Built dist/Meridian-2.1.5.pkg (com.bradcowdrey.meridian 2.1.5 build 299,  41M)

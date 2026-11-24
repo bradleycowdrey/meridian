@@ -1,0 +1,132 @@
+[01:49:49]: [33mGet started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile[0m
+[01:49:49]: fastlane 2.242.0 (Ruby 4.0.9, homebrew)
+[01:49:50]: [32m------------------------------[0m
+[01:49:50]: [32m--- Step: default_platform ---[0m
+[01:49:50]: [32m------------------------------[0m
+[01:49:50]: [32mDriving the lane 'mac upload' 🚀[0m
+[01:49:50]: [32m--------------------------------------------[0m
+[01:49:50]: [32m--- Step: Switch to mac sign_in_api lane ---[0m
+[01:49:50]: [32m--------------------------------------------[0m
+[01:49:50]: Cruising over to lane 'mac sign_in_api' 🚖
+[01:49:50]: [32m---------------------------------------[0m
+[01:49:50]: [32m--- Step: app_store_connect_api_key ---[0m
+[01:49:50]: [32m---------------------------------------[0m
+[01:49:50]: Cruising back to lane 'mac upload' 🚘
+[01:49:50]: [32m-----------------------------------------------------[0m
+[01:49:50]: [32m--- Step: Switch to mac ensure_review_detail lane ---[0m
+[01:49:50]: [32m-----------------------------------------------------[0m
+[01:49:50]: Cruising over to lane 'mac ensure_review_detail' 🚖
+[01:49:50]: [32m--------------------------------------------[0m
+[01:49:50]: [32m--- Step: Switch to mac sign_in_api lane ---[0m
+[01:49:50]: [32m--------------------------------------------[0m
+[01:49:50]: Cruising over to lane 'mac sign_in_api' 🚖
+[01:49:50]: [32m---------------------------------------[0m
+[01:49:50]: [32m--- Step: app_store_connect_api_key ---[0m
+[01:49:50]: [32m---------------------------------------[0m
+[01:49:50]: Cruising back to lane 'mac ensure_review_detail' 🚘
+[01:49:51]: App Review details already exist
+[01:49:51]: Cruising back to lane 'mac upload' 🚘
+[01:49:51]: [32m---------------------------------[0m
+[01:49:51]: [32m--- Step: upload_to_app_store ---[0m
+[01:49:51]: [32m---------------------------------[0m
+[01:49:51]: Creating authorization token for App Store Connect API
+
++-------------------------------------------------------------------------------------------------------------------------+
+|                                                 [32mdeliver 2.242.0 Summary[0m                                                 |
++----------------------------------------------------------+--------------------------------------------------------------+
+| api_key_path                                             | fastlane/api_key.json                                        |
+| app_identifier                                           | com.bradcowdrey.meridian                                     |
+| platform                                                 | osx                                                          |
+| app_version                                              | 2.1.5                                                        |
+| pkg                                                      | /Users/runner/work/meridian/meridian/dist/Meridian-2.1.5.pkg |
+| metadata_path                                            | fastlane/metadata                                            |
+| screenshots_path                                         | fastlane/screenshots                                         |
+| overwrite_screenshots                                    | true                                                         |
+| ignore_language_directory_validation                     | true                                                         |
+| force                                                    | true                                                         |
+| run_precheck_before_submit                               | false                                                        |
+| submit_for_review                                        | true                                                         |
+| automatic_release                                        | true                                                         |
+| submission_information.add_id_info_uses_idfa             | false                                                        |
+| submission_information.export_compliance_uses_encryption | false                                                        |
+| edit_live                                                | false                                                        |
+| use_live_version                                         | false                                                        |
+| preview_frame_time_code                                  | 00:00:05:00                                                  |
+| overwrite_preview_videos                                 | false                                                        |
+| skip_binary_upload                                       | false                                                        |
+| skip_screenshots                                         | false                                                        |
+| skip_metadata                                            | false                                                        |
+| skip_app_version_update                                  | false                                                        |
+| screenshot_processing_timeout                            | 3600                                                         |
+| sync_screenshots                                         | false                                                        |
+| verify_only                                              | false                                                        |
+| reject_if_possible                                       | false                                                        |
+| version_check_wait_retry_limit                           | 7                                                            |
+| phased_release                                           | false                                                        |
+| reset_ratings                                            | false                                                        |
+| dev_portal_team_id                                       | 2XV97FZ86G                                                   |
+| precheck_default_rule_level                              | warn                                                         |
+| precheck_include_in_app_purchases                        | true                                                         |
++----------------------------------------------------------+--------------------------------------------------------------+
+
+[01:49:51]: Making sure the latest version on App Store Connect matches '2.1.5'...
+[01:49:52]: [32m'2.1.5' is the latest version on App Store Connect[0m
+[01:49:52]: Loading 'fastlane/metadata/en-US/description.txt'...
+[01:49:52]: Loading 'fastlane/metadata/en-US/keywords.txt'...
+[01:49:52]: Loading 'fastlane/metadata/en-US/release_notes.txt'...
+[01:49:52]: Loading 'fastlane/metadata/en-US/support_url.txt'...
+[01:49:52]: Loading 'fastlane/metadata/en-US/marketing_url.txt'...
+[01:49:52]: Loading 'fastlane/metadata/en-US/promotional_text.txt'...
+[01:49:52]: Loading 'fastlane/metadata/copyright.txt'...
+[01:49:52]: Loading 'fastlane/metadata/review_information/first_name.txt'...
+[01:49:52]: Loading 'fastlane/metadata/review_information/last_name.txt'...
+[01:49:52]: Loading 'fastlane/metadata/review_information/notes.txt'...
+[01:49:53]: No changes to localized App Info detected. Skipping upload.
+[01:49:53]: [33mWill begin uploading metadata for '2.1.5' on App Store Connect[0m
+[01:49:53]: Uploading metadata to App Store Connect for version
+[01:49:58]: Uploading metadata to App Store Connect for localized version 'en-US'
+[01:50:01]: Uploading app review information to App Store Connect
+[01:50:03]: [33mWill begin uploading snapshots for '2.1.5' on App Store Connect[0m
+[01:50:03]: Starting with the upload of screenshots...
+[01:50:04]: Deleted 'en-US APP_DESKTOP' -  (0.368636 secs)
+[01:50:04]: [33mNumber of screenshots not deleted: 0[0m
+[01:50:04]: Successfully deleted all screenshots
+[01:50:06]: Uploaded 'fastlane/screenshots/en-US/04-window.png'... (2.029262 secs)
+[01:50:06]: Uploaded 'fastlane/screenshots/en-US/02-widgets.png'... (2.077578 secs)
+[01:50:06]: Uploaded 'fastlane/screenshots/en-US/01-menu-bar.png'... (2.193261 secs)
+[01:50:07]: Uploaded 'fastlane/screenshots/en-US/03-working-hours.png'... (2.267541 secs)
+[01:50:07]: Waiting for all the screenshots to finish being processed...
+[01:50:12]: Successfully uploaded all screenshots
+[01:50:12]: Sorting screenshots uploaded...
+[01:50:13]: [32mSuccessfully uploaded screenshots to App Store Connect[0m
+[01:50:13]: Uploading binary to App Store Connect
+[01:50:13]: Going to upload updated app to App Store Connect
+[01:50:13]: [32mThis might take a few minutes. Please don't interrupt the script.[0m
+[01:51:13]: [32m--------------------------------------------------------------------[0m
+[01:51:13]: [32mSuccessfully uploaded package to App Store Connect. It might take a few minutes until it's visible online.[0m
+[01:51:13]: [32m--------------------------------------------------------------------[0m
+[01:51:13]: [32mFinished the upload to App Store Connect[0m
+[01:51:14]: Selecting the latest build...
+[01:51:14]: [36m$ xar -C /var/folders/9d/l02zfgrs7c16twd3wbpdmhkc0000gn/T/d20261124-17969-f6jv60 -xf /Users/runner/work/meridian/meridian/dist/Meridian-2.1.5.pkg[0m
+[01:51:14]: Waiting for processing on... app_id: 6826713540, app_version: 2.1.5, build_version: 299, platform: MAC_OS
+[01:51:14]: [33mRead more information on why this build isn't showing up yet - https://github.com/fastlane/fastlane/issues/14997[0m
+[01:53:46]: [32mSuccessfully finished processing the build 2.1.5 - 299 for MAC_OS[0m
+[01:53:46]: Selecting build 2.1.5 (299)...
+[01:53:49]: [32mSuccessfully selected build[0m
+[01:53:57]: [32mSuccessfully submitted the app for review![0m
+
++--------------------------------------------------------------+
+|                       [32mfastlane summary[0m                       |
++------+-----------------------------------------+-------------+
+| Step | Action                                  | Time (in s) |
++------+-----------------------------------------+-------------+
+| 1    | default_platform                        | 0           |
+| 2    | Switch to mac sign_in_api lane          | 0           |
+| 3    | app_store_connect_api_key               | 0           |
+| 4    | Switch to mac ensure_review_detail lane | 0           |
+| 5    | Switch to mac sign_in_api lane          | 0           |
+| 6    | app_store_connect_api_key               | 0           |
+| 7    | upload_to_app_store                     | 245         |
++------+-----------------------------------------+-------------+
+
+[01:53:57]: [32mfastlane.tools finished successfully 🎉[0m

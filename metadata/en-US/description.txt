@@ -1,0 +1,19 @@
+Every time zone at a glance, in your Mac's menu bar.
+
+Click the globe and your cities line up as rows of hour tiles on one grid. Every column is the same moment everywhere, so the outline down the middle is now. Each row shows its city by day or by night there, on a photo framed on the skyline (111 major cities; others show the sky for the time of day), with its time and whether it's working there right now: Working, Off hours, Weekend, Day off or the holiday's name.
+
+Hour tiles in blues run across each city, navy at night and brightest at midday, working hours standing out. The Now tile is larger, with one outline down every city. Midnight gets a small weekday tag where a new day starts, and +1 d shows when a city is already on tomorrow.
+
+Move through time: drag the hours, scroll, press the arrow keys or click any hour, and every city moves with you. Click Now to come back. A white mark shows the hours when every city is in working hours. Copy This Moment puts the time in every city on the clipboard, ready for a chat or an invite.
+
+Working weeks for every country: Sunday to Thursday in Riyadh, Monday to Friday in Denver, Ramadan and summer hours where they apply, and national public holidays. Change any city's days and hours.
+
+Search 34,000 cities offline, or an airport code (SFO, LHR), an abbreviation (PST, CET) or an offset (UTC+5:30). My Location adds the city you're in and follows you when you travel. Rename cities and drag them into your order.
+
+Desktop widgets in small, medium and large, for the desktop or Notification Center, each city on its photo with the hour before, now and the hour after. They follow your cities and order, or choose their own in Edit Widget. With fewer cities, the rows grow to fill the widget.
+
+Make it yours: show a globe in the menu bar, or a city and its time. Open it as a window that can stay above everything. Five sizes, SF Pro or Inter, 12- or 24-hour time, and open at login.
+
+No account. No ads. No tracking. Your cities stay on your Mac.
+
+Free. Forever. Also on iPhone.

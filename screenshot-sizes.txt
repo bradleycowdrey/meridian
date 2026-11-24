@@ -1,0 +1,4 @@
+01-menu-bar.png: 2880x1800
+02-widgets.png: 2880x1800
+03-working-hours.png: 2880x1800
+04-window.png: 2880x1800

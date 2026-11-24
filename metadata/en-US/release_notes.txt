@@ -1,0 +1,7 @@
+New city photos: all 111 cities have new day and night photos, made for Meridian, with each city's landmark standing in the clear between the name and the hours, at every size from the panel to the small widget.
+
+A new icon: Meridian joins the Cowdrey family.
+
+A finer finish: glass buttons, cleaner spacing and type.
+
+The small widget shows the city's photo above, with its time, name and status below.

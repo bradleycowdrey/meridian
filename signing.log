@@ -1,0 +1,36 @@
+[01:46:57]: [33mGet started using a Gemfile for fastlane https://docs.fastlane.tools/getting-started/ios/setup/#use-a-gemfile[0m
+[01:46:57]: fastlane 2.242.0 (Ruby 4.0.9, homebrew)
+[01:46:58]: Sending anonymous analytics information
+[01:46:58]: Learn more at https://docs.fastlane.tools/#metrics
+[01:46:58]: No personal or sensitive data is sent.
+[01:46:58]: You can disable this by adding `opt_out_usage` at the top of your Fastfile
+[01:46:58]: [32m------------------------------[0m
+[01:46:58]: [32m--- Step: default_platform ---[0m
+[01:46:58]: [32m------------------------------[0m
+[01:46:58]: [32mDriving the lane 'mac prepare_signing' 🚀[0m
+[01:46:58]: [32m--------------------------------------------[0m
+[01:46:58]: [32m--- Step: Switch to mac sign_in_api lane ---[0m
+[01:46:58]: [32m--------------------------------------------[0m
+[01:46:58]: Cruising over to lane 'mac sign_in_api' 🚖
+[01:46:58]: [32m---------------------------------------[0m
+[01:46:58]: [32m--- Step: app_store_connect_api_key ---[0m
+[01:46:58]: [32m---------------------------------------[0m
+[01:46:58]: Cruising back to lane 'mac prepare_signing' 🚘
+[01:46:58]: Apple Distribution certificate found (expires 2027-10-26T20:39:03.000+00:00)
+[01:46:58]: Bundle ID com.bradcowdrey.meridian: platform UNIVERSAL
+[01:46:58]: Reusing Mac App Store profile Meridian Mac App Store com.bradcowdrey.meridian 20261118183129
+[01:46:58]: Bundle ID com.bradcowdrey.meridian.widget: platform UNIVERSAL
+[01:46:59]: Reusing Mac App Store profile Meridian Mac App Store com.bradcowdrey.meridian.widget 20261118183130
+[01:47:00]: [32mInstaller identity ready (3rd Party Mac Developer Installer, expires 2027-11-24T01:36:58.000+00:00)[0m
+
++-----------------------------------------------------+
+|                  [32mfastlane summary[0m                   |
++------+--------------------------------+-------------+
+| Step | Action                         | Time (in s) |
++------+--------------------------------+-------------+
+| 1    | default_platform               | 0           |
+| 2    | Switch to mac sign_in_api lane | 0           |
+| 3    | app_store_connect_api_key      | 0           |
++------+--------------------------------+-------------+
+
+[01:47:00]: [32mfastlane.tools finished successfully 🎉[0m

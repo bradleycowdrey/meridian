@@ -299,3 +299,55 @@ for _s in [('Banhā','EG'),('Kafr ash Shaykh','EG'),('As Salţ','JO'),('Mādabā
                       'Kafr Qari‘','Pardés H̱anna Karkur','Or Akiva','Binyamina-Giv‘at ‘Ada',"Binyamina-Giv'at Ada"]],
  *[(t,'NG') for t in ['Iwo','Ikire','Gbongan','Apomu','Olupona','Ijebu-Igbo','Fiditi']]]:
     FIX[_s]='default'
+
+# ======== Round-3 audit fixes (November 2026) ========
+# ---- Mexico: Apaseo el Alto GTO is in ZM Querétaro (Metrópolis de México 2020); Apaseo el Grande stays default
+FIX[('Apaseo el Alto','MX')] = 'santiagodequeretaro-mx'
+# ---- China
+# Wanzhou: 2020 census urban population 1,078,149 (district 1,564,449); separate city ~230 km from Chongqing. Zero the urban subdistrict rows.
+DENY.discard('wanzhou-cn')
+POP[('Wanzhou','CN')] = 1_078_149
+ZERO += [('Taibai','CN',30.82),('Pailou','CN',30.80),('Bai’anba','CN',30.76),('Zhoujiaba','CN',30.84),('Zhonggulou','CN',30.82),
+         ('Gaoliang','CN',30.82),('Tiancheng','CN',30.87),('Changling','CN',30.77),('Xintian','CN',30.70),('Shuanghekou','CN',30.75),
+         ('Shahe','CN',30.83),('Chenjiaba','CN',30.81),('Wuqiao','CN',30.78),('Jiuchi','CN',30.80),('Gaofeng','CN',30.71)]
+# Neijiang, Xinxiang, Zhenjiang: separate prefecture cities whose urban districts clear 1M on the CN urban-district basis
+del FIX[('Neijiang','CN')]
+SEED.append(dict(sel=('Neijiang','CN'), r=15, force=False, key='neijiang-cn'))
+del FIX[('Xinxiang','CN')]
+PRECORE.append(dict(sel=('Xinxiang','CN'), r=15, force=False, key='xinxiang-cn'))   # claims before Zhengzhou
+del FIX[('Zhenjiang','CN')]
+POP[('Zhenjiang','CN')] = 1_266_790    # 2020 census, 3 urban districts
+SEED.append(dict(sel=('Zhenjiang','CN'), r=12, force=False, key='zhenjiang-cn'))
+# Xiangtan is its own prefecture city, never part of Zhuzhou
+for _s in SEED:
+    if _s.get('key') == 'zhuzhou-cn':
+        _s['r'] = 15
+FIX[('Xiangtan','CN')] = 'default'
+# ---- India: Vatakara-taluk towns are in the 2011 Kozhikode UA (not Kannur UA, not default); Trikarpur South is Kasaragod district
+for _t in ['Badagara','Chōrōd','Edacchēri','Kottappally','Kunnummal','Nādāpuram','Villiappally','Āyanchēri',
+           'Azhiyūr','Erāmala','Tūnēri','Chekkiād']:
+    FIX[(_t,'IN')] = 'kozhikode-in'
+FIX[('Trikarpūr South','IN')] = 'default'
+# ---- Pakistan: Haripur district (KP) is outside Islamabad-Rawalpindi; Sargodha-district Sahiwal row carried Sahiwal city's population
+FIX.update({('Khalabat','PK'):'default', ('Haripur','PK'):'default'})
+POP[('Sahiwal','PK',31.97)] = 50_000
+# ---- Europe
+DENY |= {'leipzig-de'}   # Eurostat 2021 FUA 956,290
+for _t in ['Paderborn','Delbrück','Hövelhof','Bad Lippspringe','Warendorf','Oelde','Georgsmarienhütte','Melle','Bad Essen',
+           'Minden','Porta Westfalica','Hille','Lübbecke','Espelkamp']:
+    FIX[(_t,'DE')] = 'default'   # outside the Bielefeld FUA (Bielefeld + Gütersloh + Herford + Lippe)
+FIX[('Geertruidenberg','NL')] = 'default'   # Breda area, not Rotterdam FUA
+for _t in ['Obninsk','Balabanovo','Maloyaroslavets','Strunino','Karabanovo','Aleksandrov','Kirzhach','Petushki','Pokrov','Konakovo']:
+    FIX[(_t,'RU')] = 'default'   # outside Moscow city + Moscow Oblast
+# ---- Brazil: AU de Jundiaí members
+FIX.update({('Itupeva','BR'):'default', ('Louveira','BR'):'default'})
+# ---- New 1M+ metros
+SEED.append(dict(sel=('Omaha','US'), r=40, key='omaha-us'))   # Omaha-Council Bluffs MSA 1,001,010 (Census V2024)
+SEED += [dict(sel=('Hargeysa','SO'), r=25),        # UN WUP: 1.2-1.6M
+         dict(sel=('Uyo','NG'), r=30),             # UN WUP 2025 1,567,115
+         dict(sel=('Owerri','NG'), r=30),          # UN WUP 2018 ~1.02M
+         dict(sel=('Najaf','IQ'), r=20),           # Najaf + Kufa; WUP ~1.02-1.27M
+         dict(sel=('Bujumbura','BI'), r=20),       # UN WUP 2025 1,246,960
+         dict(sel=('Bobo-Dioulasso','BF'), r=25)]  # UN WUP 2025 1,125,023
+# ---- False metros
+DENY |= {'hamhung-kp'}   # 2008 census 768,551 incl. Hungnam (DB double-counts Hungnam)

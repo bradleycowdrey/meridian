@@ -47,8 +47,8 @@ final class CityStore: ObservableObject {
             updateMyLocation()
         }
     }
-    /// Download photos of cities without a built-in one from Wikimedia Commons (Settings; on
-    /// unless turned off). Read by CityPhotos from the same key.
+    /// Download photos of cities without a built-in one (Meridian's hosted AI plates, else
+    /// Wikimedia Commons; Settings; on unless turned off). Read by CityPhotos from the same key.
     @Published var downloadCityPhotos = UserDefaults.standard.object(forKey: "downloadCityPhotos") as? Bool ?? true {
         didSet { defaults.set(downloadCityPhotos, forKey: CityPhotos.enabledKey); exportWidgetPhotos() }
     }

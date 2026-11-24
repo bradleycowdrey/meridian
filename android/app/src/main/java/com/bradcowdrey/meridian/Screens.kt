@@ -431,7 +431,7 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
                 }
                 Note("Cities are grouped by continent automatically when your list spans two or more.")
                 SwitchRow("Download City Photos", store.downloadPhotos) { store.updateDownloadPhotos(it) }
-                Note("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on this phone. Only the city's name is sent.")
+                Note("Cities without a built-in picture get one generated with AI for Meridian where there is one, else a photo from Wikimedia Commons. Each is downloaded once, then stays on this phone. Only the picture's address or the city's name is sent.")
             }
             GlassCard("Widgets", Icons.Filled.Settings) {
                 Note("Touch and hold your home screen, tap Widgets, then find Meridian. Widgets show your cities in the same order as here.")
@@ -486,8 +486,9 @@ private fun StepperRow(label: String, down: () -> Unit, up: () -> Unit) {
 }
 
 /**
- * Photo Credits: the skyline pictures built in (skylines.json) and the photos downloaded for other cities,
- * each with its author and licence; tap one with a source to open its page on Wikimedia Commons. The built-in
+ * Photo Credits: the skyline pictures built in (skylines.json) and the photos downloaded for other cities (hosted AI
+ * plates, credited "Generated with AI for Meridian" with no link, and Wikimedia photos), each with its author and
+ * licence; tap one with a source to open its page on Wikimedia Commons. The built-in
  * pictures are AI-generated plates ("Generated with AI for Meridian", no source or licence link), shown without a link.
  */
 @Composable
@@ -507,8 +508,8 @@ fun PhotoCreditsScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // AI plates have no source page; older built-in photos (and downloads) are from Wikimedia Commons.
             val allGenerated = bundled.isNotEmpty() && bundled.all { it.second?.source.isNullOrBlank() }
-            Note(if (allGenerated) "Built-in city pictures are generated with AI for Meridian. Downloaded photos are from Wikimedia Commons, under the licence shown for each."
-                else "City skyline photos from Wikimedia Commons, under the licence shown for each.")
+            Note(if (allGenerated) "Built-in city pictures are generated with AI for Meridian. Downloaded pictures are too, or are photos from Wikimedia Commons, under the licence shown for each."
+                else "City skyline photos from Wikimedia Commons, under the licence shown for each. Pictures marked as generated with AI were made for Meridian.")
             GlassCard("Built In", null, spacing = 0.dp) {
                 bundled.forEach { (city, credit) -> CreditRow(city, credit) { open(it) } }
             }

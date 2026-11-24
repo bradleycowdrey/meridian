@@ -52,7 +52,7 @@ struct SettingsView: View {
                     Toggle("Download City Photos", isOn: $store.downloadCityPhotos)
                         .tint(Theme.switchOn)
                 } footer: {
-                    footer("Photos of cities without a built-in one come from Wikimedia Commons, once, then stay on your iPhone. Only the city's name is sent.")
+                    footer("Photos of cities without a built-in one are downloaded once, then stay on your iPhone: Meridian's own AI-generated city images where there is one, else photos from Wikimedia Commons. Only the city's name is sent.")
                 }
                 .meridianSection()
                 Section {

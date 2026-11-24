@@ -1025,9 +1025,12 @@ object CityStatus {
  * photo darkened, as before.
  */
 object Skyline {
-    /** The built-in photo for a city in this zone (by name or alias), if there is one. */
-    fun photo(context: android.content.Context, city: String, zoneId: String): SkylineManifest.Photo? =
-        SkylineManifest.photo(context, city, zoneId)
+    /**
+     * The built-in photo for a city in this zone (by name or alias, or an alias in plates-remote.json), if there is one.
+     * [countryCode]: the city's country (passed on; aliases match by name and zone, as skylines.json's names).
+     */
+    fun photo(context: android.content.Context, city: String, zoneId: String, countryCode: String? = null): SkylineManifest.Photo? =
+        SkylineManifest.photo(context, city, zoneId, countryCode)
 
     /**
      * Where a photo sits in its card: [focus], how far down the photo its skyline is; [focusX], how far across it its
@@ -1078,9 +1081,9 @@ object Skyline {
     fun knownPhoto(city: String, zoneId: String): Lookup? = lookups["$city|$zoneId"]
 
     /** Looks up a city's built-in photo (the manifest and the resources). Call off the main thread. */
-    fun lookUp(context: android.content.Context, city: String, zoneId: String): Lookup {
+    fun lookUp(context: android.content.Context, city: String, zoneId: String, countryCode: String? = null): Lookup {
         knownPhoto(city, zoneId)?.let { return it }
-        val found = Lookup(runCatching { photo(context, city, zoneId) }.getOrNull())
+        val found = Lookup(runCatching { photo(context, city, zoneId, countryCode) }.getOrNull())
         // Kept only once the data files can be read (before that, the next card asks again).
         if (DataFiles.ready) lookups["$city|$zoneId"] = found
         return found
@@ -1639,7 +1642,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         try {
             // (Only once the data files can be read, so a city is never taken for one without a photo too early.)
             while (lookup == null) {
-                val found = withContext(Dispatchers.IO) { if (DataFiles.ready) Skyline.lookUp(context, city, place.zoneId) else null }
+                val found = withContext(Dispatchers.IO) { if (DataFiles.ready) Skyline.lookUp(context, city, place.zoneId, place.country) else null }
                 if (found != null) lookup = found else delay(250)
             }
         } finally {
@@ -1655,6 +1658,8 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         LaunchedEffect(slug, download, wantsNight) { CityPhotos.request(context, city, place.zoneId, place.country, download, night = wantsNight) }
     }
     val downloaded = if (useDownload) CityPhotos.bitmap(slug) else null
+    // A downloaded hosted AI plate: placed by its index entry (focus, focusX, top), as a built-in plate.
+    val hosted = if (useDownload) CityPhotos.plate(slug) else null
     // Where the time is on the card, for the adaptive ink (measured once it's laid out).
     var region by remember { mutableStateOf(TimeRegion.DEFAULT) }
     // The time's own box on the card (px), read only when the tiles' weekday tag is drawn (so the tag never sits on it).
@@ -1728,28 +1733,35 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         // or is still on its way): the drawn night skyline, not the day photo darkened. Drawing only: the photos above
         // still load and prefetch as before, so a jump back to day shows the day photo at once.
         val drawnNight = shade == Skyline.Shade.NIGHT && (photo == null || nightResId == 0)
-        // Where this photo's skyline is (the manifest's focus for the day or night photo; downloads the default), and
-        // its landmark (the manifest's focusX; downloads the centre), which goes to the middle of the clear gap
-        // between the name column and the hour tiles (as the Row below lays them out), as a fraction of the card's width.
+        // Where this photo's skyline is (the manifest's focus for the day or night photo; a hosted plate's from its
+        // index entry; other downloads the default), and its landmark (the manifest's focusX; a hosted plate's entry;
+        // other downloads the centre), which goes to the middle of the clear gap between the name column and the hour
+        // tiles (as the Row below lays them out), as a fraction of the card's width.
         val focus = when {
+            photo == null && hosted != null -> if (nightShown) hosted.nightFocus else hosted.focus
             photo == null -> PhotoFocus.DEFAULT
             nightShown -> photo.nightFocus
             else -> photo.focus
         }
         val focusX = when {
+            photo == null && hosted != null -> (if (nightShown) hosted.nightFocusX else hosted.focusX) ?: PhotoFocus.DEFAULT_X
             photo == null -> PhotoFocus.DEFAULT_X
             nightShown -> photo.nightFocusX
             else -> photo.focusX
         }
-        // The landmark's tip (the manifest's "top" for the photo shown; none for downloads): kept below the card's top edge.
+        // The landmark's tip (the manifest's "top" for the photo shown; a hosted plate's entry's; none for other
+        // downloads): kept below the card's top edge (and, with one, the landmark fills the card as a built-in plate's).
         val tip = when {
+            photo == null && hosted != null -> if (nightShown) hosted.nightTop else hosted.top
             photo == null -> null
             nightShown -> photo.nightTop
             else -> photo.top
         }
         val gapTarget = if (maxWidth > 0.dp) ((Rows.padH + Rows.labelWidth(maxWidth) + Strip.labelGap / 2) / maxWidth).coerceIn(0f, 1f) else 0.5f
         val placement = Skyline.Placement(focus, focusX, gapTarget, tip)
-        val id = (if (photo != null) "res:${photo.key}" else "dl:$slug") + if (nightShown) ":night" else ""
+        // (A hosted plate that replaced a Wikimedia photo is a different photo: its own id, so its look is measured anew.)
+        val id = (if (photo != null) "res:${photo.key}" else if (hosted != null) "plate:${hosted.key}:$slug" else "dl:$slug") +
+            if (nightShown) ":night" else ""
         // The scrim's boost behind the name column (so the white name, zone and status keep 4.5:1) and the adaptive
         // ink for the time (dark numbers on a bright photo), measured off the main thread after the shading and scrim.
         val lookKey = "$id/${placement.key}/${shade.name}"

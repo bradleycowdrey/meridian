@@ -59,6 +59,12 @@ cp Resources/Data/*.tsv "$APP/Contents/Resources/"
 mkdir -p "$APP/Contents/Resources/Skylines"
 cp android/app/src/main/res/drawable-nodpi/skyline_*.jpg "$APP/Contents/Resources/Skylines/"
 cp Resources/Data/skylines.json "$APP/Contents/Resources/skylines.json"
+# The hosted AI plates' index (cities without a built-in photo download theirs once; MacSkylines).
+if [[ -f Resources/Data/plates-remote.json ]]; then
+  cp Resources/Data/plates-remote.json "$APP/Contents/Resources/plates-remote.json"
+else
+  echo "warning: Resources/Data/plates-remote.json is missing: no hosted city photos in this build" >&2
+fi
 
 # Icon: 1024px PNG -> .icns
 ICONSET="$(mktemp -d)/AppIcon.iconset"
@@ -116,6 +122,11 @@ for f in "$APP/Contents/Resources/Skylines"/*.jpg; do
   sips -Z 1200 -s format jpeg -s formatOptions 76 "$f" --out "$APPEX/Contents/Resources/Skylines/$(basename "$f")" >/dev/null
 done
 cp Resources/Data/skylines.json "$APPEX/Contents/Resources/skylines.json"
+# The widget matches its cities against the hosted plates' index too (aliases to built-in photos
+# in every build; the plates the app downloaded only in the App Store build, from the App Group).
+if [[ -f Resources/Data/plates-remote.json ]]; then
+  cp Resources/Data/plates-remote.json "$APPEX/Contents/Resources/plates-remote.json"
+fi
 # The cities' public holidays, for the widget's status (Holidays loads from the appex's bundle).
 cp Resources/Data/holidays.tsv "$APPEX/Contents/Resources/"
 

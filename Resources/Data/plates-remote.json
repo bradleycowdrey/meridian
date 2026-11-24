@@ -1,0 +1,168 @@
+{
+ "version": 1,
+ "base": "https://raw.githubusercontent.com/bradleycowdrey/meridian/plates/",
+ "cities": [],
+ "aliases": [
+  {
+   "names": [
+    "Foshan"
+   ],
+   "zone": "Asia/Shanghai",
+   "cc": "CN",
+   "key": "guangzhou"
+  },
+  {
+   "names": [
+    "Puxi",
+    "Pudong",
+    "Minhang",
+    "Putuo",
+    "Yangpu",
+    "Xuhui"
+   ],
+   "zone": "Asia/Shanghai",
+   "cc": "CN",
+   "key": "shanghai"
+  },
+  {
+   "names": [
+    "Bao'an",
+    "Luohu District"
+   ],
+   "zone": "Asia/Shanghai",
+   "cc": "CN",
+   "key": "shenzhen"
+  },
+  {
+   "names": [
+    "Giza",
+    "Shubrā al Khaymah"
+   ],
+   "zone": "Africa/Cairo",
+   "cc": "EG",
+   "key": "cairo"
+  },
+  {
+   "names": [
+    "New Taipei City"
+   ],
+   "zone": "Asia/Taipei",
+   "cc": "TW",
+   "key": "taipei"
+  },
+  {
+   "names": [
+    "New Territories",
+    "Kowloon",
+    "Hong Kong Island"
+   ],
+   "zone": "Asia/Hong_Kong",
+   "cc": "HK",
+   "key": "hongkong"
+  },
+  {
+   "names": [
+    "Quezon City",
+    "Caloocan",
+    "Taguig"
+   ],
+   "zone": "Asia/Manila",
+   "cc": "PH",
+   "key": "manila"
+  },
+  {
+   "names": [
+    "Brooklyn",
+    "Queens",
+    "The Bronx"
+   ],
+   "zone": "America/New_York",
+   "cc": "US",
+   "key": "newyork"
+  },
+  {
+   "names": [
+    "Bekasi",
+    "South Tangerang"
+   ],
+   "zone": "Asia/Jakarta",
+   "cc": "ID",
+   "key": "jakarta"
+  },
+  {
+   "names": [
+    "Navi Mumbai",
+    "Thāne"
+   ],
+   "zone": "Asia/Kolkata",
+   "cc": "IN",
+   "key": "mumbai"
+  },
+  {
+   "names": [
+    "Iztapalapa",
+    "Gustavo Adolfo Madero",
+    "Ciudad Nezahualcoyotl"
+   ],
+   "zone": "America/Mexico_City",
+   "cc": "MX",
+   "key": "mexicocity"
+  },
+  {
+   "names": [
+    "Soweto"
+   ],
+   "zone": "Africa/Johannesburg",
+   "cc": "ZA",
+   "key": "johannesburg"
+  },
+  {
+   "names": [
+    "Kawasaki"
+   ],
+   "zone": "Asia/Tokyo",
+   "cc": "JP",
+   "key": "tokyo"
+  },
+  {
+   "names": [
+    "Callao"
+   ],
+   "zone": "America/Lima",
+   "cc": "PE",
+   "key": "lima"
+  },
+  {
+   "names": [
+    "Guarulhos"
+   ],
+   "zone": "America/Sao_Paulo",
+   "cc": "BR",
+   "key": "saopaulo"
+  },
+  {
+   "names": [
+    "Goyang-si"
+   ],
+   "zone": "Asia/Seoul",
+   "cc": "KR",
+   "key": "seoul"
+  },
+  {
+   "names": [
+    "Howrah"
+   ],
+   "zone": "Asia/Kolkata",
+   "cc": "IN",
+   "key": "kolkata"
+  },
+  {
+   "names": [
+    "Pest"
+   ],
+   "zone": "Europe/Budapest",
+   "cc": "HU",
+   "key": "budapest"
+  }
+ ]
+}

@@ -1096,7 +1096,9 @@ struct CityRow: View {
         let photo = SkylineArt.photo(for: place, at: moment,
                                      downloaded: store.downloadCityPhotos ? photos.image(for: place) : nil,
                                      downloadedNight: store.downloadCityPhotos ? photos.nightImage(for: place) : nil,
-                                     nightSearched: store.downloadCityPhotos && photos.nightSearched(for: place))
+                                     nightSearched: store.downloadCityPhotos && photos.nightSearched(for: place),
+                                     plate: store.downloadCityPhotos ? photos.plate(for: place) : nil,
+                                     nightPlate: store.downloadCityPhotos ? photos.nightPlate(for: place) : nil)
         let size = CGSize(width: cardWidth, height: height)
         // Where the photo's landmark goes: the gap between the name column and the tiles.
         let photoTarget = SkylineArt.gapTarget(cardWidth: cardWidth)

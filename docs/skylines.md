@@ -113,3 +113,87 @@ All platforms use the same rule:
    covering the frame, not a bug.
 
 A v2 entry (no `focusX`) is read as 0.5. An entry without `top` skips step 4.
+
+## Hosted plates
+
+The 111 built-in cities ship their plates inside the apps. About 450 more cities (1M+ people) get
+**hosted** plates: the same kind of day and night pair, served from the `plates` branch of this
+repository and downloaded by the apps.
+
+### What the apps do
+
+Each app bundles `Resources/Data/plates-remote.json`:
+
+```json
+{"version": 1, "base": "https://raw.githubusercontent.com/bradleycowdrey/meridian/plates/",
+ "cities": [{"key": "chengdu-cn", "names": ["Chengdu"], "zone": "Asia/Shanghai", "cc": "CN",
+             "lat": 30.67, "lon": 104.07, "focus": 0.74, "focusX": 0.38, "top": 0.41,
+             "night": {"focus": 0.74, "focusX": 0.38, "top": 0.41}}],
+ "aliases": [{"names": ["Brooklyn", "Queens", "The Bronx"], "zone": "America/New_York", "cc": "US", "key": "newyork"}]}
+```
+
+For a city, the apps pick, in this order:
+
+1. its built-in photo (`skylines.json`);
+2. an **alias**: a place next to a built-in city (Brooklyn, Giza, Kowloon) shows that city's built-in photo, with no download;
+3. a **hosted plate**: when "Download City Photos" is on, the app downloads `base + key + "-day.jpg"` and
+   `base + key + "-night.jpg"` once, caches them like the Wikimedia photos, and places them with the
+   entry's `focus`/`focusX`/`top`, exactly like a built-in plate. The request is just the image URL.
+   Credit: "Generated with AI for Meridian", "AI-generated image", no link;
+4. the Wikimedia photo, as before (also the fallback when a hosted download fails).
+
+A city matches an entry by name (case-insensitive) and time zone, as with `skylines.json`. Hosted
+entries also match by name and country code (`cc`) when the city list uses another zone of the same
+country.
+
+Keys are lowercase letters/digits with a hyphen and the country code (`chengdu-cn`; a second city
+of the same name gets `suzhou-cn2`), so they never clash with a built-in key.
+
+### The flow
+
+1. **Generate** in Lovable, as for built-in plates (section 1), from the briefs in
+   `scripts/plate-cities-tier1.tsv`. Save each pair as `<key>-day.jpg` / `<key>-night.jpg` in one
+   folder, with the keys from `scripts/plate-cities-tier1.json` (the city list: key, name, region,
+   cc, zone, lat, lon, pop).
+2. **Pull** the plates into that folder (say `~/plates-tier1`).
+3. **Check** them:
+
+   ```sh
+   scripts/plate-check-all.py ~/plates-tier1 /tmp/plate-check
+   ```
+
+   Look at the contact sheet and `report.json`; regenerate failing cities, or add hand-checked
+   positions to `scripts/plate-overrides.json` (keyed by the plate key, e.g. `"chengdu-cn"`).
+4. **Publish**:
+
+   ```sh
+   scripts/publish-remote-plates.py ~/plates-tier1 ALIASES.json --out ~/plates-branch --dry-run
+   scripts/publish-remote-plates.py ~/plates-tier1 ALIASES.json --out ~/plates-branch
+   ```
+
+   `ALIASES.json` is a list of `[name, region, cc, zone, builtinKey, km]` rows (places within a few
+   km of a built-in city). The script measures every night plate with `plate-focus.py` (overrides
+   apply; a `check` reading keeps focusX 0.38 and top 0.40 and warns), uses that reading for day
+   and night, re-encodes both plates like the importer (1536 x 512, at most 200 KB) into
+   `--out` with a `README.md`, and rewrites `Resources/Data/plates-remote.json`. A city missing one
+   of its two plates, or missing from the city list, is skipped with a warning; so is a city that
+   already has a built-in key. `--cities PATH` uses another city list, `--index PATH` writes the
+   index elsewhere (for a trial run), and `--prune` deletes JPEGs in `--out` that are no longer in
+   the index.
+
+   Publish **every** hosted city each time (keep all plates in the one folder): the index lists only
+   the plates in `PLATES_DIR`. With an empty folder the script writes an index with no cities and
+   just the aliases.
+5. **Push the `plates` branch**. The first time, make it an orphan branch:
+
+   ```sh
+   cd ~/plates-branch
+   git init -b plates && git add -A && git commit -m "Hosted city plates"
+   git remote add origin git@github.com:bradleycowdrey/meridian.git
+   git push origin plates
+   ```
+
+   Later, check the branch out into `~/plates-branch` (`git worktree add ~/plates-branch plates`),
+   publish into it, commit and push. Push the branch **before** releasing apps whose index lists
+   the new keys, and never delete or rename a file a released index still points to.
+6. **Commit** `Resources/Data/plates-remote.json` on `main` and ship the apps.

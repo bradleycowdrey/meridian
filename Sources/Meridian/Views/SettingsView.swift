@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     var body: some View {
         TabView {
-            CitiesSettings().tabItem { Label("Cities", systemImage: "globe") }
+            CitiesSettings(plates: PlateDownloads.shared).tabItem { Label("Cities", systemImage: "globe") }
             GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
             AboutView().tabItem { Label("About", systemImage: "info.circle") }
         }
@@ -70,6 +70,7 @@ private struct WorkHoursButton: View {
 
 private struct CitiesSettings: View {
     @EnvironmentObject private var store: ZoneStore
+    @ObservedObject var plates: PlateDownloads
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -116,6 +117,10 @@ private struct CitiesSettings: View {
                 .foregroundStyle(.secondary)
             Toggle("Show My Location", isOn: $store.useMyLocation)
             Text("Keeps the city you're in on your list, and updates it when you travel. Location Services is used only to name the city, and only on your Mac.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Toggle("Download City Photos", isOn: $plates.enabled)
+            Text("Cities without a built-in photo get one made with AI for Meridian, downloaded once and kept on your Mac. Only the photo is asked for, nothing about you.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }

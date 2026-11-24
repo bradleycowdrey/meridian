@@ -24,6 +24,12 @@ fileprivate protocol MacRemoteMatchable {
 /// copies them in; the app holds the full-size photos (the 1536 x 512 city plates) and the widget,
 /// which is sandboxed, its own 600 px copies. Without them (a bare `swift run`) every city shows
 /// the sky gradient.
+///
+/// Cities without a built-in photo: an alias in Resources/plates-remote.json can point one at a
+/// built-in photo ("Brooklyn": New York's); otherwise, when the index has a hosted AI plate for it,
+/// the app (PlateDownloads) downloads its day and night photos once into `platesDirectory`, where
+/// the Mac App Store build's widget reads them too (the DMG widget keeps to built-in photos).
+/// Precedence: built-in photo, alias, hosted plate, the sky.
 enum MacSkylines {
     // MARK: The manifest
 
@@ -362,17 +368,18 @@ enum MacSkylines {
         key.hasPrefix(hostedPrefix) ? String(key.dropFirst(hostedPrefix.count)) : nil
     }
 
-    /// Where the app keeps the hosted plates it downloaded, and where the widget reads them:
-    /// Plates/<key>-day.jpg and Plates/<key>-night.jpg. The Mac App Store build: the App Group
-    /// container the app and its widget share. The DMG build: ~/Library/Application Support/
-    /// Meridian/Plates, the folder the (sandboxed) widget may already read (Widget.entitlements),
-    /// so the widget is given the real home folder rather than its container.
+    /// Where the app keeps the hosted plates it downloaded: Plates/<key>-day.jpg and
+    /// Plates/<key>-night.jpg. The Mac App Store build: the App Group container the app and its
+    /// widget share, so the widget shows them too. The DMG build: ~/Library/Application Support/
+    /// Meridian/Plates, for the app only: the DMG widget has never shown downloaded photos, and
+    /// keeps to its built-in ones (nil there, so its downloaded cities keep their sky).
     static var platesDirectory: URL? {
         #if APPSTORE
         return FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: "2XV97FZ86G.com.bradcowdrey.meridian")?
             .appendingPathComponent("Plates", isDirectory: true)
         #else
+        if isWidget { return nil }
         let home = getpwuid(getuid()).map { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
         return URL(fileURLWithPath: home, isDirectory: true)
             .appendingPathComponent("Library/Application Support/Meridian/Plates", isDirectory: true)
@@ -441,8 +448,8 @@ enum MacSkylines {
         guard found.hasPrefix("h:"), let base = remote?.base else { return nil }
         let hosted = String(found.dropFirst(2))
         if plateFile(hosted, night: false) != nil && plateFile(hosted, night: true) != nil { return nil }
-        guard let day = URL(string: hosted + "-day.jpg", relativeTo: base)?.absoluteURL,
-              let night = URL(string: hosted + "-night.jpg", relativeTo: base)?.absoluteURL else { return nil }
+        guard let day = URL(string: base.absoluteString + hosted + "-day.jpg"),
+              let night = URL(string: base.absoluteString + hosted + "-night.jpg") else { return nil }
         return HostedPlate(key: hosted, day: day, night: night)
     }
 
@@ -576,8 +583,7 @@ enum MacSkylines {
 
     fileprivate static func image(key: String, night: Bool, maxPixel: Int) -> CGImage? {
         if let hit = cached(key: key, night: night, maxPixel: maxPixel) { return hit }
-        let file = fileName(key: key, night: night)
-        guard files.contains(file), let url = directory?.appendingPathComponent(file),
+        guard let url = photoFile(key: key, night: night),
               let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -593,6 +599,18 @@ enum MacSkylines {
         return decoded
     }
 
+    /// The file of a key's day or night photo: built in (this bundle's Resources/Skylines), or a
+    /// downloaded plate (Plates, while Download City Photos is on). nil when there is none.
+    private static func photoFile(key: String, night: Bool) -> URL? {
+        if let hosted = hostedKey(key) {
+            guard downloadsEnabled else { return nil }
+            return plateFile(hosted, night: night)
+        }
+        let file = fileName(key: key, night: night)
+        guard files.contains(file) else { return nil }
+        return directory?.appendingPathComponent(file)
+    }
+
     /// Which photo a city shows: its night photo after dark when it has one, else its day photo
     /// (darkened after dark). nil when the city has no photo.
     fileprivate static func pick(name: String, timeZoneID: String, night: Bool) -> MacSkylinePick? {
@@ -601,7 +619,7 @@ enum MacSkylines {
             return MacSkylinePick(key: key, night: false, dimmed: false,
                                   focus: focus(key: key, night: false), focusX: focusX(key: key, night: false))
         }
-        if files.contains(fileName(key: key, night: true)) {
+        if photoFile(key: key, night: true) != nil {
             return MacSkylinePick(key: key, night: true, dimmed: false,
                                   focus: focus(key: key, night: true), focusX: focusX(key: key, night: true))
         }
@@ -622,9 +640,29 @@ enum MacSkylines {
         return focus(key: key, night: night)
     }
 
-    private static func focus(key: String, night: Bool) -> CGFloat {
+    /// A photo's measured numbers (skyline band, landmark, landmark tip), from skylines.json for
+    /// a built-in photo or plates-remote.json for a hosted plate (its night entry for the night
+    /// photo; the day numbers if it has none).
+    private struct Numbers {
+        var focus: Double?
+        var focusX: Double?
+        var top: Double?
+    }
+
+    private static func numbers(key: String, night: Bool) -> Numbers {
+        if let hosted = hostedKey(key) {
+            let entry = remoteByKey[hosted]
+            if night, let n = entry?.night { return Numbers(focus: n.focus, focusX: n.focusX, top: n.top) }
+            return Numbers(focus: entry?.focus, focusX: entry?.focusX, top: entry?.top)
+        }
         let entry = byKey[key]
-        let value = night ? entry?.night?.focus : entry?.focus
+        return night
+            ? Numbers(focus: entry?.night?.focus, focusX: entry?.night?.focusX, top: entry?.night?.top)
+            : Numbers(focus: entry?.focus, focusX: entry?.focusX, top: entry?.top)
+    }
+
+    private static func focus(key: String, night: Bool) -> CGFloat {
+        let value = numbers(key: key, night: night).focus
         guard let value, value.isFinite else { return defaultFocus }
         return CGFloat(min(max(value, 0), 1))
     }
@@ -642,8 +680,7 @@ enum MacSkylines {
     }
 
     private static func focusX(key: String, night: Bool) -> CGFloat {
-        let entry = byKey[key]
-        let value = night ? entry?.night?.focusX : entry?.focusX
+        let value = numbers(key: key, night: night).focusX
         guard let value, value.isFinite else { return defaultFocusX }
         return CGFloat(min(max(value, 0), 1))
     }
@@ -653,8 +690,7 @@ enum MacSkylines {
     /// column; otherwise the photo stays centred. Pass the photo actually shown, as for `focusX`.
     static func landmarkKnown(name: String, timeZoneID: String, night: Bool) -> Bool {
         guard let key = key(name: name, timeZoneID: timeZoneID) else { return false }
-        let entry = byKey[key]
-        let value = night ? entry?.night?.focusX : entry?.focusX
+        let value = numbers(key: key, night: night).focusX
         guard let value else { return false }
         return value.isFinite
     }
@@ -665,8 +701,7 @@ enum MacSkylines {
     /// day photo, so `night: false`.
     static func top(name: String, timeZoneID: String, night: Bool) -> CGFloat? {
         guard let key = key(name: name, timeZoneID: timeZoneID) else { return nil }
-        let entry = byKey[key]
-        let value = night ? entry?.night?.top : entry?.top
+        let value = numbers(key: key, night: night).top
         guard let value, value.isFinite else { return nil }
         return CGFloat(min(max(value, 0), 1))
     }
@@ -735,6 +770,29 @@ enum MacSkylines {
 
     /// The bundled photos' credits (day, and night where there is one), A to Z by city.
     static var credits: [MacPhotoCredit] { creditList }
+
+    /// The hosted plates downloaded to this Mac (day, and night where it is on disk), with the AI
+    /// credit and no link, A to Z by city. Read from disk each time (the Photo Credits sheet).
+    static var downloadedCredits: [MacPhotoCredit] {
+        guard let folder = platesDirectory,
+              let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return [] }
+        let onDisk = Set(names)
+        let author = "Generated with AI for Meridian", license = "AI-generated image"
+        var seen = Set<String>()
+        var out: [MacPhotoCredit] = []
+        for entry in remote?.cities ?? [] {
+            guard seen.insert(entry.key).inserted,
+                  onDisk.contains(plateFileName(entry.key, night: false)) else { continue }
+            let city = entry.names.first ?? entry.key
+            out.append(MacPhotoCredit(id: hostedPrefix + entry.key, city: city, author: author,
+                                      license: license, source: nil))
+            if onDisk.contains(plateFileName(entry.key, night: true)) {
+                out.append(MacPhotoCredit(id: hostedPrefix + entry.key + "-night", city: city + ", night",
+                                          author: author, license: license, source: nil))
+            }
+        }
+        return out.sorted { $0.city.localizedCaseInsensitiveCompare($1.city) == .orderedAscending }
+    }
 }
 
 /// The photo a backdrop shows: the city's key, whether it is the night photo, and whether a day
@@ -870,6 +928,8 @@ struct MacSkylineBackdrop: View {
 /// Settings → About → Photo Credits: every bundled photo's author, licence and source.
 struct MacPhotoCreditsView: View {
     @Environment(\.dismiss) private var dismiss
+    /// The hosted plates downloaded to this Mac, read when the sheet opens.
+    @State private var downloaded: [MacPhotoCredit] = []
 
     init() {}
 
@@ -886,34 +946,48 @@ struct MacPhotoCreditsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             Divider()
-            if credits.isEmpty {
+            if credits.isEmpty && downloaded.isEmpty {
                 Text("No city photos in this copy of Meridian.")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if downloaded.isEmpty {
+                List(credits) { credit in row(credit) }
             } else {
-                List(credits) { credit in
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(credit.city)
-                                .font(.system(size: 13, weight: .medium))
-                            Text(Self.detail(credit))
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                        }
-                        Spacer(minLength: 8)
-                        if let source = credit.source {
-                            Link("Source", destination: source)
-                                .font(.system(size: 12))
+                List {
+                    if !credits.isEmpty {
+                        Section("Built in") {
+                            ForEach(credits) { credit in row(credit) }
                         }
                     }
-                    .padding(.vertical, 2)
+                    Section("Downloaded") {
+                        ForEach(downloaded) { credit in row(credit) }
+                    }
                 }
             }
         }
+        .onAppear { downloaded = MacSkylines.downloadedCredits }
         .frame(width: 420, height: 480)
         .preferredColorScheme(.dark)
+    }
+
+    private func row(_ credit: MacPhotoCredit) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(credit.city)
+                    .font(.system(size: 13, weight: .medium))
+                Text(Self.detail(credit))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            if let source = credit.source {
+                Link("Source", destination: source)
+                    .font(.system(size: 12))
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     /// "author · licence", or where the photo is from when neither is known.

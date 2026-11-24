@@ -227,7 +227,7 @@ struct RemotePlateAlias: Decodable, Sendable {
 
 /// plates-remote.json as a whole: {"version": 1, "base": "<url>/", "cities": [...], "aliases": [...]}.
 /// Entries that fail to decode are skipped.
-struct RemotePlatesFile: Decodable {
+struct RemotePlatesFile: Decodable, Sendable {
     var version: Int?
     var base: String?
     var cities: [RemotePlateEntry] = []
@@ -313,14 +313,18 @@ enum RemotePlates {
     static func entry(for place: Place) -> RemotePlateEntry? {
         guard base != nil else { return nil }
         let candidates = index[SkylineArt.normalize(place.name)] ?? []
-        return SkylineArt.match(candidates, for: place, zone: \.zone, country: \.cc,
-                                coordinate: { e in e.lat.flatMap { la in e.lon.map { (la, $0) } } })
+        return SkylineArt.match(candidates, for: place, zone: { $0.zone }, country: { $0.cc },
+                                coordinate: { (e: RemotePlateEntry) -> (Double, Double)? in
+                                    guard let lat = e.lat, let lon = e.lon else { return nil }
+                                    return (lat, lon)
+                                })
     }
 
     /// The built-in photo's key (skylines.json) an alias gives a card, or nil.
     static func aliasKey(for place: Place) -> String? {
         let candidates = aliasIndex[SkylineArt.normalize(place.name)] ?? []
-        return SkylineArt.match(candidates, for: place, zone: \.zone, country: \.cc, coordinate: { _ in nil })?.key
+        return SkylineArt.match(candidates, for: place, zone: { $0.zone }, country: { $0.cc },
+                                coordinate: { (_: RemotePlateAlias) -> (Double, Double)? in nil })?.key
     }
 
     /// A hosted photo's focus, landmark and landmark tip for its SkylinePhoto id ("p:<key>" by
@@ -1391,14 +1395,23 @@ enum WidgetPhotoExport {
         return (focus, focusX, top)
     }()
 
-    /// The bundled photo's skyline focus for a SkylinePhoto id, or nil (downloaded, or not measured).
-    nonisolated static func focus(forID id: String) -> Double? { bundledPlacement.focus[id] }
+    /// The bundled (or hosted AI plate's, "p:<key>") photo's skyline focus for a SkylinePhoto id,
+    /// or nil (downloaded from Wikimedia, or not measured).
+    nonisolated static func focus(forID id: String) -> Double? {
+        bundledPlacement.focus[id] ?? RemotePlates.placement(forID: id)?.focus
+    }
 
-    /// The bundled photo's landmark across it for a SkylinePhoto id, or nil (downloaded, or v2).
-    nonisolated static func focusX(forID id: String) -> Double? { bundledPlacement.focusX[id] }
+    /// The bundled (or hosted AI plate's) photo's landmark across it for a SkylinePhoto id, or nil
+    /// (downloaded from Wikimedia, or v2).
+    nonisolated static func focusX(forID id: String) -> Double? {
+        bundledPlacement.focusX[id] ?? RemotePlates.placement(forID: id)?.focusX
+    }
 
-    /// The bundled photo's landmark tip down it for a SkylinePhoto id, or nil (downloaded, or none).
-    nonisolated static func top(forID id: String) -> Double? { bundledPlacement.top[id] }
+    /// The bundled (or hosted AI plate's) photo's landmark tip down it for a SkylinePhoto id, or
+    /// nil (downloaded from Wikimedia, or none).
+    nonisolated static func top(forID id: String) -> Double? {
+        bundledPlacement.top[id] ?? RemotePlates.placement(forID: id)?.top
+    }
 
     /// The copy written for a photo of `size`: 300 pt tall, its own width kept between 2:1 and 3:1
     /// (a 3:1 city plate whole at 900×300; a wider photo cropped to 3:1, a narrower one to 2:1,
@@ -1479,12 +1492,15 @@ enum WidgetPhotoExport {
             guard ids.insert(id).inserted else { continue }
             if downloads && i < widgetCities { CityPhotos.shared.request(place) }
             let downloaded = downloads ? CityPhotos.shared.image(for: place) : nil
-            guard let photo = SkylineArt.photo(for: place, downloaded: downloaded) else {
+            // A hosted AI plate is exported as a built-in one is: with its focus, landmark and tip.
+            let plate = downloads ? CityPhotos.shared.plate(for: place) : nil
+            guard let photo = SkylineArt.photo(for: place, downloaded: downloaded, plate: plate) else {
                 if downloads, SkylineArt.key(for: place) == nil { pending.insert(id) }
                 continue
             }
             let slug = SkylineArt.slug(for: place)
-            let night = SkylineArt.nightPhoto(for: place, downloaded: downloads ? CityPhotos.shared.nightImage(for: place) : nil)
+            let night = SkylineArt.nightPhoto(for: place, downloaded: downloads ? CityPhotos.shared.nightImage(for: place) : nil,
+                                              plate: downloads ? CityPhotos.shared.nightPlate(for: place) : nil)
             var entry = Self.entry(file: slug + ".jpg", photo: photo)
             if let night {
                 entry.night = slug + "-night.jpg"
@@ -1532,7 +1548,7 @@ enum WidgetPhotoExport {
         }
         for id in pending {
             for key in [id, nightID(id)] where index[key] == nil {
-                if let entry = old[key], entry.source.hasPrefix("d:"),
+                if let entry = old[key], entry.source.hasPrefix("d:") || entry.source.hasPrefix("p:"),
                    fm.fileExists(atPath: dir.appendingPathComponent(entry.file).path) {
                     index[key] = entry
                 }
@@ -2181,7 +2197,7 @@ struct PhotoCreditsView: View {
                 } header: {
                     caption("Downloaded")
                 } footer: {
-                    caption("Downloaded once from Wikimedia Commons and kept on your iPhone.")
+                    caption(Self.downloadedFooter(downloaded))
                 }
                 .meridianSection()
             }
@@ -2211,6 +2227,20 @@ struct PhotoCreditsView: View {
                 .font(.footnote)
                 .foregroundStyle(Color.white.opacity(Theme.Op.caption))
                 .lineLimit(2)
+        }
+    }
+
+    /// The downloaded section's note: hosted AI plates were made for Meridian; Commons photos can be tapped.
+    private static func downloadedFooter(_ credits: [PhotoCreditItem]) -> String {
+        let generated = credits.contains { SkylineArt.isGenerated($0) }
+        let linked = credits.contains { !SkylineArt.isGenerated($0) }
+        switch (generated, linked) {
+        case (true, true):
+            return "City images generated with AI for Meridian, and photos from Wikimedia Commons (tap one to see it there). Downloaded once and kept on your iPhone."
+        case (true, false):
+            return "City images generated with AI for Meridian. Downloaded once and kept on your iPhone."
+        default:
+            return "Downloaded once from Wikimedia Commons and kept on your iPhone."
         }
     }
 

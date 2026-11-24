@@ -31,7 +31,8 @@ android {
     buildFeatures {
         compose = true
     }
-    // The city list and public holidays, shared with the Mac and iPhone apps (not copied).
+    // The city list, public holidays and photo indexes (skylines.json, plates-remote.json), shared with the Mac and
+    // iPhone apps (not copied): every file in Resources/Data is packaged as an asset.
     sourceSets {
         getByName("main") {
             assets.srcDirs("../../Resources/Data")

@@ -55,7 +55,8 @@ struct StripView: View {
                     ForEach(store.places) { place in
                         StripRowBackdrop(name: place.name, timeZoneID: place.timeZoneID,
                                          latitude: place.latitude, longitude: place.longitude,
-                                         date: moment, maxPixel: 1536, targetX: photoTargetX)
+                                         date: moment, maxPixel: 1536, targetX: photoTargetX,
+                                         plates: PlateDownloads.shared)
                             .overlay(scrim(textEnd: ui.cardOutset + labelWidth, cardWidth: cardWidth))
                             .clipShape(RoundedRectangle(cornerRadius: ui.cardRadius, style: .continuous))
                             // The card's edge feathers out over a thin band (4 pt) into the panel
@@ -786,6 +787,9 @@ private struct StripRowBackdrop: View {
         let top: CGFloat?
     }
 
+    /// A hosted plate arriving (or Download City Photos changing) redraws the row.
+    @ObservedObject var plates: PlateDownloads
+
     @State private var shown: Shown?
 
     private static let daySky = [Color(red: 61 / 255.0, green: 116 / 255.0, blue: 176 / 255.0),
@@ -795,8 +799,11 @@ private struct StripRowBackdrop: View {
 
     var body: some View {
         let night = MacSkylines.wantsNight(timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, at: date)
-        let hasPhoto = MacSkylines.key(name: name, timeZoneID: timeZoneID) != nil
-        let wanted = hasPhoto ? "\(name)|\(timeZoneID)|\(night)|\(maxPixel)" : ""
+        // The photo's key (built in, or a downloaded plate) is part of the row's id, so a plate
+        // that arrives, or one hidden by turning Download City Photos off, is picked up.
+        let photoKey = MacSkylines.key(name: name, timeZoneID: timeZoneID)
+        let hasPhoto = photoKey != nil
+        let wanted = hasPhoto ? "\(name)|\(timeZoneID)|\(photoKey ?? "")|\(night)|\(maxPixel)" : ""
         ZStack {
             LinearGradient(colors: night ? Self.nightSky : Self.daySky, startPoint: .top, endPoint: .bottom)
             if let shown {
@@ -807,6 +814,10 @@ private struct StripRowBackdrop: View {
         }
         .clipped()
         .animation(.easeInOut(duration: 0.35), value: shown?.id)
+        // A city without a built-in photo: its hosted plate is downloaded (once) if it has one.
+        .task(id: "\(name)|\(timeZoneID)|\(plates.enabled)") {
+            PlateDownloads.shared.request(name: name, timeZoneID: timeZoneID)
+        }
         .task(id: wanted) {
             guard hasPhoto else {
                 shown = nil
@@ -872,7 +883,7 @@ private struct StripRowBackdrop: View {
     }
 }
 
-/// The row photos already decoded, by row ("name|zone|night|maxPixel"), so reopening the panel
+/// The row photos already decoded, by row ("name|zone|key|night|maxPixel"), so reopening the panel
 /// shows them at once instead of fading them in again. Holds references to MacSkylines' own
 /// decoded images; a few dozen at most.
 private final class StripRowPhotoCache: @unchecked Sendable {

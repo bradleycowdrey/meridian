@@ -1684,10 +1684,12 @@ enum WidgetSkylines {
 
     #if os(iOS)
     /// A city's photo in the index: its file in Skylines, where it came from ("b:london" built
-    /// in, "d:<slug>" downloaded), so the app rewrites it only when that changes, and its night
-    /// photo's file when it has one (nil: the day photo is darkened at night, as before), how
-    /// far down the photo its skyline band sits and where across it its landmark stands (0…1 each,
-    /// from skylines.json's "focus" and "focusX", already mapped into the written copy's own frame;
+    /// in, "p:<key>" a downloaded hosted AI plate, placed by its plates-remote.json entry as a
+    /// built-in plate is, "d:<slug>" downloaded from Wikimedia), so the app rewrites it only when
+    /// that changes, and its night photo's file when it has one (nil: the day photo is darkened
+    /// at night, as before), how far down the photo its skyline band sits and where across it its
+    /// landmark stands (0…1 each, from skylines.json's (or plates-remote.json's) "focus" and
+    /// "focusX", already mapped into the written copy's own frame;
     /// nil: unknown), and the copy's format (`exportFormat`; nil: an older copy, rewritten).
     struct Entry: Codable, Equatable {
         var file: String

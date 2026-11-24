@@ -1,7 +1,7 @@
 # Terms of Use and Privacy
 
 **bradcowdrey.com and everything Bradley Cowdrey publishes: apps, AI skills, books, lessons and more**
-Last updated: November 8, 2026 · Applies to: bradcowdrey.com, Cowdrey.MD, Meridian, Two Degrees, AI skills, books, lessons, articles, and anything I publish in the future
+Last updated: November 24, 2026 · Applies to: bradcowdrey.com, Cowdrey.MD, Meridian, Two Degrees, AI skills, books, lessons, articles, and anything I publish in the future
 
 ---
 
@@ -18,7 +18,7 @@ This summary is for convenience only. The full terms below are what count.
 - **I can freely use feedback you send me.** Your personal information is different: I use it only as Sections 15 and 16 say.
 - **Two Degrees is not a safety tool.** Follow official weather warnings.
 - **Meridian's times can be wrong.** Confirm meetings and travel.
-- **Cowdrey.MD documents saved in a browser or in a phone or tablet app can be erased.** Keep your own copies.
+- **Cowdrey.MD documents saved in a browser or in the Mac, phone or tablet app can be erased.** Keep your own copies.
 - **Location is optional.** Meridian and Two Degrees use where you are only if you choose "Use My Location". It never reaches me.
 - **When these terms change,** the apps ask you to agree again, no more than once a month (Section 18).
 - **Your local law may give you rights these terms can't remove.** Where it does, these terms apply as far as that law allows.
@@ -83,9 +83,9 @@ You accept every risk of using the Services. That includes losing data or work, 
 
 ## 6. Notices for each app and for AI content
 
-**Cowdrey.MD** is a text editor. In a web browser, your documents are stored only in that browser's storage. Clearing the browser's data, using a private window, switching browsers or devices, or an update can erase them. In the iPhone, iPad and Android apps, your documents are stored in the app's own storage on that device. Deleting the app, clearing its data or losing the device erases them. A file you open with Open…, or save with Save to Files, stays where it is, and Cowdrey.MD saves your changes to it. A file sent to Cowdrey.MD from another app (such as Mail, Google Drive or Gmail) is copied in instead, and changes are not written back to it. If you choose a sync folder, Cowdrey.MD also keeps every document as a file in that folder, and deleting a document deletes its file. Sync depends on your device and the cloud service you choose; when a document is changed in two places at once, Cowdrey.MD keeps both versions, but sync can still miss or duplicate changes. Version history is kept on your device for 90 days and is erased with the app's data. What you see in the preview, PDF, Word document, HTML or copied text may not match what you expect. Check anything important before you rely on it, send it or print it.
+**Cowdrey.MD** is a text editor. In a web browser, your documents are stored only in that browser's storage. Clearing the browser's data, using a private window, switching browsers or devices, or an update can erase them. In the Mac, iPhone, iPad and Android apps, your documents are stored in the app's own storage on that device. Deleting the app, clearing its data or losing the device erases them. A file you open with Open…, or save with Save to Files, stays where it is, and Cowdrey.MD saves your changes to it. A file sent to Cowdrey.MD from another app (such as Mail, Google Drive or Gmail) is copied in instead, and changes are not written back to it. If you choose a sync folder, Cowdrey.MD also keeps every document as a file in that folder, and deleting a document deletes its file. Sync depends on your device and the cloud service you choose; when a document is changed in two places at once, Cowdrey.MD keeps both versions, but sync can still miss or duplicate changes. Version history is kept on your device for 90 days and is erased with the app's data. What you see in the preview, PDF, Word document, HTML or copied text may not match what you expect. Check anything important before you rely on it, send it or print it.
 
-**Meridian** shows times using your device's clock and time-zone data, which can be wrong or out of date, especially around daylight-saving changes. Always confirm meeting and travel times with the people involved and with official sources.
+**Meridian** shows times using your device's clock and time-zone data, which can be wrong or out of date, especially around daylight-saving changes. Always confirm meeting and travel times with the people involved and with official sources. Meridian's built-in city photos are generated with AI: they are illustrations of each city, not photographs, and may not show every building exactly.
 
 **Two Degrees** shows weather from Open-Meteo, an independent service, and converts between °F and °C. Forecasts are often wrong. **Two Degrees is not a safety tool.** Never use it to make decisions that affect anyone's health, safety or property. For severe weather, follow official warnings from your national weather service (in the US, the National Weather Service at weather.gov) and local authorities. Two Degrees shows severe weather alerts for places in the United States, copied from the US National Weather Service. Alerts can be late, incomplete or missing, a notification can arrive late or not at all (your device decides when the app may check), and there are no alerts for places outside the United States: never rely on Two Degrees for them. The rain map, the next-two-hours rain forecast, air quality, pollen, normals and records come from the services in Section 9 and can be wrong, late or missing too. Widgets refresh on a schedule your device controls, and the app and widgets keep showing the last forecast they received when they can't reach Open-Meteo, so what you see can be hours old; the app marks it "Offline". With "Use My Location" on, the place shown is approximate and can be the wrong town, especially near borders or when your device's location is poor.
 
@@ -207,7 +207,7 @@ What each Service does:
 - **Meridian:**
   - Your cities stay on your device. The app itself sends them nowhere.
   - If you choose "Use My Location", Meridian uses your device's location to name the city you're in. Your device's own location service turns it into a city name (Apple's on Mac and iPhone, your phone's on Android); Meridian keeps only that name, on your device. Turn it off any time in Settings → Show My Location.
-  - When a city on your list has no built-in photo, Meridian downloads one once from Wikimedia (Wikipedia and Wikimedia Commons). The request contains only the city's name. Wikimedia receives your device's IP address, as with any web request, under its own [privacy policy](https://foundation.wikimedia.org/wiki/Policy:Privacy_policy). The photos stay on your device. Turn it off any time in Settings → Download City Photos. The built-in and downloaded photos are by their credited photographers, under their own free licences, listed in Settings → Photo Credits.
+  - When a city on your list has no built-in photo, Meridian downloads one once from Wikimedia (Wikipedia and Wikimedia Commons). The request contains only the city's name. Wikimedia receives your device's IP address, as with any web request, under its own [privacy policy](https://foundation.wikimedia.org/wiki/Policy:Privacy_policy). The photos stay on your device. Turn it off any time in Settings → Download City Photos. The built-in city photos are generated with AI for Meridian. Downloaded photos are by their credited photographers, under their own free licences. Both are listed in Settings → Photo Credits.
   - The web version doesn't use your location. It marks your city using your browser's time zone, and sends nothing anywhere.
 - **Two Degrees:**
   - Your cities stay on your device.
@@ -220,7 +220,7 @@ What each Service does:
 - **Updates:**
   - The Mac apps contact GitHub to check for and download updates.
   - Cowdrey.MD for Android, when downloaded from bradcowdrey.com, asks GitHub once a day whether a newer version exists. If you choose to update, it downloads the new version from GitHub.
-  - App Store apps are updated by Apple. They contact GitHub only for the terms check below.
+  - App Store and TestFlight apps are updated by Apple. They contact GitHub only for the terms check below.
 - **Terms checks:**
   - Cowdrey.MD (every version, including the web) and the Meridian apps read these terms from GitHub at most once a day, to know when they change. The request sends nothing about you, your documents or your cities.
   - Two Degrees doesn't check online; each new version of its apps carries the current terms.
@@ -359,7 +359,7 @@ This table summarizes Sections 6, 9, 15 and 20 for each app. Where it and those 
 |---|---|---|---|
 | **What it is** | Markdown text editor | World clock and time-zone planner | Weather in °F and °C at once |
 | **Platforms** | Mac, iPhone and iPad, Android, web | Mac, iPhone, Android, web (time zones only) | Mac, iPhone and iPad, Android, web, with widgets |
-| **Where you get it** | bradcowdrey.com and GitHub; app stores where listed | bradcowdrey.com and GitHub; app stores where listed | bradcowdrey.com and GitHub; app stores where listed, and TestFlight |
+| **Where you get it** | bradcowdrey.com and GitHub; app stores where listed, and TestFlight | bradcowdrey.com and GitHub; app stores where listed | bradcowdrey.com and GitHub; app stores where listed, and TestFlight |
 | **Price** | Free | Free | Free |
 | **Account** | None | None | None |
 | **Ads, analytics, tracking** | None | None | None |
@@ -381,6 +381,7 @@ This table summarizes Sections 6, 9, 15 and 20 for each app. Where it and those 
 - **Air quality, pollen and past weather** in Two Degrees are from Open-Meteo's air-quality and historical-weather services (data from CAMS and ERA5), under CC BY 4.0.
 - **Severe weather alerts** in Two Degrees are from the [US National Weather Service](https://www.weather.gov), a US government work in the public domain. They're shown as issued, and the National Weather Service doesn't endorse Two Degrees.
 - **Radar images** on Two Degrees' rain map are from [RainViewer](https://www.rainviewer.com). **Map tiles** are from [OpenFreeMap](https://openfreemap.org), © [OpenMapTiles](https://www.openmaptiles.org), with data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (Open Database License).
+- **City photos** built into Meridian are generated with AI for Meridian. Photos Meridian downloads for other cities come from [Wikimedia Commons](https://commons.wikimedia.org), by their credited photographers under their own free licences (Settings → Photo Credits).
 - **The city list** built into Two Degrees is from [GeoNames](https://www.geonames.org), under CC BY 4.0. I've reduced it to places with at least 15,000 people.
 - **Place names** where you are come from your device's own location service (Apple's or your phone's) or, on the web, from Open-Meteo; when those can't name a place, from the GeoNames list.
 - **Apple, iPhone, iPad, Mac, App Store and TestFlight** are trademarks of Apple Inc. **Android and Google Play** are trademarks of Google LLC. Other names belong to their owners. Their mention doesn't mean they endorse me or the Services.

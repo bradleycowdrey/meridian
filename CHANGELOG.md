@@ -4,6 +4,14 @@ Meridian updates itself: it checks once a day and shows **Update** in the panel 
 version is out. You can also choose ⋯ → **Check for Updates**, or download the latest
 [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg).
 
+## 2.1.5 · 24 November 2026
+
+- **New city photos**: all 111 cities have new day and night photos, made for Meridian, with each city's landmark standing in the clear between the name and the hours, at every size from the panel to the small widget.
+- **A new icon**: Meridian joins the Cowdrey family, its days and Now inside the family C.
+- **A finer finish**: glass buttons, cleaner spacing and type in the panel.
+- **Small widget**: the city's photo above, its time, name and status below, as on iPhone.
+- On the Mac App Store, too.
+
 ## 2.1.4 · 13 November 2026
 
 - **Soft edges**: each city's photo fades gently into the background at the edge of its row, and every hour tile has a thin, softly blurred outline instead of a hard edge. In the panel and the widgets.

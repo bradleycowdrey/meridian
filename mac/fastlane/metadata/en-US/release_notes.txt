@@ -1,9 +1,7 @@
-Meridian is on the Mac App Store.
+New city photos: all 111 cities have new day and night photos, made for Meridian, with each city's landmark standing in the clear between the name and the hours, at every size from the panel to the small widget.
 
-City photos: each row shows its city by day or by night there, framed on its skyline, with hour tiles in blues and a larger Now tile outlined down every city.
+A new icon: Meridian joins the Cowdrey family.
 
-Every city has a status: Working, Off hours, Weekend, Day off or the holiday's name. Public holidays count as days off in every country.
+A finer finish: glass buttons, cleaner spacing and type.
 
-Desktop widgets in small, medium and large fill themselves: with fewer cities, the rows grow to fill the widget.
-
-Soft edges on every city row and hour tile.
+The small widget shows the city's photo above, with its time, name and status below.

@@ -22,7 +22,7 @@ Made by <a href="https://bradcowdrey.com">Bradley Cowdrey · bradcowdrey.com</a>
 
 ### What's new in 2.1
 
-Mac 2.1.4 is out and updates itself. Meridian for iPhone is on the [App Store](https://apps.apple.com/app/id6826713540), with the same look. Android has it in the latest APK.
+Mac 2.1.5 is out and updates itself. Meridian for iPhone is on the [App Store](https://apps.apple.com/app/id6826713540), with the same look. Android has it in the latest APK.
 
 - **City photos on every platform**: each city shows the city itself, by day or by night there, framed on its own skyline, on Mac, iPhone, Android and in the widgets.
 - **A larger Now tile** with room either side and one outline down every city, and hour tiles in blues that make working hours stand out.
@@ -110,7 +110,7 @@ Add Meridian to your desktop or Notification Center in three sizes: small (one c
 
 ## Install on Mac (sideload)
 
-Download Meridian for Mac here; it updates itself. A Mac App Store version (the same app, sandboxed) is on its way through App Review.
+Meridian for Mac is on the [Mac App Store](https://apps.apple.com/app/id6826713540), or download it here; this download updates itself.
 
 1. Download [Meridian.dmg](https://github.com/bradleycowdrey/meridian/releases/latest/download/Meridian.dmg) (all versions are on [Releases](https://github.com/bradleycowdrey/meridian/releases))
    or [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), where you can also try it in your browser.
@@ -126,8 +126,8 @@ Requires Xcode 15.3+ (Swift 5.10) on macOS 14+.
 git clone https://github.com/bradleycowdrey/meridian.git
 cd meridian
 swift run                         # run in development
-scripts/build-app.sh 2.1.4        # dist/Meridian.app (universal, with city photos)
-scripts/make-dmg.sh 2.1.4         # dist/Meridian-2.1.4.dmg
+scripts/build-app.sh 2.1.5        # dist/Meridian.app (universal, with city photos)
+scripts/make-dmg.sh 2.1.5         # dist/Meridian-2.1.5.dmg
 ```
 
 ## Releasing

@@ -12,6 +12,13 @@ struct MacPhotoCredit: Identifiable, Hashable {
     let source: URL?
 }
 
+/// What matching a city against plates-remote.json needs from an index entry or an alias: its
+/// zone and country.
+fileprivate protocol MacRemoteMatchable {
+    var zone: String? { get }
+    var cc: String? { get }
+}
+
 /// The city photos bundled with the Mac app and its widget: Resources/Skylines/skyline_<key>.jpg
 /// (day) and skyline_<key>_night.jpg, named by Resources/skylines.json. scripts/build-app.sh
 /// copies them in; the app holds the full-size photos (the 1536 x 512 city plates) and the widget,
@@ -157,6 +164,154 @@ enum MacSkylines {
         return out
     }()
 
+    // MARK: The hosted plates' index (plates-remote.json)
+
+    private struct RemoteNight: Decodable {
+        var focus: Double?
+        var focusX: Double?
+        var top: Double?
+
+        private enum CodingKeys: String, CodingKey { case focus, focusX, top }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
+            focusX = try? c.decodeIfPresent(Double.self, forKey: .focusX)
+            top = try? c.decodeIfPresent(Double.self, forKey: .top)
+        }
+    }
+
+    /// A city with a hosted AI plate (day and night), downloaded once: base + key + "-day.jpg"
+    /// and base + key + "-night.jpg". Placed by its own focus, focusX and top, like a built-in plate.
+    private struct RemoteEntry: Decodable, MacRemoteMatchable {
+        let key: String
+        var names: [String] = []
+        var zone: String?
+        var cc: String?
+        var focus: Double?
+        var focusX: Double?
+        var top: Double?
+        var night: RemoteNight?
+
+        private enum CodingKeys: String, CodingKey { case key, names, zone, cc, focus, focusX, top, night }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            key = try c.decode(String.self, forKey: .key)
+            names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
+            zone = try? c.decodeIfPresent(String.self, forKey: .zone)
+            cc = try? c.decodeIfPresent(String.self, forKey: .cc)
+            focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
+            focusX = try? c.decodeIfPresent(Double.self, forKey: .focusX)
+            top = try? c.decodeIfPresent(Double.self, forKey: .top)
+            night = try? c.decodeIfPresent(RemoteNight.self, forKey: .night)
+        }
+    }
+
+    /// Another name for a city with a built-in photo ("Brooklyn" -> newyork): that photo, no download.
+    private struct RemoteAlias: Decodable, MacRemoteMatchable {
+        var names: [String] = []
+        var zone: String?
+        var cc: String?
+        let key: String
+
+        private enum CodingKeys: String, CodingKey { case names, zone, cc, key }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
+            zone = try? c.decodeIfPresent(String.self, forKey: .zone)
+            cc = try? c.decodeIfPresent(String.self, forKey: .cc)
+            key = try c.decode(String.self, forKey: .key)
+        }
+    }
+
+    /// An entry or alias that fails to decode is skipped rather than losing the whole index.
+    private struct Lenient<T: Decodable>: Decodable {
+        let value: T?
+        init(from decoder: Decoder) throws { value = try? T(from: decoder) }
+    }
+
+    /// The whole file: {"version": 1, "base": "https://…/", "cities": [...], "aliases": [...]}.
+    private struct RemoteFile: Decodable {
+        var base: URL?
+        var cities: [RemoteEntry] = []
+        var aliases: [RemoteAlias] = []
+
+        private enum CodingKeys: String, CodingKey { case base, cities, aliases }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            // Only an https base is used; it must end in "/" so the key is a file in it.
+            if let text = try? c.decodeIfPresent(String.self, forKey: .base), text.hasSuffix("/"),
+               let url = URL(string: text), url.scheme?.lowercased() == "https", url.host?.isEmpty == false {
+                base = url
+            }
+            cities = ((try? c.decodeIfPresent([Lenient<RemoteEntry>].self, forKey: .cities)) ?? [])
+                .compactMap { $0.value }
+                .filter { MacSkylines.validPlateKey($0.key) }
+            aliases = ((try? c.decodeIfPresent([Lenient<RemoteAlias>].self, forKey: .aliases)) ?? [])
+                .compactMap { $0.value }
+        }
+    }
+
+    /// plates-remote.json from the bundle; nil when it isn't there (then no city gets a hosted plate).
+    private static let remote: RemoteFile? = {
+        guard let url = Bundle.main.url(forResource: "plates-remote", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(RemoteFile.self, from: data)
+    }()
+
+    /// The hosted plates by every name they go by (normalised).
+    private static let remoteIndex: [String: [RemoteEntry]] = {
+        var out: [String: [RemoteEntry]] = [:]
+        for entry in remote?.cities ?? [] {
+            for name in entry.names.isEmpty ? [entry.key] : entry.names {
+                let n = normalize(name)
+                guard !n.isEmpty else { continue }
+                out[n, default: []].append(entry)
+            }
+        }
+        return out
+    }()
+
+    /// The hosted plates by key (the first one with each key).
+    private static let remoteByKey: [String: RemoteEntry] = {
+        var out: [String: RemoteEntry] = [:]
+        for entry in remote?.cities ?? [] where out[entry.key] == nil { out[entry.key] = entry }
+        return out
+    }()
+
+    /// The aliases by every name they go by (normalised).
+    private static let aliasIndex: [String: [RemoteAlias]] = {
+        var out: [String: [RemoteAlias]] = [:]
+        for alias in remote?.aliases ?? [] {
+            for name in alias.names {
+                let n = normalize(name)
+                guard !n.isEmpty else { continue }
+                out[n, default: []].append(alias)
+            }
+        }
+        return out
+    }()
+
+    /// A hosted plate's key is used in its URL and its file names: lowercase letters, digits and
+    /// hyphens only ("chengdu-cn"), so it can never reach outside either.
+    fileprivate static func validPlateKey(_ key: String) -> Bool {
+        let allowed = Set("abcdefghijklmnopqrstuvwxyz0123456789-")
+        return !key.isEmpty && key.count <= 80 && key.allSatisfy { allowed.contains($0) }
+    }
+
+    /// The best index entry or alias for a city with this name: the same zone, else one on the same
+    /// clock all year (as for skylines.json), else one in the same country as the city's zone (the
+    /// city list can use another zone of that country: Asia/Chongqing for Asia/Shanghai).
+    private static func bestRemote<T: MacRemoteMatchable>(_ list: [T], timeZoneID: String) -> T? {
+        if let exact = list.first(where: { $0.zone == timeZoneID }) { return exact }
+        if let fits = list.first(where: { zoneFits($0.zone, timeZoneID) }) { return fits }
+        guard let country = WorkWeek.countryByZone[timeZoneID]?.uppercased(), !country.isEmpty else { return nil }
+        return list.first(where: { $0.cc?.uppercased() == country })
+    }
+
     /// Lowercased, without accents or spaces at the ends ("São Paulo" -> "sao paulo").
     private static func normalize(_ name: String) -> String {
         name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US"))
@@ -195,35 +350,176 @@ enum MacSkylines {
     /// The JPEGs found in this bundle's Resources/Skylines.
     static var photoCount: Int { files.count }
 
+    // MARK: Downloaded plates
+
+    /// A hosted plate's key as the rest of this file sees it ("plate:chengdu-cn"), so it never
+    /// collides with a built-in one ("newyork").
+    private static let hostedPrefix = "plate:"
+
+    /// The hosted plate's own key ("chengdu-cn") for a key from `key(name:timeZoneID:)`, or nil
+    /// when that is a built-in photo.
+    private static func hostedKey(_ key: String) -> String? {
+        key.hasPrefix(hostedPrefix) ? String(key.dropFirst(hostedPrefix.count)) : nil
+    }
+
+    /// Where the app keeps the hosted plates it downloaded, and where the widget reads them:
+    /// Plates/<key>-day.jpg and Plates/<key>-night.jpg. The Mac App Store build: the App Group
+    /// container the app and its widget share. The DMG build: ~/Library/Application Support/
+    /// Meridian/Plates, the folder the (sandboxed) widget may already read (Widget.entitlements),
+    /// so the widget is given the real home folder rather than its container.
+    static var platesDirectory: URL? {
+        #if APPSTORE
+        return FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: "2XV97FZ86G.com.bradcowdrey.meridian")?
+            .appendingPathComponent("Plates", isDirectory: true)
+        #else
+        let home = getpwuid(getuid()).map { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
+        return URL(fileURLWithPath: home, isDirectory: true)
+            .appendingPathComponent("Library/Application Support/Meridian/Plates", isDirectory: true)
+        #endif
+    }
+
+    private static func plateFileName(_ hosted: String, night: Bool) -> String {
+        hosted + (night ? "-night.jpg" : "-day.jpg")
+    }
+
+    /// A downloaded plate's file, nil when it isn't on this Mac.
+    private static func plateFile(_ hosted: String, night: Bool) -> URL? {
+        guard let url = platesDirectory?.appendingPathComponent(plateFileName(hosted, night: night)),
+              FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
+
+    /// The Settings → Cities → Download City Photos switch (UserDefaults, as on iPhone; on unless
+    /// turned off). Off: no hosted plate is downloaded or shown.
+    static let downloadsDefaultsKey = "downloadCityPhotos"
+    /// Written into Plates while the switch is off, so the widget (which can't read the app's
+    /// settings) shows no downloaded plate either.
+    private static let downloadsOffMarker = "downloads-off"
+    private static let isWidget = Bundle.main.bundleURL.pathExtension == "appex"
+
+    static var downloadsEnabled: Bool {
+        if isWidget {
+            guard let folder = platesDirectory else { return false }
+            return !FileManager.default.fileExists(atPath: folder.appendingPathComponent(downloadsOffMarker).path)
+        }
+        return UserDefaults.standard.object(forKey: downloadsDefaultsKey) as? Bool ?? true
+    }
+
+    /// The app sets the switch here: saved, and mirrored for the widget.
+    static func setDownloadsEnabled(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: downloadsDefaultsKey)
+        syncDownloadsMarker()
+    }
+
+    /// Puts the widget's copy of the switch in step with the app's (the app calls it at launch).
+    static func syncDownloadsMarker() {
+        guard !isWidget, let folder = platesDirectory else { return }
+        let marker = folder.appendingPathComponent(downloadsOffMarker)
+        let fm = FileManager.default
+        if downloadsEnabled {
+            if fm.fileExists(atPath: marker.path) { try? fm.removeItem(at: marker) }
+        } else if !fm.fileExists(atPath: marker.path) {
+            try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? Data().write(to: marker, options: .atomic)
+        }
+    }
+
+    /// A hosted plate a city wants and this Mac doesn't have yet: its key and the day and night
+    /// URLs (base + key + "-day.jpg" / "-night.jpg").
+    struct HostedPlate: Hashable, Sendable {
+        let key: String
+        let day: URL
+        let night: URL
+    }
+
+    /// The hosted plate to download for a city: nil when it has a built-in photo (its own or an
+    /// alias's), has no hosted plate, or its plate is already downloaded (never asked for again).
+    /// Doesn't look at the switch.
+    static func plateToDownload(name: String, timeZoneID: String) -> HostedPlate? {
+        let found = match(name: name, timeZoneID: timeZoneID)
+        guard found.hasPrefix("h:"), let base = remote?.base else { return nil }
+        let hosted = String(found.dropFirst(2))
+        if plateFile(hosted, night: false) != nil && plateFile(hosted, night: true) != nil { return nil }
+        guard let day = URL(string: hosted + "-day.jpg", relativeTo: base)?.absoluteURL,
+              let night = URL(string: hosted + "-night.jpg", relativeTo: base)?.absoluteURL else { return nil }
+        return HostedPlate(key: hosted, day: day, night: night)
+    }
+
+    /// Keeps a downloaded plate (both photos): the night photo first, then the day one, so a day
+    /// photo on disk always has its night photo beside it. False when either couldn't be written.
+    static func storePlate(key: String, day: Data, night: Data) -> Bool {
+        guard validPlateKey(key), let folder = platesDirectory else { return false }
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try night.write(to: folder.appendingPathComponent(plateFileName(key, night: true)), options: .atomic)
+            try day.write(to: folder.appendingPathComponent(plateFileName(key, night: false)), options: .atomic)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     // MARK: Lookup
 
     private static let lock = NSLock()
-    /// Answers so far, by name and zone ("" for none).
+    /// What each city matched, by name and zone (see `match`).
     private static var keyCache: [String: String] = [:]
     /// Decoded photos, by "<key>|<night>|<maxPixel>".
     private static var imageCache: [String: CGImage] = [:]
     private static let imageCacheLimit = 40
 
-    /// The photo's key for a city (matched by name and time zone), or nil when the manifest has no
-    /// such city or its day photo isn't in the bundle.
-    static func key(name: String, timeZoneID: String) -> String? {
+    /// What a city matches, worked out once: "b:<key>" a built-in photo (its own in skylines.json,
+    /// else an alias's in plates-remote.json), "h:<key>" a hosted plate (shown once downloaded),
+    /// "" nothing. In that order: a built-in photo always wins, and a city with neither keeps its sky.
+    private static func match(name: String, timeZoneID: String) -> String {
         let cacheKey = name + "|" + timeZoneID
         lock.lock()
         let hit = keyCache[cacheKey]
         lock.unlock()
-        if let hit { return hit.isEmpty ? nil : hit }
+        if let hit { return hit }
 
-        let candidates = index[normalize(name)] ?? []
+        let n = normalize(name)
+        var result = ""
+        // 1. Its own built-in photo, by name and time zone.
+        let candidates = index[n] ?? []
         let exact = candidates.first(where: { $0.zone == timeZoneID })
-        let match = exact ?? candidates.first(where: { zoneFits($0.zone, timeZoneID) })
-        var result: String? = match?.key
-        if let found = result, !files.contains(fileName(key: found, night: false)) { result = nil }
+        if let found = (exact ?? candidates.first(where: { zoneFits($0.zone, timeZoneID) }))?.key,
+           files.contains(fileName(key: found, night: false)) {
+            result = "b:" + found
+        }
+        // 2. Another name for a city with a built-in photo ("Brooklyn": New York's).
+        if result.isEmpty, let alias = bestRemote(aliasIndex[n] ?? [], timeZoneID: timeZoneID),
+           byKey[alias.key] != nil, files.contains(fileName(key: alias.key, night: false)) {
+            result = "b:" + alias.key
+        }
+        // 3. A hosted AI plate, downloaded once.
+        if result.isEmpty, remote?.base != nil,
+           let plate = bestRemote(remoteIndex[n] ?? [], timeZoneID: timeZoneID) {
+            result = "h:" + plate.key
+        }
 
         lock.lock()
         if keyCache.count > 400 { keyCache.removeAll() }
-        keyCache[cacheKey] = result ?? ""
+        keyCache[cacheKey] = result
         lock.unlock()
         return result
+    }
+
+    /// The photo's key for a city (matched by name and time zone), or nil when it has no photo: no
+    /// built-in one in the bundle, and no hosted plate downloaded (or Download City Photos is off).
+    /// A hosted plate's key starts "plate:".
+    static func key(name: String, timeZoneID: String) -> String? {
+        let found = match(name: name, timeZoneID: timeZoneID)
+        if found.hasPrefix("b:") { return String(found.dropFirst(2)) }
+        if found.hasPrefix("h:") {
+            let hosted = String(found.dropFirst(2))
+            // Checked each time (not cached): the app downloads it later, and the widget's process
+            // outlives that.
+            guard downloadsEnabled, plateFile(hosted, night: false) != nil else { return nil }
+            return hostedPrefix + hosted
+        }
+        return nil
     }
 
     /// Whether the city wants its night photo at `date`: from sunset until an hour before sunrise.

@@ -158,6 +158,189 @@ struct SkylineManifestFile<Item: Decodable>: Decodable {
     }
 }
 
+/// One city of Resources/Data/plates-remote.json: a hosted AI plate (1536×512, as the built-in
+/// ones), downloaded once from `base + key + "-day.jpg"` and `base + key + "-night.jpg"`, with the
+/// names it goes by, its time zone, its country ("cc"), where it is, and each image's focus,
+/// landmark (focusX) and landmark tip (top), as skylines.json gives them for a built-in plate.
+struct RemotePlateEntry: Decodable, Sendable {
+    struct Night: Decodable, Sendable {
+        var focus: Double?
+        var focusX: Double?
+        var top: Double?
+
+        private enum CodingKeys: String, CodingKey { case focus, focusX, top }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            focus = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focus))
+            focusX = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focusX))
+            top = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .top))
+        }
+    }
+
+    let key: String
+    var names: [String] = []
+    var zone: String?
+    var cc: String?
+    var lat: Double?
+    var lon: Double?
+    var focus: Double?
+    var focusX: Double?
+    var top: Double?
+    var night: Night?
+
+    private enum CodingKeys: String, CodingKey { case key, names, zone, cc, lat, lon, focus, focusX, top, night }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        key = try c.decode(String.self, forKey: .key)
+        names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
+        zone = try? c.decodeIfPresent(String.self, forKey: .zone)
+        cc = try? c.decodeIfPresent(String.self, forKey: .cc)
+        lat = try? c.decodeIfPresent(Double.self, forKey: .lat)
+        lon = try? c.decodeIfPresent(Double.self, forKey: .lon)
+        focus = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focus))
+        focusX = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .focusX))
+        top = SkylineManifestEntry.unitFocus(try? c.decodeIfPresent(Double.self, forKey: .top))
+        night = try? c.decodeIfPresent(Night.self, forKey: .night)
+    }
+}
+
+/// One of plates-remote.json's aliases: other names (Brooklyn) for a city with a BUILT-IN photo
+/// (skylines.json's key, "newyork"), so they show that photo and download nothing.
+struct RemotePlateAlias: Decodable, Sendable {
+    let key: String
+    var names: [String] = []
+    var zone: String?
+    var cc: String?
+
+    private enum CodingKeys: String, CodingKey { case key, names, zone, cc }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        key = try c.decode(String.self, forKey: .key)
+        names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
+        zone = try? c.decodeIfPresent(String.self, forKey: .zone)
+        cc = try? c.decodeIfPresent(String.self, forKey: .cc)
+    }
+}
+
+/// plates-remote.json as a whole: {"version": 1, "base": "<url>/", "cities": [...], "aliases": [...]}.
+/// Entries that fail to decode are skipped.
+struct RemotePlatesFile: Decodable {
+    var version: Int?
+    var base: String?
+    var cities: [RemotePlateEntry] = []
+    var aliases: [RemotePlateAlias] = []
+
+    private enum CodingKeys: String, CodingKey { case version, base, cities, aliases }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try? c.decodeIfPresent(Int.self, forKey: .version)
+        base = try? c.decodeIfPresent(String.self, forKey: .base)
+        cities = ((try? c.decodeIfPresent([LenientManifestItem<RemotePlateEntry>].self, forKey: .cities)) ?? [])
+            .compactMap(\.item)
+        aliases = ((try? c.decodeIfPresent([LenientManifestItem<RemotePlateAlias>].self, forKey: .aliases)) ?? [])
+            .compactMap(\.item)
+    }
+}
+
+/// The hosted AI plates (Resources/Data/plates-remote.json): for a city without a built-in photo
+/// (or an alias of one), Meridian's own plate is downloaded once, day and night, before asking
+/// Wikimedia (CityPhotos). Placed exactly like a built-in plate, from its entry's focus, focusX and top.
+enum RemotePlates {
+    /// The bundled index, or nil when it is missing or unreadable.
+    static let file: RemotePlatesFile? = {
+        guard let url = Bundle.main.url(forResource: "plates-remote", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(RemotePlatesFile.self, from: data)
+    }()
+
+    /// Where the images live (ends in "/"), or nil without an index.
+    private static let base: String? = {
+        guard let raw = file?.base?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
+              raw.lowercased().hasPrefix("https://") else { return nil }
+        return raw.hasSuffix("/") ? raw : raw + "/"
+    }()
+
+    /// Every hosted plate's credit (no source link).
+    static let credit = SkylinePhotoCredit(author: "Generated with AI for Meridian", license: "AI-generated image",
+                                           licenseUrl: nil, source: nil)
+
+    /// The index's entries by key (the first of each).
+    static let byKey: [String: RemotePlateEntry] = {
+        var out: [String: RemotePlateEntry] = [:]
+        for entry in file?.cities ?? [] where out[entry.key] == nil { out[entry.key] = entry }
+        return out
+    }()
+
+    /// The index's entries by every name they go by (normalised).
+    private static let index: [String: [RemotePlateEntry]] = {
+        var out: [String: [RemotePlateEntry]] = [:]
+        for entry in file?.cities ?? [] {
+            for name in entry.names.isEmpty ? [entry.key] : entry.names {
+                let n = SkylineArt.normalize(name)
+                guard !n.isEmpty else { continue }
+                out[n, default: []].append(entry)
+            }
+        }
+        return out
+    }()
+
+    /// The aliases by every name they go by (normalised).
+    private static let aliasIndex: [String: [RemotePlateAlias]] = {
+        var out: [String: [RemotePlateAlias]] = [:]
+        for alias in file?.aliases ?? [] {
+            for name in alias.names {
+                let n = SkylineArt.normalize(name)
+                guard !n.isEmpty else { continue }
+                out[n, default: []].append(alias)
+            }
+        }
+        return out
+    }()
+
+    /// A hosted plate's day or night image: base + key + "-day.jpg" / "-night.jpg".
+    static func imageURL(_ key: String, night: Bool) -> URL? {
+        guard let base, !key.isEmpty,
+              let escaped = key.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { return nil }
+        return URL(string: base + escaped + (night ? "-night.jpg" : "-day.jpg"))
+    }
+
+    /// The hosted plate for a card (its city's name and time zone, as skylines.json is matched; or
+    /// its name and country when the city list puts it in another zone of the same country), or nil.
+    static func entry(for place: Place) -> RemotePlateEntry? {
+        guard base != nil else { return nil }
+        let candidates = index[SkylineArt.normalize(place.name)] ?? []
+        return SkylineArt.match(candidates, for: place, zone: \.zone, country: \.cc,
+                                coordinate: { e in e.lat.flatMap { la in e.lon.map { (la, $0) } } })
+    }
+
+    /// The built-in photo's key (skylines.json) an alias gives a card, or nil.
+    static func aliasKey(for place: Place) -> String? {
+        let candidates = aliasIndex[SkylineArt.normalize(place.name)] ?? []
+        return SkylineArt.match(candidates, for: place, zone: \.zone, country: \.cc, coordinate: { _ in nil })?.key
+    }
+
+    /// A hosted photo's focus, landmark and landmark tip for its SkylinePhoto id ("p:<key>" by
+    /// day, "p:<key>-night" by night: the night entry's, else the day's), or nil for any other id.
+    static func placement(forID id: String) -> (focus: Double?, focusX: Double?, top: Double?)? {
+        guard id.hasPrefix("p:") else { return nil }
+        let rest = String(id.dropFirst(2))
+        if rest.hasSuffix("-night"), let entry = byKey[String(rest.dropLast(6))] {
+            return placement(entry, night: true)
+        }
+        return byKey[rest].map { placement($0, night: false) }
+    }
+
+    /// An entry's day placement, or its night one (the day's where the night entry has none).
+    static func placement(_ entry: RemotePlateEntry, night: Bool) -> (focus: Double?, focusX: Double?, top: Double?) {
+        guard night, let n = entry.night else { return (entry.focus, entry.focusX, entry.top) }
+        return (n.focus ?? entry.focus, n.focusX ?? entry.focusX, n.top ?? entry.top)
+    }
+}
+
 /// A photo for a card, and a name for it that stays the same (for the ink cache). `night` is a
 /// real night photo, shown as taken (never tinted).
 struct SkylinePhoto {
@@ -254,10 +437,32 @@ enum SkylineArt {
         return dates.allSatisfy { tz.secondsFromGMT(for: $0) == place.timeZone.secondsFromGMT(for: $0) }
     }
 
+    /// Among plates-remote.json's entries (or aliases) of the card's name: the one in its time zone,
+    /// else one on the same clock all year (as skylines.json is matched), else one in the same
+    /// country ("cc") when the card's zone is in that country too (the city list put the city in
+    /// another of its zones), the nearest when the card knows where it is. nil when none fits.
+    static func match<T>(_ candidates: [T], for place: Place, zone: (T) -> String?, country: (T) -> String?,
+                         coordinate: (T) -> (Double, Double)?) -> T? {
+        guard !candidates.isEmpty else { return nil }
+        if let exact = candidates.first(where: { zone($0) == place.timeZoneID }) { return exact }
+        if let fits = candidates.first(where: { zoneFits(zone($0), place) }) { return fits }
+        guard let cc = place.country?.uppercased(), !cc.isEmpty else { return nil }
+        // The card's own zone must be in that country too (when the zone's country is known).
+        if let zoneCountry = WorkWeek.countryByZone[place.timeZoneID], zoneCountry.uppercased() != cc { return nil }
+        let same = candidates.filter { country($0)?.uppercased() == cc }
+        guard let lat = place.latitude, let lon = place.longitude, same.count > 1 else { return same.first }
+        func distance(_ item: T) -> Double {
+            guard let c = coordinate(item) else { return .infinity }
+            return (c.0 - lat) * (c.0 - lat) + (c.1 - lon) * (c.1 - lon)
+        }
+        return same.min(by: { distance($0) < distance($1) })
+    }
+
     /// Answers so far, by name and zone ("" for none).
     private static var keyCache: [String: String] = [:]
 
-    /// The bundled photo's key for a card (its city's name, for a person their city's), or nil.
+    /// The bundled photo's key for a card (its city's name, for a person their city's; else a
+    /// built-in photo plates-remote.json's aliases give its name), or nil.
     static func key(for place: Place) -> String? {
         let cacheKey = place.name + "|" + place.timeZoneID
         if let hit = keyCache[cacheKey] { return hit.isEmpty ? nil : hit }
@@ -267,7 +472,9 @@ enum SkylineArt {
         } else {
             let candidates = index[normalize(place.name)] ?? []
             let exact = candidates.first(where: { $0.zone == place.timeZoneID })
-            result = (exact ?? candidates.first(where: { zoneFits($0.zone, place) }))?.key
+            let own = (exact ?? candidates.first(where: { zoneFits($0.zone, place) }))?.key
+            // An alias (Brooklyn) shows its city's built-in photo (New York's), never a download.
+            result = own ?? RemotePlates.aliasKey(for: place).flatMap { byKey[$0] != nil ? $0 : nil }
         }
         if keyCache.count > 400 { keyCache.removeAll() }
         keyCache[cacheKey] = result ?? ""
@@ -279,27 +486,40 @@ enum SkylineArt {
         key(for: place).flatMap { UIImage(named: "Skyline-\($0)") }
     }
 
-    /// The card's day photo: bundled, else the one downloaded for it; nil to draw one.
-    static func photo(for place: Place, downloaded: UIImage?) -> SkylinePhoto? {
+    /// The card's day photo: bundled, else the one downloaded for it; nil to draw one. `plate` is
+    /// the hosted AI plate's key when the downloaded photo is one (CityPhotos.plate(for:)): it is
+    /// then placed by its plates-remote.json entry, as a built-in plate is.
+    static func photo(for place: Place, downloaded: UIImage?, plate: String? = nil) -> SkylinePhoto? {
         if let key = key(for: place), let image = UIImage(named: "Skyline-\(key)") {
             return SkylinePhoto(id: "b:" + key, image: image, focus: byKey[key]?.focus, focusX: byKey[key]?.focusX,
                                 top: byKey[key]?.top)
         }
-        if let downloaded { return SkylinePhoto(id: "d:" + slug(for: place), image: downloaded) }
-        return nil
+        guard let downloaded else { return nil }
+        if let plate, let entry = RemotePlates.byKey[plate] {
+            let p = RemotePlates.placement(entry, night: false)
+            return SkylinePhoto(id: "p:" + plate, image: downloaded, focus: p.focus, focusX: p.focusX, top: p.top)
+        }
+        return SkylinePhoto(id: "d:" + slug(for: place), image: downloaded)
     }
 
     /// The card's night photo, paired with its day photo: a bundled day photo takes only its own
     /// bundled night photo ("Skyline-<key>-night"), a downloaded one the night photo downloaded
-    /// for it. nil when the city has none (the card then draws its skyline on the night sky).
-    static func nightPhoto(for place: Place, downloaded: UIImage?) -> SkylinePhoto? {
+    /// for it (a hosted plate's, `plate`, placed by its entry's night). nil when the city has none
+    /// (the card then draws its skyline on the night sky).
+    static func nightPhoto(for place: Place, downloaded: UIImage?, plate: String? = nil) -> SkylinePhoto? {
         if let key = key(for: place), UIImage(named: "Skyline-\(key)") != nil {
             return UIImage(named: "Skyline-\(key)-night").map {
                 SkylinePhoto(id: "b:" + key + "-night", image: $0, night: true, focus: byKey[key]?.night?.focus,
                              focusX: byKey[key]?.night?.focusX, top: byKey[key]?.night?.top)
             }
         }
-        return downloaded.map { SkylinePhoto(id: "d:" + slug(for: place) + "-night", image: $0, night: true) }
+        guard let downloaded else { return nil }
+        if let plate, let entry = RemotePlates.byKey[plate] {
+            let p = RemotePlates.placement(entry, night: true)
+            return SkylinePhoto(id: "p:" + plate + "-night", image: downloaded, night: true, focus: p.focus,
+                                focusX: p.focusX, top: p.top)
+        }
+        return SkylinePhoto(id: "d:" + slug(for: place) + "-night", image: downloaded, night: true)
     }
 
     /// Whether the card wants its night photo: from sunset until an hour before sunrise (Sky's own
@@ -319,12 +539,14 @@ enum SkylineArt {
     /// running) the day photo stays, darkened for night, so the photo always fills the card, as the
     /// widget's. Only a downloaded city whose night search has finished with nothing
     /// (`nightSearched`) draws its skyline on the night sky. nil to draw one.
+    /// `plate` and `nightPlate`: the hosted AI plate's key when the downloaded day or night photo is one.
     static func photo(for place: Place, at date: Date, downloaded: UIImage?, downloadedNight: UIImage?,
-                      nightSearched: Bool = false) -> SkylinePhoto? {
-        guard let day = photo(for: place, downloaded: downloaded) else { return nil }
+                      nightSearched: Bool = false, plate: String? = nil, nightPlate: String? = nil) -> SkylinePhoto? {
+        guard let day = photo(for: place, downloaded: downloaded, plate: plate) else { return nil }
         guard wantsNight(place, at: date) else { return day }
-        if let night = nightPhoto(for: place, downloaded: downloadedNight) { return night }
-        return day.id.hasPrefix("d:") && nightSearched ? nil : day
+        if let night = nightPhoto(for: place, downloaded: downloadedNight, plate: nightPlate) { return night }
+        let downloadedDay = day.id.hasPrefix("d:") || day.id.hasPrefix("p:")
+        return downloadedDay && nightSearched ? nil : day
     }
 
     /// A file-safe name for a card's downloaded photo: its city and time zone.
@@ -506,17 +728,21 @@ enum SkylineArt {
 }
 
 /// What a downloaded photo's credit file holds: the city, when it was asked for, the image file
-/// (nil when there was no photo it could use), and the credit.
+/// (nil when there was no photo it could use), and the credit. `plate`: the hosted AI plate's key
+/// (plates-remote.json) when the photo is one; nil for a Wikimedia photo (and in older records).
 struct CityPhotoRecord: Codable {
     var name: String
     var fetched: Date
     var file: String?
     var credit: SkylinePhotoCredit?
+    var plate: String? = nil
 }
 
-/// Photos for cities without a bundled one, from Wikimedia Commons: asked for once (only the
-/// city's name is sent), kept in Caches, and never asked for again within 30 days. Never blocks
-/// the UI; the drawn skyline shows until a photo is ready, and offline nothing changes.
+/// Photos for cities without a bundled one: Meridian's hosted AI plate when plates-remote.json
+/// has the city (day and night, downloaded once; the request is the image's URL alone), else from
+/// Wikimedia Commons (only the city's name is sent). Kept in Caches, and never asked for again
+/// within 30 days. Never blocks the UI; the drawn skyline shows until a photo is ready, and
+/// offline nothing changes.
 @MainActor
 final class CityPhotos: ObservableObject {
     static let shared = CityPhotos()
@@ -560,6 +786,20 @@ final class CityPhotos: ObservableObject {
         images[SkylineArt.slug(for: place) + Self.nightSuffix]
     }
 
+    /// The hosted AI plate's key when the card's loaded day photo is one, else nil.
+    func plate(for place: Place) -> String? {
+        plateKey(SkylineArt.slug(for: place))
+    }
+
+    /// The hosted AI plate's key when the card's loaded night photo is one, else nil.
+    func nightPlate(for place: Place) -> String? {
+        plateKey(SkylineArt.slug(for: place) + Self.nightSuffix)
+    }
+
+    private func plateKey(_ slug: String) -> String? {
+        images[slug] == nil ? nil : records[slug]?.plate
+    }
+
     /// Whether the card's night search has finished, this launch, without a night photo.
     func nightSearched(for place: Place) -> Bool {
         let slug = SkylineArt.slug(for: place) + Self.nightSuffix
@@ -578,8 +818,9 @@ final class CityPhotos: ObservableObject {
         .sorted { $0.city.localizedCaseInsensitiveCompare($1.city) == .orderedAscending }
     }
 
-    /// Loads the card's photos from disk, or asks Wikimedia for them (once), in the background:
-    /// the day photo, then (once there is one) a night photo; after dark there, the night photo first.
+    /// Loads the card's photos from disk, or downloads them (once), in the background: its hosted
+    /// AI plate, day and night, when it has one; else (or when that fails) from Wikimedia, the day
+    /// photo, then (once there is one) a night photo; after dark there, the night photo first.
     func request(_ place: Place) {
         guard Self.enabled, SkylineArt.bundledPhoto(for: place) == nil else { return }
         let slug = SkylineArt.slug(for: place)
@@ -596,6 +837,8 @@ final class CityPhotos: ObservableObject {
             tried.insert(slug)
         }
         _ = await recordsTask?.value
+        // Meridian's own hosted plate comes before Wikimedia.
+        if await loadPlate(slug: slug, place: place) { return }
         if SkylineArt.wantsNight(place, at: Date()) {
             // After dark the night photo is the one shown: get it first.
             await loadNight(slug: slug + Self.nightSuffix, place: place)
@@ -673,6 +916,66 @@ final class CityPhotos: ObservableObject {
         let found = await keep(result, slug: slug, name: place.name)
         // Finished without a photo (not offline): the card may draw its night sky.
         if !found && !offline { tried.insert(slug) }
+    }
+
+    // MARK: Hosted AI plates
+
+    /// A failed hosted plate's marker: its slug's, with this after it (kept apart from the slug's
+    /// own record so a Wikimedia photo already there stays).
+    nonisolated static let plateMissSuffix = ".noplate"
+
+    private enum PlateLoad { case loaded, offline, failed }
+
+    /// The card's hosted AI plate (plates-remote.json), day and night, stored as the Wikimedia
+    /// photos are (under the same slugs, replacing any Wikimedia photo kept for the city). True
+    /// when the card has its day plate; its night plate then follows, or on failure the Wikimedia
+    /// night search (offline: asked again next launch). False (no plate for the city, or it could
+    /// not be downloaded): the Wikimedia path.
+    private func loadPlate(slug: String, place: Place) async -> Bool {
+        // The index is read and searched off the main thread, as the city list is.
+        let found = await Task.detached(priority: .utility) { RemotePlates.entry(for: place) }.value
+        guard let entry = found else { return false }
+        switch await loadPlateImage(slug: slug, plate: entry.key, night: false, name: place.name) {
+        case .loaded: break
+        case .offline, .failed: return false
+        }
+        let nightSlug = slug + Self.nightSuffix
+        if await loadPlateImage(slug: nightSlug, plate: entry.key, night: true, name: place.name) == .failed {
+            await loadNight(slug: nightSlug, place: place)
+        }
+        return true
+    }
+
+    /// One hosted plate image for a slug: from disk when it was kept, else downloaded once (a
+    /// cleared copy is downloaded again). A plate that wasn't there is not asked for again within
+    /// 30 days.
+    private func loadPlateImage(slug: String, plate: String, night: Bool, name: String) async -> PlateLoad {
+        if let record = records[slug], record.plate == plate, let file = record.file {
+            if images[slug] != nil { return .loaded }
+            if let image = await Self.readImage(file) {
+                images[slug] = image
+                return .loaded
+            }
+            // The system cleared the image: download it again.
+        }
+        let miss = slug + Self.plateMissSuffix
+        if let marker = records[miss], marker.plate == plate,
+           Date().timeIntervalSince(marker.fetched) < Self.retryAfter { return .failed }
+        guard Self.enabled else { return .offline }
+        guard let url = RemotePlates.imageURL(plate, night: night) else { return .failed }
+        let result = await Self.fetchPlate(url)
+        if case .photo(let data, let credit) = result, let image = await Self.decode(data) {
+            let record = CityPhotoRecord(name: name, fetched: Date(), file: slug + ".jpg", credit: credit, plate: plate)
+            await Self.write(record, slug: slug, data: data)
+            records[slug] = record
+            images[slug] = image
+            return .loaded
+        }
+        if case .offline = result { return .offline }
+        let marker = CityPhotoRecord(name: name, fetched: Date(), file: nil, credit: nil, plate: plate)
+        records[miss] = marker
+        await Self.write(marker, slug: miss, data: nil)
+        return .failed
     }
 
     // MARK: Disk
@@ -784,6 +1087,32 @@ final class CityPhotos: ObservableObject {
         request.setValue(userAgent, forHTTPHeaderField: "Api-User-Agent")
         let (data, response) = try await URLSession.shared.data(for: request)
         return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
+    }
+
+    /// The hosted plates' requests: no cookies, no cache, no stored credentials, and nothing added
+    /// to the request but its URL.
+    nonisolated private static let plateSession: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.httpCookieStorage = nil
+        config.httpShouldSetCookies = false
+        config.urlCredentialStorage = nil
+        config.urlCache = nil
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.timeoutIntervalForRequest = 20
+        return URLSession(configuration: config)
+    }()
+
+    /// One hosted plate image: its JPEG with the AI credit, `.noPhoto` when it isn't there (or
+    /// isn't an image), `.offline` to ask again next launch.
+    nonisolated private static func fetchPlate(_ url: URL) async -> Fetch {
+        do {
+            let (data, response) = try await plateSession.data(from: url)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard status == 200, !data.isEmpty else { return transient(status) ? .offline : .noPhoto }
+            return .photo(data, RemotePlates.credit)
+        } catch {
+            return .offline
+        }
     }
 
     nonisolated private static let titleCharacters = CharacterSet(

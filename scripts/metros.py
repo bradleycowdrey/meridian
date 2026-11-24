@@ -103,10 +103,6 @@ for c in man:
     if cand:
         i = max(cand, key=lambda i: rows[i][6])
         builtin.append((c['key'], i))
-if 'coloradosprings' not in {c['key'] for c in man}:
-    h = find(('Colorado Springs', 'US'))
-    if h:
-        builtin.append(('coloradosprings', h[0]))
 builtin_keys = {k for k, _ in builtin}
 
 # 3. Claiming
@@ -161,9 +157,16 @@ groups = defaultdict(list)
 for c in centers:
     if isinstance(c, int):
         groups[slug(rows[c][0]) + '-' + rows[c][2].lower()].append(c)
+taken = {c for c in centers if not isinstance(c, int)}   # seed, PRECORE and built-in keys
 for k, v in groups.items():
-    for n, c in enumerate(sorted(v, key=lambda c: -rows[c][6])):
+    n = 0
+    for c in sorted(v, key=lambda c: -rows[c][6]):
         kk = k + (str(n + 1) if n else '')
+        while kk in taken:                                   # never reuse a seed/built-in key
+            n += 1
+            kk = k + str(n + 1)
+        n += 1
+        taken.add(kk)
         keyname[c] = ALIAS.get(kk, kk)
 
 

@@ -178,8 +178,9 @@ def main():
             continue
         # measure() reads a file; measure the plate as it will be written (PLATE_SIZE).
         src = night if night is not None else day
+        which_probe = "night" if night is not None else "day"
         with tempfile.TemporaryDirectory() as tmp:
-            probe = os.path.join(tmp, f"{key}.png")
+            probe = os.path.join(tmp, f"{key}-{which_probe}.png")  # "<key>-..." so plate-overrides.json applies
             src.save(probe)
             m = measure(probe)
         fx, fy, top = float(m["focusX"]), float(m["focus"]), float(m["landmarkTop"])
@@ -225,7 +226,7 @@ def main():
             out.append(e)
             continue
         _, night, fx, fy, top = plan[key]
-        new = {k: e[k] for k in ("key", "names", "zone") if k in e}
+        new = {k: e[k] for k in ("key", "names", "zone", "scene") if k in e}
         new.update({"file": f"skyline-{key}.jpg", "credit": dict(AI_CREDIT), "focus": fy, "focusX": fx, "top": top})
         new["night"] = ({"file": f"skyline-{key}-night.jpg", "credit": dict(AI_CREDIT), "focus": fy, "focusX": fx,
                          "top": top}

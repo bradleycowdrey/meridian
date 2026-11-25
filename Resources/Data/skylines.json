@@ -299,8 +299,8 @@
     "source": ""
    },
    "focus": 0.723,
-   "focusX": 0.38,
-   "top": 0.4,
+   "focusX": 0.385,
+   "top": 0.455,
    "night": {
     "file": "skyline-calgary-night.jpg",
     "credit": {
@@ -309,8 +309,8 @@
      "source": ""
     },
     "focus": 0.723,
-    "focusX": 0.38,
-    "top": 0.4
+    "focusX": 0.385,
+    "top": 0.455
    }
   },
   {
@@ -3162,6 +3162,164 @@
     "focus": 0.69,
     "focusX": 0.473,
     "top": 0.48
+   }
+  },
+  {
+   "key": "coloradosprings",
+   "names": [
+    "Colorado Springs",
+    "COS"
+   ],
+   "zone": "America/Denver",
+   "file": "skyline-coloradosprings.jpg",
+   "credit": {
+    "author": "Generated with AI for Meridian",
+    "license": "AI-generated image",
+    "source": ""
+   },
+   "focus": 0.761,
+   "focusX": 0.337,
+   "top": 0.365,
+   "night": {
+    "file": "skyline-coloradosprings-night.jpg",
+    "credit": {
+     "author": "Generated with AI for Meridian",
+     "license": "AI-generated image",
+     "source": ""
+    },
+    "focus": 0.761,
+    "focusX": 0.337,
+    "top": 0.365
+   }
+  },
+  {
+   "key": "scenecoast",
+   "names": [],
+   "zone": "",
+   "scene": "coast",
+   "file": "skyline-scenecoast.jpg",
+   "credit": {
+    "author": "Generated with AI for Meridian",
+    "license": "AI-generated image",
+    "source": ""
+   },
+   "focus": 0.669,
+   "focusX": 0.333,
+   "top": 0.415,
+   "night": {
+    "file": "skyline-scenecoast-night.jpg",
+    "credit": {
+     "author": "Generated with AI for Meridian",
+     "license": "AI-generated image",
+     "source": ""
+    },
+    "focus": 0.669,
+    "focusX": 0.333,
+    "top": 0.415
+   }
+  },
+  {
+   "key": "scenemountains",
+   "names": [],
+   "zone": "",
+   "scene": "mountains",
+   "file": "skyline-scenemountains.jpg",
+   "credit": {
+    "author": "Generated with AI for Meridian",
+    "license": "AI-generated image",
+    "source": ""
+   },
+   "focus": 0.688,
+   "focusX": 0.341,
+   "top": 0.37,
+   "night": {
+    "file": "skyline-scenemountains-night.jpg",
+    "credit": {
+     "author": "Generated with AI for Meridian",
+     "license": "AI-generated image",
+     "source": ""
+    },
+    "focus": 0.688,
+    "focusX": 0.341,
+    "top": 0.37
+   }
+  },
+  {
+   "key": "scenedesert",
+   "names": [],
+   "zone": "",
+   "scene": "desert",
+   "file": "skyline-scenedesert.jpg",
+   "credit": {
+    "author": "Generated with AI for Meridian",
+    "license": "AI-generated image",
+    "source": ""
+   },
+   "focus": 0.665,
+   "focusX": 0.333,
+   "top": 0.385,
+   "night": {
+    "file": "skyline-scenedesert-night.jpg",
+    "credit": {
+     "author": "Generated with AI for Meridian",
+     "license": "AI-generated image",
+     "source": ""
+    },
+    "focus": 0.665,
+    "focusX": 0.333,
+    "top": 0.385
+   }
+  },
+  {
+   "key": "sceneoldtown",
+   "names": [],
+   "zone": "",
+   "scene": "oldtown",
+   "file": "skyline-sceneoldtown.jpg",
+   "credit": {
+    "author": "Generated with AI for Meridian",
+    "license": "AI-generated image",
+    "source": ""
+   },
+   "focus": 0.733,
+   "focusX": 0.363,
+   "top": 0.48,
+   "night": {
+    "file": "skyline-sceneoldtown-night.jpg",
+    "credit": {
+     "author": "Generated with AI for Meridian",
+     "license": "AI-generated image",
+     "source": ""
+    },
+    "focus": 0.733,
+    "focusX": 0.363,
+    "top": 0.48
+   }
+  },
+  {
+   "key": "sceneriver",
+   "names": [],
+   "zone": "",
+   "scene": "river",
+   "file": "skyline-sceneriver.jpg",
+   "credit": {
+    "author": "Generated with AI for Meridian",
+    "license": "AI-generated image",
+    "source": ""
+   },
+   "focus": 0.74,
+   "focusX": 0.375,
+   "top": 0.385,
+   "night": {
+    "file": "skyline-sceneriver-night.jpg",
+    "credit": {
+     "author": "Generated with AI for Meridian",
+     "license": "AI-generated image",
+     "source": ""
+    },
+    "focus": 0.74,
+    "focusX": 0.375,
+    "top": 0.385
    }
   }
  ]

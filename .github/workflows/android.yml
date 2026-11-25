@@ -3,9 +3,16 @@ name: Android app
 # Builds the Android app (android/), runs it on an emulator, takes a screenshot of every screen
 # and publishes them, with the debug APK, to the ci-android branch.
 # The APK link on bradcowdrey.com/meridian points at ci-android/Meridian-debug.apk (the debug build).
+#
+# The release job builds the release App Bundle and APK, signed with the upload key when the ANDROID_KEYSTORE_*
+# secrets are set, and keeps them as the run's artifact (meridian-release-<version>-<code>). Builds for testers go to
+# Google Play's closed test (docs/play/README.md): a new Meridian release (release.yml starts this workflow on the new
+# v<VERSION> tag, and a v* tag pushed by hand starts it too) and runs started by hand (Actions, Run workflow).
+# Pushes to main never go to Play. The version code is the commit count, so each later commit on main gets a higher one.
 on:
   push:
     branches: [main]
+    tags: ["v*"]
     paths: ["android/**", ".github/workflows/android.yml"]
   workflow_dispatch:
 
@@ -14,6 +21,8 @@ permissions:
 
 jobs:
   android:
+    # Not for release tags: ci-android (the website's APK) always follows main.
+    if: github.ref_type != 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -72,3 +81,90 @@ jobs:
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
           git add -A && git commit -qm "Android build for $GITHUB_SHA"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-android
+
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      HAS_SIGNING: ${{ secrets.ANDROID_KEYSTORE_B64 != '' || secrets.ANDROID_KEYSTORE != '' }}
+      HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+      REL: ${{ github.workspace }}/release
+    steps:
+      # The whole history, so the commit count (the version code) is right.
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Work out the version
+        run: |
+          # versionCode: the commit count, as for the debug build. versionName: the release's version (v2.1.6 -> 2.1.6),
+          # or VERSION for a run started by hand.
+          echo "VERSION_CODE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then V="${GITHUB_REF_NAME#v}"; else V="$(tr -d '[:space:]' < VERSION)"; fi
+          echo "VERSION_NAME=$V" >> "$GITHUB_ENV"
+          # For testers: a release tag or a run started by hand, of a commit on main (so a build from another branch
+          # never takes a version code main will need).
+          FOR_TESTERS=false
+          if [[ "$GITHUB_REF_TYPE" == "tag" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            if git merge-base --is-ancestor HEAD origin/main; then FOR_TESTERS=true; else echo "::notice::Not a commit on main: not sent to Google Play"; fi
+          fi
+          echo "FOR_TESTERS=$FOR_TESTERS" >> "$GITHUB_ENV"
+          # What's new: this version's section of CHANGELOG.md, without the lines about the Mac (Play keeps 500 characters).
+          { echo "RELEASE_NOTES<<NOTES_EOF"
+            awk -v v="$V" '/^## /{p = (index($0, "## " v " ") == 1); next} p' CHANGELOG.md | grep -v -E '\b(Mac|macOS)\b' | sed -e 's/\*\*//g' -e '/^[[:space:]]*$/d' || true
+            echo "NOTES_EOF"; } >> "$GITHUB_ENV"
+          echo "Meridian $V ($(git rev-list --count HEAD)), for testers: $FOR_TESTERS"
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.11.1" }
+      - name: Build the release (App Bundle and APK)
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          mkdir -p "$REL"
+          if [ "$HAS_SIGNING" = true ]; then
+            # The upload key, from the secret (base64 .jks), only for this build.
+            export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks"
+            trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+            printf '%s' "${ANDROID_KEYSTORE_B64:-$ANDROID_KEYSTORE}" | tr -d '[:space:]' | base64 -d > "$ANDROID_KEYSTORE_FILE"
+            export ANDROID_KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
+          else
+            echo "::notice::No ANDROID_KEYSTORE_B64 secret: the release build is unsigned (a check only), and nothing goes to Google Play"
+          fi
+          set -o pipefail
+          gradle -p android bundleRelease assembleRelease -PversionCode="$VERSION_CODE" -PversionName="$VERSION_NAME" --no-daemon --stacktrace 2>&1 | tee "$REL/build.log" | grep -E "^e: |error:|FAILED|BUILD" || true
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          test -f "$AAB"
+          if [ "$HAS_SIGNING" = true ]; then
+            # Signed with the upload key, or stop here.
+            CHECK=$(jarsigner -verify "$AAB" 2>&1 || true)
+            grep -q "jar verified" <<< "$CHECK" || { echo "::error::The App Bundle isn't signed: $CHECK"; exit 1; }
+            cp "$AAB" "$REL/Meridian-$VERSION_NAME.aab"
+            cp android/app/build/outputs/apk/release/app-release.apk "$REL/Meridian-$VERSION_NAME.apk"
+            echo "::notice::Meridian $VERSION_NAME ($VERSION_CODE) signed with the upload key: the artifact meridian-release-$VERSION_NAME-$VERSION_CODE has the .aab and .apk"
+          fi
+      - name: Keep the signed App Bundle and APK
+        if: env.HAS_SIGNING == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridian-release-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          path: |
+            release/*.aab
+            release/*.apk
+          retention-days: 90
+      - name: Google Play closed test
+        if: env.HAS_PLAY == 'true' && env.HAS_SIGNING == 'true' && env.FOR_TESTERS == 'true'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_PACKAGE: com.bradcowdrey.meridian
+          PLAY_AAB: release/Meridian-${{ env.VERSION_NAME }}.aab
+          PLAY_RELEASE_NAME: ${{ env.VERSION_NAME }} (${{ env.VERSION_CODE }})
+          PLAY_RELEASE_NOTES: ${{ env.RELEASE_NOTES }}
+        run: |
+          pip install --quiet pyjwt cryptography
+          python3 .github/scripts/play_publish.py

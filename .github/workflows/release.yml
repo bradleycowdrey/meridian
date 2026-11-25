@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: write  # to start the Android release build for a new version (below)
 
 # One release run per commit, even if a branch push and a tag push arrive together.
 concurrency:
@@ -91,7 +92,18 @@ jobs:
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" $KIND \
               --title "Meridian $V" \
               --notes-file notes.md
+            echo "NEW_RELEASE=true" >> "$GITHUB_ENV"
           fi
+
+      # A new version goes to Android testers too: the Android workflow builds this tag, signs it and sends it to
+      # Google Play's closed test. A tag made here doesn't start other workflows by itself (a tag pushed by hand does,
+      # so that case is left to it). Never blocks the release.
+      - name: Start the Android release build
+        if: env.NEW_RELEASE == 'true' && github.ref_type != 'tag'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run android.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
 
       # The release log (including Apple's notarization report) on the ci-release branch,
       # readable without access to the Actions page.

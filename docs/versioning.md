@@ -33,6 +33,6 @@ The rules:
     - `2.1.4 status` reports the macOS versions, builds and review state.
 
     The first Mac upload needs macOS added to the app in App Store Connect (Add Platform > macOS); the run says so if it isn't. Logs go to the `ci-mac-appstore` branch.
-  - `versionName` in `android/app/build.gradle.kts` for Android.
+  - `versionName` in `android/app/build.gradle.kts` for Android. Builds for Google Play take the release's number instead (`v<VERSION>`, or `VERSION` for a run by hand; see [play/README.md](play/README.md)).
 - **Submitting while an earlier version waits for review** withdraws it first (`2.1 submit` in `ios/APPSTORE` does this automatically), so the newer build replaces it. The Mac run doesn't: a macOS version waiting for review has to be removed from review in App Store Connect before the next `submit`.
 - **Every release gets notes:** `CHANGELOG.md`, the README's "What's new", and `ios/fastlane/metadata/en-US/release_notes.txt` for the App Store (`mac/fastlane/metadata/en-US/release_notes.txt` for the Mac App Store, from its second version on).

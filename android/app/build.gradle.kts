@@ -4,6 +4,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Release signing with the upload key (Google Play), from Gradle properties or the environment, never from a file
+// in the repository: androidKeystoreFile / ANDROID_KEYSTORE_FILE (the .jks), androidKeystorePassword /
+// ANDROID_KEYSTORE_PASSWORD, androidKeyAlias / ANDROID_KEY_ALIAS and androidKeyPassword / ANDROID_KEY_PASSWORD
+// (the keystore's password when not set). CI decodes the keystore from its secret (.github/workflows/android.yml).
+// Without a keystore the release build is unsigned; the debug build never changes.
+fun signingValue(property: String, env: String): String? =
+    ((project.findProperty(property) as String?) ?: System.getenv(env))?.takeIf { it.isNotBlank() }
+val uploadKeystore = signingValue("androidKeystoreFile", "ANDROID_KEYSTORE_FILE")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
     namespace = "com.bradcowdrey.meridian"
     compileSdk = 35
@@ -16,9 +25,21 @@ android {
         versionName = (project.findProperty("versionName") as String?) ?: "2.0"
     }
 
+    signingConfigs {
+        if (uploadKeystore != null) {
+            create("release") {
+                storeFile = uploadKeystore
+                storePassword = signingValue("androidKeystorePassword", "ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("androidKeyAlias", "ANDROID_KEY_ALIAS")
+                keyPassword = signingValue("androidKeyPassword", "ANDROID_KEY_PASSWORD") ?: storePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Mac App Store screenshots for Meridian, composed from the self-test's renders.
+"""Mac App Store stages for Meridian, drawn from the self-test's renders.
 
-    scripts/mac-store-shots.py <selftest dir> <out dir>
+    scripts/mac-store-shots.py <selftest dir> <stages dir>
+    node scripts/store-frames.mjs mac <stages dir> <out dir>
 
 <selftest dir> is what `Meridian --selftest <dir>` wrote. It reads:
   store-panel.png        the menu bar panel at 2x (falls back to menubar-panel.png, upscaled)
@@ -10,15 +11,16 @@
   store-widget-small.png
   store-window.png       the desktop window at Large, 2x (optional)
 
-and writes 01-*.png ... into <out dir>: 3 to 5 images, each exactly 2880x1800 RGB (no alpha),
-the size the Mac App Store takes for 16:10 screenshots. Each has a headline and subline over a
-dark navy backdrop (with a glow made from the app itself), and the app as a floating window with
-Apple's soft two-layer shadow; the first hangs the panel from a translucent menu bar.
+and writes 01-*.png ... into <stages dir>: 3 to 5 stages, each 2280 x 1420 RGBA on a clear ground. A stage is
+the app as it appears on a desktop (the panel hung from a menu bar, the widgets, the window), with its shadows,
+and no words or backdrop: scripts/store-frames.mjs sets each one into the Cowdrey family's App Store template
+(scripts/store-frame.mjs) as its Mac device picture (story.bare), under the headline and sub-line, at 2880 x 1800.
+The app's renders are only scaled and placed, never painted over.
 
-A missing optional input skips that shot. It always makes at least 3 from the panel and the
+A missing optional input skips that stage. It always makes at least 3 from the panel and the
 widgets, and exits with an error if it can't (no panel at all).
 
-Fonts: SF Pro when present (macOS), else Inter from Resources/Fonts. Python 3 and Pillow only.
+Fonts (the menu bar's titles): SF Pro when present (macOS), else Inter from Resources/Fonts. Python 3 and Pillow only.
 """
 import argparse
 import os
@@ -29,22 +31,17 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store_frame as sf  # noqa: E402
 
-W, H = 2880, 1800
+# The stage: the box the template gives a Mac device picture (2880 - 2 x 300 wide, 1800 - 340 - 40 high), so it
+# is set at 1:1 with its top edge at the template's window top (y 340).
+W, H = 2280, 1420
 
-HEADLINE_TOP = 120
-HEADLINE_SIZE = 88
-HEADLINE_TRACKING = -1.2 * 104 / 88    # store_frame scales tracking by size/104; this gives -1.2 at 88
-SUBLINE_SIZE = 44
-SUBLINE_GAP = 18
-TEXT_WIDTH = 2400
-CLEARANCE = 64                         # text to frame top, at least
-
-STAGE_TOP = 400                        # the frame's top
-STAGE_W, STAGE_H = 2240, 1300          # the largest a frame gets
+STAGE_TOP = 0                          # the frame's top
+STAGE_W, STAGE_H = 2120, 1250          # the largest a frame gets (room left for the shadows)
 WINDOW_RADIUS = 20
 
-MENU_BAR_Y = 372                       # the menu bar strip in the first shot
+MENU_BAR_Y = 0                         # the menu bar strip in the first stage
 MENU_BAR_H = 74
+MENU_BAR_FADE = 260                    # the strip fades out over this much at each end
 
 
 def log(message):
@@ -118,18 +115,9 @@ def scaled(image, factor):
     return image.resize((max(1, round(image.width * factor)), max(1, round(image.height * factor))), Image.LANCZOS)
 
 
-def stage(headline, subline, glow_source, glow_box):
-    """The backdrop and the headline; returns the canvas and the text's bottom edge."""
-    canvas = sf.background((W, H), glow_source, glow_box, plate_scale=1.3, plate_alpha=0.26)
-    block = sf.headline_block(W, headline, subline, HEADLINE_SIZE, SUBLINE_SIZE, HEADLINE_TRACKING,
-                              TEXT_WIDTH, SUBLINE_GAP)
-    bottom = sf.draw_headline(canvas, block, HEADLINE_TOP, W)
-    return canvas, bottom
-
-
-def check_clear(bottom, frame_top):
-    if frame_top - bottom < CLEARANCE:
-        log(f"warning: text ends {frame_top - bottom:.0f} px above the frame (want {CLEARANCE})")
+def stage():
+    """A clear stage: the template draws the ground and the words round it."""
+    return Image.new("RGBA", (W, H), (0, 0, 0, 0))
 
 
 def window(canvas, art, x, y, radius=WINDOW_RADIUS):
@@ -202,24 +190,27 @@ def _battery(draw, s):
 
 
 def menu_bar(canvas, icon_x):
-    """A 2880-wide translucent menu bar strip with Meridian's globe highlighted at icon_x."""
+    """A stage-wide translucent menu bar strip (fading out at both ends) with Meridian's globe highlighted
+    at icon_x."""
     y0, y1 = MENU_BAR_Y, MENU_BAR_Y + MENU_BAR_H
-    region = canvas.crop((0, y0, W, y1)).convert("RGB")
-    blurred = region.resize((W // 8, MENU_BAR_H // 8 or 1), Image.BOX).filter(ImageFilter.GaussianBlur(3))
-    blurred = blurred.resize((W, MENU_BAR_H), Image.BICUBIC)
-    strip = Image.blend(blurred, Image.new("RGB", blurred.size, (0, 0, 0)), 0.35).convert("RGBA")
-    canvas.paste(strip, (0, y0))
-    hair = Image.new("L", canvas.size, 0)
-    ImageDraw.Draw(hair).rectangle((0, y1 - 1, W, y1 - 1), fill=255)
-    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, 18), hair))
-    hair = Image.new("L", canvas.size, 0)
-    ImageDraw.Draw(hair).rectangle((0, y0, W, y0), fill=255)
-    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255, 14), hair))
+    # How much of the strip shows at each x: none at the ends, all of it MENU_BAR_FADE in.
+    fade = Image.new("L", (W, 1))
+    fade.putdata([round(255 * min(1, x / MENU_BAR_FADE, (W - 1 - x) / MENU_BAR_FADE)) for x in range(W)])
+    fade = fade.resize(canvas.size)
+
+    def band(box, alpha):
+        m = Image.new("L", canvas.size, 0)
+        ImageDraw.Draw(m).rectangle(box, fill=alpha)
+        return ImageChops.multiply(m, fade)
+
+    canvas.alpha_composite(sf.solid(canvas.size, (0x0C, 0x14, 0x22), band((0, y0, W, y1 - 1), 150)))
+    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255), band((0, y1 - 1, W, y1 - 1), 18)))
+    canvas.alpha_composite(sf.solid(canvas.size, (255, 255, 255), band((0, y0, W, y0), 14)))
 
     cy = y0 + MENU_BAR_H / 2
     # The front app's menus on the left (Finder, as on a fresh desktop).
     text = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    x = 56
+    x = MENU_BAR_FADE * 0.6
     for i, title in enumerate(("Finder", "File", "Edit", "View", "Go", "Window", "Help")):
         face, _ = sf.font("semibold" if i == 0 else "regular", 27)
         ascent, descent = face.getmetrics()
@@ -247,29 +238,27 @@ def menu_bar(canvas, icon_x):
 # ---------------------------------------------------------------------------------------------
 # The shots
 
-def menu_bar_shot(panel, headline, subline):
-    art = fit(panel, STAGE_W, H - (MENU_BAR_Y + MENU_BAR_H + 12) - 90, 1.1)
+def menu_bar_shot(panel):
+    art = fit(panel, STAGE_W, H - (MENU_BAR_Y + MENU_BAR_H + 12) - 130, 1.1)
     # Hang it at the right third, under the menu bar item.
     icon_x = round(W * 2 / 3)
     x = min(max(icon_x - art.width // 2, 140), W - 140 - art.width)
     y = MENU_BAR_Y + MENU_BAR_H + 12
-    canvas, bottom = stage(headline, subline, panel, (x, y, x + art.width, y + art.height))
-    check_clear(bottom, MENU_BAR_Y)
+    canvas = stage()
     menu_bar(canvas, icon_x)
     window(canvas, art, x, y, radius=round(WINDOW_RADIUS * art.width / panel.width * 1.1))
     return canvas
 
 
-def framed_shot(image, headline, subline):
+def framed_shot(image):
     art = fit(image)
     x = (W - art.width) // 2
-    canvas, bottom = stage(headline, subline, image, (x, STAGE_TOP, x + art.width, STAGE_TOP + art.height))
-    check_clear(bottom, STAGE_TOP)
+    canvas = stage()
     window(canvas, art, x, STAGE_TOP)
     return canvas
 
 
-def widgets_shot(large, medium, small, headline, subline):
+def widgets_shot(large, medium, small):
     """Large on the left; medium over small on the right, as on a desktop."""
     gap_pt = 28
     lw, lh = large.width / 3, large.height / 3
@@ -280,8 +269,7 @@ def widgets_shot(large, medium, small, headline, subline):
     factor = min(STAGE_W / group_w, STAGE_H / group_h, 3.2)
     x0 = round((W - group_w * factor) / 2)
     y0 = STAGE_TOP + round((STAGE_H - group_h * factor) / 2 * 0.6)
-    canvas, bottom = stage(headline, subline, large, (x0, y0, x0 + round(group_w * factor), y0 + round(group_h * factor)))
-    check_clear(bottom, y0)
+    canvas = stage()
     widget(canvas, scaled(large, factor / 3), x0, y0)
     y = y0
     for w in right:
@@ -291,7 +279,7 @@ def widgets_shot(large, medium, small, headline, subline):
     return canvas
 
 
-def panel_and_widget_shot(panel, large, headline, subline):
+def panel_and_widget_shot(panel, large):
     """The panel with the large widget beside it, at the same physical scale (2x and 3x renders)."""
     gap = 96
     w_art = scaled(large, 2 / 3)
@@ -302,8 +290,7 @@ def panel_and_widget_shot(panel, large, headline, subline):
     wg = scaled(w_art, factor)
     total = p.width + round(gap * factor) + wg.width
     x = (W - total) // 2
-    canvas, bottom = stage(headline, subline, panel, (x, STAGE_TOP, x + total, STAGE_TOP + p.height))
-    check_clear(bottom, STAGE_TOP)
+    canvas = stage()
     window(canvas, p, x, STAGE_TOP)
     widget(canvas, wg, x + p.width + round(gap * factor), STAGE_TOP + (p.height - wg.height) // 2)
     return canvas
@@ -334,30 +321,26 @@ def main():
     _, family = sf.font("semibold", 20)
     log(f"font: {'SF Pro' if family == 'sf' else 'Inter'}")
 
-    shots = [("01-menu-bar.png", lambda: menu_bar_shot(
-        panel, "The world, from your menu bar.", "One click shows every city you follow."))]
+    # The words for each stage are in scripts/store-frames.mjs, keyed by the name after the number.
+    shots = [("01-menu-bar.png", lambda: menu_bar_shot(panel))]
     if large is not None:
-        shots.append(("02-widgets.png", lambda: widgets_shot(
-            large, medium, small, "Time zones on your desktop.", "Widgets in every size.")))
-        shots.append(("03-working-hours.png", lambda: panel_and_widget_shot(
-            panel, large, "See who’s at work.", "Working and off hours for every city.")))
+        shots.append(("02-widgets.png", lambda: widgets_shot(large, medium, small)))
+        shots.append(("03-working-hours.png", lambda: panel_and_widget_shot(panel, large)))
     elif medium is not None:
-        shots.append(("02-widgets.png", lambda: widgets_shot(
-            medium, None, small, "Time zones on your desktop.", "Widgets in every size.")))
+        shots.append(("02-widgets.png", lambda: widgets_shot(medium, None, small)))
     if win is not None:
-        shots.append(("04-window.png", lambda: framed_shot(
-            win, "Plan across time zones.", "Drag the hours to find a time for everyone.")))
+        shots.append(("04-window.png", lambda: framed_shot(win)))
     # Never fewer than three: the panel again, framed as a window.
-    extra = [("05-working-hours.png", "See who’s at work.", "Working and off hours for every city."),
-             ("06-plan.png", "Plan across time zones.", "Drag the hours to find a time for everyone.")]
+    extra = ["05-working-hours.png", "06-plan.png"]
     while len(shots) < 3 and extra:
-        name, text, sub = extra.pop(0)
-        shots.append((name, lambda text=text, sub=sub: framed_shot(panel, text, sub)))
+        shots.append((extra.pop(0), lambda: framed_shot(panel)))
 
     for name, make in shots[:5]:
-        image = sf.finish(sf.dither(make()), (W, H), os.path.join(out, name))
+        image = make()
+        assert image.size == (W, H) and image.mode == "RGBA", (image.size, image.mode)
+        image.save(os.path.join(out, name), "PNG", optimize=True)
         log(f"wrote {name} {image.width}x{image.height} {image.mode}")
-    log(f"{min(len(shots), 5)} screenshots in {out}")
+    log(f"{min(len(shots), 5)} stages in {out}")
 
 
 if __name__ == "__main__":

@@ -137,9 +137,14 @@ jobs:
           ls "$ST"
           python3 -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install -q Pillow
+          npm install -g playwright@1.56.1 > "$OUT/playwright.log" 2>&1 && npx -y playwright@1.56.1 install chromium >> "$OUT/playwright.log" 2>&1
           SHOTS=mac/fastlane/screenshots/en-US
           rm -rf "$SHOTS"; mkdir -p "$SHOTS" "$OUT/screenshots"
-          "$RUNNER_TEMP/venv/bin/python" scripts/mac-store-shots.py "$ST" "$SHOTS"
+          # The app's panel, widgets and window on clear stages, then the Cowdrey family's App Store
+          # template round each (scripts/store-frame.mjs: Fraunces headline, Instrument Sans sub-line).
+          STAGES="$RUNNER_TEMP/stages"; rm -rf "$STAGES"
+          "$RUNNER_TEMP/venv/bin/python" scripts/mac-store-shots.py "$ST" "$STAGES"
+          node scripts/store-frames.mjs mac "$STAGES" "$SHOTS"
           n=0
           for f in "$SHOTS"/*.png; do
             [ -f "$f" ] || continue

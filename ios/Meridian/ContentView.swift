@@ -1010,7 +1010,7 @@ struct StatusLabelStyle: LabelStyle {
 /// through the middle one). In Edit List, a compact row (name, offset, time).
 struct CityRow: View {
     @EnvironmentObject private var store: CityStore
-    /// Downloaded photos, for cities without a bundled one.
+    /// Downloaded hosted plates, for cities without a built-in photo.
     @ObservedObject private var photos = CityPhotos.shared
     /// The row's type, scaled with the reader's text size.
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
@@ -1092,13 +1092,10 @@ struct CityRow: View {
         // The time grows only a little with the reader's text size.
         let clockSize = (tall ? RowCard.tallClock : RowCard.compactClock) * min(max(scale, 0.9), 1.15)
         let phase = SkylineArt.phase(for: place, at: moment)
-        // Its day photo by day, its night photo after dark (when it has one).
-        let photo = SkylineArt.photo(for: place, at: moment,
-                                     downloaded: store.downloadCityPhotos ? photos.image(for: place) : nil,
-                                     downloadedNight: store.downloadCityPhotos ? photos.nightImage(for: place) : nil,
-                                     nightSearched: store.downloadCityPhotos && photos.nightSearched(for: place),
-                                     plate: store.downloadCityPhotos ? photos.plate(for: place) : nil,
-                                     nightPlate: store.downloadCityPhotos ? photos.nightPlate(for: place) : nil)
+        // Its day photo by day, its night photo after dark (when it has one). Its hosted plate once
+        // downloaded (never with downloads off: its default scene meanwhile).
+        let plates: (day: UIImage?, night: UIImage?) = store.downloadCityPhotos ? photos.plateImages(for: place) : (nil, nil)
+        let photo = SkylineArt.photo(for: place, at: moment, plate: plates.day, plateNight: plates.night)
         let size = CGSize(width: cardWidth, height: height)
         // Where the photo's landmark goes: the gap between the name column and the tiles.
         let photoTarget = SkylineArt.gapTarget(cardWidth: cardWidth)
@@ -1160,7 +1157,7 @@ struct CityRow: View {
         .clipShape(RoundedRectangle(cornerRadius: RowCard.radius, style: .continuous))
         .foregroundStyle(.white)
         .accessibilityElement(children: .contain)
-        // A city without a bundled photo: its photo from disk, or asked for once (never blocking).
+        // A city showing a hosted plate: from disk, or downloaded once (never blocking).
         .task(id: "\(place.name)|\(place.timeZoneID)|\(store.downloadCityPhotos)") {
             guard store.downloadCityPhotos, !Screenshots.isActive else { return }
             photos.request(place)

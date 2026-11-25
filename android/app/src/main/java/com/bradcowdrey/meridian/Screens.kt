@@ -431,7 +431,7 @@ fun SettingsScreen(store: Store, openGroups: () -> Unit, onDone: () -> Unit) {
                 }
                 Note("Cities are grouped by continent automatically when your list spans two or more.")
                 SwitchRow("Download City Photos", store.downloadPhotos) { store.updateDownloadPhotos(it) }
-                Note("Cities without a built-in picture get one generated with AI for Meridian where there is one, else a photo from Wikimedia Commons. Each is downloaded once, then stays on this phone. Only the picture's address or the city's name is sent.")
+                Note("Some cities' pictures are downloaded once, then stay on this phone. Only the picture's address is sent. When this is off, those cities show a scene instead. All city pictures are generated with AI for Meridian.")
             }
             GlassCard("Widgets", Icons.Filled.Settings) {
                 Note("Touch and hold your home screen, tap Widgets, then find Meridian. Widgets show your cities in the same order as here.")
@@ -486,10 +486,9 @@ private fun StepperRow(label: String, down: () -> Unit, up: () -> Unit) {
 }
 
 /**
- * Photo Credits: the skyline pictures built in (skylines.json) and the photos downloaded for other cities (hosted AI
- * plates, credited "Generated with AI for Meridian" with no link, and Wikimedia photos), each with its author and
- * licence; tap one with a source to open its page on Wikimedia Commons. The built-in
- * pictures are AI-generated plates ("Generated with AI for Meridian", no source or licence link), shown without a link.
+ * Photo Credits: the city pictures built in (skylines.json, not the default scenes) and the hosted plates downloaded
+ * for other cities, each with its credit. All are AI-generated plates ("Generated with AI for Meridian", no source or
+ * licence link), shown without a link.
  */
 @Composable
 fun PhotoCreditsScreen(onBack: () -> Unit) {
@@ -506,10 +505,7 @@ fun PhotoCreditsScreen(onBack: () -> Unit) {
     Screen("Photo Credits", onBack, back = true) { padding ->
         Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            // AI plates have no source page; older built-in photos (and downloads) are from Wikimedia Commons.
-            val allGenerated = bundled.isNotEmpty() && bundled.all { it.second?.source.isNullOrBlank() }
-            Note(if (allGenerated) "Built-in city pictures are generated with AI for Meridian. Downloaded pictures are too, or are photos from Wikimedia Commons, under the licence shown for each."
-                else "City skyline photos from Wikimedia Commons, under the licence shown for each. Pictures marked as generated with AI were made for Meridian.")
+            Note("City pictures, built in and downloaded, are generated with AI for Meridian.")
             GlassCard("Built In", null, spacing = 0.dp) {
                 bundled.forEach { (city, credit) -> CreditRow(city, credit) { open(it) } }
             }
@@ -530,13 +526,13 @@ fun PhotoCreditsScreen(onBack: () -> Unit) {
 @Composable
 private fun CreditRow(city: String, credit: PhotoCredit?, open: (String) -> Unit) {
     val source = credit?.source.orEmpty()
-    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(enabled = source.isNotBlank(), onClickLabel = "Open on Wikimedia Commons") { open(source) }
+    Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(enabled = source.isNotBlank(), onClickLabel = "Open the source") { open(source) }
         .padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(city, color = Palette.primary)
             val byline = listOfNotNull(credit?.author?.takeIf { it.isNotBlank() }, credit?.license?.takeIf { it.isNotBlank() }).joinToString(" · ")
             if (byline.isNotEmpty()) Text(byline, fontSize = 12.sp, color = white(0.7f), maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (source.isNotBlank()) Text(source.removePrefix("https://commons.wikimedia.org/wiki/").replace('_', ' '), fontSize = 12.sp,
+            if (source.isNotBlank()) Text(source, fontSize = 12.sp,
                 color = white(0.5f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             val licenseUrl = credit?.licenseUrl
             if (!licenseUrl.isNullOrBlank()) Text("Licence", fontSize = 12.sp, color = white(0.6f),

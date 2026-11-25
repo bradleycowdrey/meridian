@@ -21,13 +21,17 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 
-/** Who took a photo, under which licence, and where it came from. */
-data class PhotoCredit(val author: String, val license: String, val licenseUrl: String?, val source: String)
+/** Who made a picture, under which licence, and where it came from (an AI plate: no licence link, no source). */
+data class PhotoCredit(val author: String, val license: String, val licenseUrl: String?, val source: String) {
+    companion object {
+        /** Every city picture's credit, built in or downloaded: generated with AI for Meridian, no link. */
+        val AI = PhotoCredit("Generated with AI for Meridian", "AI-generated image", null, "")
+    }
+}
 
 /**
  * The skyline photos built into the app: Resources/Data/skylines.json (written by the photo pipeline:
@@ -36,17 +40,19 @@ data class PhotoCredit(val author: String, val license: String, val licenseUrl: 
  * there is one, "skyline_<key>_night". v1 and v2 are a bare array of entries; v3 is an object with
  * "version": 3 and the entries under one array-valued key ([readEntries]). Until the manifest lands (or
  * for a key it leaves out) the four original photos still work. A v1 manifest (no `night`) still reads:
- * a night drawable is found by its name alone.
+ * a night drawable is found by its name alone. An entry with a "scene" field (scenecoast, scenemountains, ...) is a
+ * default scene: never matched by name and never listed in Photo Credits, only picked by [resolve]'s last step.
  */
 object SkylineManifest {
     /**
      * [focus] / [nightFocus]: the manifest's "focus" for the day photo and "night"."focus"; [focusX] / [nightFocusX]:
      * its "focusX" (v3: the landmark's place across the photo) for each (null when it has none); [top] / [nightTop]:
-     * its "top" (the landmark's tip, 0..1 down the photo) for each (null when it has none: no tip rule).
+     * its "top" (the landmark's tip, 0..1 down the photo) for each (null when it has none: no tip rule). [scene]: the
+     * entry's "scene" ("coast"), for a default scene; null for a city's photo.
      */
     data class Entry(val key: String, val names: List<String>, val zone: String?, val credit: PhotoCredit?, val nightCredit: PhotoCredit? = null,
         val focus: Float? = null, val nightFocus: Float? = null, val focusX: Float? = null, val nightFocusX: Float? = null,
-        val top: Float? = null, val nightTop: Float? = null)
+        val top: Float? = null, val nightTop: Float? = null, val scene: String? = null)
 
     /**
      * A built-in photo for a card: its key, its day drawable, and its night one (0 for none), with where each
@@ -61,15 +67,18 @@ object SkylineManifest {
         val plate: Boolean = false, val nightPlate: Boolean = false,
         val top: Float? = null, val nightTop: Float? = null)
 
+    /**
+     * Which picture a card shows ([resolve]): [photo], a built-in one (the city's own, a metro's, or a default scene);
+     * [hosted], a hosted plate to download and show in its place (with [photo] its default scene, shown while the plate
+     * isn't on the phone, or when Download City Photos is off). Both null: the drawn skyline.
+     */
+    data class Resolved(val photo: Photo?, val hosted: RemotePlates.Plate? = null)
+
     private val fallback = listOf(
-        Entry("sanfrancisco", listOf("San Francisco"), "America/Los_Angeles",
-            PhotoCredit("", "", null, "https://commons.wikimedia.org/wiki/File:San_Francisco_skyline_from_Coit_Tower.jpg")),
-        Entry("newyork", listOf("New York", "New York City", "Manhattan"), "America/New_York",
-            PhotoCredit("", "", null, "https://commons.wikimedia.org/wiki/File:Manhattan_from_Weehawken,_NJ.jpg")),
-        Entry("london", listOf("London"), "Europe/London",
-            PhotoCredit("", "", null, "https://commons.wikimedia.org/wiki/File:London_Skyline_(125508655).jpeg")),
-        Entry("tokyo", listOf("Tokyo"), "Asia/Tokyo",
-            PhotoCredit("", "", null, "https://commons.wikimedia.org/wiki/File:Skyscrapers_of_Shinjuku_2009_January.jpg")),
+        Entry("sanfrancisco", listOf("San Francisco"), "America/Los_Angeles", PhotoCredit.AI),
+        Entry("newyork", listOf("New York", "New York City", "Manhattan"), "America/New_York", PhotoCredit.AI),
+        Entry("london", listOf("London"), "Europe/London", PhotoCredit.AI),
+        Entry("tokyo", listOf("Tokyo"), "Asia/Tokyo", PhotoCredit.AI),
     )
 
     @Volatile private var loaded: List<Entry>? = null
@@ -78,7 +87,7 @@ object SkylineManifest {
     /** Anything but a-z, 0-9 and _ in a key, for its drawable's name (made once, not per lookup). */
     private val NON_ALNUM = Regex("[^a-z0-9_]")
 
-    /** Every built-in photo's entry: the manifest's, then any of the original four it leaves out. */
+    /** Every built-in photo's entry (default scenes too): the manifest's, then any of the original four it leaves out. */
     val entries: List<Entry>
         get() {
             loaded?.let { return it }
@@ -88,7 +97,8 @@ object SkylineManifest {
                 val keys = fromManifest.map { it.key }.toSet()
                 val all = fromManifest + fallback.filter { it.key !in keys }
                 val map = HashMap<String, MutableList<Entry>>()
-                for (e in all) for (n in e.names + e.key) {
+                // A default scene is never matched by name (nor by its key).
+                for (e in all) if (e.scene == null) for (n in e.names + e.key) {
                     val k = norm(n)
                     if (k.isNotEmpty()) map.getOrPut(k) { mutableListOf() }.let { if (e !in it) it.add(e) }
                 }
@@ -141,7 +151,8 @@ object SkylineManifest {
                 Entry(key, names, str(o, "zone").ifBlank { null }, credit, nightCredit,
                     focus = PhotoFocus.read(o), nightFocus = night?.let { PhotoFocus.read(it) },
                     focusX = PhotoFocus.readX(o), nightFocusX = night?.let { PhotoFocus.readX(it) },
-                    top = PhotoFocus.readTop(o), nightTop = night?.let { PhotoFocus.readTop(it) })
+                    top = PhotoFocus.readTop(o), nightTop = night?.let { PhotoFocus.readTop(it) },
+                    scene = str(o, "scene").ifBlank { null })
             }
         }.getOrDefault(emptyList())
     }
@@ -169,21 +180,46 @@ object SkylineManifest {
         }.getOrDefault(false)
     }
 
-    /**
-     * The built-in photo for a city (by name or alias, ignoring case) in this zone, if there is one; else, where
-     * plates-remote.json lists the city as an alias of a built-in photo (Brooklyn: New York's), that photo
-     * (by name and zone; [countryCode] is passed on for RemotePlates.aliasKey).
-     */
-    fun photo(context: Context, city: String, zoneId: String, countryCode: String? = null): Photo? {
+    /** The built-in photo for a city matched by its name or alias (ignoring case) in this zone, if there is one. */
+    fun photo(context: Context, city: String, zoneId: String): Photo? {
         if (entries.isEmpty()) return null
         val candidates = index[norm(city)]
         val match = candidates?.let { c ->
             c.firstOrNull { it.zone == null || it.zone == zoneId }
                 ?: c.firstOrNull { it.zone != null && sameZone(it.zone, zoneId) }
+        } ?: return null
+        return photoFor(context, match)
+    }
+
+    /** The built-in photo (not a default scene) with this key, or null when there's none in this build. */
+    fun photoForKey(context: Context, key: String): Photo? =
+        entries.firstOrNull { it.key == key && it.scene == null }?.let { photoFor(context, it) }
+
+    /** The built-in default scene "scene<name>" ("scenecoast"), or null when it isn't in this build. */
+    fun scenePhoto(context: Context, scene: String): Photo? =
+        entries.firstOrNull { it.key == "scene$scene" && it.scene != null }?.let { photoFor(context, it) }
+
+    /**
+     * Which picture a card shows, the same on every platform (scripts/photo-index.py):
+     *  1. a built-in photo matched by the city's name ([photo]);
+     *  2. plates-remote.json's "towns": a member town of the same name near the card ([lat], [lon]), or, without
+     *     coordinates, the only such town in the card's country ([countryCode]);
+     *  3. its "metros": the nearest metro centre in the card's country that covers the card's coordinates;
+     *  4. the key from 2 or 3 counts only when it's built in (that photo) or a hosted plate (downloaded; its default
+     *     scene comes with it, for until it's on the phone); otherwise the next step;
+     *  5. the default scene for the card's zone and latitude.
+     * Reads the manifest and the index the first time: call off the main thread.
+     */
+    fun resolve(context: Context, city: String, zoneId: String, countryCode: String?, lat: Double?, lon: Double?): Resolved {
+        photo(context, city, zoneId)?.let { return Resolved(it) }
+        val cc = countryCode?.trim()?.uppercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
+        val keys = listOfNotNull(RemotePlates.townKey(city, lat, lon, cc), RemotePlates.metroKey(lat, lon, cc))
+        val scene = RemotePlates.scene(zoneId, lat)?.let { scenePhoto(context, it) }
+        for (key in keys) {
+            photoForKey(context, key)?.let { return Resolved(it) }
+            RemotePlates.plate(key)?.let { return Resolved(scene, it) }
         }
-        if (match != null) photoFor(context, match)?.let { return it }
-        val aliasKey = RemotePlates.aliasKey(city, zoneId, countryCode) ?: return null
-        return entries.firstOrNull { it.key == aliasKey }?.let { photoFor(context, it) }
+        return Resolved(scene)
     }
 
     /** An entry's photo, or null when its drawable isn't in this build. */
@@ -196,36 +232,42 @@ object SkylineManifest {
             top = match.top, nightTop = match.nightTop) else null
     }
 
-    /** The built-in photos in this build, with their credits (Photo Credits): each day photo, then its night one. */
+    /** The built-in city photos in this build (not the default scenes), with their credits (Photo Credits): each day photo, then its night one. */
     fun credited(context: Context): List<Pair<String, PhotoCredit?>> =
-        entries.filter { resId(context, it.key) != 0 }.flatMap { e ->
+        entries.filter { it.scene == null && resId(context, it.key) != 0 }.flatMap { e ->
             val name = e.names.firstOrNull() ?: e.key
             listOfNotNull(name to e.credit, if (resId(context, e.key, night = true) != 0) "$name at night" to e.nightCredit else null)
         }
 }
 
 /**
- * Hosted AI plates for more cities (Resources/Data/plates-remote.json, version 1): {"version": 1, "base": URL,
- * "cities": [{key, names, zone, cc, lat, lon, focus, focusX, top, night: {focus, focusX, top}}], "aliases":
- * [{names, zone, cc, key}]}. A plate is downloaded (CityPhotos, under Download City Photos) from base + key +
- * "-day.jpg" and "-night.jpg", and placed by its entry's focus, focusX and top exactly as a built-in AI plate.
- * An alias names a BUILT-IN photo's key (skylines.json): that city uses the built-in photo, nothing is downloaded.
- * A city matches an entry as skylines.json's do (a name, ignoring case, in the same zone or one that keeps the same
- * time all year), or by a name in the same country ("cc") when the city list puts it in another zone of that country.
+ * Which photo more cities show (Resources/Data/plates-remote.json, version 2, written by scripts/photo-index.py, whose
+ * docstring is the contract): {"version": 2, "base": URL, "plates": [{key, name, cc, zone, focus, focusX, top,
+ * night: {focus, focusX, top}}], "metros": [{key, cc, lat, lon, r}], "towns": {key: [name, lat, lon, name, lat, lon, ...]},
+ * "scenes": [{scene, zones | prefix | maxAbsLat}]}. A key from towns or metros names a built-in photo (skylines.json) or a
+ * hosted plate in "plates", downloaded (CityPhotos, under Download City Photos) from base + key + "-day.jpg" and
+ * "-night.jpg" and placed by its focus, focusX and top exactly as a built-in AI plate. See SkylineManifest.resolve.
  */
 object RemotePlates {
-    /** A plate's entry; the night values are the night entry's, else (missing) the day's. */
-    data class Entry(val key: String, val names: List<String>, val zone: String?, val cc: String?,
+    /** A hosted plate; the night values are the night entry's, else (missing) the day's. */
+    data class Plate(val key: String, val name: String,
         val focus: Float, val focusX: Float?, val top: Float?,
         val nightFocus: Float, val nightFocusX: Float?, val nightTop: Float?)
 
-    data class Alias(val names: List<String>, val zone: String?, val cc: String?, val key: String)
+    /** A metro centre: [r] km around it, in country [cc]. */
+    private class Metro(val key: String, val cc: String, val lat: Double, val lon: Double, val r: Double)
 
-    /** The credit for every hosted plate: no licence link and no source page (Photo Credits shows no link). */
-    val CREDIT = PhotoCredit("Generated with AI for Meridian", "AI-generated image", null, "")
+    /** A member town of a metro ([key]). */
+    private class Town(val key: String, val lat: Double, val lon: Double)
 
-    private class Index(val base: String?, val byName: Map<String, List<Entry>>, val byKey: Map<String, Entry>,
-        val aliases: Map<String, List<Alias>>)
+    /** A default scene rule: by zone list, zone prefix or latitude (|lat| at most [maxAbsLat]); none of them: any card. */
+    private class SceneRule(val scene: String, val zones: Set<String>?, val prefix: String?, val maxAbsLat: Double?)
+
+    /** How near (km) a town of the same name must be to the card's coordinates. */
+    private const val TOWN_KM = 25.0
+
+    private class Index(val base: String?, val plates: Map<String, Plate>, val metros: List<Metro>,
+        val ccByKey: Map<String, String>, val towns: Map<String, List<Town>>, val scenes: List<SceneRule>)
 
     @Volatile private var loaded: Index? = null
 
@@ -242,88 +284,136 @@ object RemotePlates {
 
     private fun str(o: JSONObject, name: String): String = if (o.isNull(name)) "" else o.optString(name).trim()
 
-    private fun names(o: JSONObject): List<String> =
-        o.optJSONArray("names")?.let { a -> (0 until a.length()).map { a.optString(it).trim() }.filter { it.isNotBlank() } } ?: emptyList()
+    /** A finite number field, or null. */
+    private fun num(o: JSONObject, name: String): Double? = o.optDouble(name, Double.NaN).takeIf { it.isFinite() }
+
+    /**
+     * A town or city name for matching towns: case, accents and punctuation ignored (as scripts/photo-index.py's
+     * norm: NFKD, ASCII letters and digits only, lower case). "" for a name with nothing left.
+     */
+    fun fold(name: String): String =
+        java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFKD)
+            .filter { it.code < 128 && it.isLetterOrDigit() }.lowercase(Locale.ROOT)
 
     private fun parse(text: String?): Index {
-        val empty = Index(null, emptyMap(), emptyMap(), emptyMap())
+        val empty = Index(null, emptyMap(), emptyList(), emptyMap(), emptyMap(), emptyList())
         if (text.isNullOrBlank()) return empty
         return runCatching {
             val o = JSONObject(text.trimStart())
-            // Only an https base (anything else: no downloads, aliases still work).
+            if (o.optInt("version") != 2) return@runCatching empty
+            // Only an https base (anything else: no downloads; towns, metros and scenes still work).
             val base = str(o, "base").takeIf { it.startsWith("https://") }?.let { if (it.endsWith("/")) it else "$it/" }
-            val byName = HashMap<String, MutableList<Entry>>()
-            val byKey = HashMap<String, Entry>()
-            val cities = o.optJSONArray("cities")
-            if (cities != null) for (i in 0 until cities.length()) {
-                val c = cities.optJSONObject(i) ?: continue
-                val key = str(c, "key")
-                // The key goes into a URL and a file's metadata: letters, digits and hyphens only.
-                if (key.isEmpty() || !key.all { it in 'a'..'z' || it in '0'..'9' || it == '-' }) continue
-                val night = c.optJSONObject("night")
-                val focus = PhotoFocus.read(c) ?: PhotoFocus.DEFAULT
-                val focusX = PhotoFocus.readX(c)
-                val top = PhotoFocus.readTop(c)
-                val e = Entry(key, names(c), str(c, "zone").ifBlank { null }, str(c, "cc").ifBlank { null },
-                    focus, focusX, top,
-                    night?.let { PhotoFocus.read(it) } ?: focus, night?.let { PhotoFocus.readX(it) } ?: focusX,
-                    night?.let { PhotoFocus.readTop(it) } ?: top)
-                byKey[key] = e
-                for (n in e.names + key) {
-                    val k = SkylineManifest.norm(n)
-                    if (k.isNotEmpty()) byName.getOrPut(k) { mutableListOf() }.add(e)
+            val plates = HashMap<String, Plate>()
+            o.optJSONArray("plates")?.let { list ->
+                for (i in 0 until list.length()) {
+                    val c = list.optJSONObject(i) ?: continue
+                    val key = str(c, "key")
+                    // The key goes into a URL and a file name: letters, digits and hyphens only.
+                    if (key.isEmpty() || !key.all { it in 'a'..'z' || it in '0'..'9' || it == '-' }) continue
+                    val night = c.optJSONObject("night")
+                    val focus = PhotoFocus.read(c) ?: PhotoFocus.DEFAULT
+                    val focusX = PhotoFocus.readX(c)
+                    val top = PhotoFocus.readTop(c)
+                    plates[key] = Plate(key, str(c, "name").ifBlank { key }, focus, focusX, top,
+                        night?.let { PhotoFocus.read(it) } ?: focus, night?.let { PhotoFocus.readX(it) } ?: focusX,
+                        night?.let { PhotoFocus.readTop(it) } ?: top)
                 }
             }
-            val aliases = HashMap<String, MutableList<Alias>>()
-            val list = o.optJSONArray("aliases")
-            if (list != null) for (i in 0 until list.length()) {
-                val a = list.optJSONObject(i) ?: continue
-                val key = str(a, "key")
-                if (key.isEmpty()) continue
-                val alias = Alias(names(a), str(a, "zone").ifBlank { null }, str(a, "cc").ifBlank { null }, key)
-                for (n in alias.names) {
-                    val k = SkylineManifest.norm(n)
-                    if (k.isNotEmpty()) aliases.getOrPut(k) { mutableListOf() }.add(alias)
+            val metros = ArrayList<Metro>()
+            o.optJSONArray("metros")?.let { list ->
+                for (i in 0 until list.length()) {
+                    val m = list.optJSONObject(i) ?: continue
+                    val key = str(m, "key")
+                    val cc = str(m, "cc").uppercase(Locale.ROOT)
+                    val lat = num(m, "lat") ?: continue
+                    val lon = num(m, "lon") ?: continue
+                    if (key.isEmpty() || cc.isEmpty()) continue
+                    metros.add(Metro(key, cc, lat, lon, num(m, "r") ?: 0.0))
                 }
             }
-            Index(base, byName, byKey, aliases)
+            val towns = HashMap<String, MutableList<Town>>()
+            o.optJSONObject("towns")?.let { t ->
+                for (key in t.keys()) {
+                    val a = t.optJSONArray(key) ?: continue
+                    var i = 0
+                    while (i + 2 < a.length()) {
+                        val name = fold(a.optString(i))
+                        val lat = a.optDouble(i + 1, Double.NaN)
+                        val lon = a.optDouble(i + 2, Double.NaN)
+                        if (name.isNotEmpty() && lat.isFinite() && lon.isFinite()) towns.getOrPut(name) { mutableListOf() }.add(Town(key, lat, lon))
+                        i += 3
+                    }
+                }
+            }
+            val scenes = ArrayList<SceneRule>()
+            o.optJSONArray("scenes")?.let { list ->
+                for (i in 0 until list.length()) {
+                    val s = list.optJSONObject(i) ?: continue
+                    val scene = str(s, "scene").takeIf { it.isNotEmpty() } ?: continue
+                    val zones = s.optJSONArray("zones")?.let { z -> (0 until z.length()).map { z.optString(it).trim() }.filter { it.isNotEmpty() }.toSet() }
+                    scenes.add(SceneRule(scene, zones, str(s, "prefix").ifBlank { null }, num(s, "maxAbsLat")))
+                }
+            }
+            Index(base, plates, metros, metros.associate { it.key to it.cc }, towns, scenes)
         }.getOrDefault(empty)
     }
 
-    /**
-     * The first candidate for a city in [zoneId]: one in the same zone (or with none), else one in a zone that keeps
-     * the same time all year, else one in the same country ([countryCode]) in another of its zones.
-     */
-    private fun <T> pick(candidates: List<T>?, zoneOf: (T) -> String?, ccOf: (T) -> String?, zoneId: String, countryCode: String?): T? {
-        if (candidates.isNullOrEmpty()) return null
-        return candidates.firstOrNull { zoneOf(it).let { z -> z == null || z == zoneId } }
-            ?: candidates.firstOrNull { zoneOf(it)?.let { z -> SkylineManifest.sameZone(z, zoneId) } == true }
-            ?: countryCode?.trim()?.takeIf { it.isNotEmpty() }?.let { cc ->
-                candidates.firstOrNull { ccOf(it)?.equals(cc, ignoreCase = true) == true }
-            }
+    /** The great-circle distance in km. */
+    private fun km(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val p1 = Math.toRadians(lat1)
+        val p2 = Math.toRadians(lat2)
+        val dp = p2 - p1
+        val dl = Math.toRadians(lon2 - lon1)
+        val h = Math.sin(dp / 2).let { it * it } + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2).let { it * it }
+        return 6371.0 * 2 * Math.asin(Math.sqrt(h.coerceIn(0.0, 1.0)))
     }
 
-    /** The hosted plate for a city in this zone (and country), if there is one. Reads the index the first time: off the main thread. */
-    fun plate(city: String, zoneId: String, countryCode: String?): Entry? =
-        pick(index().byName[SkylineManifest.norm(city)], { it.zone }, { it.cc }, zoneId, countryCode)
+    /**
+     * Step 2, "towns": with coordinates, the key of the nearest member town of the same name ([fold]) within 25 km;
+     * without, the key of a town of that name whose metro is in the card's country ([cc]), when it's the only one.
+     */
+    fun townKey(city: String, lat: Double?, lon: Double?, cc: String?): String? {
+        val name = fold(city)
+        if (name.isEmpty()) return null
+        val idx = index()
+        val list = idx.towns[name] ?: return null
+        if (lat != null && lon != null) {
+            return list.map { it to km(lat, lon, it.lat, it.lon) }.filter { it.second <= TOWN_KM }.minByOrNull { it.second }?.first?.key
+        }
+        if (cc == null) return null
+        val keys = list.filter { idx.ccByKey[it.key] == cc }.map { it.key }.distinct()
+        return keys.singleOrNull()
+    }
+
+    /** Step 3, "metros": the key of the nearest metro centre in the card's country ([cc]) whose radius covers the card. */
+    fun metroKey(lat: Double?, lon: Double?, cc: String?): String? {
+        if (lat == null || lon == null || cc == null) return null
+        return index().metros.asSequence().filter { it.cc == cc }.map { it to km(lat, lon, it.lat, it.lon) }
+            .filter { it.second <= it.first.r }.minByOrNull { it.second }?.first?.key
+    }
 
     /**
-     * The built-in photo's key (skylines.json) a city is an alias of, if it is one. By name and zone only, as
-     * skylines.json's own names ([countryCode] is not used: an alias names one place, and another city of that name
-     * elsewhere in its country must not take the built-in photo).
+     * Step 5, "scenes": the first rule whose zones hold the card's zone, or whose prefix starts it, or (with a latitude)
+     * whose maxAbsLat is at least |[lat]|; a rule without a condition takes any card. Its scene's name ("coast"), or null
+     * when the index has none.
      */
-    @Suppress("UNUSED_PARAMETER")
-    fun aliasKey(city: String, zoneId: String, countryCode: String?): String? =
-        pick(index().aliases[SkylineManifest.norm(city)], { it.zone }, { it.cc }, zoneId, null)?.key
+    fun scene(zoneId: String, lat: Double?): String? = index().scenes.firstOrNull { r ->
+        when {
+            r.zones != null -> zoneId in r.zones
+            r.prefix != null -> zoneId.startsWith(r.prefix)
+            r.maxAbsLat != null -> lat != null && r.maxAbsLat >= Math.abs(lat)
+            else -> true
+        }
+    }?.scene
 
-    /** A plate's entry by its key (for a plate already downloaded), or null when this build's index doesn't list it. */
-    fun byKey(key: String): Entry? = index().byKey[key]
+    /** A hosted plate by its key, or null when this build's index doesn't list it. */
+    fun plate(key: String): Plate? = index().plates[key]
 
     /** The day image's URL, or null without a usable base. */
-    fun dayUrl(e: Entry): String? = index().base?.let { it + e.key + "-day.jpg" }
+    fun dayUrl(p: Plate): String? = index().base?.let { it + p.key + "-day.jpg" }
 
     /** The night image's URL, or null without a usable base. */
-    fun nightUrl(e: Entry): String? = index().base?.let { it + e.key + "-night.jpg" }
+    fun nightUrl(p: Plate): String? = index().base?.let { it + p.key + "-night.jpg" }
 }
 
 /**
@@ -416,137 +506,145 @@ object PhotoFocus {
 }
 
 /**
- * Photos for cities without a built-in one: from the city's Wikipedia page's lead image, on Wikimedia
- * Commons, only if it's free to use (CC0, public domain, CC BY, CC BY-SA). Fetched once in the
- * background (never more than once in 30 days), then kept on the phone with its credit. Only the
- * city's name is sent. Until a photo is ready (or with none), the card shows its drawn skyline.
- * Once a city has its day photo, one night photo is looked for too (a Commons search for
- * "<city> skyline night": free licence, the title names the city, and dark when measured), kept the
- * same way as <slug>-night.jpg; with none, the card darkens the day photo at night as before.
- * A city with a hosted AI plate (RemotePlates) gets that instead, first: its day and night images, fetched once and
- * kept the same way (<slug>.jpg and <slug>-night.jpg, their metadata naming the plate's key), with nothing sent but
- * the image's URL. When that fails the Wikimedia path runs as before; a city that already has a Wikimedia photo gets
- * its plate in its place (tried again at most once in 30 days when the plate isn't there).
+ * Hosted AI plates (RemotePlates), for cities whose photo isn't built in: a plate's day and night images, fetched once in
+ * the background (only under Download City Photos) and kept on the phone in filesDir/city-plates as <key>-day.jpg and
+ * <key>-night.jpg, with <key>.json (written last: the plate is complete). Only the images' URLs are requested: no
+ * cookies, no app headers, no HTTP cache. A plate that isn't there yet is asked for again at most once in 30 days.
+ * Until a plate is on the phone (or with the setting off), the card shows its default scene.
  */
 object CityPhotos {
-    private const val USER_AGENT = "Meridian/2.0 (https://bradcowdrey.com/meridian)"
     private const val RETRY_MS = 30L * 24 * 3600 * 1000
     private const val MAX_BYTES = 8 * 1024 * 1024
+    private const val DIR = "city-plates"
+    /** Where earlier versions kept downloaded photos (Wikimedia photos and plates by city): cleared once ([cleanUp]). */
+    private const val OLD_DIR = "city-photos"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     /** One download at a time, gently. */
     private val mutex = Mutex()
     /** Asked for this run (so a card redrawn many times asks once). */
     private val asked = HashSet<String>()
-    /** Decoded photos by slug: state, so a card redraws when its photo arrives. */
+    /** Decoded plates by key (the night one by "<key>-night"): state, so a card redraws when its photo arrives. */
     private val bitmaps = mutableStateMapOf<String, ImageBitmap>()
-    /** The hosted plate's entry for each slug whose downloaded photo is one (state: the card places it by the entry). */
-    private val plates = mutableStateMapOf<String, RemotePlates.Entry>()
+    /** Plates that were taken to be on the phone but couldn't be read this run (state: their cards show the default scene). */
+    private val unreadable = mutableStateMapOf<String, Boolean>()
     /**
      * Screenshot mode (set by the app at launch): nothing is read, fetched or exported for the widgets, so the
      * first frame never waits on disk or network and the widgets aren't redrawn with demo cities.
      */
     @Volatile var demo = false
-    /** Anything but a-z and 0-9, for a slug (made once). */
-    private val NON_SLUG = Regex("[^a-z0-9]+")
-    /** Bumped when a photo is saved, so Photo Credits reads the list again. */
+    /** Bumped when a plate is saved, so Photo Credits reads the list again. */
     var saved by mutableIntStateOf(0)
         private set
 
     data class Downloaded(val city: String, val credit: PhotoCredit)
 
-    /** A file name for a city in a zone ("lisbon-1234567"). */
-    fun slug(city: String, zoneId: String): String {
-        val name = city.trim().lowercase(Locale.ROOT).replace(NON_SLUG, "-").trim('-').take(40).ifEmpty { "city" }
-        return name + "-" + (city.trim().lowercase(Locale.ROOT) + "|" + zoneId).hashCode().toLong().and(0xFFFFFFFFL).toString(16)
-    }
-
-    /** A night photo's name, after its city's slug ("lisbon-1234567-night"; a slug ends in hex, so never another city's). */
     private const val NIGHT = "-night"
-    /** The night photo's probe: Commons' 330 px thumbnail, measured before the full photo is fetched. */
-    private const val PROBE_WIDTH = 330
-    /** A night photo is dark: mean relative luminance of the probe at most this. */
-    private const val NIGHT_MAX = 0.10
-    /** At most this many candidates are measured per city, a second apart. */
-    private const val MAX_PROBES = 4
 
-    /** The photo for this slug, once it's on the phone and read (a state read: callers redraw when it arrives). */
-    fun bitmap(slug: String): ImageBitmap? = bitmaps[slug]
+    /** The day plate for this key, once it's on the phone and read (a state read: callers redraw when it arrives). */
+    fun bitmap(key: String): ImageBitmap? = bitmaps[key]
 
-    /** The night photo for this slug, once it's on the phone and read (a state read), or null for none (yet). */
-    fun nightBitmap(slug: String): ImageBitmap? = bitmaps[slug + NIGHT]
+    /** The night plate for this key, once it's on the phone and read (a state read), or null (yet). */
+    fun nightBitmap(key: String): ImageBitmap? = bitmaps[key + NIGHT]
 
-    /**
-     * The hosted plate's entry when this slug's downloaded photo is one (a state read, set before its photo is), so the
-     * card places it by the entry's focus, focusX and top; null for a Wikimedia photo (or none).
-     */
-    fun plate(slug: String): RemotePlates.Entry? = plates[slug]
+    /** Whether this plate couldn't be read from the phone this run (a state read): its card shows the default scene. */
+    fun failed(key: String): Boolean = unreadable[key] == true
 
-    /** The key of the hosted plate saved for this slug (its metadata's "plate"), or null for a Wikimedia photo or none. */
-    private fun plateKey(context: Context, slug: String): String? = runCatching {
-        JSONObject(File(dir(context), "$slug.json").readText()).takeIf { it.optBoolean("ok") }
-            ?.optString("plate")?.trim()?.takeIf { it.isNotEmpty() }
-    }.getOrNull()
-
-    /**
-     * The hosted plate on the phone for this slug (day and night both saved), with its entry in this build's index (for
-     * the widgets' placement), or null. Reads files: call off the main thread.
-     */
-    fun plateOnDisk(context: Context, slug: String): RemotePlates.Entry? {
-        if (file(context, slug) == null || nightFile(context, slug) == null) return null
-        return plateKey(context, slug)?.let { RemotePlates.byKey(it) }
+    /** A plate on the phone that can't be read: its card falls back to the scene, and the next launch downloads it again. */
+    private fun markUnreadable(context: Context, key: String) {
+        unreadable[key] = true
+        runCatching { File(dir(context), "$key.json").delete() }
     }
 
-    private fun dir(context: Context): File = File(context.filesDir, "city-photos").apply { mkdirs() }
+    private fun dir(context: Context): File = File(context.filesDir, DIR).apply { mkdirs() }
 
-    /** The downloaded photo for this slug, if it's on the phone (for the widgets' copies). */
-    fun file(context: Context, slug: String): File? = File(dir(context), "$slug.jpg").takeIf { it.exists() }
+    /** The downloaded day plate for this key, if it's on the phone (for the widgets' copies). */
+    fun file(context: Context, key: String): File? = File(dir(context), "$key-day.jpg").takeIf { it.exists() }
 
-    /** The downloaded night photo for this slug, if it's on the phone (for the widgets' copies). */
-    fun nightFile(context: Context, slug: String): File? = File(dir(context), "$slug$NIGHT.jpg").takeIf { it.exists() }
+    /** The downloaded night plate for this key, if it's on the phone (for the widgets' copies). */
+    fun nightFile(context: Context, key: String): File? = File(dir(context), "$key$NIGHT.jpg").takeIf { it.exists() }
+
+    /** Whether this plate is on the phone, day and night, and complete. Reads files: call off the main thread. */
+    fun onDisk(context: Context, key: String): Boolean =
+        file(context, key) != null && nightFile(context, key) != null &&
+            runCatching { JSONObject(File(dir(context), "$key.json").readText()).optBoolean("ok") }.getOrDefault(false)
 
     /**
-     * Shows a city's photo if it's on the phone; otherwise, when [download] is on, fetches it in the
-     * background (unless a try in the last 30 days found none). Never blocks; safe offline. The night photo
-     * on the phone is read only when [night] (it's night there), so a card never decodes both.
+     * Removes what earlier versions downloaded (Wikimedia photos, their night photos and records), once: the old folder
+     * goes. A hosted plate saved there (its record names the plate) is kept: moved here first. Call at launch.
      */
-    fun request(context: Context, city: String, zoneId: String, countryCode: String?, download: Boolean, night: Boolean = false) {
+    fun cleanUp(context: Context) {
         if (demo) return
-        val slug = slug(city, zoneId)
-        if (bitmaps.containsKey(slug) && (!night || bitmaps.containsKey(slug + NIGHT))) return
-        val key = "$slug|$download|$night"
-        synchronized(asked) { if (!asked.add(key)) return }
+        val app = context.applicationContext
+        scope.launch {
+            mutex.withLock {
+                val old = File(app.filesDir, OLD_DIR)
+                if (!old.exists()) return@withLock
+                runCatching {
+                    old.listFiles { f -> f.name.endsWith(".json") && !f.name.endsWith("$NIGHT.json") }?.forEach { meta ->
+                        val o = runCatching { JSONObject(meta.readText()) }.getOrNull() ?: return@forEach
+                        val key = o.optString("plate").trim()
+                        if (!o.optBoolean("ok") || key.isEmpty() || !key.all { it in 'a'..'z' || it in '0'..'9' || it == '-' }) return@forEach
+                        if (onDisk(app, key)) return@forEach
+                        val slug = meta.name.removeSuffix(".json")
+                        val day = File(old, "$slug.jpg")
+                        val night = File(old, "$slug$NIGHT.jpg")
+                        if (!day.exists() || !night.exists()) return@forEach
+                        val folder = dir(app)
+                        if (night.renameTo(File(folder, "$key$NIGHT.jpg")) && day.renameTo(File(folder, "$key-day.jpg"))) {
+                            File(folder, "$key.json").writeText(record(key, RemotePlates.plate(key)?.name ?: o.optString("city")).toString())
+                        }
+                    }
+                }
+                old.deleteRecursively()
+                saved++
+                // The widgets' copies of the old photos go on their next export.
+                MeridianWidgets.updateAll(app)
+            }
+        }
+    }
+
+    /**
+     * Shows a hosted plate if it's on the phone; otherwise fetches it in the background (unless a try in the last 30
+     * days found it missing). Call only with Download City Photos on. Never blocks; safe offline. The night plate is
+     * read only when [night] (it's night there), so a card never decodes both.
+     */
+    fun request(context: Context, plate: RemotePlates.Plate, night: Boolean = false) {
+        if (demo) return
+        val key = plate.key
+        if (bitmaps.containsKey(key) && (!night || bitmaps.containsKey(key + NIGHT))) return
+        synchronized(asked) { if (!asked.add("$key|$night")) return }
         val app = context.applicationContext
         scope.launch {
             try {
-                val image = File(dir(app), "$slug.jpg")
-                val nightImage = File(dir(app), "$slug$NIGHT.jpg")
-                // A saved hosted plate: its entry first, so the photo is placed by it from its first frame.
-                if (image.exists() && !plates.containsKey(slug)) plateKey(app, slug)?.let { RemotePlates.byKey(it) }?.let { plates[slug] = it }
-                if (image.exists() && !bitmaps.containsKey(slug)) decode(image)?.let { bitmaps[slug] = it }
-                if (night && nightImage.exists() && !bitmaps.containsKey(slug + NIGHT)) decode(nightImage)?.let { bitmaps[slug + NIGHT] = it }
-                if (!download) return@launch
-                mutex.withLock {
-                    // A hosted AI plate first (before Wikimedia, and in place of a Wikimedia photo already saved). A plate
-                    // on the phone is never fetched again, and has its night photo, so nothing more is looked for.
-                    val hasPlate = image.exists() && nightImage.exists() && plateKey(app, slug) != null
-                    if (hasPlate) return@withLock
-                    val plate = RemotePlates.plate(city, zoneId, countryCode)
-                    if (plate != null && plateDue(app, slug) && fetchPlate(app, slug, city, plate)) return@withLock
-                    if (!image.exists()) {
-                        val old = runCatching { JSONObject(File(dir(app), "$slug.json").readText()) }.getOrNull()
-                        if (old != null && System.currentTimeMillis() - old.optLong("fetchedAt") < RETRY_MS) return@withLock
-                        fetch(app, slug, city, countryCode)
+                if (!onDisk(app, key)) mutex.withLock {
+                    // (Another card, or the clean-up, may have put it in place meanwhile.)
+                    if (!onDisk(app, key) && plateDue(app, key)) fetchPlate(app, plate)
+                }
+                if (!onDisk(app, key)) {
+                    // (Not there, or gone since the card looked: the default scene.)
+                    if (!bitmaps.containsKey(key)) unreadable[key] = true
+                    return@launch
+                }
+                if (!bitmaps.containsKey(key)) {
+                    val day = file(app, key)?.let { decode(it) }
+                    if (day == null) { markUnreadable(app, key); return@launch }
+                    bitmaps[key] = day
+                }
+                if (night && !bitmaps.containsKey(key + NIGHT)) {
+                    // A night plate that can't be read: the day plate stays; the next launch downloads both again.
+                    val nightPlate = nightFile(app, key)?.let { decode(it) }
+                    if (nightPlate == null) {
+                        runCatching { File(dir(app), "$key.json").delete() }
+                    } else {
+                        bitmaps[key + NIGHT] = nightPlate
                     }
-                    // A night photo only for a city with a day one, and only one try in 30 days.
-                    if (!image.exists() || nightImage.exists()) return@withLock
-                    val oldNight = runCatching { JSONObject(File(dir(app), "$slug$NIGHT.json").readText()) }.getOrNull()
-                    if (oldNight != null && System.currentTimeMillis() - oldNight.optLong("fetchedAt") < RETRY_MS) return@withLock
-                    fetchNight(app, slug, city)
                 }
             } catch (e: IOException) {
                 // Offline or a server hiccup: not marked as tried on disk, so the next launch tries again (asked keeps it out until then).
+                if (!bitmaps.containsKey(key)) unreadable[key] = true
             } catch (e: Exception) {
-                // Anything unexpected: the drawn skyline stays.
+                // Anything unexpected: the default scene.
+                if (!bitmaps.containsKey(key)) unreadable[key] = true
             }
         }
     }
@@ -559,54 +657,12 @@ object CityPhotos {
         BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
     }.getOrNull()
 
-    /** Marks a city as having no usable photo (or night photo, for "<slug>-night"), so it isn't asked again for 30 days. */
-    private fun markNone(context: Context, name: String, city: String) {
-        runCatching {
-            File(dir(context), "$name.json").writeText(JSONObject().put("city", city).put("ok", false)
-                .put("night", name.endsWith(NIGHT)).put("fetchedAt", System.currentTimeMillis()).toString())
-        }
-    }
+    /** The marker of a hosted plate that wasn't there (<key>.tried: when), so it's asked again only after 30 days. */
+    private fun plateTried(context: Context, key: String): File = File(dir(context), "$key.tried")
 
-    /** Lower case, without accents, spaces for underscores: for checking a file's title names the city. */
-    private fun fold(text: String): String =
-        java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "")
-            .replace('_', ' ').lowercase(Locale.ROOT).replace(Regex("\\s+"), " ").trim()
-
-    /** The mean relative luminance of a JPEG (decoded near [PROBE_WIDTH] px wide), or null if it won't decode. */
-    private fun meanLuminance(bytes: ByteArray): Double? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-        var sample = 1
-        while (bounds.outWidth / (sample * 2) >= PROBE_WIDTH) sample *= 2
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
-        try {
-            val w = bitmap.width
-            val h = bitmap.height
-            val row = IntArray(w)
-            fun lin(c: Int): Double { val v = c / 255.0; return if (v <= 0.04045) v / 12.92 else Math.pow((v + 0.055) / 1.055, 2.4) }
-            var sum = 0.0
-            var n = 0
-            for (y in 0 until h step 2) {
-                bitmap.getPixels(row, 0, w, 0, y, w, 1)
-                for (x in 0 until w step 2) {
-                    val c = row[x]
-                    sum += 0.2126 * lin((c shr 16) and 0xFF) + 0.7152 * lin((c shr 8) and 0xFF) + 0.0722 * lin(c and 0xFF)
-                    n++
-                }
-            }
-            return if (n > 0) sum / n else null
-        } finally {
-            bitmap.recycle()
-        }
-    }
-
-    /** The marker of a hosted plate that wasn't there (<slug>.plate-tried: when), so it's asked again only after 30 days. */
-    private fun plateTried(context: Context, slug: String): File = File(dir(context), "$slug.plate-tried")
-
-    /** Whether this slug's hosted plate may be asked for: never found missing, or not in the last 30 days. */
-    private fun plateDue(context: Context, slug: String): Boolean {
-        val at = runCatching { plateTried(context, slug).readText().trim().toLong() }.getOrNull() ?: return true
+    /** Whether this plate may be asked for: never found missing, or not in the last 30 days. */
+    private fun plateDue(context: Context, key: String): Boolean {
+        val at = runCatching { plateTried(context, key).readText().trim().toLong() }.getOrNull() ?: return true
         return System.currentTimeMillis() - at >= RETRY_MS
     }
 
@@ -617,252 +673,62 @@ object CityPhotos {
         return bounds.outWidth > 0 && bounds.outHeight > 0
     }
 
-    /** Writes [bytes] as <name>.jpg (through a .part file), then its metadata, <name>.json. False if the file can't be put in place. */
-    private fun save(context: Context, name: String, bytes: ByteArray, meta: JSONObject): Boolean {
+    /** Writes [bytes] as [name] (through a .part file). False if the file can't be put in place. */
+    private fun save(context: Context, name: String, bytes: ByteArray): Boolean {
         val folder = dir(context)
-        val tmp = File(folder, "$name.jpg.part")
+        val tmp = File(folder, "$name.part")
         tmp.writeBytes(bytes)
-        if (!tmp.renameTo(File(folder, "$name.jpg"))) { tmp.delete(); return false }
-        File(folder, "$name.json").writeText(meta.toString())
+        if (!tmp.renameTo(File(folder, name))) { tmp.delete(); return false }
         return true
     }
 
+    /** A plate's record (<key>.json): complete, its name and when it was fetched. */
+    private fun record(key: String, name: String): JSONObject =
+        JSONObject().put("ok", true).put("plate", key).put("name", name).put("fetchedAt", System.currentTimeMillis())
+
     /**
-     * Downloads a city's hosted AI plate, day and night, and saves both as its photos (<slug>.jpg, <slug>-night.jpg,
-     * replacing a Wikimedia photo saved before), credited "Generated with AI for Meridian". Only the image URLs are
-     * requested (no app headers). True when both are saved. False on any failure, for the Wikimedia path to run: when an
-     * image isn't there (or isn't an image) the plate is asked for again only after 30 days; a network error isn't marked.
+     * Downloads a hosted plate, day and night, and saves both. Only the image URLs are requested. When an image isn't
+     * there (or isn't an image) the plate is asked for again only after 30 days; a network error throws (not marked).
      */
-    private fun fetchPlate(context: Context, slug: String, city: String, plate: RemotePlates.Entry): Boolean {
-        val dayUrl = RemotePlates.dayUrl(plate) ?: return false
-        val nightUrl = RemotePlates.nightUrl(plate) ?: return false
-        // Day, then night (only with a day). A network or server error: false, not marked, for the Wikimedia path.
-        val fetched: Pair<ByteArray?, ByteArray?> = try {
-            val d = getBytes(dayUrl, identify = false)?.takeIf { decodable(it) }
-            d to (if (d == null) null else getBytes(nightUrl, identify = false)?.takeIf { decodable(it) })
-        } catch (e: IOException) {
-            return false
-        }
-        val day = fetched.first
-        val night = fetched.second
+    private fun fetchPlate(context: Context, plate: RemotePlates.Plate) {
+        val dayUrl = RemotePlates.dayUrl(plate) ?: return
+        val nightUrl = RemotePlates.nightUrl(plate) ?: return
+        // Day, then night (only with a day).
+        val day = getBytes(dayUrl)?.takeIf { decodable(it) }
+        val night = if (day == null) null else getBytes(nightUrl)?.takeIf { decodable(it) }
         if (day == null || night == null) {
-            runCatching { plateTried(context, slug).writeText(System.currentTimeMillis().toString()) }
-            return false
+            runCatching { plateTried(context, plate.key).writeText(System.currentTimeMillis().toString()) }
+            return
         }
-        fun meta(isNight: Boolean) = JSONObject().put("city", city).put("ok", true).put("night", isNight)
-            .put("plate", plate.key).put("fetchedAt", System.currentTimeMillis())
-            .put("author", RemotePlates.CREDIT.author).put("license", RemotePlates.CREDIT.license)
-            .put("licenseUrl", "").put("source", "")
-        // The night photo first: the day one's metadata (naming the plate) is what marks the plate as complete.
-        if (!save(context, slug + NIGHT, night, meta(true))) return false
-        if (!save(context, slug, day, meta(false))) return false
-        plateTried(context, slug).delete()
-        plates[slug] = plate
-        val folder = dir(context)
-        // Read now (a Wikimedia photo shown before is replaced); one that won't decode is read again next time.
-        val dayBitmap = decode(File(folder, "$slug.jpg"))
-        if (dayBitmap != null) bitmaps[slug] = dayBitmap else bitmaps.remove(slug)
-        val nightBitmap = decode(File(folder, "$slug$NIGHT.jpg"))
-        if (nightBitmap != null) bitmaps[slug + NIGHT] = nightBitmap else bitmaps.remove(slug + NIGHT)
+        if (!save(context, plate.key + NIGHT + ".jpg", night)) return
+        if (!save(context, plate.key + "-day.jpg", day)) return
+        // The record last: it marks the plate as complete.
+        File(dir(context), "${plate.key}.json").writeText(record(plate.key, plate.name).toString())
+        plateTried(context, plate.key).delete()
         saved++
-        // The widgets show it too: their copies are made again (the files are newer), then they redraw.
+        // The widgets show it too: their copies are made, then they redraw.
         if (!demo) MeridianWidgets.updateAll(context)
-        return true
     }
 
     /**
-     * Looks for one night photo of a city on Commons ("<city> skyline night"): a free-licence JPEG, in
-     * landscape, at least 800 px wide, whose title names the city, and dark when measured (mean luminance
-     * of its 330 px thumbnail at most 0.10). Saved at about 960 px as <slug>-night.jpg, with its credit.
+     * A GET with nothing but the URL: no cookies (none are set up in this app), no app headers (the User-Agent is a
+     * fixed "Meridian", nothing about the phone), no HTTP cache;
+     * redirects followed (same protocol only).
      */
-    private suspend fun fetchNight(context: Context, slug: String, city: String) {
-        val name = slug + NIGHT
-        val api = "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=10" +
-            "&gsrsearch=" + URLEncoder.encode("$city skyline night", "UTF-8") +
-            "&prop=imageinfo&iiprop=" + URLEncoder.encode("url|size|extmetadata", "UTF-8") + "&iiurlwidth=$PROBE_WIDTH"
-        val pages = getJson(api)?.optJSONObject("query")?.optJSONObject("pages")
-        if (pages == null) { markNone(context, name, city); return }
-        val candidates = pages.keys().asSequence().mapNotNull { pages.optJSONObject(it) }
-            .sortedBy { it.optInt("index", Int.MAX_VALUE) }.toList()
-        val wanted = fold(city)
-        val commons = "https://upload.wikimedia.org/wikipedia/commons/"
-        var probes = 0
-        for (page in candidates) {
-            if (probes >= MAX_PROBES) break
-            val file = page.optString("title").removePrefix("File:")
-            val lower = file.lowercase(Locale.ROOT)
-            if (!(lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) continue
-            if (wanted.isEmpty() || !fold(file).contains(wanted)) continue
-            val info = page.optJSONArray("imageinfo")?.optJSONObject(0) ?: continue
-            val credit = info.optJSONObject("extmetadata")?.let { creditFrom(file, it) } ?: continue
-            val width = info.optInt("width")
-            val height = info.optInt("height")
-            if (width < 800 || width <= height) continue
-            val thumb = info.optString("thumburl").takeIf { it.startsWith(commons) } ?: continue
-            if (probes > 0) kotlinx.coroutines.delay(1000)
-            probes++
-            val probe = getBytes(thumb) ?: continue
-            val lum = meanLuminance(probe) ?: continue
-            if (lum > NIGHT_MAX) continue
-            val url = when {
-                width <= 960 -> info.optString("url")
-                Regex("/\\d+px-").containsMatchIn(thumb) -> thumb.replace(Regex("/\\d+px-"), "/960px-")
-                else -> null
-            }?.takeIf { it.startsWith(commons) } ?: continue
-            kotlinx.coroutines.delay(1000)
-            val bytes = getBytes(url) ?: continue
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) continue
-            val folder = dir(context)
-            val tmp = File(folder, "$name.jpg.part")
-            tmp.writeBytes(bytes)
-            val image = File(folder, "$name.jpg")
-            if (!tmp.renameTo(image)) { tmp.delete(); return }
-            File(folder, "$name.json").writeText(JSONObject().put("city", city).put("ok", true).put("night", true)
-                .put("fetchedAt", System.currentTimeMillis())
-                .put("author", credit.author).put("license", credit.license)
-                .put("licenseUrl", credit.licenseUrl ?: "").put("source", credit.source).toString())
-            decode(image)?.let { bitmaps[name] = it }
-            saved++
-            if (!demo) MeridianWidgets.updateAll(context)
-            return
-        }
-        markNone(context, name, city)
-    }
-
-    private fun fetch(context: Context, slug: String, city: String, countryCode: String?) {
-        val country = countryCode?.takeIf { it.length == 2 }?.let { Locale("", it.uppercase(Locale.ROOT)).getDisplayCountry(Locale.ENGLISH) }
-            ?.takeIf { it.isNotBlank() && !it.equals(countryCode, ignoreCase = true) }
-        val titles = listOfNotNull(country?.let { "$city, $it" }, city).distinct()
-        for (title in titles) {
-            val summary = getJson("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeTitle(title)) ?: continue
-            if (summary.optString("type") == "disambiguation") continue
-            val url = imageUrl(summary) ?: continue
-            val file = commonsFile(url) ?: continue
-            if (!file.lowercase(Locale.ROOT).let { it.endsWith(".jpg") || it.endsWith(".jpeg") }) continue
-            val credit = credit(file) ?: continue
-            val bytes = getBytes(url) ?: continue
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) continue
-            val folder = dir(context)
-            val tmp = File(folder, "$slug.jpg.part")
-            tmp.writeBytes(bytes)
-            val image = File(folder, "$slug.jpg")
-            if (!tmp.renameTo(image)) { tmp.delete(); return }
-            File(folder, "$slug.json").writeText(JSONObject().put("city", city).put("ok", true)
-                .put("fetchedAt", System.currentTimeMillis())
-                .put("author", credit.author).put("license", credit.license)
-                .put("licenseUrl", credit.licenseUrl ?: "").put("source", credit.source).toString())
-            decode(image)?.let { bitmaps[slug] = it }
-            saved++
-            // The widgets show it too: their small copy is made (on the widgets' worker, off the main thread), then they redraw.
-            if (!demo) MeridianWidgets.updateAll(context)
-            return
-        }
-        markNone(context, slug, city)
-    }
-
-    private fun encodeTitle(title: String): String =
-        URLEncoder.encode(title.trim().replace(' ', '_'), "UTF-8").replace("+", "%20")
-
-    /**
-     * The lead image at about 1000 px: Wikimedia's thumbnail at 960 px (a width it serves), or the
-     * original when that's no wider. Only images on Commons (not English Wikipedia's own uploads).
-     */
-    private fun imageUrl(summary: JSONObject): String? {
-        val thumb = summary.optJSONObject("thumbnail")?.optString("source")?.takeIf { it.isNotBlank() }
-        val original = summary.optJSONObject("originalimage")
-        val originalUrl = original?.optString("source")?.takeIf { it.isNotBlank() }
-        val originalWidth = original?.optInt("width") ?: 0
-        val url = when {
-            originalUrl != null && originalWidth in 1..960 -> originalUrl
-            thumb != null && Regex("/\\d+px-").containsMatchIn(thumb) -> thumb.replace(Regex("/\\d+px-"), "/960px-")
-            originalUrl != null && originalWidth in 1..1280 -> originalUrl
-            else -> null
-        } ?: return null
-        return url.takeIf { it.startsWith("https://upload.wikimedia.org/wikipedia/commons/") }
-    }
-
-    /** "Lisbon_skyline.jpg" from an upload.wikimedia.org URL (a thumbnail's or the original's). */
-    private fun commonsFile(url: String): String? {
-        val path = url.substringAfter("/wikipedia/commons/", "").substringBefore('?')
-        if (path.isEmpty()) return null
-        val parts = path.split('/')
-        val raw = if (parts.firstOrNull() == "thumb") parts.getOrNull(3) else parts.getOrNull(2)
-        return raw?.takeIf { it.isNotBlank() }?.let { android.net.Uri.decode(it) }
-    }
-
-    /** The file's author and licence on Commons, if it's free to use (else null). */
-    private fun credit(file: String): PhotoCredit? {
-        val api = "https://commons.wikimedia.org/w/api.php?action=query&titles=" + URLEncoder.encode("File:$file", "UTF-8") +
-            "&prop=imageinfo&iiprop=extmetadata&format=json&origin=*"
-        val json = getJson(api) ?: return null
-        val pages = json.optJSONObject("query")?.optJSONObject("pages") ?: return null
-        val keys = pages.keys()
-        while (keys.hasNext()) {
-            val page = pages.optJSONObject(keys.next()) ?: continue
-            val meta = page.optJSONArray("imageinfo")?.optJSONObject(0)?.optJSONObject("extmetadata") ?: continue
-            return creditFrom(file, meta)
-        }
-        return null
-    }
-
-    /** A file's credit from its Commons extmetadata, if it's free to use (else null). */
-    private fun creditFrom(file: String, meta: JSONObject): PhotoCredit? {
-        fun value(name: String) = meta.optJSONObject(name)?.optString("value")?.let { plain(it) } ?: ""
-        val license = value("LicenseShortName")
-        if (!freeLicense(license)) return null
-        val author = value("Artist").ifBlank { "Unknown" }
-        val licenseUrl = value("LicenseUrl").ifBlank { null }
-        return PhotoCredit(author, license, licenseUrl, "https://commons.wikimedia.org/wiki/File:" + file.replace(' ', '_'))
-    }
-
-    /** CC0, public domain, CC BY or CC BY-SA (any version); not NC or ND. */
-    fun freeLicense(name: String): Boolean {
-        val s = name.trim().lowercase(Locale.ROOT)
-        return s.startsWith("cc0") || s.startsWith("public domain") ||
-            Regex("^cc[ -]by(-sa)?([ -][0-9][0-9a-z. ,-]*)?$").matches(s)
-    }
-
-    /** Text from Commons' HTML values (an author's link). */
-    private fun plain(html: String): String =
-        android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_LEGACY).toString().replace(Regex("\\s+"), " ").trim()
-
-    /** A GET; with [identify] (Wikimedia, which asks for it) the app's User-Agent, else only the URL (hosted plates). */
-    private fun open(url: String, identify: Boolean = true): HttpURLConnection {
+    private fun open(url: String): HttpURLConnection {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 10_000
         c.readTimeout = 15_000
         c.instanceFollowRedirects = true
-        if (identify) {
-            c.setRequestProperty("User-Agent", USER_AGENT)
-            c.setRequestProperty("Api-User-Agent", USER_AGENT)
-        } else {
-            c.useCaches = false
-        }
+        c.useCaches = false
+        // A fixed agent in place of the system's (which names the phone's model and build): no header is added.
+        c.setRequestProperty("User-Agent", "Meridian")
         return c
     }
 
-    /** The response as JSON; null for a page that isn't there (404) or isn't JSON; throws on a network or server error. */
-    private fun getJson(url: String): JSONObject? {
+    /** The response's bytes; null for one that isn't there (or too big); throws on a network or server error. */
+    private fun getBytes(url: String): ByteArray? {
         val c = open(url)
-        c.setRequestProperty("Accept", "application/json")
-        try {
-            val code = c.responseCode
-            if (code == 404 || code == 400) return null
-            if (code == 429 || code >= 500) throw IOException("HTTP $code")
-            if (code !in 200..299) return null
-            val text = c.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            return runCatching { JSONObject(text) }.getOrNull()
-        } finally {
-            c.disconnect()
-        }
-    }
-
-    private fun getBytes(url: String, identify: Boolean = true): ByteArray? {
-        val c = open(url, identify)
         try {
             val code = c.responseCode
             if (code == 429 || code >= 500) throw IOException("HTTP $code")
@@ -883,25 +749,23 @@ object CityPhotos {
         }
     }
 
-    /** The photos downloaded so far, with their credits (Photo Credits). Reads files: call off the main thread. */
+    /** The plates downloaded so far, day and night, with their credit (Photo Credits). Reads files: call off the main thread. */
     fun downloaded(context: Context): List<Downloaded> {
         val files = dir(context).listFiles { f -> f.name.endsWith(".json") } ?: return emptyList()
         return files.mapNotNull { f ->
             runCatching {
-                val o = JSONObject(f.readText())
-                if (!o.optBoolean("ok")) return@runCatching null
-                if (!File(f.parentFile, f.name.removeSuffix(".json") + ".jpg").exists()) return@runCatching null
-                val city = o.optString("city").let { if (o.optBoolean("night")) "$it at night" else it }
-                Downloaded(city, PhotoCredit(o.optString("author"), o.optString("license"),
-                    o.optString("licenseUrl").ifBlank { null }, o.optString("source")))
+                val key = f.name.removeSuffix(".json")
+                if (!onDisk(context, key)) return@runCatching null
+                val name = JSONObject(f.readText()).optString("name").trim().ifEmpty { RemotePlates.plate(key)?.name ?: key }
+                name
             }.getOrNull()
-        }.sortedBy { it.city.lowercase(Locale.ROOT) }
+        }.sortedBy { it.lowercase(Locale.ROOT) }.flatMap { listOf(Downloaded(it, PhotoCredit.AI), Downloaded("$it at night", PhotoCredit.AI)) }
     }
 }
 
 /**
  * The home screen widgets' photos: small copies (about 480 px wide, JPEG quality 60) of each listed
- * city's photo, built in or downloaded, in filesDir/widget-skylines/<key>.jpg, and of its night photo
+ * city's photo, built in or a downloaded hosted plate, in filesDir/widget-skylines/<key>.jpg, and of its night photo
  * where it has one, <key>-night.jpg, with which city uses which (map.json: card id -> key, crop and
  * where each photo's skyline is, and whether there's a night copy). Made by the app whenever the list changes or a downloaded
  * photo arrives (MeridianWidgets.updateAll does this before it redraws), so a widget only ever decodes
@@ -914,12 +778,12 @@ object WidgetPhotos {
     private const val QUALITY = 60
 
     /**
-     * A card's photo: [key] names the copy; [resId] (built in) or [slug] (downloaded) is where it came from.
+     * A card's photo: [key] names the copy; [resId] (built in) or [plateKey] (a downloaded hosted plate) is where it came from.
      * [night]: the city has a night photo too (copied as <key>-night.jpg; built in from [nightResId]).
      * [plate] / [nightPlate]: the manifest gave that photo a focusX (the small widget's landmark goes to
      * PhotoFocus.SQUARE_TARGET_X); [top] / [nightTop]: its landmark's tip, 0..1 down the photo (null: no tip rule).
      */
-    data class Ref(val key: String, val focus: Float, val resId: Int = 0, val slug: String? = null,
+    data class Ref(val key: String, val focus: Float, val resId: Int = 0, val plateKey: String? = null,
         val nightResId: Int = 0, val night: Boolean = false, val nightFocus: Float = PhotoFocus.DEFAULT,
         val focusX: Float = PhotoFocus.DEFAULT_X, val nightFocusX: Float = PhotoFocus.DEFAULT_X,
         val plate: Boolean = false, val nightPlate: Boolean = false,
@@ -932,24 +796,24 @@ object WidgetPhotos {
         if (place.isMyLocation) MyLocation.city(Store.prefs(context)) ?: place.name else place.name
 
     /**
-     * The photo for a card (built in or an alias of one, else downloaded and on the phone), or null for none (a drawn
-     * sky). A downloaded hosted AI plate is placed by its index entry, as a built-in plate (its night photo by the night entry).
+     * The photo for a card, as the app's card shows it (SkylineManifest.resolve): a built-in photo (the city's own, a
+     * metro's, or its default scene), or a hosted plate once it's on the phone (and Download City Photos is on), placed
+     * by its index entry exactly as a built-in AI plate (its night photo by the night entry). Null for none (a drawn sky).
      */
     fun ref(context: Context, place: Place): Ref? {
         val city = city(context, place)
-        SkylineManifest.photo(context, city, place.zoneId, place.country)?.let {
-            return Ref(it.key, it.focus, resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0, nightFocus = it.nightFocus,
-                focusX = it.focusX, nightFocusX = it.nightFocusX, plate = it.plate, nightPlate = it.nightPlate,
-                top = it.top, nightTop = it.nightTop)
-        }
-        val slug = CityPhotos.slug(city, place.zoneId)
-        CityPhotos.plateOnDisk(context, slug)?.let {
-            return Ref("dl-$slug", it.focus, slug = slug, night = true, nightFocus = it.nightFocus,
+        val resolved = SkylineManifest.resolve(context, city, place.zoneId, place.country, place.latitude, place.longitude)
+        val download = Store.prefs(context).getBoolean("downloadCityPhotos", true)
+        resolved.hosted?.takeIf { download && CityPhotos.onDisk(context, it.key) }?.let {
+            return Ref("pl-${it.key}", it.focus, plateKey = it.key, night = true, nightFocus = it.nightFocus,
                 focusX = it.focusX ?: PhotoFocus.DEFAULT_X, nightFocusX = it.nightFocusX ?: PhotoFocus.DEFAULT_X,
                 plate = it.focusX != null, nightPlate = it.nightFocusX != null, top = it.top, nightTop = it.nightTop)
         }
-        if (CityPhotos.file(context, slug) != null) return Ref("dl-$slug", PhotoFocus.DEFAULT, slug = slug, night = CityPhotos.nightFile(context, slug) != null)
-        return null
+        return resolved.photo?.let {
+            Ref(it.key, it.focus, resId = it.resId, nightResId = it.nightResId, night = it.nightResId != 0, nightFocus = it.nightFocus,
+                focusX = it.focusX, nightFocusX = it.nightFocusX, plate = it.plate, nightPlate = it.nightPlate,
+                top = it.top, nightTop = it.nightTop)
+        }
     }
 
     /** Each card's photo, by card id, without writing anything (the app's widget previews). */
@@ -989,8 +853,8 @@ object WidgetPhotos {
         }
         for (ref in refs.values.distinctBy { it.key }) {
             // The day photo (<key>.jpg), then the night one where there is one (<key>-night.jpg).
-            copy(ref.key, ref.resId, ref.slug?.let { CityPhotos.file(context, it) })
-            if (ref.night) copy(ref.key + "-night", ref.nightResId, ref.slug?.let { CityPhotos.nightFile(context, it) })
+            copy(ref.key, ref.resId, ref.plateKey?.let { CityPhotos.file(context, it) })
+            if (ref.night) copy(ref.key + "-night", ref.nightResId, ref.plateKey?.let { CityPhotos.nightFile(context, it) })
         }
         runCatching {
             val map = JSONObject()
@@ -1038,7 +902,7 @@ object WidgetPhotos {
         val copy = File(dir(context), ref.key + ".jpg")
         if (copy.exists()) decodeFile(copy, maxWidth)?.let { return@runCatching it }
         if (ref.resId != 0) decodeResource(context, ref.resId, maxWidth)?.let { return@runCatching it }
-        ref.slug?.let { CityPhotos.file(context, it) }?.let { decodeFile(it, maxWidth) }
+        ref.plateKey?.let { CityPhotos.file(context, it) }?.let { decodeFile(it, maxWidth) }
     }.getOrNull()
 
     /**
@@ -1049,7 +913,7 @@ object WidgetPhotos {
         val copy = File(dir(context), ref.key + "-night.jpg")
         if (copy.exists()) decodeFile(copy, maxWidth)?.let { return@runCatching it }
         if (ref.nightResId != 0) decodeResource(context, ref.nightResId, maxWidth)?.let { return@runCatching it }
-        ref.slug?.let { CityPhotos.nightFile(context, it) }?.let { decodeFile(it, maxWidth) }
+        ref.plateKey?.let { CityPhotos.nightFile(context, it) }?.let { decodeFile(it, maxWidth) }
     }.getOrNull()
 
     /** The power-of-two sample size that keeps the decoded width at or above [maxWidth] but near it. */

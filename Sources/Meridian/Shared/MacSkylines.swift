@@ -12,24 +12,26 @@ struct MacPhotoCredit: Identifiable, Hashable {
     let source: URL?
 }
 
-/// What matching a city against plates-remote.json needs from an index entry or an alias: its
-/// zone and country.
-fileprivate protocol MacRemoteMatchable {
-    var zone: String? { get }
-    var cc: String? { get }
-}
-
 /// The city photos bundled with the Mac app and its widget: Resources/Skylines/skyline_<key>.jpg
 /// (day) and skyline_<key>_night.jpg, named by Resources/skylines.json. scripts/build-app.sh
 /// copies them in; the app holds the full-size photos (the 1536 x 512 city plates) and the widget,
-/// which is sandboxed, its own 600 px copies. Without them (a bare `swift run`) every city shows
-/// the sky gradient.
+/// which is sandboxed, its own 1200 px copies. Without them (a bare `swift run`) every city shows
+/// the sky gradient. Every photo, built in or downloaded, is an AI plate made for Meridian.
 ///
-/// Cities without a built-in photo: an alias in Resources/plates-remote.json can point one at a
-/// built-in photo ("Brooklyn": New York's); otherwise, when the index has a hosted AI plate for it,
-/// the app (PlateDownloads) downloads its day and night photos once into `platesDirectory`, where
-/// the Mac App Store build's widget reads them too (the DMG widget keeps to built-in photos).
-/// Precedence: built-in photo, alias, hosted plate, the sky.
+/// Which photo a city shows (the same on every platform; scripts/photo-index.py is the contract),
+/// from Resources/plates-remote.json (version 2):
+///   1. its own built-in photo, matched by name (skylines.json), as always;
+///   2. "towns": a member town of a metro with the same name (case, accents and punctuation
+///      ignored) within 25 km (the nearest), or, for a card without coordinates, the only such
+///      town whose metro is in the card's country;
+///   3. "metros": the nearest metro centre in the card's country whose radius covers it;
+///   (a key from 2 or 3 counts only when it is a built-in photo or a hosted plate in "plates";
+///   otherwise the next step is tried)
+///   4. a default scene ("scenes": the first rule matching the zone or latitude), a built-in photo
+///      "scene<name>" that is never matched by name.
+/// A hosted plate is downloaded once by the app (PlateDownloads) into `platesDirectory`, where the
+/// Mac App Store build's widget reads it too (the DMG widget keeps to built-in photos). Until it is
+/// on disk, or while Download City Photos is off, the city shows its default scene.
 enum MacSkylines {
     // MARK: The manifest
 
@@ -79,12 +81,18 @@ enum MacSkylines {
         var focusX: Double?
         /// The day photo's landmark tip: its height, 0 (top) to 1 (bottom). Optional; nil: no tip rule.
         var top: Double?
+        /// A default scene ("coast", "mountains", ...): shown by the "scenes" rules of
+        /// plates-remote.json, never matched by name and never listed in Photo Credits.
+        var scene: String?
 
-        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus, focusX, top }
+        var isScene: Bool { !(scene ?? "").isEmpty }
+
+        private enum CodingKeys: String, CodingKey { case key, names, zone, file, credit, night, focus, focusX, top, scene }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             key = try c.decode(String.self, forKey: .key)
+            scene = try? c.decodeIfPresent(String.self, forKey: .scene)
             names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
             zone = try? c.decodeIfPresent(String.self, forKey: .zone)
             file = try? c.decodeIfPresent(String.self, forKey: .file)
@@ -149,10 +157,10 @@ enum MacSkylines {
         return file.entries
     }()
 
-    /// The manifest's entries by every name they go by (normalised).
+    /// The manifest's entries by every name they go by (normalised). Default scenes have none.
     private static let index: [String: [Entry]] = {
         var out: [String: [Entry]] = [:]
-        for entry in manifest {
+        for entry in manifest where !entry.isScene {
             let names = entry.names.isEmpty ? [entry.key] : entry.names
             for name in names {
                 let n = normalize(name)
@@ -170,9 +178,10 @@ enum MacSkylines {
         return out
     }()
 
-    // MARK: The hosted plates' index (plates-remote.json)
+    // MARK: The photo index (plates-remote.json, version 2)
 
-    private struct RemoteNight: Decodable {
+    /// A hosted plate's measured numbers (skyline band, landmark, landmark tip), as for a built-in.
+    private struct PlateNumbers: Decodable {
         var focus: Double?
         var focusX: Double?
         var top: Double?
@@ -187,64 +196,99 @@ enum MacSkylines {
         }
     }
 
-    /// A city with a hosted AI plate (day and night), downloaded once: base + key + "-day.jpg"
-    /// and base + key + "-night.jpg". Placed by its own focus, focusX and top, like a built-in plate.
-    private struct RemoteEntry: Decodable, MacRemoteMatchable {
+    /// A hosted AI plate (day and night), downloaded once: base + key + "-day.jpg" and
+    /// base + key + "-night.jpg". Placed by its own focus, focusX and top, like a built-in plate.
+    private struct HostedEntry: Decodable {
         let key: String
-        var names: [String] = []
-        var zone: String?
-        var cc: String?
+        var name: String?
         var focus: Double?
         var focusX: Double?
         var top: Double?
-        var night: RemoteNight?
+        var night: PlateNumbers?
 
-        private enum CodingKeys: String, CodingKey { case key, names, zone, cc, focus, focusX, top, night }
+        private enum CodingKeys: String, CodingKey { case key, name, focus, focusX, top, night }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             key = try c.decode(String.self, forKey: .key)
-            names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
-            zone = try? c.decodeIfPresent(String.self, forKey: .zone)
-            cc = try? c.decodeIfPresent(String.self, forKey: .cc)
+            name = try? c.decodeIfPresent(String.self, forKey: .name)
             focus = try? c.decodeIfPresent(Double.self, forKey: .focus)
             focusX = try? c.decodeIfPresent(Double.self, forKey: .focusX)
             top = try? c.decodeIfPresent(Double.self, forKey: .top)
-            night = try? c.decodeIfPresent(RemoteNight.self, forKey: .night)
+            night = try? c.decodeIfPresent(PlateNumbers.self, forKey: .night)
         }
     }
 
-    /// Another name for a city with a built-in photo ("Brooklyn" -> newyork): that photo, no download.
-    private struct RemoteAlias: Decodable, MacRemoteMatchable {
-        var names: [String] = []
-        var zone: String?
-        var cc: String?
+    /// A metro's centre: its photo key, country (ISO code), where it is and how far it reaches (km).
+    private struct MetroCentre: Decodable {
         let key: String
+        let cc: String
+        let lat: Double
+        let lon: Double
+        let r: Double
+    }
 
-        private enum CodingKeys: String, CodingKey { case names, zone, cc, key }
+    /// A default-scene rule: the scene, for a zone in `zones`, a zone starting with `prefix`, or a
+    /// latitude of at most `maxAbsLat` either side of the equator; a rule with none of them matches
+    /// every city.
+    private struct SceneRule: Decodable {
+        let scene: String
+        var zones: [String]?
+        var prefix: String?
+        var maxAbsLat: Double?
+
+        private enum CodingKeys: String, CodingKey { case scene, zones, prefix, maxAbsLat }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
-            names = (try? c.decodeIfPresent([String].self, forKey: .names)) ?? []
-            zone = try? c.decodeIfPresent(String.self, forKey: .zone)
-            cc = try? c.decodeIfPresent(String.self, forKey: .cc)
-            key = try c.decode(String.self, forKey: .key)
+            scene = try c.decode(String.self, forKey: .scene)
+            zones = try? c.decodeIfPresent([String].self, forKey: .zones)
+            prefix = try? c.decodeIfPresent(String.self, forKey: .prefix)
+            maxAbsLat = try? c.decodeIfPresent(Double.self, forKey: .maxAbsLat)
         }
     }
 
-    /// An entry or alias that fails to decode is skipped rather than losing the whole index.
+    /// One value of a "towns" list, which runs name, lat, lon, name, lat, lon, ...
+    private enum TownField: Decodable {
+        case text(String)
+        case number(Double)
+        case other
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.singleValueContainer()
+            if let number = try? c.decode(Double.self) {
+                self = .number(number)
+            } else if let text = try? c.decode(String.self) {
+                self = .text(text)
+            } else {
+                self = .other
+            }
+        }
+    }
+
+    /// A member town of a metro: the metro's key and where the town is.
+    private struct Town {
+        let key: String
+        let lat: Double
+        let lon: Double
+    }
+
+    /// An entry that fails to decode is skipped rather than losing the whole index.
     private struct Lenient<T: Decodable>: Decodable {
         let value: T?
         init(from decoder: Decoder) throws { value = try? T(from: decoder) }
     }
 
-    /// The whole file: {"version": 1, "base": "https://…/", "cities": [...], "aliases": [...]}.
+    /// The whole file: {"version": 2, "base": "https://…/", "plates": [...], "metros": [...],
+    /// "towns": {key: [name, lat, lon, ...]}, "scenes": [...]}.
     private struct RemoteFile: Decodable {
         var base: URL?
-        var cities: [RemoteEntry] = []
-        var aliases: [RemoteAlias] = []
+        var plates: [HostedEntry] = []
+        var metros: [MetroCentre] = []
+        var towns: [String: [TownField]] = [:]
+        var scenes: [SceneRule] = []
 
-        private enum CodingKeys: String, CodingKey { case base, cities, aliases }
+        private enum CodingKeys: String, CodingKey { case base, plates, metros, towns, scenes }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -253,49 +297,52 @@ enum MacSkylines {
                let url = URL(string: text), url.scheme?.lowercased() == "https", url.host?.isEmpty == false {
                 base = url
             }
-            cities = ((try? c.decodeIfPresent([Lenient<RemoteEntry>].self, forKey: .cities)) ?? [])
+            plates = ((try? c.decodeIfPresent([Lenient<HostedEntry>].self, forKey: .plates)) ?? [])
                 .compactMap { $0.value }
                 .filter { MacSkylines.validPlateKey($0.key) }
-            aliases = ((try? c.decodeIfPresent([Lenient<RemoteAlias>].self, forKey: .aliases)) ?? [])
+            metros = ((try? c.decodeIfPresent([Lenient<MetroCentre>].self, forKey: .metros)) ?? [])
+                .compactMap { $0.value }
+                .filter { $0.lat.isFinite && $0.lon.isFinite && $0.r.isFinite && $0.r > 0 }
+            towns = (try? c.decodeIfPresent([String: [TownField]].self, forKey: .towns)) ?? [:]
+            scenes = ((try? c.decodeIfPresent([Lenient<SceneRule>].self, forKey: .scenes)) ?? [])
                 .compactMap { $0.value }
         }
     }
 
-    /// plates-remote.json from the bundle; nil when it isn't there (then no city gets a hosted plate).
+    /// plates-remote.json from the bundle; nil when it isn't there (then cities without a built-in
+    /// photo of their own keep their sky).
     private static let remote: RemoteFile? = {
         guard let url = Bundle.main.url(forResource: "plates-remote", withExtension: "json"),
               let data = try? Data(contentsOf: url) else { return nil }
         return try? JSONDecoder().decode(RemoteFile.self, from: data)
     }()
 
-    /// The hosted plates by every name they go by (normalised).
-    private static let remoteIndex: [String: [RemoteEntry]] = {
-        var out: [String: [RemoteEntry]] = [:]
-        for entry in remote?.cities ?? [] {
-            for name in entry.names.isEmpty ? [entry.key] : entry.names {
-                let n = normalize(name)
-                guard !n.isEmpty else { continue }
-                out[n, default: []].append(entry)
-            }
-        }
-        return out
-    }()
-
     /// The hosted plates by key (the first one with each key).
-    private static let remoteByKey: [String: RemoteEntry] = {
-        var out: [String: RemoteEntry] = [:]
-        for entry in remote?.cities ?? [] where out[entry.key] == nil { out[entry.key] = entry }
+    private static let plateByKey: [String: HostedEntry] = {
+        var out: [String: HostedEntry] = [:]
+        for entry in remote?.plates ?? [] where out[entry.key] == nil { out[entry.key] = entry }
         return out
     }()
 
-    /// The aliases by every name they go by (normalised).
-    private static let aliasIndex: [String: [RemoteAlias]] = {
-        var out: [String: [RemoteAlias]] = [:]
-        for alias in remote?.aliases ?? [] {
-            for name in alias.names {
-                let n = normalize(name)
-                guard !n.isEmpty else { continue }
-                out[n, default: []].append(alias)
+    /// Each metro's country (uppercased), by key.
+    private static let metroCountry: [String: String] = {
+        var out: [String: String] = [:]
+        for metro in remote?.metros ?? [] where out[metro.key] == nil { out[metro.key] = metro.cc.uppercased() }
+        return out
+    }()
+
+    /// The member towns by name (`townName`).
+    private static let townIndex: [String: [Town]] = {
+        var out: [String: [Town]] = [:]
+        for (key, fields) in remote?.towns ?? [:] {
+            var i = 0
+            while i + 2 < fields.count {
+                if case .text(let name) = fields[i], case .number(let lat) = fields[i + 1],
+                   case .number(let lon) = fields[i + 2], lat.isFinite, lon.isFinite {
+                    let n = townName(name)
+                    if !n.isEmpty { out[n, default: []].append(Town(key: key, lat: lat, lon: lon)) }
+                }
+                i += 3
             }
         }
         return out
@@ -308,21 +355,17 @@ enum MacSkylines {
         return !key.isEmpty && key.count <= 80 && key.allSatisfy { allowed.contains($0) }
     }
 
-    /// The best index entry or alias for a city with this name: the same zone, else one on the same
-    /// clock all year (as for skylines.json), else one in the same country as the city's zone (the
-    /// city list can use another zone of that country: Asia/Chongqing for Asia/Shanghai).
-    private static func bestRemote<T: MacRemoteMatchable>(_ list: [T], timeZoneID: String) -> T? {
-        if let exact = list.first(where: { $0.zone == timeZoneID }) { return exact }
-        if let fits = list.first(where: { zoneFits($0.zone, timeZoneID) }) { return fits }
-        guard let country = WorkWeek.countryByZone[timeZoneID]?.uppercased(), !country.isEmpty else { return nil }
-        return list.first(where: { $0.cc?.uppercased() == country })
-    }
-
     /// Lowercased, without accents or spaces at the ends ("São Paulo" -> "sao paulo").
     private static func normalize(_ name: String) -> String {
         name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US"))
             .lowercased()
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// A name as the towns are matched: `normalize`, then letters and digits only, so punctuation
+    /// and spaces don't count ("St. Paul" and "St Paul" -> "stpaul").
+    private static func townName(_ name: String) -> String {
+        String(normalize(name).filter { $0.isLetter || $0.isNumber })
     }
 
     /// Whether a manifest entry's time zone fits the city: the same zone, or one on the same clock
@@ -335,6 +378,15 @@ enum MacSkylines {
         // same time all year match, not ones that agree just today.
         let dates = [Date(timeIntervalSince1970: 1768478400), Date(timeIntervalSince1970: 1784116800)]
         return dates.allSatisfy { entryZone.secondsFromGMT(for: $0) == cityZone.secondsFromGMT(for: $0) }
+    }
+
+    /// Great-circle distance in km.
+    private static func km(_ lat1: Double, _ lon1: Double, _ lat2: Double, _ lon2: Double) -> Double {
+        let rad = Double.pi / 180
+        let a1 = lat1 * rad, a2 = lat2 * rad
+        let dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad
+        let h = sin(dLat / 2) * sin(dLat / 2) + cos(a1) * cos(a2) * sin(dLon / 2) * sin(dLon / 2)
+        return 6371 * 2 * asin(min(1, sqrt(h)))
     }
 
     // MARK: Files
@@ -372,7 +424,7 @@ enum MacSkylines {
     /// Plates/<key>-night.jpg. The Mac App Store build: the App Group container the app and its
     /// widget share, so the widget shows them too. The DMG build: ~/Library/Application Support/
     /// Meridian/Plates, for the app only: the DMG widget has never shown downloaded photos, and
-    /// keeps to its built-in ones (nil there, so its downloaded cities keep their sky).
+    /// keeps to its built-in ones (nil there, so those cities show their default scene).
     static var platesDirectory: URL? {
         #if APPSTORE
         return FileManager.default
@@ -398,7 +450,8 @@ enum MacSkylines {
     }
 
     /// The Settings → Cities → Download City Photos switch (UserDefaults, as on iPhone; on unless
-    /// turned off). Off: no hosted plate is downloaded or shown.
+    /// turned off). Off: no hosted plate is downloaded or shown (the city shows its default scene;
+    /// built-in photos still show).
     static let downloadsDefaultsKey = "downloadCityPhotos"
     /// Written into Plates while the switch is off, so the widget (which can't read the app's
     /// settings) shows no downloaded plate either.
@@ -440,13 +493,13 @@ enum MacSkylines {
         let night: URL
     }
 
-    /// The hosted plate to download for a city: nil when it has a built-in photo (its own or an
-    /// alias's), has no hosted plate, or its plate is already downloaded (never asked for again).
-    /// Doesn't look at the switch.
-    static func plateToDownload(name: String, timeZoneID: String) -> HostedPlate? {
-        let found = match(name: name, timeZoneID: timeZoneID)
-        guard found.hasPrefix("h:"), let base = remote?.base else { return nil }
-        let hosted = String(found.dropFirst(2))
+    /// The hosted plate to download for a city: nil when it shows a built-in photo, needs no hosted
+    /// plate, or its plate is already downloaded (never asked for again). Doesn't look at the switch.
+    static func plateToDownload(name: String, timeZoneID: String, latitude: Double? = nil,
+                                longitude: Double? = nil, countryCode: String? = nil) -> HostedPlate? {
+        let found = match(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude,
+                          countryCode: countryCode)
+        guard found.builtIn == nil, let hosted = found.hosted, let base = remote?.base else { return nil }
         if plateFile(hosted, night: false) != nil && plateFile(hosted, night: true) != nil { return nil }
         guard let day = URL(string: base.absoluteString + hosted + "-day.jpg"),
               let night = URL(string: base.absoluteString + hosted + "-night.jpg") else { return nil }
@@ -469,41 +522,123 @@ enum MacSkylines {
 
     // MARK: Lookup
 
+    /// What a city matched (see `match`): a built-in photo's key, else a hosted plate's key (shown
+    /// once downloaded) and the default scene's key, which stands in until then (and while Download
+    /// City Photos is off) or when there is no plate at all.
+    private struct Match {
+        var builtIn: String?
+        var hosted: String?
+        var scene: String?
+    }
+
     private static let lock = NSLock()
-    /// What each city matched, by name and zone (see `match`).
-    private static var keyCache: [String: String] = [:]
+    /// What each city matched, by name, zone, country and place (see `match`).
+    private static var keyCache: [String: Match] = [:]
     /// Decoded photos, by "<key>|<night>|<maxPixel>".
     private static var imageCache: [String: CGImage] = [:]
     private static let imageCacheLimit = 40
 
-    /// What a city matches, worked out once: "b:<key>" a built-in photo (its own in skylines.json,
-    /// else an alias's in plates-remote.json), "h:<key>" a hosted plate (shown once downloaded),
-    /// "" nothing. In that order: a built-in photo always wins, and a city with neither keeps its sky.
-    private static func match(name: String, timeZoneID: String) -> String {
-        let cacheKey = name + "|" + timeZoneID
+    /// Whether a key is a built-in city photo in this bundle (not a default scene).
+    private static func isBuiltInPhoto(_ key: String) -> Bool {
+        guard let entry = byKey[key], !entry.isScene else { return false }
+        return files.contains(fileName(key: key, night: false))
+    }
+
+    /// Whether a key from "towns" or "metros" can be shown: a built-in photo, or a hosted plate.
+    private static func usable(_ key: String) -> Bool {
+        isBuiltInPhoto(key) || (remote?.base != nil && plateByKey[key] != nil)
+    }
+
+    /// 2. The metro of a member town with the city's name: within 25 km of the city (the nearest),
+    /// or, without coordinates, the only such town whose metro is in the city's country.
+    private static func townKey(name: String, coordinates: (lat: Double, lon: Double)?, country: String?) -> String? {
+        let n = townName(name)
+        guard !n.isEmpty, let towns = townIndex[n], !towns.isEmpty else { return nil }
+        if let coordinates {
+            var best: (key: String, distance: Double)? = nil
+            for town in towns {
+                let d = km(coordinates.lat, coordinates.lon, town.lat, town.lon)
+                if d <= 25, d < (best?.distance ?? .infinity) { best = (town.key, d) }
+            }
+            return best?.key
+        }
+        guard let country else { return nil }
+        let keys = Set(towns.filter { metroCountry[$0.key] == country }.map(\.key))
+        return keys.count == 1 ? keys.first : nil
+    }
+
+    /// 3. The nearest metro centre in the city's country whose radius reaches it.
+    private static func metroKey(coordinates: (lat: Double, lon: Double)?, country: String?) -> String? {
+        guard let coordinates, let country else { return nil }
+        var best: (key: String, distance: Double)? = nil
+        for metro in remote?.metros ?? [] where metro.cc.uppercased() == country {
+            let d = km(coordinates.lat, coordinates.lon, metro.lat, metro.lon)
+            if d <= metro.r, d < (best?.distance ?? .infinity) { best = (metro.key, d) }
+        }
+        return best?.key
+    }
+
+    /// 4. The default scene: the first rule whose zones hold the city's zone, whose prefix starts
+    /// it, or whose latitude limit covers the city (only with coordinates); a rule with no
+    /// condition matches every city. nil when its photo isn't in this bundle.
+    private static func sceneKey(timeZoneID: String, latitude: Double?) -> String? {
+        for rule in remote?.scenes ?? [] {
+            var hit = rule.zones == nil && rule.prefix == nil && rule.maxAbsLat == nil
+            if let zones = rule.zones, zones.contains(timeZoneID) { hit = true }
+            if let prefix = rule.prefix, !prefix.isEmpty, timeZoneID.hasPrefix(prefix) { hit = true }
+            if let limit = rule.maxAbsLat, let latitude, abs(latitude) <= limit { hit = true }
+            guard hit else { continue }
+            let key = "scene" + rule.scene
+            guard let entry = byKey[key], entry.isScene, files.contains(fileName(key: key, night: false)) else { return nil }
+            return key
+        }
+        return nil
+    }
+
+    /// What a city matches, worked out once (the order is in this type's comment). A city with no
+    /// coordinates skips "metros", a scene's latitude rule and the 25 km town rule; its country is
+    /// the card's, else its time zone's.
+    private static func match(name: String, timeZoneID: String, latitude: Double?, longitude: Double?,
+                              countryCode: String?) -> Match {
+        var coordinates: (lat: Double, lon: Double)? = nil
+        if let latitude, let longitude, latitude.isFinite, longitude.isFinite,
+           abs(latitude) <= 90, abs(longitude) <= 180 {
+            coordinates = (latitude, longitude)
+        }
+        let given = countryCode?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() ?? ""
+        let fromZone = WorkWeek.countryByZone[timeZoneID]?.uppercased() ?? ""
+        let country: String? = !given.isEmpty ? given : (!fromZone.isEmpty ? fromZone : nil)
+        let place = coordinates.map { String(format: "%.4f,%.4f", $0.lat, $0.lon) } ?? ""
+        let cacheKey = name + "|" + timeZoneID + "|" + (country ?? "") + "|" + place
         lock.lock()
         let hit = keyCache[cacheKey]
         lock.unlock()
         if let hit { return hit }
 
-        let n = normalize(name)
-        var result = ""
+        var result = Match()
         // 1. Its own built-in photo, by name and time zone.
-        let candidates = index[n] ?? []
+        let candidates = index[normalize(name)] ?? []
         let exact = candidates.first(where: { $0.zone == timeZoneID })
         if let found = (exact ?? candidates.first(where: { zoneFits($0.zone, timeZoneID) }))?.key,
            files.contains(fileName(key: found, night: false)) {
-            result = "b:" + found
-        }
-        // 2. Another name for a city with a built-in photo ("Brooklyn": New York's).
-        if result.isEmpty, let alias = bestRemote(aliasIndex[n] ?? [], timeZoneID: timeZoneID),
-           byKey[alias.key] != nil, files.contains(fileName(key: alias.key, night: false)) {
-            result = "b:" + alias.key
-        }
-        // 3. A hosted AI plate, downloaded once.
-        if result.isEmpty, remote?.base != nil,
-           let plate = bestRemote(remoteIndex[n] ?? [], timeZoneID: timeZoneID) {
-            result = "h:" + plate.key
+            result.builtIn = found
+        } else {
+            // 2. A member town of a metro, 3. else the metro around it; a key counts only when it
+            // is a built-in photo or a hosted plate.
+            var found: String? = nil
+            if let key = townKey(name: name, coordinates: coordinates, country: country), usable(key) {
+                found = key
+            }
+            if found == nil, let key = metroKey(coordinates: coordinates, country: country), usable(key) {
+                found = key
+            }
+            if let found {
+                if isBuiltInPhoto(found) { result.builtIn = found } else { result.hosted = found }
+            }
+            // 4. The default scene (also standing in for a hosted plate not shown yet).
+            if result.builtIn == nil {
+                result.scene = sceneKey(timeZoneID: timeZoneID, latitude: coordinates?.lat)
+            }
         }
 
         lock.lock()
@@ -513,20 +648,21 @@ enum MacSkylines {
         return result
     }
 
-    /// The photo's key for a city (matched by name and time zone), or nil when it has no photo: no
-    /// built-in one in the bundle, and no hosted plate downloaded (or Download City Photos is off).
-    /// A hosted plate's key starts "plate:".
-    static func key(name: String, timeZoneID: String) -> String? {
-        let found = match(name: name, timeZoneID: timeZoneID)
-        if found.hasPrefix("b:") { return String(found.dropFirst(2)) }
-        if found.hasPrefix("h:") {
-            let hosted = String(found.dropFirst(2))
-            // Checked each time (not cached): the app downloads it later, and the widget's process
-            // outlives that.
-            guard downloadsEnabled, plateFile(hosted, night: false) != nil else { return nil }
+    /// The photo's key for a city, or nil when it has none (only when this bundle lacks the photos):
+    /// a built-in photo (its own, its town's or its metro's), a downloaded hosted plate (its key
+    /// starts "plate:"), else its default scene ("scenecoast", ...). A hosted plate not downloaded
+    /// yet, or with Download City Photos off, gives the default scene.
+    static func key(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                    countryCode: String? = nil) -> String? {
+        let found = match(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude,
+                          countryCode: countryCode)
+        if let builtIn = found.builtIn { return builtIn }
+        // Checked each time (not cached): the app downloads the plate later, and the widget's
+        // process outlives that.
+        if let hosted = found.hosted, downloadsEnabled, plateFile(hosted, night: false) != nil {
             return hostedPrefix + hosted
         }
-        return nil
+        return found.scene
     }
 
     /// Whether the city wants its night photo at `date`: from sunset until an hour before sunrise.
@@ -558,15 +694,18 @@ enum MacSkylines {
 
     /// The city's day or night photo, at most `maxPixel` on its longer side. Decoded once and kept;
     /// safe to call from any thread. nil when the city has no such photo.
-    static func image(name: String, timeZoneID: String, night: Bool, maxPixel: Int) -> CGImage? {
-        guard let key = key(name: name, timeZoneID: timeZoneID) else { return nil }
+    static func image(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                      countryCode: String? = nil, night: Bool, maxPixel: Int) -> CGImage? {
+        guard let key = key(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, countryCode: countryCode) else { return nil }
         return image(key: key, night: night, maxPixel: maxPixel)
     }
 
     /// The same, decoded off the main thread.
-    static func load(name: String, timeZoneID: String, night: Bool, maxPixel: Int) async -> CGImage? {
+    static func load(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                     countryCode: String? = nil, night: Bool, maxPixel: Int) async -> CGImage? {
         await Task.detached(priority: .utility) {
-            MacSkylines.image(name: name, timeZoneID: timeZoneID, night: night, maxPixel: maxPixel)
+            MacSkylines.image(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, countryCode: countryCode,
+                              night: night, maxPixel: maxPixel)
         }.value
     }
 
@@ -613,8 +752,9 @@ enum MacSkylines {
 
     /// Which photo a city shows: its night photo after dark when it has one, else its day photo
     /// (darkened after dark). nil when the city has no photo.
-    fileprivate static func pick(name: String, timeZoneID: String, night: Bool) -> MacSkylinePick? {
-        guard let key = key(name: name, timeZoneID: timeZoneID) else { return nil }
+    fileprivate static func pick(name: String, timeZoneID: String, latitude: Double?, longitude: Double?,
+                                 countryCode: String?, night: Bool) -> MacSkylinePick? {
+        guard let key = key(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, countryCode: countryCode) else { return nil }
         guard night else {
             return MacSkylinePick(key: key, night: false, dimmed: false,
                                   focus: focus(key: key, night: false), focusX: focusX(key: key, night: false))
@@ -635,13 +775,14 @@ enum MacSkylines {
     /// The vertical centre of the skyline band in the city's day (`night` false) or night photo,
     /// 0 (top) to 1 (bottom), from skylines.json; `defaultFocus` when it has none. Pass the photo
     /// actually shown: after dark with no night photo that is the day photo, so `night: false`.
-    static func focus(name: String, timeZoneID: String, night: Bool) -> CGFloat {
-        guard let key = key(name: name, timeZoneID: timeZoneID) else { return defaultFocus }
+    static func focus(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                      countryCode: String? = nil, night: Bool) -> CGFloat {
+        guard let key = key(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, countryCode: countryCode) else { return defaultFocus }
         return focus(key: key, night: night)
     }
 
     /// A photo's measured numbers (skyline band, landmark, landmark tip), from skylines.json for
-    /// a built-in photo or plates-remote.json for a hosted plate (its night entry for the night
+    /// a built-in photo or a default scene, or plates-remote.json for a hosted plate (its night entry for the night
     /// photo; the day numbers if it has none).
     private struct Numbers {
         var focus: Double?
@@ -651,7 +792,7 @@ enum MacSkylines {
 
     private static func numbers(key: String, night: Bool) -> Numbers {
         if let hosted = hostedKey(key) {
-            let entry = remoteByKey[hosted]
+            let entry = plateByKey[hosted]
             if night, let n = entry?.night { return Numbers(focus: n.focus, focusX: n.focusX, top: n.top) }
             return Numbers(focus: entry?.focus, focusX: entry?.focusX, top: entry?.top)
         }
@@ -674,8 +815,9 @@ enum MacSkylines {
     /// 0 (left) to 1 (right), from skylines.json (v3 "focusX"); `defaultFocusX` when it has none.
     /// Pass the photo actually shown: after dark with no night photo that is the day photo, so
     /// `night: false`.
-    static func focusX(name: String, timeZoneID: String, night: Bool) -> CGFloat {
-        guard let key = key(name: name, timeZoneID: timeZoneID) else { return defaultFocusX }
+    static func focusX(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                       countryCode: String? = nil, night: Bool) -> CGFloat {
+        guard let key = key(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, countryCode: countryCode) else { return defaultFocusX }
         return focusX(key: key, night: night)
     }
 
@@ -688,8 +830,9 @@ enum MacSkylines {
     /// Whether the city's day (`night` false) or night photo has a measured landmark (skylines.json
     /// v3 "focusX": an AI plate). The small widget then puts the landmark in its clear right-hand
     /// column; otherwise the photo stays centred. Pass the photo actually shown, as for `focusX`.
-    static func landmarkKnown(name: String, timeZoneID: String, night: Bool) -> Bool {
-        guard let key = key(name: name, timeZoneID: timeZoneID) else { return false }
+    static func landmarkKnown(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                              countryCode: String? = nil, night: Bool) -> Bool {
+        guard let key = key(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, countryCode: countryCode) else { return false }
         let value = numbers(key: key, night: night).focusX
         guard let value else { return false }
         return value.isFinite
@@ -699,8 +842,9 @@ enum MacSkylines {
     /// to 1 (bottom), from skylines.json ("top"); nil when it has none (no tip rule: the photo is
     /// placed as before). Pass the photo actually shown: after dark with no night photo that is the
     /// day photo, so `night: false`.
-    static func top(name: String, timeZoneID: String, night: Bool) -> CGFloat? {
-        guard let key = key(name: name, timeZoneID: timeZoneID) else { return nil }
+    static func top(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                    countryCode: String? = nil, night: Bool) -> CGFloat? {
+        guard let key = key(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, countryCode: countryCode) else { return nil }
         let value = numbers(key: key, night: night).top
         guard let value, value.isFinite else { return nil }
         return CGFloat(min(max(value, 0), 1))
@@ -739,7 +883,7 @@ enum MacSkylines {
     private static let creditList: [MacPhotoCredit] = {
         var seen = Set<String>()
         var out: [MacPhotoCredit] = []
-        for entry in manifest {
+        for entry in manifest where !entry.isScene {
             guard seen.insert(entry.key).inserted else { continue }
             let city = entry.names.first ?? entry.key
             out.append(MacPhotoCredit(id: entry.key, city: city, author: text(entry.credit?.author),
@@ -768,7 +912,8 @@ enum MacSkylines {
         return url
     }
 
-    /// The bundled photos' credits (day, and night where there is one), A to Z by city.
+    /// The bundled photos' credits (day, and night where there is one), A to Z by city. The
+    /// default scenes aren't listed.
     static var credits: [MacPhotoCredit] { creditList }
 
     /// The hosted plates downloaded to this Mac (day, and night where it is on disk), with the AI
@@ -780,10 +925,10 @@ enum MacSkylines {
         let author = "Generated with AI for Meridian", license = "AI-generated image"
         var seen = Set<String>()
         var out: [MacPhotoCredit] = []
-        for entry in remote?.cities ?? [] {
+        for entry in remote?.plates ?? [] {
             guard seen.insert(entry.key).inserted,
                   onDisk.contains(plateFileName(entry.key, night: false)) else { continue }
-            let city = entry.names.first ?? entry.key
+            let city = text(entry.name) ?? entry.key
             out.append(MacPhotoCredit(id: hostedPrefix + entry.key, city: city, author: author,
                                       license: license, source: nil))
             if onDisk.contains(plateFileName(entry.key, night: true)) {
@@ -846,6 +991,7 @@ struct MacSkylineBackdrop: View {
     private let timeZoneID: String
     private let latitude: Double?
     private let longitude: Double?
+    private let countryCode: String?
     private let date: Date
     private let maxPixel: Int
     private let synchronous: Bool
@@ -866,11 +1012,13 @@ struct MacSkylineBackdrop: View {
     /// leading edge) is where the photo's landmark (skylines.json "focusX") goes: in a panel row
     /// the gap between the label and the hour tiles; nil puts it in the middle of the frame.
     init(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
-         date: Date, maxPixel: Int = 1000, synchronous: Bool = false, targetX: CGFloat? = nil) {
+         countryCode: String? = nil, date: Date, maxPixel: Int = 1000, synchronous: Bool = false,
+         targetX: CGFloat? = nil) {
         self.name = name
         self.timeZoneID = timeZoneID
         self.latitude = latitude
         self.longitude = longitude
+        self.countryCode = countryCode
         self.date = date
         self.maxPixel = maxPixel
         self.synchronous = synchronous
@@ -882,7 +1030,8 @@ struct MacSkylineBackdrop: View {
 
     var body: some View {
         let night = MacSkylines.wantsNight(timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, at: date)
-        let pick = MacSkylines.pick(name: name, timeZoneID: timeZoneID, night: night)
+        let pick = MacSkylines.pick(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude,
+                                    countryCode: countryCode, night: night)
         let wanted = pick?.id(maxPixel: maxPixel) ?? ""
         ZStack {
             LinearGradient(colors: night ? Self.nightSky : Self.daySky, startPoint: .top, endPoint: .bottom)
@@ -925,7 +1074,8 @@ struct MacSkylineBackdrop: View {
     }
 }
 
-/// Settings → About → Photo Credits: every bundled photo's author, licence and source.
+/// Settings → About → Photo Credits: every city photo, built in or downloaded, with its credit
+/// (all AI plates made for Meridian).
 struct MacPhotoCreditsView: View {
     @Environment(\.dismiss) private var dismiss
     /// The hosted plates downloaded to this Mac, read when the sheet opens.
@@ -990,10 +1140,10 @@ struct MacPhotoCreditsView: View {
         .padding(.vertical, 2)
     }
 
-    /// "author · licence", or where the photo is from when neither is known.
+    /// "author · licence", or the AI credit when neither is known.
     private static func detail(_ credit: MacPhotoCredit) -> String {
         let parts = [credit.author, credit.license].compactMap { $0 }.filter { !$0.isEmpty }
-        return parts.isEmpty ? "Wikimedia Commons" : parts.joined(separator: " · ")
+        return parts.isEmpty ? "Generated with AI for Meridian" : parts.joined(separator: " · ")
     }
 }
 #endif

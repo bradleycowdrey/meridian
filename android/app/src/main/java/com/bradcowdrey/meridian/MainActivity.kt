@@ -347,6 +347,8 @@ class MainActivity : ComponentActivity() {
         if (demo) Diag.off = intent.getStringExtra("off")?.split(',')?.map { it.trim() }?.toSet() ?: emptySet()
         // Screenshot mode never reads, fetches or exports photos for the widgets (the first frame waits on nothing).
         CityPhotos.demo = demo
+        // Photos downloaded by earlier versions (from Wikimedia Commons) go, once; hosted plates are kept.
+        CityPhotos.cleanUp(applicationContext)
         val store = Store(applicationContext, demo = demo && screen != "terms")
         this.store = store
         setContent {
@@ -1026,13 +1028,6 @@ object CityStatus {
  */
 object Skyline {
     /**
-     * The built-in photo for a city in this zone (by name or alias, or an alias in plates-remote.json), if there is one.
-     * [countryCode]: the city's country (passed on; aliases match by name and zone, as skylines.json's names).
-     */
-    fun photo(context: android.content.Context, city: String, zoneId: String, countryCode: String? = null): SkylineManifest.Photo? =
-        SkylineManifest.photo(context, city, zoneId, countryCode)
-
-    /**
      * Where a photo sits in its card: [focus], how far down the photo its skyline is; [focusX], how far across it its
      * landmark is (skylines.json "focusX"; the centre without one); [targetX], where across the card (a fraction of
      * its width) the landmark goes: the clear gap between the name column and the hour tiles; [top], the landmark's tip,
@@ -1073,19 +1068,32 @@ object Skyline {
         }
     }
 
-    /** Which built-in photo a city has (or none), once looked up: by "city|zone". */
-    class Lookup(val photo: SkylineManifest.Photo?)
+    /**
+     * Which picture a card shows, once looked up (SkylineManifest.resolve): [photo], built in (the city's own, a metro's,
+     * or its default scene); [hosted], a hosted plate shown in its place once it's on the phone (with Download City
+     * Photos on); [hostedOnDisk], that plate was already on the phone when looked up (so the card waits for it rather
+     * than showing the scene first).
+     */
+    class Lookup(val photo: SkylineManifest.Photo?, val hosted: RemotePlates.Plate? = null, val hostedOnDisk: Boolean = false)
     private val lookups = java.util.concurrent.ConcurrentHashMap<String, Lookup>()
 
-    /** The lookup for a city in this zone, if it's been done (a map read: safe in composition). */
-    fun knownPhoto(city: String, zoneId: String): Lookup? = lookups["$city|$zoneId"]
+    /** What a card's lookup depends on: the city, its zone, country and coordinates. */
+    fun lookupKey(city: String, place: Place): String =
+        "$city|${place.zoneId}|${place.country.orEmpty()}|${place.latitude ?: ""}|${place.longitude ?: ""}"
 
-    /** Looks up a city's built-in photo (the manifest and the resources). Call off the main thread. */
-    fun lookUp(context: android.content.Context, city: String, zoneId: String, countryCode: String? = null): Lookup {
-        knownPhoto(city, zoneId)?.let { return it }
-        val found = Lookup(runCatching { photo(context, city, zoneId, countryCode) }.getOrNull())
+    /** The lookup for this [lookupKey], if it's been done (a map read: safe in composition). */
+    fun knownPhoto(key: String): Lookup? = lookups[key]
+
+    /** Looks up a card's picture (the manifest, the photo index and the resources). Call off the main thread. */
+    fun lookUp(context: android.content.Context, city: String, place: Place): Lookup {
+        val key = lookupKey(city, place)
+        knownPhoto(key)?.let { return it }
+        val found = runCatching {
+            val r = SkylineManifest.resolve(context, city, place.zoneId, place.country, place.latitude, place.longitude)
+            Lookup(r.photo, r.hosted, r.hosted?.let { CityPhotos.onDisk(context, it.key) } ?: false)
+        }.getOrElse { Lookup(null) }
         // Kept only once the data files can be read (before that, the next card asks again).
-        if (DataFiles.ready) lookups["$city|$zoneId"] = found
+        if (DataFiles.ready) lookups[key] = found
         return found
     }
 
@@ -1627,39 +1635,42 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
     // Large text grows up to 1.3x here (Material's font scaling); past that the card reflows (the zone gives way first).
     val cap = maxOf(1f, density.fontScale / 1.3f)
     val context = LocalContext.current
-    // The photo: built in, else downloaded once (in the background, if Settings allows), else drawn.
+    // The photo: built in (the city's own, its metro's, or a default scene), or a hosted plate downloaded once (in the
+    // background, if Settings allows), else drawn.
     val city = skylineCity(store, place)
     val phase = Sky.phase(place, moment)
     // Night (and after sunset): the city's night photo, as taken, where it has one.
     val wantsNight = Sky.look(place, moment) == Sky.Look.NIGHT
     // Which built-in photo the city has: looked up off the main thread (the manifest and the resources), once per city;
     // until then (null) the card shows its drawn skyline, so the first frame never waits for a photo.
-    var lookup by remember(city, place.zoneId) { mutableStateOf(Skyline.knownPhoto(city, place.zoneId)) }
-    LaunchedEffect(city, place.zoneId) {
+    val lookupKey = Skyline.lookupKey(city, place)
+    var lookup by remember(lookupKey) { mutableStateOf(Skyline.knownPhoto(lookupKey)) }
+    LaunchedEffect(lookupKey) {
         if (lookup != null) return@LaunchedEffect
         // Counted as a photo on screen still to come, so no prefetch starts before this card has its own photo.
         Skyline.beginCurrent()
         try {
             // (Only once the data files can be read, so a city is never taken for one without a photo too early.)
             while (lookup == null) {
-                val found = withContext(Dispatchers.IO) { if (DataFiles.ready) Skyline.lookUp(context, city, place.zoneId, place.country) else null }
+                val found = withContext(Dispatchers.IO) { if (DataFiles.ready) Skyline.lookUp(context, city, place) else null }
                 if (found != null) lookup = found else delay(250)
             }
         } finally {
             Skyline.endCurrent()
         }
     }
-    val photo = lookup?.photo
-    val slug = remember(city, place.zoneId) { CityPhotos.slug(city, place.zoneId) }
-    val download = store.downloadPhotos
-    // No built-in photo: a downloaded one (never in screenshot mode). Its night photo is read only when it's night there.
-    val useDownload = lookup != null && photo == null && !store.demo
-    if (useDownload) {
-        LaunchedEffect(slug, download, wantsNight) { CityPhotos.request(context, city, place.zoneId, place.country, download, night = wantsNight) }
+    // A hosted AI plate for this city: downloaded once (only with Download City Photos on; never in screenshot mode),
+    // its night photo read only when it's night there. Off, or until it's on the phone, the card shows its default scene.
+    val hostedPlate = lookup?.hosted?.takeIf { store.downloadPhotos && !store.demo }
+    if (hostedPlate != null) {
+        LaunchedEffect(hostedPlate.key, wantsNight) { CityPhotos.request(context, hostedPlate, night = wantsNight) }
     }
-    val downloaded = if (useDownload) CityPhotos.bitmap(slug) else null
-    // A downloaded hosted AI plate: placed by its index entry (focus, focusX, top), as a built-in plate.
-    val hosted = if (useDownload) CityPhotos.plate(slug) else null
+    val downloaded = hostedPlate?.let { CityPhotos.bitmap(it.key) }
+    // The plate shown, placed by its index entry (focus, focusX, top) as a built-in plate; while one already on the
+    // phone is read, nothing new is shown (no scene first).
+    val hosted = if (downloaded != null) hostedPlate else null
+    // (A plate on the phone that can't be read falls back to the scene.)
+    val photo = if (hostedPlate != null && (downloaded != null || (lookup?.hostedOnDisk == true && !CityPhotos.failed(hostedPlate.key)))) null else lookup?.photo
     // Where the time is on the card, for the adaptive ink (measured once it's laid out).
     var region by remember { mutableStateOf(TimeRegion.DEFAULT) }
     // The time's own box on the card (px), read only when the tiles' weekday tag is drawn (so the tag never sits on it).
@@ -1720,7 +1731,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         // While the other half (day or night) of the same city's photo is read, the one shown stays.
         val bundled: Pair<Int, ImageBitmap>? = if (resId == 0) null else Skyline.cachedBitmap(resId, widthPx)?.let { resId to it }
             ?: decoded?.takeIf { it.first == resId || it.first == photo?.resId || (nightResId != 0 && it.first == nightResId) }
-        val downloadedNight = if (useDownload && wantsNight && usePhotos && downloaded != null) CityPhotos.nightBitmap(slug) else null
+        val downloadedNight = if (hosted != null && wantsNight && usePhotos) CityPhotos.nightBitmap(hosted.key) else null
         val bitmap: ImageBitmap? = when {
             !usePhotos -> null
             photo != null -> bundled?.second
@@ -1759,8 +1770,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         }
         val gapTarget = if (maxWidth > 0.dp) ((Rows.padH + Rows.labelWidth(maxWidth) + Strip.labelGap / 2) / maxWidth).coerceIn(0f, 1f) else 0.5f
         val placement = Skyline.Placement(focus, focusX, gapTarget, tip)
-        // (A hosted plate that replaced a Wikimedia photo is a different photo: its own id, so its look is measured anew.)
-        val id = (if (photo != null) "res:${photo.key}" else if (hosted != null) "plate:${hosted.key}:$slug" else "dl:$slug") +
+        val id = (if (photo != null) "res:${photo.key}" else if (hosted != null) "plate:${hosted.key}" else "none") +
             if (nightShown) ":night" else ""
         // The scrim's boost behind the name column (so the white name, zone and status keep 4.5:1) and the adaptive
         // ink for the time (dark numbers on a bright photo), measured off the main thread after the shading and scrim.
@@ -1780,7 +1790,7 @@ fun CityRow(store: Store, place: Place, height: Dp, modifier: Modifier = Modifie
         val last = remember(city, place.zoneId) { arrayOfNulls<ShownPhoto>(1) }
         val shown = when {
             // Never back to the drawn skyline while this city's photo was shown and its photo is on its way.
-            bitmap == null -> if (photo != null && usePhotos) last[0] else null
+            bitmap == null -> if ((photo != null || hostedPlate != null) && usePhotos) last[0] else null
             look != null -> ShownPhoto(bitmap, shade, look, placement).also { last[0] = it }
             else -> last[0] ?: ShownPhoto(bitmap, shade, Skyline.provisionalLook(nightPhoto = nightShown), placement)
         }

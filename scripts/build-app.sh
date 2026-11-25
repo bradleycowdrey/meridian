@@ -55,15 +55,21 @@ sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist >
 cp -R Resources/Fonts "$APP/Contents/Resources/Fonts"
 # Offline data: world cities and public holidays (scripts/gen-data.py).
 cp Resources/Data/*.tsv "$APP/Contents/Resources/"
-# City photos (day and night) from the one copy in git (Android's), and their manifest.
+# City photos (day and night) from the one copy in git (Android's), and their manifest. The glob
+# takes the default scenes too (skyline_scenecoast.jpg, ...: the "scenes" rules of plates-remote.json).
 mkdir -p "$APP/Contents/Resources/Skylines"
 cp android/app/src/main/res/drawable-nodpi/skyline_*.jpg "$APP/Contents/Resources/Skylines/"
 cp Resources/Data/skylines.json "$APP/Contents/Resources/skylines.json"
-# The hosted AI plates' index (cities without a built-in photo download theirs once; MacSkylines).
+for scene in coast mountains desert oldtown river; do
+  [[ -f "$APP/Contents/Resources/Skylines/skyline_scene$scene.jpg" ]] \
+    || echo "warning: the default scene '$scene' is missing from this build" >&2
+done
+# The photo index (towns, metros, hosted AI plates, default scenes; MacSkylines). Without it,
+# cities without a built-in photo of their own keep their sky.
 if [[ -f Resources/Data/plates-remote.json ]]; then
   cp Resources/Data/plates-remote.json "$APP/Contents/Resources/plates-remote.json"
 else
-  echo "warning: Resources/Data/plates-remote.json is missing: no hosted city photos in this build" >&2
+  echo "warning: Resources/Data/plates-remote.json is missing: no town, metro or scene photos in this build" >&2
 fi
 
 # Icon: 1024px PNG -> .icns
@@ -122,8 +128,8 @@ for f in "$APP/Contents/Resources/Skylines"/*.jpg; do
   sips -Z 1200 -s format jpeg -s formatOptions 76 "$f" --out "$APPEX/Contents/Resources/Skylines/$(basename "$f")" >/dev/null
 done
 cp Resources/Data/skylines.json "$APPEX/Contents/Resources/skylines.json"
-# The widget matches its cities against the hosted plates' index too (aliases to built-in photos
-# in every build; the plates the app downloaded only in the App Store build, from the App Group).
+# The widget picks its cities' photos from the same index (towns, metros and default scenes in
+# every build; the plates the app downloaded only in the App Store build, from the App Group).
 if [[ -f Resources/Data/plates-remote.json ]]; then
   cp Resources/Data/plates-remote.json "$APPEX/Contents/Resources/plates-remote.json"
 fi

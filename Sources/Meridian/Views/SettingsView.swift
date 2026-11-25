@@ -120,7 +120,7 @@ private struct CitiesSettings: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             Toggle("Download City Photos", isOn: $plates.enabled)
-            Text("Cities without a built-in photo get one made with AI for Meridian, downloaded once and kept on your Mac. Only the photo is asked for, nothing about you.")
+            Text("Some cities without a built-in photo get one made with AI for Meridian, downloaded once and kept on your Mac. Only the photo is asked for, nothing about you. Off, they show a built-in scene instead.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }

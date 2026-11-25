@@ -243,7 +243,16 @@ final class FunctionalTest {
         let newYorkKey = MacSkylines.key(name: "New York", timeZoneID: "America/New_York")
         check("photos: New York matches its photo", newYorkKey == "newyork", newYorkKey ?? "nil")
         let noKey = MacSkylines.key(name: "City 0", timeZoneID: "UTC")
-        check("photos: an unknown city has none", noKey == nil, noKey ?? "nil")
+        check("photos: an unknown city shows the last default scene", noKey == "sceneriver", noKey ?? "nil")
+        let desertKey = MacSkylines.key(name: "City 0", timeZoneID: "Asia/Dubai")
+        check("photos: a scene by time zone", desertKey == "scenedesert", desertKey ?? "nil")
+        let townKey = MacSkylines.key(name: "Littleton", timeZoneID: "America/Denver", latitude: 39.61,
+                                      longitude: -105.02, countryCode: "US")
+        check("photos: a member town shows its metro's photo", townKey == "denver", townKey ?? "nil")
+        let metroKey = MacSkylines.key(name: "City 0", timeZoneID: "America/Denver", latitude: 39.8,
+                                       longitude: -105.0, countryCode: "US")
+        check("photos: a place inside a metro shows its photo", metroKey == "denver", metroKey ?? "nil")
+        check("photos: default scenes aren't credited", !MacSkylines.credits.contains { $0.id.hasPrefix("scene") })
         let parisDay = MacSkylines.image(name: "Paris", timeZoneID: "Europe/Paris", night: false, maxPixel: 600)
         check("photos: Paris by day decodes at 600 px", parisDay != nil && (parisDay?.width ?? 0) <= 600,
               parisDay.map { "\($0.width)x\($0.height)" } ?? "nil")

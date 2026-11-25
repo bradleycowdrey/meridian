@@ -2,12 +2,12 @@ import SwiftUI
 import ImageIO
 import WidgetKit
 
-/// Downloads the hosted AI plates (plates-remote.json) for cities without a built-in photo: day
-/// and night once each, kept in MacSkylines.platesDirectory (shared with the widget), never asked
-/// for again once there. Only while Settings → Cities → Download City Photos is on. The requests
-/// carry nothing but the image's URL: no cookies, no cache, a plain user agent. A plate that fails
-/// (offline, missing) is tried again next launch; meanwhile the city keeps its sky, as before (the
-/// Mac has no Wikimedia download to fall back to).
+/// Downloads the hosted AI plates (plates-remote.json "plates") that cities without a built-in
+/// photo match by their town or metro: day and night once each, kept in MacSkylines.platesDirectory
+/// (shared with the App Store build's widget), never asked for again once there. Only while
+/// Settings → Cities → Download City Photos is on. The requests carry nothing but the image's
+/// URL: no cookies, no cache, a plain user agent. A plate that fails (offline, missing) is tried
+/// again next launch; meanwhile, and while the switch is off, the city shows its default scene.
 @MainActor
 final class PlateDownloads: ObservableObject {
     static let shared = PlateDownloads()
@@ -56,18 +56,26 @@ final class PlateDownloads: ObservableObject {
     /// Asks for the plates these cities want and this Mac doesn't have (in the background, one
     /// at a time). Does nothing while Download City Photos is off.
     func request(_ places: [Place]) {
-        for place in places { enqueue(name: place.name, timeZoneID: place.timeZoneID) }
+        for place in places {
+            enqueue(name: place.name, timeZoneID: place.timeZoneID, latitude: place.latitude,
+                    longitude: place.longitude, countryCode: place.countryCode)
+        }
         pump()
     }
 
     /// The same for one city (a panel row).
-    func request(name: String, timeZoneID: String) {
-        enqueue(name: name, timeZoneID: timeZoneID)
+    func request(name: String, timeZoneID: String, latitude: Double? = nil, longitude: Double? = nil,
+                 countryCode: String? = nil) {
+        enqueue(name: name, timeZoneID: timeZoneID, latitude: latitude, longitude: longitude,
+                countryCode: countryCode)
         pump()
     }
 
-    private func enqueue(name: String, timeZoneID: String) {
-        guard enabled, let plate = MacSkylines.plateToDownload(name: name, timeZoneID: timeZoneID),
+    private func enqueue(name: String, timeZoneID: String, latitude: Double?, longitude: Double?,
+                         countryCode: String?) {
+        guard enabled,
+              let plate = MacSkylines.plateToDownload(name: name, timeZoneID: timeZoneID, latitude: latitude,
+                                                      longitude: longitude, countryCode: countryCode),
               !failed.contains(plate.key), queued.insert(plate.key).inserted else { return }
         queue.append(plate)
     }

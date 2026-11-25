@@ -38,7 +38,8 @@ targets:
       - path: ../Resources/Data/skylines.json
         buildPhase: resources
         optional: true
-      # The hosted AI plates' index (about 450 more cities, downloaded once each; see RemotePlates).
+      # Which photo each city shows: towns, metros, hosted AI plates (downloaded once each) and
+      # default scenes (see RemotePlates and scripts/photo-index.py).
       - path: ../Resources/Data/plates-remote.json
         buildPhase: resources
         optional: true

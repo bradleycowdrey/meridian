@@ -8,4 +8,4 @@ External services: Apart from Apple's geocoder for My Location, Meridian downloa
 
 Regions: Meridian works the same in every region. It follows the Mac's region only for 12- or 24-hour time, which the user can change in Settings.
 
-Regulation and third-party material: Not a regulated industry. City photos are used under their Creative Commons licences, credited in Settings > About > Photo Credits. City and time zone names come from the standard time zone database and GeoNames. No data is collected; no ads; no in-app purchases; no user accounts or user-generated content.
+Regulation and third-party material: Not a regulated industry. City photos are generated with AI for Meridian and listed in Settings > About > Photo Credits. City and time zone names come from the standard time zone database and GeoNames. No data is collected; no ads; no in-app purchases; no user accounts or user-generated content.

@@ -99,7 +99,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
     /** Group cards by continent automatically ("Europe", "Asia"), as well as their own groups (Settings; on unless turned off). */
     var continentGroups by mutableStateOf(prefs.getBoolean("continentGroups", true))
         private set
-    /** Download a photo (once, from Wikimedia Commons) for cities without a built-in one (Settings; on unless turned off). */
+    /** Download hosted AI plates (once) for cities whose photo isn't built in; off, they show their default scene (Settings; on unless turned off). */
     var downloadPhotos by mutableStateOf(prefs.getBoolean("downloadCityPhotos", true))
         private set
     /** The group the list shows ("Design team"); null shows everyone. */
@@ -558,7 +558,7 @@ class Store(private val context: Context, val demo: Boolean = false) {
         prefs.edit().putBoolean("continentGroups", on).apply()
         validateFilter()
     }
-    fun updateDownloadPhotos(on: Boolean) { downloadPhotos = on; prefs.edit().putBoolean("downloadCityPhotos", on).apply() }
+    fun updateDownloadPhotos(on: Boolean) { downloadPhotos = on; prefs.edit().putBoolean("downloadCityPhotos", on).apply(); syncWidgets() }
     fun updateShowWorkHours(on: Boolean) { showWorkHours = on; prefs.edit().putBoolean("showWorkHours", on).apply(); syncWidgets() }
     fun updateWorkStart(hour: Int) { workStart = hour.coerceIn(0, 23); prefs.edit().putInt("workStart", workStart).apply(); syncWidgets() }
     fun updateWorkEnd(hour: Int) { workEnd = hour.coerceIn(1, 24); prefs.edit().putInt("workEnd", workEnd).apply(); syncWidgets() }

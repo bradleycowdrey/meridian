@@ -55,6 +55,7 @@ struct StripView: View {
                     ForEach(store.places) { place in
                         StripRowBackdrop(name: place.name, timeZoneID: place.timeZoneID,
                                          latitude: place.latitude, longitude: place.longitude,
+                                         countryCode: place.countryCode,
                                          date: moment, maxPixel: 1536, targetX: photoTargetX,
                                          plates: PlateDownloads.shared)
                             .overlay(scrim(textEnd: ui.cardOutset + labelWidth, cardWidth: cardWidth))
@@ -771,6 +772,8 @@ private struct StripRowBackdrop: View {
     let timeZoneID: String
     let latitude: Double?
     let longitude: Double?
+    /// The card's country (nil: its time zone's), for matching its metro's photo.
+    let countryCode: String?
     let date: Date
     let maxPixel: Int
     let targetX: CGFloat
@@ -799,9 +802,11 @@ private struct StripRowBackdrop: View {
 
     var body: some View {
         let night = MacSkylines.wantsNight(timeZoneID: timeZoneID, latitude: latitude, longitude: longitude, at: date)
-        // The photo's key (built in, or a downloaded plate) is part of the row's id, so a plate
-        // that arrives, or one hidden by turning Download City Photos off, is picked up.
-        let photoKey = MacSkylines.key(name: name, timeZoneID: timeZoneID)
+        // The photo's key (built in, a downloaded plate, or a default scene) is part of the row's
+        // id, so a plate that arrives, or one hidden by turning Download City Photos off, is
+        // picked up.
+        let photoKey = MacSkylines.key(name: name, timeZoneID: timeZoneID, latitude: latitude,
+                                       longitude: longitude, countryCode: countryCode)
         let hasPhoto = photoKey != nil
         let wanted = hasPhoto ? "\(name)|\(timeZoneID)|\(photoKey ?? "")|\(night)|\(maxPixel)" : ""
         ZStack {
@@ -814,9 +819,11 @@ private struct StripRowBackdrop: View {
         }
         .clipped()
         .animation(.easeInOut(duration: 0.35), value: shown?.id)
-        // A city without a built-in photo: its hosted plate is downloaded (once) if it has one.
-        .task(id: "\(name)|\(timeZoneID)|\(plates.enabled)") {
-            PlateDownloads.shared.request(name: name, timeZoneID: timeZoneID)
+        // A city whose town or metro has a hosted plate: downloaded (once); its default scene
+        // shows until then.
+        .task(id: "\(name)|\(timeZoneID)|\(countryCode ?? "")|\(latitude ?? .nan)|\(longitude ?? .nan)|\(plates.enabled)") {
+            PlateDownloads.shared.request(name: name, timeZoneID: timeZoneID, latitude: latitude,
+                                          longitude: longitude, countryCode: countryCode)
         }
         .task(id: wanted) {
             guard hasPhoto else {
@@ -824,25 +831,29 @@ private struct StripRowBackdrop: View {
                 return
             }
             let city = name, zone = timeZoneID, size = maxPixel
+            let lat = latitude, lon = longitude, country = countryCode
             // Already decoded (the panel was open before): show it at once, no fade.
             if let ready = StripRowPhotoCache.shared.get(wanted) {
                 var instant = Transaction()
                 instant.disablesAnimations = true
                 withTransaction(instant) {
                     shown = Self.makeShown(id: wanted, image: ready.image, nightPhoto: ready.nightPhoto,
-                                           dimmed: night && !ready.nightPhoto, name: city, zone: zone)
+                                           dimmed: night && !ready.nightPhoto, name: city, zone: zone,
+                                           latitude: lat, longitude: lon, countryCode: country)
                 }
                 return
             }
             var nightImage: CGImage? = nil
             if night {
-                nightImage = await MacSkylines.load(name: city, timeZoneID: zone, night: true, maxPixel: size)
+                nightImage = await MacSkylines.load(name: city, timeZoneID: zone, latitude: lat, longitude: lon,
+                                                    countryCode: country, night: true, maxPixel: size)
             }
             let image: CGImage?
             if let nightImage {
                 image = nightImage
             } else {
-                image = await MacSkylines.load(name: city, timeZoneID: zone, night: false, maxPixel: size)
+                image = await MacSkylines.load(name: city, timeZoneID: zone, latitude: lat, longitude: lon,
+                                               countryCode: country, night: false, maxPixel: size)
             }
             guard !Task.isCancelled else { return }
             guard let image else {
@@ -852,18 +863,23 @@ private struct StripRowBackdrop: View {
             let isNightPhoto = nightImage != nil
             StripRowPhotoCache.shared.set(wanted, image: image, nightPhoto: isNightPhoto)
             shown = Self.makeShown(id: wanted, image: image, nightPhoto: isNightPhoto,
-                                   dimmed: night && !isNightPhoto, name: city, zone: zone)
+                                   dimmed: night && !isNightPhoto, name: city, zone: zone,
+                                   latitude: lat, longitude: lon, countryCode: country)
         }
     }
 
     /// The manifest's numbers for the photo actually shown: after dark with no night photo that
     /// is the day photo, so its day focus, landmark and tip.
     private static func makeShown(id: String, image: CGImage, nightPhoto: Bool, dimmed: Bool,
-                                  name: String, zone: String) -> Shown {
+                                  name: String, zone: String, latitude: Double?, longitude: Double?,
+                                  countryCode: String?) -> Shown {
         Shown(id: id, image: image, dimmed: dimmed,
-              focus: MacSkylines.focus(name: name, timeZoneID: zone, night: nightPhoto),
-              focusX: MacSkylines.focusX(name: name, timeZoneID: zone, night: nightPhoto),
-              top: MacSkylines.top(name: name, timeZoneID: zone, night: nightPhoto))
+              focus: MacSkylines.focus(name: name, timeZoneID: zone, latitude: latitude, longitude: longitude,
+                                       countryCode: countryCode, night: nightPhoto),
+              focusX: MacSkylines.focusX(name: name, timeZoneID: zone, latitude: latitude, longitude: longitude,
+                                         countryCode: countryCode, night: nightPhoto),
+              top: MacSkylines.top(name: name, timeZoneID: zone, latitude: latitude, longitude: longitude,
+                                   countryCode: countryCode, night: nightPhoto))
     }
 
     private func photo(_ shown: Shown) -> some View {

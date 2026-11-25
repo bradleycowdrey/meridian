@@ -1424,15 +1424,21 @@ private struct MacWidgetRowPhoto: View {
         let night = MacSkylines.wantsNight(timeZoneID: city.timeZoneID, latitude: city.latitude,
                                            longitude: city.longitude, at: date)
         let nightPhoto: CGImage? = night
-            ? MacSkylines.image(name: city.name, timeZoneID: city.timeZoneID, night: true, maxPixel: 1200) : nil
+            ? MacSkylines.image(name: city.name, timeZoneID: city.timeZoneID,
+                                  latitude: city.latitude, longitude: city.longitude, countryCode: city.countryCode, night: true, maxPixel: 1200) : nil
         let photo: CGImage? = nightPhoto
-            ?? MacSkylines.image(name: city.name, timeZoneID: city.timeZoneID, night: false, maxPixel: 1200)
+            ?? MacSkylines.image(name: city.name, timeZoneID: city.timeZoneID,
+                                  latitude: city.latitude, longitude: city.longitude, countryCode: city.countryCode, night: false, maxPixel: 1200)
         let dimmed = night && nightPhoto == nil
-        let focus: CGFloat = MacSkylines.focus(name: city.name, timeZoneID: city.timeZoneID, night: nightPhoto != nil)
+        let focus: CGFloat = MacSkylines.focus(name: city.name, timeZoneID: city.timeZoneID,
+                                  latitude: city.latitude, longitude: city.longitude, countryCode: city.countryCode, night: nightPhoto != nil)
         let landmark: CGFloat = MacSkylines.focusX(name: city.name, timeZoneID: city.timeZoneID,
+                                  latitude: city.latitude, longitude: city.longitude, countryCode: city.countryCode,
                                                    night: nightPhoto != nil)
-        let tip: CGFloat? = MacSkylines.top(name: city.name, timeZoneID: city.timeZoneID, night: nightPhoto != nil)
+        let tip: CGFloat? = MacSkylines.top(name: city.name, timeZoneID: city.timeZoneID,
+                                  latitude: city.latitude, longitude: city.longitude, countryCode: city.countryCode, night: nightPhoto != nil)
         let known: Bool = MacSkylines.landmarkKnown(name: city.name, timeZoneID: city.timeZoneID,
+                                  latitude: city.latitude, longitude: city.longitude, countryCode: city.countryCode,
                                                     night: nightPhoto != nil)
         ZStack {
             if let photo {
@@ -1453,7 +1459,8 @@ private struct MacWidgetRowPhoto: View {
                 .overlay { if dimmed { Color.black.opacity(0.45) } }
             } else {
                 MacSkylineBackdrop(name: city.name, timeZoneID: city.timeZoneID, latitude: city.latitude,
-                                   longitude: city.longitude, date: date, maxPixel: 600, synchronous: true)
+                                   longitude: city.longitude, countryCode: city.countryCode, date: date, maxPixel: 600,
+                                   synchronous: true)
             }
         }
         .clipped()
@@ -1684,8 +1691,8 @@ enum WidgetSkylines {
 
     #if os(iOS)
     /// A city's photo in the index: its file in Skylines, where it came from ("b:london" built
-    /// in, "p:<key>" a downloaded hosted AI plate, placed by its plates-remote.json entry as a
-    /// built-in plate is, "d:<slug>" downloaded from Wikimedia), so the app rewrites it only when
+    /// in, a default scene "b:scenecoast" too; "p:<key>" a downloaded hosted AI plate, placed by
+    /// its plates-remote.json entry as a built-in plate is), so the app rewrites it only when
     /// that changes, and its night photo's file when it has one (nil: the day photo is darkened
     /// at night, as before), how far down the photo its skyline band sits and where across it its
     /// landmark stands (0…1 each, from skylines.json's (or plates-remote.json's) "focus" and

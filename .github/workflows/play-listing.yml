@@ -1,0 +1,34 @@
+name: Google Play listing
+
+# Sends the store listing in docs/play (the words, icon, feature graphic and phone screenshots) to Google Play,
+# without a new build. Runs when they change on main, or by hand. New builds go to Play from android.yml.
+# Needs the PLAY_SERVICE_ACCOUNT_JSON secret; without it this does nothing (docs/play/README.md).
+on:
+  push:
+    branches: [main]
+    paths: ["docs/play/**", ".github/scripts/play_publish.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HAS_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Google Play store listing
+        if: env.HAS_PLAY == 'true'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_PACKAGE: com.bradcowdrey.meridian
+        run: |
+          pip install --quiet pyjwt cryptography
+          python3 .github/scripts/play_publish.py
+      - name: No Play secret
+        if: env.HAS_PLAY != 'true'
+        run: |
+          echo "::notice::No PLAY_SERVICE_ACCOUNT_JSON secret: the listing wasn't sent to Google Play"

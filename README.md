@@ -105,7 +105,7 @@ Add Meridian to your desktop or Notification Center in three sizes: small (one c
 ## iPhone and Android
 
 - **iPhone** (iOS 17 or later): [Meridian: Every Time Zone on the App Store](https://apps.apple.com/app/id6826713540), free. Each city a card on its photo, its time large, with a ruler you swipe to move through time; Find a Time; people and groups; clock-change notices; Home Screen widgets that fill themselves and Lock Screen widgets; My Location. Source in [`ios/`](ios).
-- **Android** (8 or later): download [Meridian-debug.apk](https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk) on your phone and open it (allow installs from your browser if asked). The same design and features as the iPhone, home screen widgets in three sizes that fill themselves, My Location. Not on Google Play yet. Source in [`android/`](android).
+- **Android** (8 or later): download [Meridian-debug.apk](https://github.com/bradleycowdrey/meridian/raw/ci-android/Meridian-debug.apk) on your phone and open it (allow installs from your browser if asked). The same design and features as the iPhone, home screen widgets in three sizes that fill themselves, My Location. Google Play: closed test, coming soon. Source in [`android/`](android).
 - **Web**: try it in your browser at [bradcowdrey.com/meridian](https://bradcowdrey.com/meridian), nothing to install.
 
 ## Install on Mac (sideload)

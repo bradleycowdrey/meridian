@@ -1,4 +1,5 @@
-"""Shared drawing for Meridian's store screenshots (scripts/appstore-shots.py, scripts/mac-store-shots.py).
+"""Drawing for Meridian's Mac App Store screenshots (scripts/mac-store-shots.py). The iPhone set is on the
+Cowdrey family standard instead (scripts/appstore-shots.mjs, design/app-store/store-frame.mjs).
 
 The look, from the finish spec: a deep navy-to-black gradient, a soft glow made from the capture
 itself, a sky highlight near the top, a centred headline and subline, and the app in a frame drawn

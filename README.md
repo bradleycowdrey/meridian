@@ -134,6 +134,8 @@ scripts/make-dmg.sh 2.1.5         # dist/Meridian-2.1.5.dmg
 
 Bump the number in `VERSION` and push to `main`. GitHub Actions builds a universal app, packages a DMG and publishes it as release `v<VERSION>`, plus a stable `Meridian.dmg` that the download links always point to, and `Meridian-iOS.ipa` (for sideloading a build ahead of the App Store). The iPhone app goes to TestFlight and App Review through `ios/APPSTORE`; see [docs/versioning.md](docs/versioning.md).
 
+The iPhone App Store screenshots follow the Cowdrey family standard ([`design/app-store/README.md` in bradleycowdrey/cowdrey-one](https://github.com/bradleycowdrey/cowdrey-one/blob/main/design/app-store/README.md)): each run of `.github/workflows/ios-appstore.yml` composes the simulator's dark-mode captures with `scripts/appstore-shots.mjs` and the family template in [`design/app-store`](design/app-store) (a word-for-word copy; change the master, then copy it here).
+
 Optional secrets for Developer ID signing and notarization (removes the Gatekeeper prompt):
 `DEVELOPER_ID_P12` (base64 .p12), `DEVELOPER_ID_P12_PASSWORD`, `CODESIGN_IDENTITY`,
 `NOTARY_APPLE_ID`, `NOTARY_PASSWORD` (app-specific password), `NOTARY_TEAM_ID`.
@@ -152,6 +154,7 @@ Widget/                   Mac widget extension
 ios/                      iPhone app and widgets
 android/                  Android app and widget
 docs/                     Sideloading and versioning notes; index.html forwards to bradcowdrey.com/meridian
+design/app-store/         App Store screenshot template (the Cowdrey family standard) and its fonts
 ```
 
 ## Terms and privacy
@@ -163,3 +166,4 @@ Using Meridian means agreeing to the [Terms of Use and Privacy](TERMS.md) (also 
 MIT © 2026 Bradley Cowdrey · [bradcowdrey.com](https://bradcowdrey.com)
 
 Bundles the [Inter](https://rsms.me/inter/) typeface by Rasmus Andersson under the SIL Open Font License 1.1 (`Resources/Fonts/Inter-LICENSE.txt`).
+The App Store screenshots are set in Fraunces and Instrument Sans, both under the SIL Open Font License 1.1 (`design/app-store/Fraunces-LICENSE.txt`, `design/app-store/Instrument-Sans-LICENSE.txt`).

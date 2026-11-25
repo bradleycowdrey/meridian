@@ -3,6 +3,8 @@ name: iPhone App Store
 # App Store screenshots and listing for the iPhone app, and (when ios/APPSTORE changes) the App Store build.
 #   Push to main (iPhone files): takes the App Store screenshots (6.9-inch iPhone) and publishes them,
 #     with the listing text, to the ci-appstore branch for review. Nothing goes to Apple.
+#     The pictures are composed on the Cowdrey family standard (design/app-store/store-frame.mjs, a copy of
+#     the master in bradleycowdrey/cowdrey-one) by scripts/appstore-shots.mjs, with Node and Playwright Chromium.
 #   ios/APPSTORE changed to "1.0.0 submit": also builds, signs (Apple Distribution certificate, with
 #     App Store profiles fetched through the App Store Connect API key),
 #     uploads the build, screenshots and listing, and submits for review.
@@ -15,7 +17,7 @@ on:
   push:
     branches: [main]
     paths: ["ios/**", "Widget/**", "Sources/Meridian/Shared/**", "Sources/Meridian/Model/Place.swift",
-            "Sources/Meridian/Model/CityDirectory.swift", "scripts/appstore-shots.py", "scripts/store_frame.py",
+            "Sources/Meridian/Model/CityDirectory.swift", "scripts/appstore-shots.mjs", "design/app-store/**",
             ".github/workflows/ios-appstore.yml"]
   workflow_dispatch:
 
@@ -61,6 +63,13 @@ jobs:
           xcodebuild -version | tee "$OUT/xcode.txt"
       - name: Generate the Xcode project
         run: brew install xcodegen && cd ios && xcodegen && mkdir -p "$OUT"
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Playwright Chromium (composes the store frames)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-package-lock --no-audit --no-fund playwright@1.56.1
+          echo "NODE_PATH=$RUNNER_TEMP/pw/node_modules" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install chromium
 
       - name: Screenshots (6.9-inch iPhone)
         run: |
@@ -85,12 +94,11 @@ jobs:
             xcrun simctl io "$DEVICE" screenshot "$SHOTS/0${n}-$screen.png"
             n=$((n + 1))
           done
-          # Store frames: headline, iPhone frame and backdrop round each raw capture (same file
-          # names, 1320 x 2868 RGB). The raw captures are kept for QA only, never uploaded.
+          # Store frames on the Cowdrey family standard: headline, sub-line, ground and iPhone round each
+          # raw capture (same file names, 1320 x 2868 RGB). The raw captures are kept for QA only, never uploaded.
           mkdir -p "$OUT/raw"; cp "$SHOTS"/*.png "$OUT/raw/"
-          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q Pillow
           FRAMES="$RUNNER_TEMP/frames"; rm -rf "$FRAMES"; mkdir -p "$FRAMES"
-          if "$RUNNER_TEMP/venv/bin/python" scripts/appstore-shots.py "$SHOTS" "$FRAMES" 2>&1 | tee "$OUT/frames.log" \
+          if node scripts/appstore-shots.mjs "$SHOTS" "$FRAMES" 2>&1 | tee "$OUT/frames.log" \
              && [ "$(ls "$FRAMES"/*.png | wc -l)" -eq "$(ls "$SHOTS"/*.png | wc -l)" ]; then
             rm -f "$SHOTS"/*.png; cp "$FRAMES"/*.png "$SHOTS/"
           else

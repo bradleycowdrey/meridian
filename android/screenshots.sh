@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# CI: installs the debug app on the emulator and takes a screenshot of every screen.
+# CI: installs the debug app on the emulator and takes a screenshot of every screen (and the main screen on a
+# large screen in landscape).
 OUT="$1"; mkdir -p "$OUT"
 APK=android/app/build/outputs/apk/debug/app-debug.apk
 adb install -r "$APK" > "$OUT/install.txt" 2>&1
@@ -26,5 +27,17 @@ for screen in main travel add edit settings date find widgets terms; do
   adb exec-out screencap -p > "$OUT/screen-$screen.png"
   echo "$(date +%T) shot $screen" >> "$OUT/launch.txt"
 done
+# A large screen in landscape (a tablet or an unfolded phone: 1280 x 800 dp), where Android 16 ignores the portrait
+# lock: the cards should keep a phone's width, centred.
+if adb shell wm size 2560x1600 && adb shell wm density 320; then
+  adb shell am force-stop com.bradcowdrey.meridian
+  adb logcat -c
+  adb shell am start -n com.bradcowdrey.meridian/.MainActivity --ez screenshots true --es screen main >> "$OUT/launch.txt" 2>&1
+  for t in $(seq 1 40); do adb logcat -d -s Meridian:I 2>/dev/null | grep -q "photos ready" && break; sleep 0.5; done
+  sleep 2
+  adb exec-out screencap -p > "$OUT/screen-wide.png"
+  echo "$(date +%T) shot wide" >> "$OUT/launch.txt"
+  adb shell wm size reset; adb shell wm density reset
+fi
 adb shell dumpsys meminfo com.bradcowdrey.meridian > "$OUT/meminfo.txt" 2>&1
 adb logcat -d | grep -i -E "meridian|AndroidRuntime|FATAL" | tail -300 > "$OUT/logcat.txt"

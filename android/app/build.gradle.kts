@@ -15,12 +15,12 @@ val uploadKeystore = signingValue("androidKeystoreFile", "ANDROID_KEYSTORE_FILE"
 
 android {
     namespace = "com.bradcowdrey.meridian"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.bradcowdrey.meridian"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
         versionName = (project.findProperty("versionName") as String?) ?: "2.0"
     }

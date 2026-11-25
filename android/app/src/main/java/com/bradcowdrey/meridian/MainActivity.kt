@@ -357,8 +357,14 @@ class MainActivity : ComponentActivity() {
                 onSurfaceVariant = Palette.muted, outlineVariant = Palette.cardBorder,
             )) {
                 Surface(color = Palette.bg, modifier = Modifier.fillMaxSize()) {
-                    if (!store.termsAccepted) TermsScreen(changed = Terms.changed(Store.prefs(applicationContext))) { store.acceptTerms() }
-                    else App(store, if (demo) screen else "main")
+                    // A wide window (a tablet or an unfolded phone, where Android 16 ignores the portrait lock): a phone's
+                    // width, centred, as the other screens. On a phone (under 600 dp wide) nothing changes.
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                        Box(Modifier.widthIn(max = 600.dp).fillMaxSize()) {
+                            if (!store.termsAccepted) TermsScreen(changed = Terms.changed(Store.prefs(applicationContext))) { store.acceptTerms() }
+                            else App(store, if (demo) screen else "main")
+                        }
+                    }
                 }
             }
         }

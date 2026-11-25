@@ -17,11 +17,11 @@ cropped and the sides extended to fit Play's 2:1 limit (1120 x 2238).
   ("already used"). The version name is the release's (v2.1.6 gives 2.1.6) or `VERSION` for a run by hand, and
   "What's new" is that version's CHANGELOG section without its Mac lines.
 
-## Before the first upload
+## Android version
 
-Google Play has required new apps to target Android 16 (API level 36) since 31 August 2026. Meridian targets API 35
-(`targetSdk` in `android/app/build.gradle.kts`), so Play will refuse the bundle until that is raised to 36 (with
-`compileSdk` 36 and an Android Gradle plugin that supports it), and the app is checked on Android 16.
+Meridian targets Android 16 (API level 36), as Google Play has required of new apps since 31 August 2026. On large
+screens (tablets, unfolded phones) Android 16 ignores the portrait lock, so there the app keeps a phone's width,
+centred; CI photographs that too (`screen-wide.png` on `ci-android`).
 
 ## One-time steps in Play Console
 

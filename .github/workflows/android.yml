@@ -33,8 +33,14 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: "8.11.1" }
+        with: { gradle-version: "8.13" }
+      # Android 16 (API level 36), which the app compiles against and targets.
+      - name: Android SDK platform 36
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" > /dev/null \
+            || echo "::warning::sdkmanager couldn't install platforms;android-36; Gradle will try"
       - name: Build
+        id: build
         run: |
           mkdir -p "$OUT"
           set -o pipefail
@@ -49,7 +55,7 @@ jobs:
         timeout-minutes: 25
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 36
           target: google_apis
           arch: x86_64
           profile: pixel_7
@@ -72,11 +78,21 @@ jobs:
           print("card sky spread:", [round(x, 1) for x in spreads])
           sys.exit(0 if max(spreads) >= 6 else "city cards look blank (no photo or drawn skyline)")
           EOF
+      # Only after a good build, so a failed build never replaces the website's Meridian-debug.apk. After a failed
+      # emulator run the logs and screenshots are published, but the APK stays the last good build's.
       - name: Publish to ci-android branch
-        if: always()
+        if: always() && steps.build.outcome == 'success'
         run: |
           cd "$OUT"
           echo "$GITHUB_SHA" > commit.txt
+          if [ "${{ job.status }}" != success ]; then
+            rm -f Meridian-debug.apk
+            git clone -q --depth 1 -b ci-android "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$RUNNER_TEMP/last" \
+              && cp "$RUNNER_TEMP/last/Meridian-debug.apk" . \
+              && { cp "$RUNNER_TEMP/last/apk-commit.txt" . 2>/dev/null || cp "$RUNNER_TEMP/last/commit.txt" apk-commit.txt; }
+            echo "::warning::The emulator run failed: ci-android keeps the APK of the last good build ($(cat apk-commit.txt 2>/dev/null))"
+          fi
+          test -s Meridian-debug.apk
           git init -q -b ci-android
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
           git add -A && git commit -qm "Android build for $GITHUB_SHA"
@@ -117,7 +133,12 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: gradle/actions/setup-gradle@v4
-        with: { gradle-version: "8.11.1" }
+        with: { gradle-version: "8.13" }
+      # Android 16 (API level 36), which the app compiles against and targets.
+      - name: Android SDK platform 36
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" > /dev/null \
+            || echo "::warning::sdkmanager couldn't install platforms;android-36; Gradle will try"
       - name: Build the release (App Bundle and APK)
         env:
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}

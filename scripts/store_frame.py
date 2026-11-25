@@ -1,13 +1,20 @@
 """Shared drawing for Meridian's store screenshots (scripts/appstore-shots.py, scripts/mac-store-shots.py).
 
-The look, from the finish spec: a deep navy-to-black gradient, a soft glow made from the capture
-itself, a sky highlight near the top, a centred headline and subline, and the app in a frame drawn
-in code (an iPhone body, or a floating Mac window) with Apple's two-layer soft shadow.
+The look: Meridian's own deep navy-to-black gradient, a soft glow made from the capture itself and a
+sky highlight near the top; the app in a frame drawn in code (an iPhone, or a Mac window).
 
-Fonts: SF Pro when the machine has it (the macOS CI runners do), else Inter from Resources/Fonts.
-Set STORE_FONT=inter to force Inter (for comparing on a Mac).
+The type, the caption layout and the device geometry follow the Cowdrey One App Store standard
+(the same as Bearings' scripts/store-frames.js), so every app's screenshots match:
+  eyebrow   SANS 600, uppercase, tracking 0.14em, white .82
+  headline  Fraunces 560 (opsz 72), line-height 1.04, tracking -0.004em, white
+  sub       SANS 600, line-height 1.2, tracking -0.01em, white .9, one line
+One headline size and one sub size per set: the largest at which every line of every frame fits.
 
-Python 3 and Pillow only.
+Fonts: TITLE is Fraunces (scripts/fonts/fraunces.woff2, OFL). SANS is SF Pro when the machine has it
+(the macOS CI runners do; it is Apple's and never committed), else Inter SemiBold from
+Resources/Fonts. Set STORE_FONT=inter to force Inter (for comparing on a Mac).
+
+Python 3, Pillow and fontTools (with brotli, to read the woff2).
 """
 import math
 import os
@@ -16,6 +23,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFo
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_DIR = os.path.join(ROOT, "Resources", "Fonts")
+TITLE_FONT = os.path.join(ROOT, "scripts", "fonts", "fraunces.woff2")
 
 # Background tokens.
 GRADIENT = ((0.00, (0x0E, 0x1A, 0x33)), (0.45, (0x08, 0x10, 0x1F)), (1.00, (0x00, 0x00, 0x00)))
@@ -33,7 +41,7 @@ _SF_STATIC = {
 }
 _SF_VARIABLE = ("/System/Library/Fonts/SFNS.ttf",)
 _INTER = {"semibold": ("Inter-SemiBold.ttf", "Inter-Medium.ttf"), "regular": ("Inter-Regular.ttf",)}
-_WEIGHT = {"semibold": 590, "regular": 400}
+_WEIGHT = {"semibold": 600, "regular": 400}
 
 
 def _variable(path, weight, size):
@@ -80,11 +88,53 @@ def font(weight, size):
     raise SystemExit(f"[store-frame] no font for {weight}: SF Pro or {FONT_DIR}/Inter-*.ttf")
 
 
+_TITLE_AXES = {"wght": 560, "opsz": 72}
+_title_path = None
+
+
+def _title_ttf():
+    """Fraunces at wght 560, opsz 72, as a static TTF (made once from the woff2 with fontTools)."""
+    global _title_path
+    if _title_path is None:
+        import tempfile
+        out = os.path.join(tempfile.gettempdir(), "store-frame-fonts", "Fraunces-560-opsz72.ttf")
+        if not os.path.exists(out):
+            from fontTools.ttLib import TTFont
+            from fontTools.varLib import instancer
+            face = TTFont(TITLE_FONT)
+            static = instancer.instantiateVariableFont(face, dict(_TITLE_AXES))
+            static.flavor = None
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            static.save(out + ".part")
+            os.replace(out + ".part", out)
+        _title_path = out
+    return _title_path
+
+
+def title_font(size):
+    """The headline face: Fraunces 560, optical size 72."""
+    try:
+        return ImageFont.truetype(_title_ttf(), size)
+    except ImportError:
+        # No fontTools: let FreeType read the variable woff2 and set the axes itself.
+        face = ImageFont.truetype(TITLE_FONT, size)
+        names = [a["name"].decode("latin-1") if isinstance(a["name"], bytes) else str(a["name"])
+                 for a in face.get_variation_axes()]
+        face.set_variation_by_axes([_TITLE_AXES["opsz"] if "ptical" in n else _TITLE_AXES["wght"] for n in names])
+        return face
+
+
+def sans(size):
+    """SANS weight 600: (face, family)."""
+    return font("semibold", size)
+
+
 # ---------------------------------------------------------------------------------------------
-# Text (Pillow has no tracking: each glyph is placed at its kerned advance plus the tracking)
+# Text, set as a browser sets it (Pillow has no tracking: each glyph is placed at its kerned
+# advance plus the tracking, which CSS also adds after the last glyph, so it counts in the width)
 
 def text_width(text, face, tracking):
-    return face.getlength(text) + tracking * max(0, len(text) - 1)
+    return face.getlength(text) + tracking * len(text)
 
 
 def draw_tracked(layer, xy, text, face, tracking, fill):
@@ -98,78 +148,71 @@ def draw_tracked(layer, xy, text, face, tracking, fill):
         draw.text((x, baseline), ch, font=face, fill=fill, anchor="ls")
 
 
-_HANGING = {"a", "an", "the", "your", "my", "and", "or", "every", "any", "each"}
-
-
-def balanced_lines(text, face, tracking, max_width, max_lines=2):
-    """One line if it fits, else the two-line break with the most even lines (as Apple sets them)."""
-    if text_width(text, face, tracking) <= max_width or max_lines < 2:
-        return [text]
-    words = text.split()
-    best = None
-    for i in range(1, len(words)):
-        a, b = " ".join(words[:i]), " ".join(words[i:])
-        wa, wb = text_width(a, face, tracking), text_width(b, face, tracking)
-        if max(wa, wb) > max_width:
-            continue
-        # Prefer an even pair, with the first line not much shorter than the second, and never
-        # leave a small word hanging at the end of the first line.
-        score = abs(wa - wb) + (max(0, wb - wa) * 0.5)
-        if words[i - 1].lower().strip(",") in _HANGING:
-            score += max_width
-        if best is None or score < best[0]:
-            best = (score, [a, b])
-    return best[1] if best else None
-
-
-def headline_block(width, text, sub, size, sub_size, tracking, max_width, gap, line_height=1.08):
-    """Fits the headline (at most two lines) and the one-line subline.
-
-    Returns a dict with the faces, lines and the block's height (top of the first line's em box
-    to the bottom of the subline's)."""
-    while True:
-        face, family = font("semibold", size)
-        track = tracking * size / 104 if family == "sf" else tracking * size / 104 - size * 0.008
-        lines = balanced_lines(text, face, track, max_width)
-        if lines or size <= 40:
-            break
-        size -= 2
-    lines = lines or [text]
-    s_size = sub_size
-    while True:
-        s_face, _ = font("regular", s_size)
-        s_track = -0.2 * s_size / 50
-        if text_width(sub, s_face, s_track) <= max_width or s_size <= 28:
-            break
-        s_size -= 1
-    lh = round(size * line_height)
-    height = lh * len(lines) + gap + round(s_size * 1.2)
-    return {"face": face, "track": track, "lines": lines, "lh": lh, "size": size, "sub": sub,
-            "s_face": s_face, "s_track": s_track, "s_size": s_size, "gap": gap,
-            "height": height, "family": family}
-
-
-def draw_headline(canvas, block, top, width):
-    """Centred headline and subline; `top` is the top of the first line box."""
-    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    face, lh, size = block["face"], block["lh"], block["size"]
+def draw_line(layer, text, face, tracking, top, line_height, fill, centre_x):
+    """One centred line in a CSS line box `line_height` tall starting at `top`: the font's
+    ascent + descent sit centred in the box, as a browser lays it out."""
     ascent, descent = face.getmetrics()
-    # Put the em box (ascent+descent scaled to the size) centred in each line box.
-    em = ascent + descent
-    for i, line in enumerate(block["lines"]):
-        w = text_width(line, face, block["track"])
-        baseline = top + i * lh + (lh - em) / 2 + ascent
-        draw_tracked(layer, ((width - w) / 2, baseline), line, face, block["track"], (255, 255, 255, 255))
-    s_face = block["s_face"]
-    s_ascent, s_descent = s_face.getmetrics()
-    s_top = top + lh * len(block["lines"]) + block["gap"]
-    s_lh = round(block["s_size"] * 1.2)
-    w = text_width(block["sub"], s_face, block["s_track"])
-    baseline = s_top + (s_lh - (s_ascent + s_descent)) / 2 + s_ascent
-    draw_tracked(layer, ((width - w) / 2, baseline), block["sub"], s_face, block["s_track"],
-                 (255, 255, 255, round(255 * 0.64)))
+    baseline = top + (line_height - (ascent + descent)) / 2 + ascent
+    w = text_width(text, face, tracking)
+    draw_tracked(layer, (centre_x - w / 2, baseline), text, face, tracking, fill)
+
+
+# The caption layouts of the standard: where the block starts, its sizes and gaps.
+IPHONE_CAPTION = {"top": 150, "side": 70, "eyebrow": 38, "gap1": 28, "head": 124, "gap2": 32, "sub": 52,
+                  "head_floor": 96}
+MAC_CAPTION = {"top": 112, "side": 300, "eyebrow": 40, "gap1": 24, "head": 104, "gap2": 24, "sub": 48,
+               "head_floor": 72}
+
+EYEBROW_FILL = (255, 255, 255, round(255 * 0.82))
+HEAD_FILL = (255, 255, 255, 255)
+SUB_FILL = (255, 255, 255, round(255 * 0.9))
+
+
+def fit_sizes(layout, canvas_width, head_lines, subs):
+    """One headline size and one sub size for the whole set: the largest (stepping down 2 px from
+    the maximum) at which every headline line and every sub fits the caption width on one line."""
+    room = canvas_width - 2 * layout["side"]
+
+    def fits(lines, face_for, track_em, size):
+        face = face_for(size)
+        return all(text_width(l, face, track_em * size) <= room for l in lines)
+
+    head = layout["head"]
+    while head > layout["head_floor"] and not fits(head_lines, title_font, -0.004, head):
+        head -= 2
+    if not fits(head_lines, title_font, -0.004, head):
+        raise SystemExit(f"[store-frame] a headline line is wider than {room} px even at {head} px")
+    sub = layout["sub"]
+    while sub > 24 and not fits(subs, lambda z: sans(z)[0], -0.01, sub):
+        sub -= 2
+    return head, sub
+
+
+def draw_caption(canvas, layout, eyebrow, head_lines, sub, head_size, sub_size):
+    """The eyebrow, headline and sub, centred. Returns a dict of where each sits (for checks)."""
+    W = canvas.width
+    cx = W / 2
+    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    y = layout["top"]
+    e_size = layout["eyebrow"]
+    e_face, _ = sans(e_size)
+    draw_line(layer, eyebrow.upper(), e_face, 0.14 * e_size, y, e_size, EYEBROW_FILL, cx)
+    marks = {"eyebrow_top": y, "eyebrow_size": e_size}
+    y += e_size + layout["gap1"]
+    h_face = title_font(head_size)
+    lh = head_size * 1.04
+    marks["head_top"], marks["head_size"] = y, head_size
+    for line in head_lines:
+        draw_line(layer, line, h_face, -0.004 * head_size, y, lh, HEAD_FILL, cx)
+        y += lh
+    y += layout["gap2"]
+    s_face, _ = sans(sub_size)
+    s_lh = sub_size * 1.2
+    marks["sub_top"], marks["sub_size"] = y, sub_size
+    draw_line(layer, sub, s_face, -0.01 * sub_size, y, s_lh, SUB_FILL, cx)
+    marks["bottom"] = y + s_lh
     canvas.alpha_composite(layer)
-    return s_top + s_lh
+    return marks
 
 
 # ---------------------------------------------------------------------------------------------
@@ -214,6 +257,27 @@ def ring_mask(size, box, radius, width, ss=3, continuous=True):
     return ImageChops.subtract(outer, inner)
 
 
+def stops_strip(n, stops):
+    """A 1-pixel-high RGB strip `n` long through CSS-style colour stops [(t, (r, g, b)), ...]."""
+    strip = Image.new("RGB", (n, 1))
+    for i in range(n):
+        t = i / max(1, n - 1)
+        for (t0, c0), (t1, c1) in zip(stops, stops[1:]):
+            if t0 <= t <= t1:
+                u = (t - t0) / max(1e-9, t1 - t0)
+                strip.putpixel((i, 0), tuple(round(a + (b - a) * u) for a, b in zip(c0, c1)))
+                break
+    return strip
+
+
+def diagonal(size, stops):
+    """CSS linear-gradient(135deg, ...) over a box of `size`: top-left to bottom-right."""
+    w, h = size
+    strip = stops_strip(w + h, stops)
+    # Each pixel takes the strip's colour at x + y.
+    return strip.transform((w, h), Image.AFFINE, (1, 1, 0, 0, 0, 0), resample=Image.BILINEAR)
+
+
 def linear(size, top_color, bottom_color, horizontal=False):
     """An RGB linear gradient."""
     w, h = size
@@ -237,7 +301,7 @@ def solid(size, color, alpha_mask):
 # ---------------------------------------------------------------------------------------------
 # Shadows: CSS box-shadow "0 dy blur rgba(0,0,0,a)" from a shape mask
 
-def drop_shadow(canvas, mask, dy, blur, alpha):
+def drop_shadow(canvas, mask, dy, blur, alpha, color=(0, 0, 0)):
     """Composites a soft black shadow of `mask` (canvas-sized L) onto canvas (RGBA)."""
     w, h = canvas.size
     k = 4 if blur >= 24 else 1   # blur big shadows small: fast, and smooth when scaled up
@@ -247,7 +311,7 @@ def drop_shadow(canvas, mask, dy, blur, alpha):
         ImageDraw.Draw(small).rectangle((0, 0, small.width, round(dy / k) - 1), fill=0)
     small = small.filter(ImageFilter.GaussianBlur(blur / 2 / k))
     shadow = small.resize((w, h), Image.BICUBIC) if k > 1 else small
-    canvas.alpha_composite(solid((w, h), (0, 0, 0), shadow.point(lambda v: round(v * alpha))))
+    canvas.alpha_composite(solid((w, h), color, shadow.point(lambda v: round(v * alpha))))
 
 
 # ---------------------------------------------------------------------------------------------

@@ -11,14 +11,18 @@
   store-window.png       the desktop window at Large, 2x (optional)
 
 and writes 01-*.png ... into <out dir>: 3 to 5 images, each exactly 2880x1800 RGB (no alpha),
-the size the Mac App Store takes for 16:10 screenshots. Each has a headline and subline over a
-dark navy backdrop (with a glow made from the app itself), and the app as a floating window with
-Apple's soft two-layer shadow; the first hangs the panel from a translucent menu bar.
+the size the Mac App Store takes for 16:10 screenshots. Each has Meridian's dark navy backdrop
+(with a glow made from the app itself) and the Cowdrey One store caption, the same as every app
+in the family (see store_frame.py): an uppercase eyebrow at y 112, a one-line Fraunces headline
+and a one-line sub. Below it the app sits in the stage from x 300 to 2580: the desktop window as
+a 2280 px wide macOS window (title bar, traffic lights, 12 pt corners), the menu bar panel hung
+from a translucent menu bar, and the widgets.
 
 A missing optional input skips that shot. It always makes at least 3 from the panel and the
 widgets, and exits with an error if it can't (no panel at all).
 
-Fonts: SF Pro when present (macOS), else Inter from Resources/Fonts. Python 3 and Pillow only.
+Fonts: Fraunces (scripts/fonts) for the headline; SF Pro when present (macOS), else Inter
+SemiBold from Resources/Fonts. Python 3, Pillow and fontTools.
 """
 import argparse
 import os
@@ -31,19 +35,21 @@ import store_frame as sf  # noqa: E402
 
 W, H = 2880, 1800
 
-HEADLINE_TOP = 120
-HEADLINE_SIZE = 88
-HEADLINE_TRACKING = -1.2 * 104 / 88    # store_frame scales tracking by size/104; this gives -1.2 at 88
-SUBLINE_SIZE = 44
-SUBLINE_GAP = 18
-TEXT_WIDTH = 2400
-CLEARANCE = 64                         # text to frame top, at least
+# The stage under the caption: the standard's Mac window runs from x 300 to 2580.
+STAGE_X = 300
+STAGE_W = 2280
+# The standard puts the window's top at y 340, under a caption of headline and sub alone. With
+# the eyebrow line added above them (40 px + 24 px), the caption ends at y ~366, so the stage
+# moves down by the same 64 px to keep the standard's clearance between caption and window.
+STAGE_TOP = 340 + 40 + 24
+STAGE_H = H - STAGE_TOP - 90           # the most a frame that has to fit gets
+CLEARANCE = 30                         # caption's line box to the frame top, at least
 
-STAGE_TOP = 400                        # the frame's top
-STAGE_W, STAGE_H = 2240, 1300          # the largest a frame gets
-WINDOW_RADIUS = 20
+WINDOW_RADIUS = 20                     # the menu bar panel's corners
+TITLE_BAR_PT = 28                      # the desktop window: title bar and corners in points
+WINDOW_RADIUS_PT = 12
 
-MENU_BAR_Y = 372                       # the menu bar strip in the first shot
+MENU_BAR_Y = STAGE_TOP                 # the menu bar strip in the first shot
 MENU_BAR_H = 74
 
 
@@ -118,18 +124,56 @@ def scaled(image, factor):
     return image.resize((max(1, round(image.width * factor)), max(1, round(image.height * factor))), Image.LANCZOS)
 
 
-def stage(headline, subline, glow_source, glow_box):
-    """The backdrop and the headline; returns the canvas and the text's bottom edge."""
+TYPE = {}   # the set's headline and sub sizes, from main()
+
+
+def stage(copy, glow_source, glow_box):
+    """The backdrop and the caption; returns the canvas and the caption's bottom edge."""
+    eyebrow, headline, subline = copy
     canvas = sf.background((W, H), glow_source, glow_box, plate_scale=1.3, plate_alpha=0.26)
-    block = sf.headline_block(W, headline, subline, HEADLINE_SIZE, SUBLINE_SIZE, HEADLINE_TRACKING,
-                              TEXT_WIDTH, SUBLINE_GAP)
-    bottom = sf.draw_headline(canvas, block, HEADLINE_TOP, W)
-    return canvas, bottom
+    marks = sf.draw_caption(canvas, sf.MAC_CAPTION, eyebrow, [headline], subline, TYPE["head"], TYPE["sub"])
+    return canvas, marks["bottom"]
 
 
 def check_clear(bottom, frame_top):
     if frame_top - bottom < CLEARANCE:
-        log(f"warning: text ends {frame_top - bottom:.0f} px above the frame (want {CLEARANCE})")
+        log(f"warning: caption ends {frame_top - bottom:.0f} px above the frame (want {CLEARANCE})")
+
+
+def mac_window(canvas, art, title):
+    """The desktop window as the standard draws it: 2280 px wide from x 300, its top at the stage's,
+    a title bar 28 pt tall with the traffic lights and the title, 12 pt corners, and the two-layer
+    shadow. `art` is a 2x render of the window's content; a tall one runs off the bottom edge."""
+    s = STAGE_W / (art.width / 2)                       # px per point
+    bar, radius = round(TITLE_BAR_PT * s), WINDOW_RADIUS_PT * s
+    content = art.convert("RGBA").resize((STAGE_W, round(art.height * STAGE_W / art.width)), Image.LANCZOS)
+    x, y = STAGE_X, STAGE_TOP
+    box = (x, y, x + STAGE_W, y + bar + content.height)
+    size = canvas.size
+    mask = sf.shape_mask(size, box, radius, continuous=False)
+    sf.drop_shadow(canvas, mask, 60, 130, 0.60)
+    sf.drop_shadow(canvas, mask, 18, 44, 0.40)
+    edge = (box[0] - 1.5, box[1] - 1.5, box[2] + 1.5, box[3] + 1.5)
+    canvas.alpha_composite(sf.solid(size, (0, 0, 0, 153), sf.ring_mask(size, edge, radius + 1.5, 1.5, continuous=False)))
+    win = Image.new("RGBA", size, (0x1D, 0x20, 0x27, 255))
+    win.paste((0x24, 0x27, 0x2E, 255), (x, y, x + STAGE_W, y + bar))
+    win.paste((0x0B, 0x0D, 0x11, 255), (x, y + bar - 2, x + STAGE_W, y + bar))
+    win.paste(content, (x, y + bar))
+    win.putalpha(mask)
+    canvas.alpha_composite(win)
+    # Traffic lights and the title.
+    d, cy = 20 / 1.93 * s, y + bar / 2
+    for i, colour in enumerate(((0xFF, 0x5F, 0x57), (0xFE, 0xBC, 0x2E), (0x28, 0xC8, 0x40))):
+        lx = x + (20 + 20 * i) * s
+        light = (lx, cy - d / 2, lx + d, cy + d / 2)
+        canvas.alpha_composite(sf.solid(size, colour, sf.shape_mask(size, light, d / 2, continuous=False)))
+        canvas.alpha_composite(sf.solid(size, (0, 0, 0, 46), sf.ring_mask(size, light, d / 2, 1, continuous=False)))
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    face, _ = sf.sans(round(22 / 1.93 * s))
+    sf.draw_line(layer, title, face, 0.005 * face.size, y, bar, (0xC9, 0xCE, 0xD8, 255), x + STAGE_W / 2)
+    canvas.alpha_composite(layer)
+    canvas.alpha_composite(sf.solid(size, (255, 255, 255, 31), sf.ring_mask(size, box, radius, 1, continuous=False)))
+    return box
 
 
 def window(canvas, art, x, y, radius=WINDOW_RADIUS):
@@ -247,29 +291,29 @@ def menu_bar(canvas, icon_x):
 # ---------------------------------------------------------------------------------------------
 # The shots
 
-def menu_bar_shot(panel, headline, subline):
+def menu_bar_shot(panel, copy):
     art = fit(panel, STAGE_W, H - (MENU_BAR_Y + MENU_BAR_H + 12) - 90, 1.1)
     # Hang it at the right third, under the menu bar item.
     icon_x = round(W * 2 / 3)
-    x = min(max(icon_x - art.width // 2, 140), W - 140 - art.width)
+    x = min(max(icon_x - art.width // 2, STAGE_X), STAGE_X + STAGE_W - art.width)
     y = MENU_BAR_Y + MENU_BAR_H + 12
-    canvas, bottom = stage(headline, subline, panel, (x, y, x + art.width, y + art.height))
+    canvas, bottom = stage(copy, panel, (x, y, x + art.width, y + art.height))
     check_clear(bottom, MENU_BAR_Y)
     menu_bar(canvas, icon_x)
     window(canvas, art, x, y, radius=round(WINDOW_RADIUS * art.width / panel.width * 1.1))
     return canvas
 
 
-def framed_shot(image, headline, subline):
-    art = fit(image)
-    x = (W - art.width) // 2
-    canvas, bottom = stage(headline, subline, image, (x, STAGE_TOP, x + art.width, STAGE_TOP + art.height))
+def framed_shot(image, copy):
+    """A render in the standard's macOS window."""
+    h = round(image.height * STAGE_W / image.width + TITLE_BAR_PT * STAGE_W / (image.width / 2))
+    canvas, bottom = stage(copy, image, (STAGE_X, STAGE_TOP, STAGE_X + STAGE_W, STAGE_TOP + h))
     check_clear(bottom, STAGE_TOP)
-    window(canvas, art, x, STAGE_TOP)
+    mac_window(canvas, image, "Meridian")
     return canvas
 
 
-def widgets_shot(large, medium, small, headline, subline):
+def widgets_shot(large, medium, small, copy):
     """Large on the left; medium over small on the right, as on a desktop."""
     gap_pt = 28
     lw, lh = large.width / 3, large.height / 3
@@ -280,7 +324,7 @@ def widgets_shot(large, medium, small, headline, subline):
     factor = min(STAGE_W / group_w, STAGE_H / group_h, 3.2)
     x0 = round((W - group_w * factor) / 2)
     y0 = STAGE_TOP + round((STAGE_H - group_h * factor) / 2 * 0.6)
-    canvas, bottom = stage(headline, subline, large, (x0, y0, x0 + round(group_w * factor), y0 + round(group_h * factor)))
+    canvas, bottom = stage(copy, large, (x0, y0, x0 + round(group_w * factor), y0 + round(group_h * factor)))
     check_clear(bottom, y0)
     widget(canvas, scaled(large, factor / 3), x0, y0)
     y = y0
@@ -291,7 +335,7 @@ def widgets_shot(large, medium, small, headline, subline):
     return canvas
 
 
-def panel_and_widget_shot(panel, large, headline, subline):
+def panel_and_widget_shot(panel, large, copy):
     """The panel with the large widget beside it, at the same physical scale (2x and 3x renders)."""
     gap = 96
     w_art = scaled(large, 2 / 3)
@@ -302,7 +346,7 @@ def panel_and_widget_shot(panel, large, headline, subline):
     wg = scaled(w_art, factor)
     total = p.width + round(gap * factor) + wg.width
     x = (W - total) // 2
-    canvas, bottom = stage(headline, subline, panel, (x, STAGE_TOP, x + total, STAGE_TOP + p.height))
+    canvas, bottom = stage(copy, panel, (x, STAGE_TOP, x + total, STAGE_TOP + p.height))
     check_clear(bottom, STAGE_TOP)
     window(canvas, p, x, STAGE_TOP)
     widget(canvas, wg, x + p.width + round(gap * factor), STAGE_TOP + (p.height - wg.height) // 2)
@@ -334,30 +378,34 @@ def main():
     _, family = sf.font("semibold", 20)
     log(f"font: {'SF Pro' if family == 'sf' else 'Inter'}")
 
-    shots = [("01-menu-bar.png", lambda: menu_bar_shot(
-        panel, "The world, from your menu bar.", "One click shows every city you follow."))]
+    # Eyebrow (the feature on the screen), headline and sub for each shot.
+    menu = ("Menu bar", "The world, from your menu bar.", "One click shows every city you follow.")
+    widgets = ("Widgets", "Time zones on your desktop.", "Widgets in every size.")
+    hours = ("Working hours", "See who’s at work.", "Working and off hours for every city.")
+    plan = ("Planner", "Plan across time zones.", "Drag the hours to find a time for everyone.")
+    shots = [("01-menu-bar.png", menu, lambda: menu_bar_shot(panel, menu))]
     if large is not None:
-        shots.append(("02-widgets.png", lambda: widgets_shot(
-            large, medium, small, "Time zones on your desktop.", "Widgets in every size.")))
-        shots.append(("03-working-hours.png", lambda: panel_and_widget_shot(
-            panel, large, "See who’s at work.", "Working and off hours for every city.")))
+        shots.append(("02-widgets.png", widgets, lambda: widgets_shot(large, medium, small, widgets)))
+        shots.append(("03-working-hours.png", hours, lambda: panel_and_widget_shot(panel, large, hours)))
     elif medium is not None:
-        shots.append(("02-widgets.png", lambda: widgets_shot(
-            medium, None, small, "Time zones on your desktop.", "Widgets in every size.")))
+        shots.append(("02-widgets.png", widgets, lambda: widgets_shot(medium, None, small, widgets)))
     if win is not None:
-        shots.append(("04-window.png", lambda: framed_shot(
-            win, "Plan across time zones.", "Drag the hours to find a time for everyone.")))
-    # Never fewer than three: the panel again, framed as a window.
-    extra = [("05-working-hours.png", "See who’s at work.", "Working and off hours for every city."),
-             ("06-plan.png", "Plan across time zones.", "Drag the hours to find a time for everyone.")]
+        shots.append(("04-window.png", plan, lambda: framed_shot(win, plan)))
+    # Never fewer than three: the panel again, in a window.
+    extra = [("05-working-hours.png", hours), ("06-plan.png", plan)]
     while len(shots) < 3 and extra:
-        name, text, sub = extra.pop(0)
-        shots.append((name, lambda text=text, sub=sub: framed_shot(panel, text, sub)))
+        name, copy = extra.pop(0)
+        shots.append((name, copy, lambda copy=copy: framed_shot(panel, copy)))
+    shots = shots[:5]
 
-    for name, make in shots[:5]:
+    # One headline size and one sub size for the whole set (each one line).
+    TYPE["head"], TYPE["sub"] = sf.fit_sizes(sf.MAC_CAPTION, W, [c[1] for _, c, _ in shots], [c[2] for _, c, _ in shots])
+    log(f"type: headline {TYPE['head']} px, sub {TYPE['sub']} px")
+
+    for name, _, make in shots:
         image = sf.finish(sf.dither(make()), (W, H), os.path.join(out, name))
         log(f"wrote {name} {image.width}x{image.height} {image.mode}")
-    log(f"{min(len(shots), 5)} screenshots in {out}")
+    log(f"{len(shots)} screenshots in {out}")
 
 
 if __name__ == "__main__":

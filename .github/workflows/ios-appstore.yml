@@ -15,7 +15,7 @@ on:
   push:
     branches: [main]
     paths: ["ios/**", "Widget/**", "Sources/Meridian/Shared/**", "Sources/Meridian/Model/Place.swift",
-            "Sources/Meridian/Model/CityDirectory.swift", "scripts/appstore-shots.py", "scripts/store_frame.py",
+            "Sources/Meridian/Model/CityDirectory.swift", "scripts/appstore-shots.py", "scripts/store_frame.py", "scripts/fonts/**",
             ".github/workflows/ios-appstore.yml"]
   workflow_dispatch:
 
@@ -85,10 +85,10 @@ jobs:
             xcrun simctl io "$DEVICE" screenshot "$SHOTS/0${n}-$screen.png"
             n=$((n + 1))
           done
-          # Store frames: headline, iPhone frame and backdrop round each raw capture (same file
+          # Store frames: the Cowdrey One caption (eyebrow, Fraunces headline, sub), iPhone frame and backdrop round each raw capture (same file
           # names, 1320 x 2868 RGB). The raw captures are kept for QA only, never uploaded.
           mkdir -p "$OUT/raw"; cp "$SHOTS"/*.png "$OUT/raw/"
-          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q Pillow
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q Pillow fonttools brotli
           FRAMES="$RUNNER_TEMP/frames"; rm -rf "$FRAMES"; mkdir -p "$FRAMES"
           if "$RUNNER_TEMP/venv/bin/python" scripts/appstore-shots.py "$SHOTS" "$FRAMES" 2>&1 | tee "$OUT/frames.log" \
              && [ "$(ls "$FRAMES"/*.png | wc -l)" -eq "$(ls "$SHOTS"/*.png | wc -l)" ]; then

@@ -5,54 +5,54 @@
 
 Reads 01-main.png ... 05-add.png (6.9-inch simulator captures, 1320x2868) and writes the same
 file names into <out dir>: each exactly 1320x2868 RGB (no alpha), the 6.9-inch App Store size.
-Each frame has a headline and subline over a dark navy backdrop (with a glow made from the
-capture), and the capture inside an iPhone drawn in code: a titanium-edged body with continuous
-corners, the Dynamic Island, and a soft two-layer shadow. The phone runs off the bottom edge.
+Each frame has Meridian's dark navy backdrop (with a glow made from the capture) and the
+Cowdrey One store caption and iPhone, the same as every app in the family (see store_frame.py):
+an uppercase eyebrow at y 150, a two-line Fraunces headline and a one-line sub, then the capture in
+an iPhone drawn in code (body 1024 px wide, centred, top at y 640: titanium rim, black bezel,
+62 pt screen corners, the Dynamic Island, side buttons and a two-layer shadow).
 
 A capture that isn't 1320x2868 is scaled to the screen like the others. A capture with no
-headline below (a new screen) gets a frame with the generic headline.
+caption below (a new screen) gets a frame with the generic caption.
 <out dir> may be the captures dir itself: every capture is read before anything is written.
 
-Fonts: SF Pro when present (macOS), else Inter from Resources/Fonts. Python 3 and Pillow only.
+Fonts: Fraunces (scripts/fonts) for the headline; SF Pro when present (macOS), else Inter
+SemiBold from Resources/Fonts. Python 3, Pillow and fontTools.
 """
 import argparse
 import os
 import sys
 
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store_frame as sf  # noqa: E402
 
 W, H = 1320, 2868
 
-# Headline / subline for each capture (the file name's stem after the number).
+# Eyebrow (the feature on the screen), the headline's two lines and the sub, for each capture
+# (the file name's stem after the number).
 COPY = {
-    "main": ("Every time zone at a glance.", "Your cities, photos and hours side by side."),
-    "travel": ("Find a time that works.", "Drag the hours and every city follows."),
-    "widgets": ("Your cities on your Home Screen.", "Widgets for Home Screen and Lock Screen."),
-    "date": ("Go to any moment.", "Pick a date and time, and see it everywhere."),
-    "add": ("Search 34,000 cities.", "Add any place on Earth in a tap."),
+    "main": ("Time zones", ("Every time zone", "at a glance."), "Your cities, photos and hours side by side."),
+    "travel": ("Planner", ("Find a time", "that works."), "Drag the hours and every city follows."),
+    "widgets": ("Widgets", ("Your cities on", "your Home Screen."), "Widgets for Home Screen and Lock Screen."),
+    "date": ("Date & time", ("Go to", "any moment."), "Pick a date and time, and see it everywhere."),
+    "add": ("City search", ("Search", "34,000 cities."), "Add any place on Earth in a tap."),
 }
-GENERIC = ("Every time zone at a glance.", "Your cities, photos and hours side by side.")
+GENERIC = COPY["main"]
 
-# Type.
-HEADLINE_TOP = 170
-HEADLINE_SIZE = 104
-HEADLINE_TRACKING = -1.5
-SUBLINE_SIZE = 50
-SUBLINE_GAP = 24
-TEXT_WIDTH = 1120
-
-# The phone. The screen is the capture at 1060 wide; the body is 16 px wider on each side.
-SCREEN_W = 1060
-SCREEN_H = round(SCREEN_W * 2868 / 1320)      # 2303
-SCREEN_RADIUS = 134
-BODY_INSET = 16
-BODY_RADIUS = 150
-# The screen runs ~47 px past the bottom: the home indicator goes, the Now bar and ruler stay.
-SCREEN_TOP = H + 47 - SCREEN_H                 # 612
-CLEARANCE = 80                                 # text to frame top, at least
+# The phone, as Bearings draws it (scripts/store-frames.js, DEVICES.iphone): body width, its top,
+# the bezel and rim as fractions of the body, the screen's corner radius in points at 3x.
+BODY = 1024
+BODY_TOP = 640
+INSET = 0.036
+RIM = 0.011
+RADIUS_PT = 62
+PT = 3
+SHADOW = (3, 9, 22)
+RIM_STOPS = [(0.00, (0x8A, 0x8D, 0x93)), (0.14, (0x43, 0x46, 0x4B)), (0.45, (0x26, 0x28, 0x2C)),
+             (0.70, (0x2E, 0x30, 0x34)), (0.88, (0x55, 0x58, 0x5E)), (1.00, (0x9A, 0x9D, 0xA3))]
+BUTTON_STOPS = [(0.0, (0x2B, 0x2D, 0x31)), (0.5, (0x74, 0x77, 0x7D)), (1.0, (0x2B, 0x2D, 0x31))]
+CLEARANCE = 60                                 # caption to the phone's top, at least
 
 
 def log(message):
@@ -65,87 +65,129 @@ def load(path):
     return image.convert("RGB")
 
 
+def geometry(capture_size):
+    """The phone's boxes on the canvas for a capture of `capture_size`."""
+    cap_w, cap_h = capture_size
+    left = (W - BODY) / 2
+    inset, rim = round(BODY * INSET), round(BODY * RIM)
+    sw = BODY - 2 * inset
+    k = sw / cap_w
+    sh = round(cap_h * k)
+    bh = sh + 2 * inset
+    sr = RADIUS_PT * PT * k
+    return {"left": left, "top": BODY_TOP, "inset": inset, "rim": rim, "sw": sw, "sh": sh, "bh": bh,
+            "k": k, "sr": sr, "br": sr + inset,
+            "screen": (left + inset, BODY_TOP + inset, left + inset + sw, BODY_TOP + inset + sh)}
+
+
+def _rect(canvas, box, radius, fill):
+    """A plain (circular-cornered, as CSS draws border-radius) rounded rectangle."""
+    canvas.alpha_composite(sf.solid(canvas.size, fill, sf.shape_mask(canvas.size, box, radius, continuous=False)))
+
+
 def phone(canvas, capture):
-    """Draws the iPhone with the capture on its screen."""
-    sx0 = (W - SCREEN_W) // 2
-    sy0 = SCREEN_TOP
-    screen = (sx0, sy0, sx0 + SCREEN_W, sy0 + SCREEN_H)
-    body = (sx0 - BODY_INSET, sy0 - BODY_INSET, sx0 + SCREEN_W + BODY_INSET, sy0 + SCREEN_H + BODY_INSET)
+    """Draws the iPhone with the capture on its screen; returns the body box."""
+    g = geometry(capture.size)
     size = canvas.size
+    x0, y0 = g["left"], g["top"]
+    bh, br = g["bh"], g["br"]
+    body = (x0, y0, x0 + BODY, y0 + bh)
 
-    body_mask = sf.shape_mask(size, body, BODY_RADIUS)
+    # Buttons first, so the body covers their inner half: Action, volume up and down on the left;
+    # the side button and Camera Control on the right.
+    bw, out = round(BODY * 0.011), -round(BODY * 0.0065)
+    btn_r = BODY * 0.006
+    for side, t, h, r in (("l", 0.17, 0.04, btn_r), ("l", 0.235, 0.068, btn_r), ("l", 0.318, 0.068, btn_r),
+                          ("r", 0.265, 0.105, btn_r), ("r", 0.56, 0.055, bw)):
+        bx = x0 + out if side == "l" else x0 + BODY - out - bw
+        box = (bx, y0 + bh * t, bx + bw, y0 + bh * (t + h))
+        m = sf.shape_mask(size, box, min(r, bw / 2), continuous=False)
+        grad = sf.stops_strip(bw * 4, BUTTON_STOPS).resize((bw, max(1, round(box[3] - box[1]))), Image.BILINEAR)
+        layer = Image.new("RGBA", size, (0, 0, 0, 0))
+        layer.paste(grad.convert("RGBA"), (round(bx), round(box[1])))
+        layer.putalpha(ImageChops.multiply(layer.getchannel("A"), m))
+        canvas.alpha_composite(layer)
 
-    # Shadow: 0 40 120 black .55, plus 0 8 24 black .35.
-    sf.drop_shadow(canvas, body_mask, 40, 120, 0.55)
-    sf.drop_shadow(canvas, body_mask, 8, 24, 0.35)
-
-    # Side buttons, just proud of the frame (action and volume left, side button right).
-    bx0, by0, bx1, by1 = body
-    bh = by1 - by0
-    buttons = [(bx0 - 5, 0.135, 0.165), (bx0 - 5, 0.205, 0.265), (bx0 - 5, 0.290, 0.350), (bx1 - 1, 0.230, 0.330)]
-    for x, t0, t1 in buttons:
-        box = (x, by0 + bh * t0, x + 6, by0 + bh * t1)
-        m = sf.shape_mask(size, box, 3, continuous=False)
-        canvas.alpha_composite(sf.solid(size, (0x2C, 0x2C, 0x30), m))
-        hl = sf.shape_mask(size, (box[0] + (1 if x < bx0 else 3), box[1] + 2, box[0] + (3 if x < bx0 else 5), box[3] - 2), 1,
-                           continuous=False)
-        canvas.alpha_composite(sf.solid(size, (255, 255, 255, 22), hl))
-
-    # Body: the titanium band (a 3 px rim, light top-left to dark bottom-right), then black glass.
-    rim = sf.linear(size, (0x3A, 0x3A, 0x3E), (0x1C, 0x1C, 0x1E))
-    rim_layer = rim.convert("RGBA")
-    rim_layer.putalpha(body_mask)
-    canvas.alpha_composite(rim_layer)
-    band = (bx0 + 3, by0 + 3, bx1 - 3, by1 - 3)
-    canvas.alpha_composite(sf.solid(size, (0x1A, 0x1A, 0x1C), sf.shape_mask(size, band, BODY_RADIUS - 3)))
-    # Inner 1.5 px rim of white .10 where the band meets the rim.
-    canvas.alpha_composite(sf.solid(size, (255, 255, 255, 26), sf.ring_mask(size, band, BODY_RADIUS - 3, 1.5)))
-    glass = (bx0 + 7, by0 + 7, bx1 - 7, by1 - 7)
-    canvas.alpha_composite(sf.solid(size, (0x02, 0x02, 0x03), sf.shape_mask(size, glass, BODY_RADIUS - 7)))
-
-    # Screen: the capture with continuous corners.
-    shot = capture.resize((SCREEN_W, SCREEN_H), Image.LANCZOS).convert("RGBA")
+    # Body: the two-layer shadow, then the metal rim (135deg gradient).
+    body_mask = sf.shape_mask(size, body, br, continuous=False)
+    sf.drop_shadow(canvas, body_mask, BODY * 0.07, BODY * 0.13, 0.55, SHADOW)
+    sf.drop_shadow(canvas, body_mask, BODY * 0.012, BODY * 0.03, 0.35, SHADOW)
+    rim_art = sf.diagonal((BODY, round(bh)), RIM_STOPS).convert("RGBA")
     layer = Image.new("RGBA", size, (0, 0, 0, 0))
-    layer.paste(shot, (sx0, sy0))
-    screen_mask = sf.shape_mask(size, screen, SCREEN_RADIUS)
-    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), screen_mask))
+    layer.paste(rim_art, (round(x0), round(y0)))
+    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), body_mask))
     canvas.alpha_composite(layer)
 
-    # Dynamic Island, at the iPhone 16 Pro Max proportions (126 x 37 pt, 11 pt down, on a 440 pt screen).
-    k = SCREEN_W / 440
-    iw, ih, it = 126 * k, 37 * k, 11 * k
-    island = (W / 2 - iw / 2, sy0 + it, W / 2 + iw / 2, sy0 + it + ih)
-    canvas.alpha_composite(sf.solid(size, (0, 0, 0), sf.shape_mask(size, island, ih / 2, continuous=False)))
-    # The camera lens, barely there (as on the real glass, the island itself vanishes on black).
-    lens = (island[2] - ih * 0.5 - ih * 0.13, island[1] + ih * 0.37, island[2] - ih * 0.5 + ih * 0.13, island[3] - ih * 0.37)
-    canvas.alpha_composite(sf.solid(size, (0x0B, 0x0D, 0x16), sf.shape_mask(size, lens, ih, continuous=False)))
+    # Black bezel inside the rim, with a faint light edge.
+    rim = g["rim"]
+    bezel = (x0 + rim, y0 + rim, x0 + BODY - rim, y0 + bh - rim)
+    _rect(canvas, bezel, br - rim, (0, 0, 0, 255))
+    canvas.alpha_composite(sf.solid(size, (255, 255, 255, round(255 * 0.07)),
+                                    sf.ring_mask(size, bezel, br - rim, max(2, BODY * 0.0022), continuous=False)))
 
-    # A faint light edge round the glass, as the frame catches the light.
-    canvas.alpha_composite(sf.solid(size, (255, 255, 255, 10), sf.ring_mask(size, glass, BODY_RADIUS - 7, 1)))
+    # Screen: the capture scaled to the screen's width, with 62 pt corners.
+    screen = g["screen"]
+    shot = capture.resize((g["sw"], g["sh"]), Image.LANCZOS).convert("RGBA")
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    layer.paste(shot, (round(screen[0]), round(screen[1])))
+    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), sf.shape_mask(size, screen, g["sr"], continuous=False)))
+    canvas.alpha_composite(layer)
+
+    # The Dynamic Island: 126 x 37.33 pt, 11 pt from the top, with a faint edge and a lens.
+    k, p = g["k"], PT * g["k"]
+    iw, ih, it = 126 * PT * k, 37.33 * PT * k, 11 * PT * k
+    island = (W / 2 - iw / 2, screen[1] + it, W / 2 + iw / 2, screen[1] + it + ih)
+    outer = (island[0] - 0.6 * p, island[1] - 0.6 * p, island[2] + 0.6 * p, island[3] + 0.6 * p)
+    _rect(canvas, outer, ih / 2 + 0.6 * p, (0, 0, 0, round(255 * 0.9)))
+    _rect(canvas, island, ih / 2, (0, 0, 0, 255))
+    canvas.alpha_composite(sf.solid(size, (255, 255, 255, round(255 * 0.09)),
+                                    sf.ring_mask(size, island, ih / 2, 1.2 * p, continuous=False)))
+    d = ih * 0.4
+    lens = (island[2] - ih * 0.3 - d, island[1] + ih * 0.3, island[2] - ih * 0.3, island[1] + ih * 0.3 + d)
+    _lens(canvas, lens, 0.8 * p)
     return body
 
 
-def compose(capture, headline, subline):
-    body_top = SCREEN_TOP - BODY_INSET
-    screen_box = ((W - SCREEN_W) // 2, SCREEN_TOP, (W + SCREEN_W) // 2, SCREEN_TOP + SCREEN_H)
-    canvas = sf.background((W, H), capture, screen_box)
+def _lens(canvas, box, ring):
+    """radial-gradient(circle at 35% 35%, #2a3550, #0b0f1a 55%, #05070c), with a faint ring."""
+    ss = 8
+    n = max(4, round((box[2] - box[0]) * ss))
+    art = Image.new("RGB", (n, n))
+    px = art.load()
+    cx = cy = 0.35 * n
+    far = ((n - cx) ** 2 + (n - cy) ** 2) ** 0.5   # farthest-corner, as CSS sizes it
+    stops = [(0.0, (0x2A, 0x35, 0x50)), (0.55, (0x0B, 0x0F, 0x1A)), (1.0, (0x05, 0x07, 0x0C))]
+    for y in range(n):
+        for x in range(n):
+            t = min(1.0, ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5 / far)
+            for (t0, c0), (t1, c1) in zip(stops, stops[1:]):
+                if t0 <= t <= t1:
+                    u = (t - t0) / (t1 - t0)
+                    px[x, y] = tuple(round(a + (b - a) * u) for a, b in zip(c0, c1))
+                    break
+    size = canvas.size
+    w = max(1, round(box[2] - box[0]))
+    art = art.resize((w, w), Image.LANCZOS).convert("RGBA")
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    layer.paste(art, (round(box[0]), round(box[1])))
+    m = sf.shape_mask(size, (round(box[0]), round(box[1]), round(box[0]) + w, round(box[1]) + w), w / 2, continuous=False)
+    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), m))
+    canvas.alpha_composite(layer)
+    outer = (box[0] - ring, box[1] - ring, box[2] + ring, box[3] + ring)
+    canvas.alpha_composite(sf.solid(size, (255, 255, 255, round(255 * 0.05)),
+                                    sf.ring_mask(size, outer, (outer[2] - outer[0]) / 2, ring, continuous=False)))
 
-    block = sf.headline_block(W, headline, subline, HEADLINE_SIZE, SUBLINE_SIZE, HEADLINE_TRACKING,
-                              TEXT_WIDTH, SUBLINE_GAP)
-    # Two lines start at 170. One line sits centred in the same band, so the gap above the
-    # phone stays balanced.
-    band_bottom = body_top - CLEARANCE - 20
-    if len(block["lines"]) >= 2:
-        top = HEADLINE_TOP
-    else:
-        top = HEADLINE_TOP + (band_bottom - HEADLINE_TOP - block["height"]) / 2
-    bottom = sf.draw_headline(canvas, block, top, W)
-    clear = body_top - bottom
+
+def compose(capture, copy, head_size, sub_size):
+    eyebrow, lines, sub = copy
+    g = geometry(capture.size)
+    canvas = sf.background((W, H), capture, g["screen"])
+    marks = sf.draw_caption(canvas, sf.IPHONE_CAPTION, eyebrow, list(lines), sub, head_size, sub_size)
+    clear = BODY_TOP - marks["bottom"]
     if clear < CLEARANCE:
-        log(f"warning: text ends {clear:.0f} px above the phone (want {CLEARANCE})")
-
+        log(f"warning: caption ends {clear:.0f} px above the phone (want {CLEARANCE})")
     phone(canvas, capture)
-    return sf.dither(canvas), block, clear
+    return sf.dither(canvas), marks, clear
 
 
 def main():
@@ -162,16 +204,20 @@ def main():
     _, family = sf.font("semibold", 20)
     log(f"font: {'SF Pro' if family == 'sf' else 'Inter'}")
 
+    copies = {name: COPY.get(os.path.splitext(name)[0].split("-", 1)[-1], GENERIC) for name in names}
+    # One headline size and one sub size for the whole set.
+    head_size, sub_size = sf.fit_sizes(sf.IPHONE_CAPTION, W, [l for c in copies.values() for l in c[1]],
+                                       [c[2] for c in copies.values()])
+    log(f"type: headline {head_size} px, sub {sub_size} px")
+
     for name in names:
         capture = captures[name]
         if capture.size != (W, H):
             log(f"note: {name} is {capture.width}x{capture.height}, scaled to the screen")
-        stem = os.path.splitext(name)[0].split("-", 1)[-1]
-        headline, subline = COPY.get(stem, GENERIC)
-        image, block, clear = compose(capture, headline, subline)
+        image, marks, clear = compose(capture, copies[name], head_size, sub_size)
         out = sf.finish(image, (W, H), os.path.join(args.out_dir, name))
-        log(f"wrote {name} {out.width}x{out.height} {out.mode}: {' / '.join(block['lines'])} "
-            f"({block['size']} px, clear {clear:.0f} px)")
+        log(f"wrote {name} {out.width}x{out.height} {out.mode}: {copies[name][0].upper()} / "
+            f"{' / '.join(copies[name][1])} / {copies[name][2]} (clear {clear:.0f} px)")
 
 
 if __name__ == "__main__":

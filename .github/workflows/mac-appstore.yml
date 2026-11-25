@@ -136,7 +136,7 @@ jobs:
           sleep 1; kill $PID 2>/dev/null || true
           ls "$ST"
           python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install -q Pillow
+          "$RUNNER_TEMP/venv/bin/pip" install -q Pillow fonttools brotli
           SHOTS=mac/fastlane/screenshots/en-US
           rm -rf "$SHOTS"; mkdir -p "$SHOTS" "$OUT/screenshots"
           "$RUNNER_TEMP/venv/bin/python" scripts/mac-store-shots.py "$ST" "$SHOTS"

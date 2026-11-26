@@ -31,6 +31,10 @@ android {
     buildFeatures {
         compose = true
     }
+    // JVM unit tests (src/test): android.jar's stubs return defaults instead of throwing, so a bare Context can be made.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
     // The city list, public holidays and photo indexes (skylines.json, plates-remote.json), shared with the Mac and
     // iPhone apps (not copied): every file in Resources/Data is packaged as an asset.
     sourceSets {
@@ -49,4 +53,7 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+    testImplementation("junit:junit:4.13.2")
+    // The real org.json on the JVM (android.jar has only stubs).
+    testImplementation("org.json:json:20240303")
 }

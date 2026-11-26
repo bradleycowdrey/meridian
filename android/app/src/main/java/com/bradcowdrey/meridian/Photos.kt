@@ -97,8 +97,8 @@ object SkylineManifest {
                 val keys = fromManifest.map { it.key }.toSet()
                 val all = fromManifest + fallback.filter { it.key !in keys }
                 val map = HashMap<String, MutableList<Entry>>()
-                // A default scene is never matched by name (nor by its key).
-                for (e in all) if (e.scene == null) for (n in e.names + e.key) {
+                // A default scene is never matched by name (nor by its key); a photo goes by its key only when it has no names.
+                for (e in all) if (e.scene == null) for (n in e.names.ifEmpty { listOf(e.key) }) {
                     val k = norm(n)
                     if (k.isNotEmpty()) map.getOrPut(k) { mutableListOf() }.let { if (e !in it) it.add(e) }
                 }
@@ -157,20 +157,59 @@ object SkylineManifest {
         }.getOrDefault(emptyList())
     }
 
-    fun norm(name: String): String = name.trim().lowercase(Locale.ROOT)
+    /**
+     * A name as built-in photos are matched (step 1): case and accents ignored, spaces at the ends dropped
+     * ("Ha Noi" and "Hà Nội", "MÜNCHEN" and "München" alike), as iOS and the Mac fold it: full case folding
+     * ([caseFold]), then decomposed and the combining marks taken off (scripts/photo-index.py's fold()).
+     */
+    fun norm(name: String): String {
+        val decomposed = java.text.Normalizer.normalize(caseFold(name), java.text.Normalizer.Form.NFD)
+        val out = StringBuilder(decomposed.length)
+        var i = 0
+        while (i < decomposed.length) {
+            val cp = decomposed.codePointAt(i)
+            i += Character.charCount(cp)
+            if (Character.getType(cp) != Character.NON_SPACING_MARK.toInt()) out.appendCodePoint(cp)
+        }
+        return out.toString().trim()
+    }
+
+    /**
+     * Unicode full case folding (Python's str.casefold, Swift's .caseInsensitive folding), which Kotlin lacks: each
+     * character upper-cased, then lower-cased ("ß" and "ẞ" -> "ss", "ς" -> "σ", "ﬁ" -> "fi"), except dotless "ı",
+     * which folding keeps.
+     */
+    private fun caseFold(s: String): String {
+        val out = StringBuilder(s.length)
+        var i = 0
+        while (i < s.length) {
+            val cp = s.codePointAt(i)
+            i += Character.charCount(cp)
+            when (cp) {
+                0x131 -> out.appendCodePoint(cp)
+                0x1E9E -> out.append("ss")
+                else -> out.append(String(Character.toChars(cp)).uppercase(Locale.ROOT).lowercase(Locale.ROOT))
+            }
+        }
+        return out.toString()
+    }
 
     /** The drawable for a key ("skyline_<key>", or "skyline_<key>_night" with [night]), or 0 if it isn't in this build. */
-    fun resId(context: Context, key: String, night: Boolean = false): Int = synchronized(resIds) {
+    fun resId(context: Context, key: String, night: Boolean = false): Int = testResId?.invoke(key, night) ?: synchronized(resIds) {
         resIds.getOrPut(if (night) "$key|night" else key) {
             val name = "skyline_" + key.lowercase(Locale.ROOT).replace(NON_ALNUM, "_") + if (night) "_night" else ""
             context.resources.getIdentifier(name, "drawable", context.packageName)
         }
     }
 
+    /** Unit tests only: a drawable id for a key (0: not in this build) in place of the resources (the JVM has none). */
+    @Volatile internal var testResId: ((key: String, night: Boolean) -> Int)? = null
+
     /** Two fixed dates (winter and summer) on which zones are compared. */
     private val zoneCheckDates = listOf(Instant.parse("2026-01-15T12:00:00Z"), Instant.parse("2026-07-15T12:00:00Z"))
 
-    /** Whether two zones are the same, or keep the same time all year (an old name for the same zone). */
+    /** Whether two zones are the same, or keep the same time all year (an old name for the same zone); a zone this
+     *  device doesn't know never fits another (as on iOS and the Mac). */
     fun sameZone(a: String, b: String): Boolean {
         if (a == b) return true
         return runCatching {
@@ -180,7 +219,7 @@ object SkylineManifest {
         }.getOrDefault(false)
     }
 
-    /** The built-in photo for a city matched by its name or alias (ignoring case) in this zone, if there is one. */
+    /** The built-in photo for a city matched by its name or alias ([norm]: case and accents ignored) in this zone, if there is one. */
     fun photo(context: Context, city: String, zoneId: String): Photo? {
         if (entries.isEmpty()) return null
         val candidates = index[norm(city)]
@@ -203,8 +242,10 @@ object SkylineManifest {
      * Which picture a card shows, the same on every platform (scripts/photo-index.py):
      *  1. a built-in photo matched by the city's name ([photo]);
      *  2. plates-remote.json's "towns": a member town of the same name near the card ([lat], [lon]), or, without
-     *     coordinates, the only such town in the card's country ([countryCode]);
+     *     coordinates, the only such town in the card's country;
      *  3. its "metros": the nearest metro centre in the card's country that covers the card's coordinates;
+     *  (the card's country: [countryCode], else its zone's, WorkWeek.countryByZone; its coordinates: [lat] and [lon]
+     *  together, finite and in range, else none at all: a lone latitude counts for nothing)
      *  4. the key from 2 or 3 counts only when it's built in (that photo) or a hosted plate (downloaded; its default
      *     scene comes with it, for until it's on the phone); otherwise the next step;
      *  5. the default scene for the card's zone and latitude.
@@ -212,9 +253,14 @@ object SkylineManifest {
      */
     fun resolve(context: Context, city: String, zoneId: String, countryCode: String?, lat: Double?, lon: Double?): Resolved {
         photo(context, city, zoneId)?.let { return Resolved(it) }
-        val cc = countryCode?.trim()?.uppercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
-        val keys = listOfNotNull(RemotePlates.townKey(city, lat, lon, cc), RemotePlates.metroKey(lat, lon, cc))
-        val scene = RemotePlates.scene(zoneId, lat)?.let { scenePhoto(context, it) }
+        val cc = (countryCode?.trim()?.takeIf { it.isNotEmpty() } ?: WorkWeek.countryByZone[zoneId])
+            ?.uppercase(Locale.ROOT)?.takeIf { it.isNotEmpty() }
+        val hasCoordinates = lat != null && lon != null && lat.isFinite() && lon.isFinite() &&
+            Math.abs(lat) <= 90 && Math.abs(lon) <= 180
+        val la = if (hasCoordinates) lat else null
+        val lo = if (hasCoordinates) lon else null
+        val keys = listOfNotNull(RemotePlates.townKey(city, la, lo, cc), RemotePlates.metroKey(la, lo, cc))
+        val scene = RemotePlates.scene(zoneId, la)?.let { scenePhoto(context, it) }
         for (key in keys) {
             photoForKey(context, key)?.let { return Resolved(it) }
             RemotePlates.plate(key)?.let { return Resolved(scene, it) }
@@ -288,12 +334,23 @@ object RemotePlates {
     private fun num(o: JSONObject, name: String): Double? = o.optDouble(name, Double.NaN).takeIf { it.isFinite() }
 
     /**
-     * A town or city name for matching towns: case, accents and punctuation ignored (as scripts/photo-index.py's
-     * norm: NFKD, ASCII letters and digits only, lower case). "" for a name with nothing left.
+     * A town or city name for matching towns: case, accents and punctuation ignored (SkylineManifest.norm, then
+     * letters and digits only, as iOS, the Mac and scripts/photo-index.py's norm: "Saint-Étienne" -> "saintetienne",
+     * "Weißensee" -> "weissensee"). "" for a name with nothing left.
      */
-    fun fold(name: String): String =
-        java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFKD)
-            .filter { it.code < 128 && it.isLetterOrDigit() }.lowercase(Locale.ROOT)
+    fun fold(name: String): String {
+        val n = SkylineManifest.norm(name)
+        val out = StringBuilder(n.length)
+        var i = 0
+        while (i < n.length) {
+            val cp = n.codePointAt(i)
+            i += Character.charCount(cp)
+            val t = Character.getType(cp)
+            if (Character.isLetter(cp) || t == Character.DECIMAL_DIGIT_NUMBER.toInt() ||
+                t == Character.LETTER_NUMBER.toInt() || t == Character.OTHER_NUMBER.toInt()) out.appendCodePoint(cp)
+        }
+        return out.toString()
+    }
 
     private fun parse(text: String?): Index {
         val empty = Index(null, emptyMap(), emptyList(), emptyMap(), emptyMap(), emptyList())

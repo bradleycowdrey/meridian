@@ -369,10 +369,11 @@ enum MacSkylines {
     }
 
     /// Whether a manifest entry's time zone fits the city: the same zone, or one on the same clock
-    /// all year (Asia/Calcutta and Asia/Kolkata); never Portland, Maine for Portland, Oregon.
+    /// all year (Asia/Calcutta and Asia/Kolkata); never Portland, Maine for Portland, Oregon. A
+    /// zone this Mac doesn't know fits no other (as on iPhone and Android).
     private static func zoneFits(_ zone: String?, _ timeZoneID: String) -> Bool {
         guard let zone, !zone.isEmpty, zone != timeZoneID else { return true }
-        guard let entryZone = TimeZone(identifier: zone) else { return true }
+        guard let entryZone = TimeZone(identifier: zone) else { return false }
         guard let cityZone = TimeZone(identifier: timeZoneID) else { return false }
         // Compared on two fixed dates (mid-January and mid-July 2026), so only zones that keep the
         // same time all year match, not ones that agree just today.
@@ -514,10 +515,36 @@ enum MacSkylines {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try night.write(to: folder.appendingPathComponent(plateFileName(key, night: true)), options: .atomic)
             try day.write(to: folder.appendingPathComponent(plateFileName(key, night: false)), options: .atomic)
+            try? FileManager.default.removeItem(at: folder.appendingPathComponent(triedFileName(key)))
             return true
         } catch {
             return false
         }
+    }
+
+    /// How long a plate that wasn't there (or wasn't an image) is left before it is asked for
+    /// again: 30 days, as on iPhone and Android.
+    static let plateRetryAfter: TimeInterval = 30 * 24 * 3600
+
+    /// The marker of a plate found missing: Plates/<key>.tried, holding when (seconds since 1970).
+    private static func triedFileName(_ key: String) -> String { key + ".tried" }
+
+    /// Notes that a plate wasn't there, so it isn't asked for again within `plateRetryAfter`
+    /// (kept on disk, so a relaunch doesn't ask again either).
+    static func markPlateMissing(key: String) {
+        guard validPlateKey(key), let folder = platesDirectory else { return }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try? Data(String(Date().timeIntervalSince1970).utf8)
+            .write(to: folder.appendingPathComponent(triedFileName(key)), options: .atomic)
+    }
+
+    /// Whether a plate may be asked for: never found missing, or not within `plateRetryAfter`.
+    static func plateDue(key: String) -> Bool {
+        guard let folder = platesDirectory,
+              let data = try? Data(contentsOf: folder.appendingPathComponent(triedFileName(key))),
+              let at = Double(String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines))
+        else { return true }
+        return Date().timeIntervalSince1970 - at >= plateRetryAfter
     }
 
     // MARK: Lookup

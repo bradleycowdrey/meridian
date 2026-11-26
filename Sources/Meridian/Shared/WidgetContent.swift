@@ -23,8 +23,15 @@ struct WidgetSnapshot: Codable, Equatable {
         var workStart: Int? = nil
         var workEnd: Int? = nil
 
-        /// "London|Europe/London", as the widget's city picker and the photo index name it.
+        /// "London|Europe/London", as the widget's city picker names it.
         var id: String { WidgetSkylines.id(name: name, timeZoneID: timeZoneID) }
+
+        /// The iPhone photo index's name for this card's photo (WidgetSkylines.photoID): two cards
+        /// of the same name and zone in different places can show different photos.
+        var photoID: String {
+            WidgetSkylines.photoID(name: name, timeZoneID: timeZoneID, countryCode: countryCode,
+                                   latitude: latitude, longitude: longitude)
+        }
     }
 
     var cities: [City]
@@ -1689,6 +1696,18 @@ enum WidgetSkylines {
     /// "London|Europe/London".
     static func id(name: String, timeZoneID: String) -> String { "\(name)|\(timeZoneID)" }
 
+    /// A card's photo in the iPhone index: by everything its photo is chosen by (name, zone,
+    /// country, coordinates; scripts/photo-index.py), so two "Gwangju" cards in Asia/Seoul each get
+    /// their own. "London|Europe/London" for a card with none of the rest. The app also indexes the
+    /// first card of each name and zone under `id`, for widget-chosen cities (which have no place).
+    static func photoID(name: String, timeZoneID: String, countryCode: String?, latitude: Double?,
+                        longitude: Double?) -> String {
+        let plain = id(name: name, timeZoneID: timeZoneID)
+        guard countryCode != nil || latitude != nil || longitude != nil else { return plain }
+        return plain + "|" + (countryCode ?? "") + "|" + (latitude.map { "\($0)" } ?? "") + ","
+            + (longitude.map { "\($0)" } ?? "")
+    }
+
     #if os(iOS)
     /// A city's photo in the index: its file in Skylines, where it came from ("b:london" built
     /// in, a default scene "b:scenecoast" too; "p:<key>" a downloaded hosted AI plate, placed by
@@ -1792,10 +1811,12 @@ enum WidgetSkylines {
 
     /// The photo the city shows at `date`: by day its day photo (which WidgetSky.look then tints for
     /// the time of day); after dark (once the sun has set there, until the hour before sunrise) its
-    /// night photo, or nil (the drawn night sky) when it has none; a day photo is never darkened to
-    /// stand in for night. Nil: the widget draws its sky. Matches the app's Skyline.photo(for:at:).
+    /// night photo, else its day photo (WidgetSky.look darkens it for night), as the app's
+    /// SkylineArt.photo(for:at:), the Mac widget and Android's do. Nil: the widget draws its sky.
     static func photo(for city: WidgetSnapshot.City, at date: Date) -> Photo? {
-        if WidgetSky.wantsNightPhoto(city, at: date) { return image(for: city, night: true) }
+        if WidgetSky.wantsNightPhoto(city, at: date) {
+            return image(for: city, night: true) ?? image(for: city, night: false)
+        }
         return image(for: city, night: false)
     }
 
@@ -1824,17 +1845,20 @@ enum WidgetSkylines {
             entries = readIndex()
             index = (stamp, entries)
         }
-        guard let entry = entries[city.id] else { return nil }
+        // The card's own photo; else (a widget-chosen city, or an index from before) the first card
+        // of that name and zone.
+        let id = entries[city.photoID] != nil ? city.photoID : city.id
+        guard let entry = entries[id] else { return nil }
         let file: String
-        let photoFocus = focus(night ? entries[city.id + "|night"]?.focus : entry.focus)
-        let rawFocusX = night ? entries[city.id + "|night"]?.focusX : entry.focusX
+        let photoFocus = focus(night ? entries[id + "|night"]?.focus : entry.focus)
+        let rawFocusX = night ? entries[id + "|night"]?.focusX : entry.focusX
         let photoFocusX = landmark(rawFocusX)
-        let photoTop = tip(night ? entries[city.id + "|night"]?.top : entry.top)
+        let photoTop = tip(night ? entries[id + "|night"]?.top : entry.top)
         let photoKnown = known(rawFocusX)
         if night {
             // The entry's night file; else one indexed under "<id>|night"; else "<key>-night.jpg"
             // beside the day photo.
-            if let named = entry.night ?? entries[city.id + "|night"]?.file {
+            if let named = entry.night ?? entries[id + "|night"]?.file {
                 file = named
             } else {
                 let stem = entry.file.hasSuffix(".jpg") ? String(entry.file.dropLast(4)) : entry.file

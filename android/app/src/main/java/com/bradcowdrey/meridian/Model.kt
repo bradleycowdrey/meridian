@@ -53,11 +53,14 @@ object DataFiles {
         runCatching { a.open(name).bufferedReader(Charsets.UTF_8).use { it.readLines() } }.getOrNull()
     }
 
+    /** Unit tests only: reads a data file by name in place of the assets (the JVM has no AssetManager). */
+    @Volatile internal var testSource: ((String) -> String?)? = null
+
     /** Whether [init] has run (the files can be read). */
-    val ready: Boolean get() = assets != null
+    val ready: Boolean get() = assets != null || testSource != null
 
     /** The whole file as text, or null before [init] or if it isn't there (skylines.json until the photo pipeline writes it). */
-    fun text(name: String): String? = assets?.let { a ->
+    fun text(name: String): String? = testSource?.invoke(name) ?: assets?.let { a ->
         runCatching { a.open(name).bufferedReader(Charsets.UTF_8).use { it.readText() } }.getOrNull()
     }
 

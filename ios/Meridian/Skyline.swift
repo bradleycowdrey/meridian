@@ -352,10 +352,20 @@ enum RemotePlates {
         return 6371 * 2 * asin(min(1, sqrt(h)))
     }
 
-    /// The card's country (ISO code, upper case), or nil.
-    private static func country(_ place: Place) -> String? {
-        guard let cc = place.countryCode?.trimmingCharacters(in: .whitespaces).uppercased(), !cc.isEmpty else { return nil }
-        return cc
+    /// The card's country (ISO code, upper case): its own, else its time zone's
+    /// (WorkWeek.countryByZone, for older cards and widget-chosen cities that have none), or nil.
+    static func country(_ place: Place) -> String? {
+        let own = place.countryCode?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() ?? ""
+        let cc = own.isEmpty ? (WorkWeek.countryByZone[place.timeZoneID]?.uppercased() ?? "") : own
+        return cc.isEmpty ? nil : cc
+    }
+
+    /// The card's coordinates: its latitude and longitude together, finite and in range; else
+    /// nil (a lone latitude counts for nothing).
+    static func coordinates(_ place: Place) -> (lat: Double, lon: Double)? {
+        guard let lat = place.latitude, let lon = place.longitude, lat.isFinite, lon.isFinite,
+              abs(lat) <= 90, abs(lon) <= 180 else { return nil }
+        return (lat, lon)
     }
 
     /// Step 2: the metro of the card's town. With coordinates, the nearest member town of the same
@@ -363,7 +373,7 @@ enum RemotePlates {
     static func townKey(for place: Place) -> String? {
         let candidates = towns[townName(place.name)] ?? []
         guard !candidates.isEmpty else { return nil }
-        if let lat = place.latitude, let lon = place.longitude {
+        if case let (lat, lon)? = coordinates(place) {
             var best: (key: String, km: Double)?
             for town in candidates {
                 let d = km(lat, lon, town.lat, town.lon)
@@ -379,7 +389,7 @@ enum RemotePlates {
     /// Step 3: the nearest metro centre in the card's country whose reach covers it (needs the
     /// card's coordinates and country).
     static func metroKey(for place: Place) -> String? {
-        guard let lat = place.latitude, let lon = place.longitude, let cc = country(place) else { return nil }
+        guard case let (lat, lon)? = coordinates(place), let cc = country(place) else { return nil }
         var best: (key: String, km: Double)?
         for metro in file?.metros ?? [] where metro.cc.uppercased() == cc {
             let d = km(lat, lon, metro.lat, metro.lon)
@@ -394,7 +404,8 @@ enum RemotePlates {
     }
 
     /// Whether a scene rule fits the card: its zone is listed, or starts with the prefix, or its
-    /// |latitude| is at most maxAbsLat (only with coordinates); a rule without conditions always fits.
+    /// |latitude| is at most maxAbsLat (only with coordinates, latitude and longitude both); a rule
+    /// without conditions always fits.
     static func fits(_ rule: RemoteSceneRule, _ place: Place) -> Bool {
         var conditional = false
         if let zones = rule.zones {
@@ -407,7 +418,7 @@ enum RemotePlates {
         }
         if let maxAbsLat = rule.maxAbsLat {
             conditional = true
-            if let lat = place.latitude, maxAbsLat >= abs(lat) { return true }
+            if let lat = coordinates(place)?.lat, maxAbsLat >= abs(lat) { return true }
         }
         return !conditional
     }
@@ -524,13 +535,14 @@ enum SkylineArt {
 
     /// Whether a manifest entry's time zone fits the card: the same zone, or one on the same
     /// clock all year (Asia/Calcutta and Asia/Kolkata); never Portland, Maine for Portland, Oregon.
+    /// A zone this device doesn't know fits no other (as on Android).
     private static func zoneFits(_ zone: String?, _ place: Place) -> Bool {
         guard let zone, !zone.isEmpty, zone != place.timeZoneID else { return true }
-        guard let tz = TimeZone(identifier: zone) else { return true }
+        guard let tz = TimeZone(identifier: zone), let cardZone = TimeZone(identifier: place.timeZoneID) else { return false }
         // Compared on two fixed dates (mid-January and mid-July 2026), so only zones that keep the
         // same time all year (an old name for the same zone) match, not ones that agree just today.
         let dates = [Date(timeIntervalSince1970: 1768478400), Date(timeIntervalSince1970: 1784116800)]
-        return dates.allSatisfy { tz.secondsFromGMT(for: $0) == place.timeZone.secondsFromGMT(for: $0) }
+        return dates.allSatisfy { tz.secondsFromGMT(for: $0) == cardZone.secondsFromGMT(for: $0) }
     }
 
     /// Guards the caches below (cards resolve on the main thread, the photo store off it).
@@ -613,14 +625,12 @@ enum SkylineArt {
         return PhotoChoice(key: nil, hosted: nil, scene: scene)
     }
 
-    /// The card's default scene: the first rule of plates-remote.json's "scenes" that fits it
-    /// (whose built-in photo is there), as "scene<name>"; nil without one.
+    /// The card's default scene: the first rule of plates-remote.json's "scenes" that fits it, as
+    /// "scene<name>"; nil without one, or when that scene isn't built in (as on Android and the Mac).
     static func sceneKey(for place: Place) -> String? {
-        for rule in RemotePlates.scenes where RemotePlates.fits(rule, place) {
-            let key = "scene" + rule.scene
-            if byKey[key] != nil { return key }
-        }
-        return nil
+        guard let rule = RemotePlates.scenes.first(where: { RemotePlates.fits($0, place) }) else { return nil }
+        let key = "scene" + rule.scene
+        return byKey[key]?.scene != nil ? key : nil
     }
 
     /// A built-in photo (asset "Skyline-<key>", or its night photo "Skyline-<key>-night"), placed
@@ -895,11 +905,14 @@ final class CityPhotos: ObservableObject {
         return "p-" + safe + (night ? "-night" : "-day")
     }
 
-    /// The card's hosted plate images, day and night, as far as they are loaded (nil, nil when the
-    /// card shows no hosted plate).
+    /// The card's hosted plate images, day and night, once both are loaded (nil, nil until then,
+    /// or when the card shows no hosted plate): a plate is a pair, so one without its night image
+    /// isn't shown (its default scene is), as on Android and the Mac.
     func plateImages(for place: Place) -> (day: UIImage?, night: UIImage?) {
-        guard let key = SkylineArt.choice(for: place).hosted else { return (nil, nil) }
-        return (images[Self.recordName(key, night: false)], images[Self.recordName(key, night: true)])
+        guard let key = SkylineArt.choice(for: place).hosted,
+              let day = images[Self.recordName(key, night: false)],
+              let night = images[Self.recordName(key, night: true)] else { return (nil, nil) }
+        return (day, night)
     }
 
     /// Downloaded plates' credits (day and night), A to Z by city.
@@ -1123,6 +1136,13 @@ enum WidgetPhotoExport {
     /// A city's night photo's key in the index.
     nonisolated static func nightID(_ id: String) -> String { id + "|night" }
 
+    /// A short, stable name for an id (FNV-1a, 32 bits, hex), for a second card's file names.
+    nonisolated static func shortHash(_ id: String) -> String {
+        var h: UInt32 = 2166136261
+        for byte in id.utf8 { h = (h ^ UInt32(byte)) &* 16777619 }
+        return String(h, radix: 16)
+    }
+
     /// skylines.json's "focus" (how far down the photo its skyline band sits, 0…1), "focusX"
     /// (where across it its landmark stands, 0…1; v3) and "top" (how far down it the landmark's
     /// tip sits, 0…1; optional) by photo id: "b:<key>" for a day photo, "b:<key>-night" for a night
@@ -1250,16 +1270,29 @@ enum WidgetPhotoExport {
         // (else their default scene is written).
         // By widget id: the hosted plate's key the city waits for.
         var waiting: [String: String] = [:]
+        // The first card of each name and zone is indexed under that too (WidgetSkylines.id), for
+        // widget-chosen cities: by plain id, its photo id.
+        var aliases: [String: String] = [:]
+        var slugs = Set<String>()
         for (i, place) in places.enumerated() {
-            let id = WidgetSkylines.id(name: place.name, timeZoneID: place.timeZoneID)
+            // By everything the photo is chosen by, so two cards of one name and zone in different
+            // places each get their own photo.
+            let id = WidgetSkylines.photoID(name: place.name, timeZoneID: place.timeZoneID,
+                                            countryCode: place.countryCode, latitude: place.latitude,
+                                            longitude: place.longitude)
             guard ids.insert(id).inserted else { continue }
+            let plain = WidgetSkylines.id(name: place.name, timeZoneID: place.timeZoneID)
+            if plain != id, aliases[plain] == nil { aliases[plain] = id }
             if downloads && i < widgetCities { CityPhotos.shared.request(place) }
             // A hosted AI plate is exported as a built-in one is: with its focus, landmark and tip.
             // Downloads off: the default scene.
             let plates: (day: UIImage?, night: UIImage?) = downloads ? CityPhotos.shared.plateImages(for: place) : (nil, nil)
             if downloads, plates.day == nil, let key = SkylineArt.choice(for: place).hosted { waiting[id] = key }
             guard let photo = SkylineArt.photo(for: place, plate: plates.day) else { continue }
-            let slug = SkylineArt.slug(for: place)
+            // Its files' name: the city and zone, made unique for a second card of the same.
+            var slug = SkylineArt.slug(for: place)
+            if slugs.contains(slug) { slug += "_" + Self.shortHash(id) }
+            slugs.insert(slug)
             let night = SkylineArt.nightPhoto(for: place, plate: plates.day, plateNight: plates.night)
             var entry = Self.entry(file: slug + ".jpg", photo: photo)
             if let night {
@@ -1274,7 +1307,7 @@ enum WidgetPhotoExport {
         task = Task.detached(priority: .utility) {
             _ = await previous?.value
             guard !Task.isCancelled else { return }
-            if write(jobs, waiting: waiting, dir: dir) {
+            if write(jobs, waiting: waiting, aliases: aliases, dir: dir) {
                 await MainActor.run { WidgetCenter.shared.reloadAllTimelines() }
             }
         }
@@ -1282,8 +1315,10 @@ enum WidgetPhotoExport {
 
     /// Writes the photos that changed and the index; removes photos no city uses. True if anything changed.
     /// Cities in `waiting` keep their earlier copy of their current hosted plate (that key's, not
-    /// another's) until it has loaded.
-    nonisolated private static func write(_ jobs: [Job], waiting: [String: String], dir: URL) -> Bool {
+    /// another's) until it has loaded. `aliases` (plain id -> photo id) index a card's entries under
+    /// its name and zone too, unless a card has exactly that id.
+    nonisolated private static func write(_ jobs: [Job], waiting: [String: String], aliases: [String: String],
+                                          dir: URL) -> Bool {
         let fm = FileManager.default
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         let old = WidgetSkylines.readIndex()
@@ -1324,6 +1359,11 @@ enum WidgetPhotoExport {
                 index[job.id] = entry
                 changed = true
             }
+        }
+        for (plain, id) in aliases where index[plain] == nil {
+            guard let entry = index[id] else { continue }
+            index[plain] = entry
+            if let night = index[nightID(id)] { index[nightID(plain)] = night }
         }
         if index != old {
             changed = true

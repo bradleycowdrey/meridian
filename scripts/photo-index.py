@@ -6,16 +6,28 @@ city shows. scripts/metros.py decides the metros; this file turns its output int
 
 Which photo a city shows, in this order (all apps do the same):
 
-  1. A built-in photo matched by the city's name (Resources/Data/skylines.json), as before.
+  1. A built-in photo matched by the city's name (Resources/Data/skylines.json): one of an entry's
+     "names" (its key only when it has none; a scene entry never), case and accents ignored (fold()
+     below: full case folding, then combining marks dropped: "Ha Noi" = "Hà Nội", "MÜNCHEN" =
+     "München"), spaces at the ends trimmed. The entry's zone must fit the city's: the same zone, an entry without one,
+     or a zone with the same UTC offset on 2026-01-15T12:00Z and 2026-07-15T12:00Z (Asia/Calcutta =
+     Asia/Kolkata); a zone the device doesn't know fits no other (Portland ME never gets Portland OR).
   2. "towns": the city is a town of the city database inside a metro of 1M+ people (MSA level).
      towns[key] lists [name, lat, lon, ...] for each member town of that metro; the city matches
-     a member with the same name (case and accents ignored) within 25 km. The key is a built-in
-     photo (Littleton -> denver) or a hosted plate in "plates".
+     the nearest member with the same name (case, accents and punctuation ignored: norm() below)
+     within 25 km. Without coordinates it matches when exactly one metro of the city's country has
+     a member of that name. The key is a built-in photo (Littleton -> denver) or a hosted plate in
+     "plates".
   3. "metros": a place that is not in the database (or has no exact match) uses the nearest metro
-     centre in the same country (cc) whose radius r (km) covers it.
+     centre in the same country whose radius r (km) covers it (needs coordinates).
   4. Otherwise a default scene, picked by "scenes": the first rule whose zones list holds the city's
-     time zone, or whose zone prefix matches, or (maxAbsLat) whose |latitude| is at most that;
-     the last rule has no condition. A scene is the built-in photo "scene<name>".
+     time zone, or whose zone prefix matches, or (maxAbsLat, only with coordinates) whose |latitude|
+     is at most that; the last rule has no condition. A scene is the built-in photo "scene<name>".
+
+The city's coordinates are its latitude and longitude together (finite, |lat| <= 90, |lon| <= 180);
+a lone latitude counts as none. Its country is its own cc (trimmed, upper case), else its time
+zone's country (WorkWeek's zone table: America/Denver -> US). Distances are haversine, R = 6371 km,
+and "within"/"covers" include the boundary (d <= 25, d <= r).
 
 A key in towns/metros that is neither built in nor in "plates" (its photo isn't published yet) is
 skipped, so the city falls through to the next step.
@@ -50,9 +62,17 @@ SCENES = [
 ]
 
 
+def fold(s):
+    """Step 1's name folding: full case folding, then combining marks dropped, ends trimmed (as the
+    apps: Swift's folding(.caseInsensitive, .diacriticInsensitive), Android's SkylineManifest.norm)."""
+    s = unicodedata.normalize('NFD', (s or '').casefold())
+    return ''.join(ch for ch in s if unicodedata.category(ch) != 'Mn').strip()
+
+
 def norm(s):
-    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode().lower()
-    return ''.join(ch for ch in s if ch.isalnum())
+    """A town name as step 2 matches it: fold(), then letters and digits only ("Saint-Étienne" =
+    "saintetienne", "Bağcılar" = "bagcılar", "Weißensee" = "weissensee")."""
+    return ''.join(ch for ch in fold(s) if ch.isalnum())
 
 
 def main():

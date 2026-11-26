@@ -6,7 +6,7 @@ import WidgetKit
 /// steps through every size (with and without the city search open), records the window size
 /// against the size the content needs, saves a PNG of each, writes report.txt, then quits.
 /// It also writes larger renders for the Mac App Store screenshots (store-panel.png,
-/// store-window.png, store-widget-*.png), which scripts/mac-store-shots.py composes.
+/// store-window.png, store-widget-*.png), which scripts/mac-store-shots.mjs composes.
 /// Inert unless that launch argument is present.
 @MainActor
 enum SelfTest {
@@ -42,7 +42,7 @@ enum SelfTest {
                 view.cacheDisplay(in: view.bounds, to: rep)
                 try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("menubar-panel.png"))
             }
-            // The same panel at 2x, for the Mac App Store screenshots (scripts/mac-store-shots.py).
+            // The same panel at 2x, for the Mac App Store screenshots (scripts/mac-store-shots.mjs).
             storeShot = writeStorePNG(of: view, scale: 2, to: dir.appendingPathComponent("store-panel.png"))
         }
         panel.orderOut(nil)
@@ -51,7 +51,7 @@ enum SelfTest {
     }
 
     /// Scale of the widget renders made for the App Store screenshots: above the 2x of a Retina
-    /// desktop, so scripts/mac-store-shots.py can place them larger and still downsample.
+    /// desktop, so scripts/mac-store-shots.mjs can place them at their point size and still downsample.
     private static let storeWidgetScale: CGFloat = 3
 
     /// Draws `view` into a bitmap at `scale` pixels per point, whatever the scale of the display

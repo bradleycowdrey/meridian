@@ -136,6 +136,8 @@ Bump the number in `VERSION` and push to `main`. GitHub Actions builds a univers
 
 The iPhone App Store screenshots follow the Cowdrey family standard ([`design/app-store/README.md` in bradleycowdrey/cowdrey-one](https://github.com/bradleycowdrey/cowdrey-one/blob/main/design/app-store/README.md)): each run of `.github/workflows/ios-appstore.yml` composes the simulator's dark-mode captures with `scripts/appstore-shots.mjs` and the family template in [`design/app-store`](design/app-store) (a word-for-word copy; change the master, then copy it here).
 
+The Mac App Store screenshots are on the same standard: `.github/workflows/mac-appstore.yml` (in its upload mode) takes the self-test's renders (the menu bar panel, the widgets, the window) and `scripts/mac-store-shots.mjs` sets them on a MacBook's desktop with the template's `desktop()` and `device: 'macbook'`.
+
 Optional secrets for Developer ID signing and notarization (removes the Gatekeeper prompt):
 `DEVELOPER_ID_P12` (base64 .p12), `DEVELOPER_ID_P12_PASSWORD`, `CODESIGN_IDENTITY`,
 `NOTARY_APPLE_ID`, `NOTARY_PASSWORD` (app-specific password), `NOTARY_TEAM_ID`.

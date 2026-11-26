@@ -12,7 +12,12 @@
 //   store-widget-large.png the widgets at 3x (fall back to widget-*.png, 2x)
 //   store-widget-medium.png
 //   store-widget-small.png
+//   store-widget-small-N.png, store-widget-medium-2.png  more faces of your cities: each on its own small widget,
+//                          the third and fourth on a medium (optional)
 //   store-window.png       the desktop window at Large, 2x (optional)
+//   store-work-window.png  the same window with five other cities, four of them at work (optional), and
+//   store-work.txt         how many hours ahead it shows (0: now, the menu bar's time)
+//   store-work-widget-large.png, -medium-N.png, -small-N.png  those cities on widgets, at 3x (optional)
 //   store-window-travel.png the same window with the hours dragged ahead, 2x (optional)
 //   store-clock.txt        the time those renders show, as the menu bar writes it (optional)
 //
@@ -25,9 +30,11 @@
 // is that same time (store-clock.txt; the family template's one exception to MAC_CLOCK). Without the file, or with one
 // not written like MAC_CLOCK, the clock is left to the template's MAC_CLOCK.
 //
-// Each picture shows something different: 01 the panel hung from the menu bar; 02 the three widgets as one centred
-// group; 03 the whole window beside the large and medium widgets (every city's Working / Off hours tag); 04 the window
-// with the hours dragged ahead (the ruler at "+N hr", the Now button lit), only when that render is there.
+// Each picture shows something different: 01 the panel hung from the menu bar, a few widgets on the desktop to its
+// left; 02 a desktop of widgets in every size, your cities and a widget given cities of its own; 03 the window with
+// other cities at a moment when most of them are at work (now when it can be, beside their large widget), so it
+// isn't 01's four rows again; 04 your window with the hours dragged ahead (the ruler at "+N hr", the Now button lit),
+// only when that render is there.
 //
 // A missing optional input skips that picture. It always makes at least 3, and stops with an error if it can't
 // (no panel at all). Earlier PNGs in <out dir> are removed first, so a skipped picture can't linger and be uploaded.
@@ -170,8 +177,53 @@ const hung = (panel) => ({ png: panel.png, x: Math.round(Math.min(ITEM_X - panel
   y: BAR + PANEL_GAP, w: panel.w, h: panel.h, chrome: 'none' });
 const widget = (w, x, y) => ({ png: w.png, x, y, w: w.w, h: w.h });
 
+// A block of widgets: one, a column of two, or two by two, with its size.
+const block = (ws) => {
+  ws = ws.filter(Boolean);
+  if (!ws.length) return null;
+  if (ws.length === 1) return { w: ws[0].w, h: ws[0].h, place: (x, y) => [widget(ws[0], x, y)] };
+  if (ws.length === 2) {
+    const w = Math.max(ws[0].w, ws[1].w), h = ws[0].h + WIDGET_GAP + ws[1].h;
+    return { w, h, place: (x, y) => [widget(ws[0], Math.round(x + (w - ws[0].w) / 2), y),
+      widget(ws[1], Math.round(x + (w - ws[1].w) / 2), y + ws[0].h + WIDGET_GAP)] };
+  }
+  const s = ws.slice(0, 4), cw = Math.max(...s.map((w) => w.w)), ch = Math.max(...s.map((w) => w.h));
+  const rows = Math.ceil(s.length / 2);
+  return { w: cw * 2 + WIDGET_GAP, h: ch * rows + WIDGET_GAP * (rows - 1),
+    place: (x, y) => s.map((w, i) => widget(w, x + (i % 2) * (cw + WIDGET_GAP), y + Math.floor(i / 2) * (ch + WIDGET_GAP))) };
+};
+
 const scenes = {
-  menuBar: ({ panel }) => ({ windows: [hung(panel)] }),
+  // The panel hung from the menu bar; to its left, centred in the room there and level with the panel, a medium
+  // widget over two small ones (your cities), so the desktop isn't empty beside it.
+  menuBar: ({ panel, medium2, smalls }) => {
+    const p = hung(panel);
+    const side = medium2 && smalls.length >= 2
+      ? { w: Math.max(medium2.w, smalls[0].w * 2 + WIDGET_GAP), h: medium2.h + WIDGET_GAP + Math.max(smalls[0].h, smalls[1].h) }
+      : null;
+    if (!side || p.x < side.w + 96) return { windows: [p] };
+    const x = Math.round((p.x - side.w) / 2), y = Math.round(p.y + (p.h - side.h) / 2);
+    const extras = [widget(medium2, Math.round(x + (side.w - medium2.w) / 2), y),
+      widget(smalls[0], x, y + medium2.h + WIDGET_GAP), widget(smalls[1], x + smalls[0].w + WIDGET_GAP, y + medium2.h + WIDGET_GAP)];
+    return { windows: [p], extras };
+  },
+  // A desktop of widgets in a grid of blocks, three to a row, centred: your cities on the large, two mediums and
+  // four smalls; under them a widget given its own cities, the same way round the other way.
+  widgetGrid: ({ large, medium, medium2, smalls, work }) => {
+    const rows = [[block([large]), block([medium, medium2]), block(smalls)].filter(Boolean)];
+    if (work.large) rows.push([block(work.smalls), block([work.large]), block(work.mediums)].filter(Boolean));
+    const cellW = Math.max(...rows.flat().map((b) => b.w)), cellH = Math.max(...rows.flat().map((b) => b.h));
+    const gap = 40, cols = Math.max(...rows.map((r) => r.length));
+    const gw = cols * cellW + (cols - 1) * gap, gh = rows.length * cellH + (rows.length - 1) * gap;
+    const x0 = Math.round((DW - gw) / 2), y0 = Math.round(BAR + (DH - BAR - gh) / 2);
+    const extras = [];
+    rows.forEach((r, ri) => {
+      const rx = Math.round(x0 + (gw - (r.length * cellW + (r.length - 1) * gap)) / 2);
+      r.forEach((b, ci) => extras.push(...b.place(Math.round(rx + ci * (cellW + gap) + (cellW - b.w) / 2),
+        Math.round(y0 + ri * (cellH + gap) + (cellH - b.h) / 2))));
+    });
+    return { extras };
+  },
   // Two columns of the same width, centred on the desktop: the large widget on the left; on the right the medium
   // over the small, the small centred under it and the column centred against the large.
   widgets: ({ large, medium, small }) => {
@@ -188,7 +240,13 @@ const scenes = {
   },
   // The whole window, every city with its Working / Off hours tag, and beside it a column of the large widget over
   // the medium (the tags again, with their icons): one group, centred on the desktop.
-  workingHours: ({ window, large, medium }) => {
+  workingHours: ({ window, large, medium, workWindow, work }) => {
+    // Other cities, most of them at work: their window, and beside it their large widget when the window shows now
+    // (the widgets always show now); the window alone, centred, when it shows an hour ahead.
+    if (workWindow) {
+      [window, large, medium] = [workWindow, work.now ? work.large : null, null];
+      if (!large) return { windows: [{ png: window.png, w: window.w, h: window.h, chrome: 'none', lights: true }] };
+    }
     const column = [large, medium].filter(Boolean), gap = 48;
     const colW = Math.max(...column.map((w) => w.w));
     const colH = column.reduce((a, w) => a + w.h, 0) + WIDGET_GAP * (column.length - 1);
@@ -220,6 +278,19 @@ try {
   if (!panelPick) fail(`no panel render (store-panel.png or menubar-panel.png) in ${src}`);
   const [largeP, mediumP, smallP] = [await pickWidget(check, 'large'), await pickWidget(check, 'medium'), await pickWidget(check, 'small')];
   const windowP = await pickWindow(check), travelP = await pickWindow(check, 'store-window-travel.png');
+  const workWindowP = await pickWindow(check, 'store-work-window.png');
+  const more = async (names) => {
+    const out = [];
+    for (const n of names) { const png = read(n); if (png && (await check.stats(png)).stddev >= 3) out.push(pt({ png, scale: 3 })); }
+    return out;
+  };
+  const numbered = (prefix) => fs.readdirSync(src).filter((n) => n.startsWith(prefix) && /-\d+\.png$/.test(n))
+    .sort((a, b) => parseInt(a.match(/(\d+)\.png$/)[1], 10) - parseInt(b.match(/(\d+)\.png$/)[1], 10));
+  const smalls = await more(numbered('store-widget-small-')), [medium2] = await more(['store-widget-medium-2.png']);
+  const [workLarge] = await more(['store-work-widget-large.png']);
+  const work = { large: workLarge, mediums: await more(numbered('store-work-widget-medium-')),
+    smalls: await more(numbered('store-work-widget-small-')), now: false };
+  try { work.now = fs.readFileSync(path.join(src, 'store-work.txt'), 'utf8').trim() === '0'; } catch { /* no file */ }
   await check.close();
   const clock = readClock();
   ITEM_X = await itemCentre(browser, clock);
@@ -228,12 +299,14 @@ try {
   log(`widgets: ${[['large', largeP], ['medium', mediumP], ['small', smallP]].map(([n, w]) => `${n} ${w ? w.from : 'missing'}`).join(', ')}`);
   log(`window: ${windowP ? windowP.from : 'missing'}; hours dragged: ${travelP ? travelP.from : 'missing'}`);
   const r = { panel: pt(panelPick), large: largeP && pt(largeP), medium: mediumP && pt(mediumP), small: smallP && pt(smallP),
-    window: windowP && pt(windowP), travel: travelP && pt(travelP) };
+    window: windowP && pt(windowP), travel: travelP && pt(travelP), workWindow: workWindowP && pt(workWindowP),
+    smalls, medium2, work };
+  log(`more widgets: ${smalls.length} small, medium-2 ${medium2 ? 'yes' : 'no'}; other cities: window ${workWindowP ? `yes (${work.now ? 'now' : 'hours ahead'})` : 'no'}, large ${workLarge ? 'yes' : 'no'}, ${work.mediums.length} medium, ${work.smalls.length} small`);
 
 
   const shots = [['01-menu-bar.png', 'menuBar']];
-  if (r.large || r.medium) shots.push(['02-widgets.png', 'widgets']);
-  if (r.large && r.window) shots.push(['03-working-hours.png', 'workingHours']);
+  if (r.large || r.medium) shots.push(['02-widgets.png', r.smalls.length >= 2 && r.medium2 ? 'widgetGrid' : 'widgets']);
+  if (r.workWindow || (r.large && r.window)) shots.push(['03-working-hours.png', 'workingHours']);
   if (r.travel) shots.push(['04-window.png', 'window']);
   // Never fewer than three: the panel again, for the stories left out.
   const extra = [['05-working-hours.png', 'workingHours'], ['06-plan.png', 'window']];
@@ -241,14 +314,14 @@ try {
     const [name, story] = extra.shift();
     if (!shots.some(([, s]) => s === story)) shots.push([name, story]);
   }
-  const panelOnly = (story) => (story === 'workingHours' && !(r.large && r.window)) || (story === 'window' && !r.travel);
+  const panelOnly = (story) => (story === 'workingHours' && !(r.workWindow || (r.large && r.window))) || (story === 'window' && !r.travel);
 
   fs.mkdirSync(outDir, { recursive: true });
   for (const n of fs.readdirSync(outDir)) if (n.toLowerCase().endsWith('.png')) fs.rmSync(path.join(outDir, n));
   for (const [name, story] of shots.slice(0, 5)) {
     const scene = panelOnly(story) ? scenes.menuBar(r) : scenes[story](r);
     const screen = await desktop(browser, { theme, app: APP, fonts: FONTS, menuExtra: { text: '', icon: GLOBE }, clock, ...scene });
-    const [head, sub] = COPY[story];
+    const [head, sub] = COPY[story === 'widgetGrid' ? 'widgets' : story];
     const out = await compose(browser, 'mac', { head, sub, device: 'macbook', png: screen, title: APP, file: name }, theme, FONTS);
     fs.writeFileSync(path.join(outDir, name), out);
     log(`wrote ${name} ${out.readUInt32BE(16)}x${out.readUInt32BE(20)} RGB: ${head} | ${sub}`);

@@ -50,6 +50,26 @@ enum SelfTest {
             + " expected x \(Int(expected)) (screen \(Int(visible.minX))..\(Int(visible.maxX))) \(ok ? "OK" : "WRONG"); \(storeShot)"
     }
 
+    /// Opens the menu bar panel, writes it at 2x to `file` (for the Mac App Store screenshots) and
+    /// closes it. Returns a line for report.txt.
+    private static func storePanel(dir: URL, desktop: NSWindow?, file: String) async -> String {
+        func buttons(in view: NSView) -> [NSButton] {
+            (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons(in: $0) }
+        }
+        guard let itemWindow = NSApp.windows.first(where: { String(describing: type(of: $0)).contains("StatusBarWindow") }),
+              let content = itemWindow.contentView, let button = buttons(in: content).first ?? (content.superview.flatMap { buttons(in: $0).first })
+        else { return "\(file): no menu bar item found" }
+        button.performClick(nil)
+        try? await Task.sleep(for: .seconds(2))
+        guard let panel = NSApp.windows.first(where: {
+            $0.isVisible && $0 !== desktop && $0 !== itemWindow && $0.frame.width > 300
+        }), let view = panel.contentView else { return "\(file): panel did not open" }
+        view.layoutSubtreeIfNeeded()
+        let line = writeStorePNG(of: view, scale: 2, to: dir.appendingPathComponent(file))
+        panel.orderOut(nil)
+        return line
+    }
+
     /// Scale of the widget renders made for the App Store screenshots: above the 2x of a Retina
     /// desktop, so scripts/mac-store-shots.mjs can place them at their point size and still downsample.
     private static let storeWidgetScale: CGFloat = 3
@@ -173,6 +193,28 @@ enum SelfTest {
         if let content = host.window?.contentView {
             content.layoutSubtreeIfNeeded()
             lines.append(writeStorePNG(of: content, scale: 2, to: dir.appendingPathComponent("store-window.png")))
+            // The time the window shows, as the Mac menu bar writes it ("Wed Nov 25  8:36 PM"), so
+            // the screenshots' menu bar shows the same time as the app.
+            let clock = DateFormatter()
+            clock.locale = Locale(identifier: "en_US_POSIX")
+            clock.dateFormat = "EEE MMM d'  'h:mm a"
+            try? (clock.string(from: store.now) + "\n").write(to: dir.appendingPathComponent("store-clock.txt"), atomically: true, encoding: .utf8)
+            // The same window after dragging the hours along: travelled to the hour, 2 to 23 hours
+            // ahead, when the most of your cities are in their working hours (the first such hour).
+            let anchor = TimeMath.hourAnchor(store.now)
+            var best = 2, bestCount = -1
+            for hours in 2...23 {
+                let at = anchor.addingTimeInterval(Double(hours) * 3600)
+                let count = store.places.filter { store.isWorking($0, at: at) }.count
+                if count > bestCount { best = hours; bestCount = count }
+            }
+            store.offsetHours = best
+            try? await Task.sleep(for: .seconds(2))
+            content.layoutSubtreeIfNeeded()
+            lines.append(writeStorePNG(of: content, scale: 2, to: dir.appendingPathComponent("store-window-travel.png"))
+                         + " (+\(best) h, \(bestCount) of \(store.places.count) cities working)")
+            store.offsetHours = 0
+            try? await Task.sleep(for: .seconds(1))
         } else {
             lines.append("store-window.png: no window")
         }
@@ -182,6 +224,12 @@ enum SelfTest {
         // Menu bar panel: click Meridian's menu bar item; the panel should open centred under it
         // (moved sideways only as far as needed to stay on screen).
         lines.append(await menuBarPanelCheck(dir: dir, desktop: host.window))
+        // The panel again at Large, at 2x, for the Mac App Store screenshots (store-panel-large.png).
+        store.uiSize = .large
+        try? await Task.sleep(for: .seconds(1.5))
+        lines.append(await storePanel(dir: dir, desktop: host.window, file: "store-panel-large.png"))
+        store.uiSize = sizeBefore
+        try? await Task.sleep(for: .seconds(1.5))
 
         // Desktop widget faces, at the macOS widget sizes, from the file the app just wrote.
         let faces: [(String, WidgetFamily, CGSize)] = [

@@ -1,0 +1,58 @@
+11-26 06:21:04.014  1284  1284 D AlphabeticIndexCompat: computeSectionName: cs: Meridian sectionName: M
+11-26 06:21:04.022  1180  1180 D CarrierSvcBindHelper: onHandleForceStop: [com.bradcowdrey.meridian]
+11-26 06:21:04.088  1595  1595 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1293 onStartInput(EditorInfo{EditorInfo{packageName=com.bradcowdrey.meridian, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, true)
+11-26 06:21:04.106   641   736 I ActivityTaskManager: Ignoring manifest-declared fixed orientation SCREEN_ORIENTATION_PORTRAIT of ActivityRecord{170940304 u0 com.bradcowdrey.meridian/.MainActivity t17} since target sdk 36
+11-26 06:21:04.125   641   736 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x5 cmp=com.bradcowdrey.meridian/.MainActivity (has extras)} with LAUNCH_MULTIPLE from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
+11-26 06:21:04.126   641   672 W ActivityManager: ProcessRecord{c07642d 0:com.bradcowdrey.meridian/u0a216} is attached to a previous process 6275
+11-26 06:21:04.590   641  1324 V ActivityManager: Got obituary of 6275:com.bradcowdrey.meridian
+11-26 06:21:04.596   641  1859 I ImeTracker: com.bradcowdrey.meridian:b0df3a52: onRequestHide at ORIGIN_SERVER reason HIDE_REMOVE_CLIENT fromUser false
+11-26 06:21:04.596   641  1859 I ImeTracker: com.bradcowdrey.meridian:b0df3a52: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-26 06:21:04.603   641   681 I ActivityManager: Start proc 6482:com.bradcowdrey.meridian/u0a216 for next-top-activity {com.bradcowdrey.meridian/com.bradcowdrey.meridian.MainActivity}
+11-26 06:21:04.626   641   672 I AppsFilter: interaction: PackageSetting{d1bbeb5 com.android.microdroid.empty_payload/10208} -> PackageSetting{9a3528f com.bradcowdrey.meridian/10216} BLOCKED
+11-26 06:21:04.631   641   958 I AppWidgetServiceImpl: Updating package stopped masked state for uid 10216 package com.bradcowdrey.meridian isStopped false
+11-26 06:21:04.648  6482  6482 I owdrey.meridian: Late-enabling -Xcheck:jni
+11-26 06:21:04.689  6482  6482 I owdrey.meridian: Using CollectorTypeCMC GC.
+11-26 06:21:04.690  6482  6482 W owdrey.meridian: Unexpected CPU variant for x86: x86_64.
+11-26 06:21:04.690  6482  6482 W owdrey.meridian: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, goldmont-without-sha-xsaves, tremont, kabylake, alderlake, default
+11-26 06:21:05.273   641  1926 I AppsFilter: interaction: PackageSetting{9a3528f com.bradcowdrey.meridian/10216} -> PackageSetting{2d863fe com.google.android.apps.photos/10159} BLOCKED
+11-26 06:21:05.313  6482  6482 D nativeloader: Configuring clns-9 for other apk /data/app/~~F4CE16xzhSuXQZ8RR_3fRA==/com.bradcowdrey.meridian-ZnwjJomee5XYMELsTn2hNw==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~F4CE16xzhSuXQZ8RR_3fRA==/com.bradcowdrey.meridian-ZnwjJomee5XYMELsTn2hNw==/lib/x86_64:/data/app/~~F4CE16xzhSuXQZ8RR_3fRA==/com.bradcowdrey.meridian-ZnwjJomee5XYMELsTn2hNw==/base.apk!/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.bradcowdrey.meridian
+11-26 06:21:05.329  6482  6482 I owdrey.meridian: AssetManager2(0x7df06427fc58) locale list changing from [] to [en-US]
+11-26 06:21:05.350  6482  6482 V GraphicsEnvironment: com.bradcowdrey.meridian is not listed in per-application setting
+11-26 06:21:05.351  6482  6482 V GraphicsEnvironment: com.bradcowdrey.meridian is not listed in ANGLE allowlist or settings, returning default
+11-26 06:21:05.475  6482  6482 I owdrey.meridian: AssetManager2(0x7df064284118) locale list changing from [] to [en-US]
+11-26 06:21:05.651   641   669 V WindowManager:         {WCT{RemoteToken{a6effbc Task{aa35889 #17 type=standard A=10216:com.bradcowdrey.meridian}}} m=OPEN f=MOVE_TO_TOP p=WCT{RemoteToken{a965b45 DefaultTaskDisplayArea@99980146}} leash=Surface(name=Task=17)/@0xc2fca90 sb=Rect(0, 0 - 2560, 1600) eb=Rect(0, 0 - 2560, 1600) epz=Point(2560, 1600) d=0 taskParent=-1},
+11-26 06:21:05.876  6482  6550 W owdrey.meridian: Verification of java.util.Map kotlin.collections.MapsKt__MapWithDefaultKt.withDefault(java.util.Map, kotlin.jvm.functions.Function1) took 124.320ms (281.53 bytecodes/s) (0B arena alloc)
+11-26 06:21:06.060   641  1859 D CoreBackPreview: Window{3948975 u0 com.bradcowdrey.meridian/com.bradcowdrey.meridian.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@c82d97b, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+11-26 06:21:06.438  1284  1306 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.bradcowdrey.meridian/com.bradcowdrey.meridian.MainActivity}
+11-26 06:21:06.498   641   706 I AppsFilter: interaction: PackageSetting{9a3528f com.bradcowdrey.meridian/10216} -> PackageSetting{e78b0d com.google.android.apps.photos/10159} BLOCKED
+11-26 06:21:06.585  1284  1306 D AlphabeticIndexCompat: computeSectionName: cs: Meridian sectionName: M
+11-26 06:21:07.233  1284  1306 D AlphabeticIndexCompat: computeSectionName: cs: Meridian sectionName: M
+11-26 06:21:07.469  1284  1306 D AlphabeticIndexCompat: computeSectionName: cs: Meridian sectionName: M
+11-26 06:21:07.745  1284  1306 D AlphabeticIndexCompat: computeSectionName: cs: Meridian sectionName: M
+11-26 06:21:09.095   641   669 I ActivityTaskManager: Displayed com.bradcowdrey.meridian/.MainActivity for user 0: +4s997ms
+11-26 06:21:10.143   641   771 I ImeTracker: com.bradcowdrey.meridian:376f6151: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+11-26 06:21:10.176  6482  6482 I ImeTracker: com.bradcowdrey.meridian:376f6151: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+11-26 06:21:10.221  1595  1595 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1293 onStartInput(EditorInfo{EditorInfo{packageName=com.bradcowdrey.meridian, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+11-26 06:21:10.254   641  1859 W PackageConfigPersister: App-specific configuration not found for packageName: com.bradcowdrey.meridian and userId: 0
+11-26 06:21:10.506  6482  6631 W owdrey.meridian: Long monitor contention with owner DefaultDispatcher-worker-2 (6629) at java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries()(Photos.kt:98) waiters=0 in java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries() for 503ms
+11-26 06:21:10.508  6482  6628 W owdrey.meridian: Long monitor contention with owner DefaultDispatcher-worker-2 (6629) at java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries()(Photos.kt:98) waiters=1 in java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries() for 505ms
+11-26 06:21:10.514  6482  6633 W owdrey.meridian: Long monitor contention with owner DefaultDispatcher-worker-2 (6629) at java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries()(Photos.kt:98) waiters=2 in java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries() for 511ms
+11-26 06:21:10.514  6482  6632 W owdrey.meridian: Long monitor contention with owner DefaultDispatcher-worker-2 (6629) at java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries()(Photos.kt:98) waiters=3 in java.util.List com.bradcowdrey.meridian.SkylineManifest.getEntries() for 511ms
+11-26 06:21:10.974  6482  6490 I owdrey.meridian: NativeAlloc concurrent mark compact GC freed 19MB AllocSpace bytes, 10(376KB) LOS objects, 49% free, 17MB/35MB, paused 2.082ms,1.181ms total 572.069ms
+11-26 06:21:11.567  6482  6482 I Meridian: photos ready
+11-26 06:21:11.648  6482  6652 D ProfileInstaller: Installing profile for com.bradcowdrey.meridian
+11-26 06:21:12.026  6482  6490 I owdrey.meridian: NativeAlloc concurrent mark compact GC freed 11MB AllocSpace bytes, 1(124KB) LOS objects, 49% free, 17MB/35MB, paused 1.635ms,1.144ms total 388.219ms
+11-26 06:21:12.253  6482  6489 I owdrey.meridian: Compiler allocated 5042KB to compile void android.view.ViewRootImpl.performTraversals()
+11-26 06:21:12.493  6482  6490 I owdrey.meridian: NativeAlloc concurrent mark compact GC freed 7912KB AllocSpace bytes, 0(0B) LOS objects, 50% free, 19MB/38MB, paused 962us,1.082ms total 147.028ms
+11-26 06:21:12.627  6482  6489 I owdrey.meridian: Compiler allocated 4416KB to compile void com.bradcowdrey.meridian.MainActivityKt.HourTiles-F4y8cZ0(com.bradcowdrey.meridian.Store, com.bradcowdrey.meridian.Place, androidx.compose.ui.Modifier, kotlin.jvm.functions.Function0, float, boolean, float, kotlin.jvm.functions.Function0, androidx.compose.runtime.Composer, int, int)
+11-26 06:21:12.805  6482  6489 I owdrey.meridian: Compiler allocated 6270KB to compile void com.bradcowdrey.meridian.MainActivityKt$CityRow$6.invoke(androidx.compose.foundation.layout.BoxWithConstraintsScope, androidx.compose.runtime.Composer, int)
+11-26 06:21:14.599  6482  6482 I owdrey.meridian: AssetManager2(0x7df064287318) locale list changing from [] to [en-US]
+11-26 06:21:14.770  1595  1595 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1293 onStartInput(EditorInfo{EditorInfo{packageName=com.bradcowdrey.meridian, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, true)
+11-26 06:21:14.852   641   663 W PackageConfigPersister: App-specific configuration not found for packageName: com.bradcowdrey.meridian and userId: 0
+11-26 06:21:14.953  1284  1284 D AlphabeticIndexCompat: computeSectionName: cs: Meridian sectionName: M
+11-26 06:21:14.996  1595  1595 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1293 onStartInput(EditorInfo{EditorInfo{packageName=com.bradcowdrey.meridian, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, true)
+11-26 06:21:15.000   641  1926 W PackageConfigPersister: App-specific configuration not found for packageName: com.bradcowdrey.meridian and userId: 0
+11-26 06:21:15.518   641   664 I WindowManager: finishDrawing of relaunch: Window{3948975 u0 com.bradcowdrey.meridian/com.bradcowdrey.meridian.MainActivity} 806ms
+11-26 06:21:15.756  6482  6636 W owdrey.meridian: Suspending all threads took: 6.598ms
+11-26 06:21:16.095  6482  6636 I owdrey.meridian: Explicit concurrent mark compact GC freed 23MB AllocSpace bytes, 0(0B) LOS objects, 50% free, 17MB/34MB, paused 11.153ms,9.947ms total 918.913ms
+11-26 06:21:16.095  6482  6490 I owdrey.meridian: WaitForGcToComplete blocked HeapTrim on Explicit for 9.918ms

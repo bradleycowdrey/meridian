@@ -7,21 +7,27 @@
 //   node scripts/mac-store-shots.mjs <selftest dir> <out dir>
 //
 // <selftest dir> is what `Meridian --selftest <dir>` wrote. It reads:
-//   store-panel.png        the menu bar panel at 2x (falls back to menubar-panel.png, 1x)
+//   store-panel-large.png  the menu bar panel at Large, 2x (falls back to store-panel.png, 2x, then
+//                          menubar-panel.png, 1x)
 //   store-widget-large.png the widgets at 3x (fall back to widget-*.png, 2x)
 //   store-widget-medium.png
 //   store-widget-small.png
 //   store-window.png       the desktop window at Large, 2x (optional)
+//   store-window-travel.png the same window with the hours dragged ahead, 2x (optional)
+//   store-clock.txt        the time those renders show, as the menu bar writes it (optional)
 //
 // and writes 01-*.png ... into <out dir>: 3 to 5 pictures, each exactly 2880 x 1800 RGB (no alpha), the size the Mac
 // App Store takes. Each is the template's Mac picture: the Fraunces headline and the Instrument Sans sub-line over
 // the steel-blue ground, and a MacBook whose screen is a desktop (desktop()) with Meridian's globe in the menu bar
 // and the app's renders on it at their own point size: the panel hung from the menu bar (where macOS puts it, against
-// the screen's right edge), the widgets on the desktop, the window. The renders are only placed, never painted over.
-// The menu bar's clock is the family's one clock (the template's MAC_CLOCK, desktop()'s default): never passed here.
+// the screen's right edge, a little in from it), the widgets on the desktop, the window. The renders are only placed,
+// never painted over. Meridian's window shows the current time ("Now  Wed 25 Nov, 20:36"), so the menu bar's clock
+// is that same time (store-clock.txt; the family template's one exception to MAC_CLOCK). Without the file, or with one
+// not written like MAC_CLOCK, the clock is left to the template's MAC_CLOCK.
 //
 // Each picture shows something different: 01 the panel hung from the menu bar; 02 the three widgets as one centred
-// group; 03 the whole window beside the large and medium widgets (every city's Working / Off hours tag); 04 the window alone.
+// group; 03 the whole window beside the large and medium widgets (every city's Working / Off hours tag); 04 the window
+// with the hours dragged ahead (the ruler at "+N hr", the Now button lit), only when that render is there.
 //
 // A missing optional input skips that picture. It always makes at least 3, and stops with an error if it can't
 // (no panel at all). Earlier PNGs in <out dir> are removed first, so a skipped picture can't linger and be uploaded.
@@ -32,13 +38,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { compose, desktop, THEMES, MACBOOK } from '../design/app-store/store-frame.mjs';
+import { compose, desktop, desktopHtml, THEMES, MACBOOK } from '../design/app-store/store-frame.mjs';
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const [DW, DH] = MACBOOK.desktop, BAR = MACBOOK.menuBar;   // the desktop, in points
 const APP = 'Meridian';
 const PANEL_GAP = 4;    // the menu bar panel's top, below the menu bar
+const PANEL_MARGIN = 12; // the least room between the panel and the screen's right edge
 const WIDGET_GAP = 24;  // between widgets on the desktop
 
 // The four stories: headline and sub-line (one headline line, so the copy stays above the MacBook).
@@ -102,6 +109,8 @@ async function checker(browser) {
 }
 
 async function pickPanel(check) {
+  const large = read('store-panel-large.png');
+  if (large && (await check.stats(large)).stddev >= 3) return { png: large, scale: 2, from: 'store-panel-large.png' };
   const small = read('menubar-panel.png'), big = read('store-panel.png');
   if (big) {
     const s = await check.stats(big, small);
@@ -120,9 +129,32 @@ async function pickWidget(check, name) {
   return null;
 }
 
-async function pickWindow(check) {
-  const png = read('store-window.png');
-  return png && (await check.stats(png)).stddev >= 3 ? { png, scale: 2, from: 'store-window.png' } : null;
+async function pickWindow(check, file = 'store-window.png') {
+  const png = read(file);
+  return png && (await check.stats(png)).stddev >= 3 ? { png, scale: 2, from: file } : null;
+}
+
+// The time the renders show, written like MAC_CLOCK ('Wed Nov 25  8:36 PM'), or undefined (the template's MAC_CLOCK).
+function readClock() {
+  let t;
+  try { t = fs.readFileSync(path.join(src, 'store-clock.txt'), 'utf8').replace(/\r?\n$/, ''); } catch { return undefined; }
+  let report = '';
+  try { report = fs.readFileSync(path.join(src, 'report.txt'), 'utf8'); } catch { /* no report */ }
+  if (report.includes('the minute turned')) log('warning: the minute turned while the self-test took the store renders; a render may show a minute off the clock');
+  if (/^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2}  \d{1,2}:\d{2} [AP]M$/.test(t)) return t;
+  log(`store-clock.txt ("${t}") is not written like MAC_CLOCK; using MAC_CLOCK`);
+  return undefined;
+}
+
+// Where the middle of Meridian's menu-bar item (the globe) is, in points, on the desktop the template draws.
+async function itemCentre(browser, clock) {
+  const ctx = await browser.newContext({ viewport: { width: DW, height: DH } });
+  const page = await ctx.newPage();
+  await page.setContent(desktopHtml({ theme: THEMES.meridian, app: APP, fonts: FONTS, menuExtra: { text: '', icon: GLOBE }, clock }));
+  await page.evaluate(() => document.fonts.ready);
+  const x = await page.evaluate(() => { const r = document.querySelector('.right .st .ic').getBoundingClientRect(); return r.left + r.width / 2; });
+  await ctx.close();
+  return x;
 }
 
 const pt = (r) => { const [w, h] = size(r.png); return { png: r.png, w: w / r.scale, h: h / r.scale }; };
@@ -130,8 +162,12 @@ const pt = (r) => { const [w, h] = size(r.png); return { png: r.png, w: w / r.sc
 // ---------------------------------------------------------------------------------------------
 // The desktops, in points (1512 x 982, the menu bar 32 high, its middle 190 left to the notch).
 
-// The panel hangs from the menu bar under Meridian's item: macOS keeps it on screen, so it sits against the right edge.
-const hung = (panel) => ({ png: panel.png, x: DW - panel.w, y: BAR + PANEL_GAP, w: panel.w, h: panel.h, chrome: 'none' });
+// The panel hangs from the menu bar, centred under Meridian's item as far as the screen allows: it is wider than the
+// room right of the item, so it moves left until it sits PANEL_MARGIN in from the screen's right edge, its corners
+// and shadow in full view.
+let ITEM_X = DW - 300;
+const hung = (panel) => ({ png: panel.png, x: Math.round(Math.min(ITEM_X - panel.w / 2, DW - PANEL_MARGIN - panel.w)),
+  y: BAR + PANEL_GAP, w: panel.w, h: panel.h, chrome: 'none' });
 const widget = (w, x, y) => ({ png: w.png, x, y, w: w.w, h: w.h });
 
 const scenes = {
@@ -166,8 +202,9 @@ const scenes = {
       extras,
     };
   },
-  // The desktop window on its own (its own toolbar, so only the traffic lights over its header), centred.
-  window: ({ window }) => ({ windows: [{ png: window.png, w: window.w, h: window.h, chrome: 'none', lights: true }] }),
+  // The window with the hours dragged ahead, on its own (its own toolbar, so only the traffic lights over its
+  // header), centred.
+  window: ({ travel }) => ({ windows: [{ png: travel.png, w: travel.w, h: travel.h, chrome: 'none', lights: true }] }),
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -182,31 +219,35 @@ try {
   const panelPick = await pickPanel(check);
   if (!panelPick) fail(`no panel render (store-panel.png or menubar-panel.png) in ${src}`);
   const [largeP, mediumP, smallP] = [await pickWidget(check, 'large'), await pickWidget(check, 'medium'), await pickWidget(check, 'small')];
-  const windowP = await pickWindow(check);
+  const windowP = await pickWindow(check), travelP = await pickWindow(check, 'store-window-travel.png');
   await check.close();
+  const clock = readClock();
+  ITEM_X = await itemCentre(browser, clock);
+  log(`clock: ${clock ?? 'MAC_CLOCK'}; menu-bar item at x ${ITEM_X.toFixed(1)} pt`);
   log(`panel from ${panelPick.from}`);
   log(`widgets: ${[['large', largeP], ['medium', mediumP], ['small', smallP]].map(([n, w]) => `${n} ${w ? w.from : 'missing'}`).join(', ')}`);
-  log(`window: ${windowP ? windowP.from : 'missing'}`);
-  const r = { panel: pt(panelPick), large: largeP && pt(largeP), medium: mediumP && pt(mediumP), small: smallP && pt(smallP), window: windowP && pt(windowP) };
+  log(`window: ${windowP ? windowP.from : 'missing'}; hours dragged: ${travelP ? travelP.from : 'missing'}`);
+  const r = { panel: pt(panelPick), large: largeP && pt(largeP), medium: mediumP && pt(mediumP), small: smallP && pt(smallP),
+    window: windowP && pt(windowP), travel: travelP && pt(travelP) };
 
 
   const shots = [['01-menu-bar.png', 'menuBar']];
   if (r.large || r.medium) shots.push(['02-widgets.png', 'widgets']);
   if (r.large && r.window) shots.push(['03-working-hours.png', 'workingHours']);
-  if (r.window) shots.push(['04-window.png', 'window']);
+  if (r.travel) shots.push(['04-window.png', 'window']);
   // Never fewer than three: the panel again, for the stories left out.
   const extra = [['05-working-hours.png', 'workingHours'], ['06-plan.png', 'window']];
   while (shots.length < 3 && extra.length) {
     const [name, story] = extra.shift();
     if (!shots.some(([, s]) => s === story)) shots.push([name, story]);
   }
-  const panelOnly = (story) => (story === 'workingHours' && !(r.large && r.window)) || (story === 'window' && !r.window);
+  const panelOnly = (story) => (story === 'workingHours' && !(r.large && r.window)) || (story === 'window' && !r.travel);
 
   fs.mkdirSync(outDir, { recursive: true });
   for (const n of fs.readdirSync(outDir)) if (n.toLowerCase().endsWith('.png')) fs.rmSync(path.join(outDir, n));
   for (const [name, story] of shots.slice(0, 5)) {
     const scene = panelOnly(story) ? scenes.menuBar(r) : scenes[story](r);
-    const screen = await desktop(browser, { theme, app: APP, fonts: FONTS, menuExtra: { text: '', icon: GLOBE }, ...scene });
+    const screen = await desktop(browser, { theme, app: APP, fonts: FONTS, menuExtra: { text: '', icon: GLOBE }, clock, ...scene });
     const [head, sub] = COPY[story];
     const out = await compose(browser, 'mac', { head, sub, device: 'macbook', png: screen, title: APP, file: name }, theme, FONTS);
     fs.writeFileSync(path.join(outDir, name), out);

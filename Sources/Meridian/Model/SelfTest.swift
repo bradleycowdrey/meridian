@@ -59,11 +59,15 @@ enum SelfTest {
         guard let itemWindow = NSApp.windows.first(where: { String(describing: type(of: $0)).contains("StatusBarWindow") }),
               let content = itemWindow.contentView, let button = buttons(in: content).first ?? (content.superview.flatMap { buttons(in: $0).first })
         else { return "\(file): no menu bar item found" }
-        button.performClick(nil)
-        try? await Task.sleep(for: .seconds(2))
-        guard let panel = NSApp.windows.first(where: {
-            $0.isVisible && $0 !== desktop && $0 !== itemWindow && $0.frame.width > 300
-        }), let view = panel.contentView else { return "\(file): panel did not open" }
+        // The item may still count its panel as open (the check before only ordered it out), so a
+        // first click can close it: click until it shows.
+        var opened: NSWindow?
+        for _ in 0..<3 where opened == nil {
+            button.performClick(nil)
+            try? await Task.sleep(for: .seconds(2))
+            opened = NSApp.windows.first(where: { $0.isVisible && $0 !== desktop && $0 !== itemWindow && $0.frame.width > 300 })
+        }
+        guard let panel = opened, let view = panel.contentView else { return "\(file): panel did not open" }
         view.layoutSubtreeIfNeeded()
         let line = writeStorePNG(of: view, scale: 2, to: dir.appendingPathComponent(file))
         panel.orderOut(nil)
@@ -190,6 +194,14 @@ enum SelfTest {
         let sizeBefore = store.uiSize
         store.uiSize = .large
         try? await Task.sleep(for: .seconds(1.5))
+        // The store renders (window, panel, widgets) all show one minute, the menu bar's clock in the
+        // screenshots: start them just after the minute turns (and the app's clock with it).
+        for _ in 0..<70 {
+            if Calendar.current.component(.second, from: Date()) <= 1,
+               Calendar.current.component(.minute, from: store.now) == Calendar.current.component(.minute, from: Date()) { break }
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+        let storeMinute = store.now
         if let content = host.window?.contentView {
             content.layoutSubtreeIfNeeded()
             lines.append(writeStorePNG(of: content, scale: 2, to: dir.appendingPathComponent("store-window.png")))
@@ -272,6 +284,8 @@ enum SelfTest {
                 lines.append("\(file): not written")
             }
         }
+        let sameMinute = Calendar.current.isDate(storeMinute, equalTo: store.now, toGranularity: .minute)
+        lines.append("store renders: \(sameMinute ? "one minute throughout" : "the minute turned during them (store-clock.txt may not match)")")
         try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
         NSApp.terminate(nil)
     }

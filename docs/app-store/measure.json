@@ -1,0 +1,192 @@
+[
+ {
+  "app": "Meridian",
+  "kind": "iphone",
+  "file": "iphone-1-world.png",
+  "eyebrow": {
+   "fontFamily": "Inter Store",
+   "fontSize": 39,
+   "fontWeight": "600",
+   "letterSpacing": "0.78px",
+   "lineHeight": "39px",
+   "color": "rgba(255, 255, 255, 0.78)",
+   "top": 150,
+   "bottom": 189
+  },
+  "headline": {
+   "fontFamily": "Fraunces",
+   "fontSize": 108,
+   "fontWeight": "560",
+   "letterSpacing": "-1.62px",
+   "lineHeight": "113.4px",
+   "color": "rgb(255, 255, 255)",
+   "top": 213,
+   "bottom": 440,
+   "lines": 2
+  },
+  "subhead": {
+   "fontFamily": "Inter Store",
+   "fontSize": 51,
+   "fontWeight": "600",
+   "letterSpacing": "-0.51px",
+   "lineHeight": "61.2px",
+   "color": "rgba(255, 255, 255, 0.92)",
+   "top": 470,
+   "bottom": 531
+  },
+  "eyebrowBaseline": 184,
+  "deviceTop": 640
+ },
+ {
+  "app": "Meridian",
+  "kind": "iphone",
+  "file": "iphone-2-travel.png",
+  "eyebrow": {
+   "fontFamily": "Inter Store",
+   "fontSize": 39,
+   "fontWeight": "600",
+   "letterSpacing": "0.78px",
+   "lineHeight": "39px",
+   "color": "rgba(255, 255, 255, 0.78)",
+   "top": 150,
+   "bottom": 189
+  },
+  "headline": {
+   "fontFamily": "Fraunces",
+   "fontSize": 108,
+   "fontWeight": "560",
+   "letterSpacing": "-1.62px",
+   "lineHeight": "113.4px",
+   "color": "rgb(255, 255, 255)",
+   "top": 213,
+   "bottom": 440,
+   "lines": 2
+  },
+  "subhead": {
+   "fontFamily": "Inter Store",
+   "fontSize": 51,
+   "fontWeight": "600",
+   "letterSpacing": "-0.51px",
+   "lineHeight": "61.2px",
+   "color": "rgba(255, 255, 255, 0.92)",
+   "top": 470,
+   "bottom": 531
+  },
+  "eyebrowBaseline": 184,
+  "deviceTop": 640
+ },
+ {
+  "app": "Meridian",
+  "kind": "iphone",
+  "file": "iphone-3-widgets.png",
+  "eyebrow": {
+   "fontFamily": "Inter Store",
+   "fontSize": 39,
+   "fontWeight": "600",
+   "letterSpacing": "0.78px",
+   "lineHeight": "39px",
+   "color": "rgba(255, 255, 255, 0.78)",
+   "top": 150,
+   "bottom": 189
+  },
+  "headline": {
+   "fontFamily": "Fraunces",
+   "fontSize": 108,
+   "fontWeight": "560",
+   "letterSpacing": "-1.62px",
+   "lineHeight": "113.4px",
+   "color": "rgb(255, 255, 255)",
+   "top": 213,
+   "bottom": 440,
+   "lines": 2
+  },
+  "subhead": {
+   "fontFamily": "Inter Store",
+   "fontSize": 51,
+   "fontWeight": "600",
+   "letterSpacing": "-0.51px",
+   "lineHeight": "61.2px",
+   "color": "rgba(255, 255, 255, 0.92)",
+   "top": 470,
+   "bottom": 531
+  },
+  "eyebrowBaseline": 184,
+  "deviceTop": 640
+ },
+ {
+  "app": "Meridian",
+  "kind": "iphone",
+  "file": "iphone-4-date.png",
+  "eyebrow": {
+   "fontFamily": "Inter Store",
+   "fontSize": 39,
+   "fontWeight": "600",
+   "letterSpacing": "0.78px",
+   "lineHeight": "39px",
+   "color": "rgba(255, 255, 255, 0.78)",
+   "top": 150,
+   "bottom": 189
+  },
+  "headline": {
+   "fontFamily": "Fraunces",
+   "fontSize": 108,
+   "fontWeight": "560",
+   "letterSpacing": "-1.62px",
+   "lineHeight": "113.4px",
+   "color": "rgb(255, 255, 255)",
+   "top": 213,
+   "bottom": 440,
+   "lines": 2
+  },
+  "subhead": {
+   "fontFamily": "Inter Store",
+   "fontSize": 51,
+   "fontWeight": "600",
+   "letterSpacing": "-0.51px",
+   "lineHeight": "61.2px",
+   "color": "rgba(255, 255, 255, 0.92)",
+   "top": 470,
+   "bottom": 531
+  },
+  "eyebrowBaseline": 184,
+  "deviceTop": 640
+ },
+ {
+  "app": "Meridian",
+  "kind": "iphone",
+  "file": "iphone-5-search.png",
+  "eyebrow": {
+   "fontFamily": "Inter Store",
+   "fontSize": 39,
+   "fontWeight": "600",
+   "letterSpacing": "0.78px",
+   "lineHeight": "39px",
+   "color": "rgba(255, 255, 255, 0.78)",
+   "top": 150,
+   "bottom": 189
+  },
+  "headline": {
+   "fontFamily": "Fraunces",
+   "fontSize": 108,
+   "fontWeight": "560",
+   "letterSpacing": "-1.62px",
+   "lineHeight": "113.4px",
+   "color": "rgb(255, 255, 255)",
+   "top": 213,
+   "bottom": 440,
+   "lines": 2
+  },
+  "subhead": {
+   "fontFamily": "Inter Store",
+   "fontSize": 51,
+   "fontWeight": "600",
+   "letterSpacing": "-0.51px",
+   "lineHeight": "61.2px",
+   "color": "rgba(255, 255, 255, 0.92)",
+   "top": 470,
+   "bottom": 531
+  },
+  "eyebrowBaseline": 184,
+  "deviceTop": 640
+ }
+]

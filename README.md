@@ -134,9 +134,14 @@ scripts/make-dmg.sh 2.1.5         # dist/Meridian-2.1.5.dmg
 
 Bump the number in `VERSION` and push to `main`. GitHub Actions builds a universal app, packages a DMG and publishes it as release `v<VERSION>`, plus a stable `Meridian.dmg` that the download links always point to, and `Meridian-iOS.ipa` (for sideloading a build ahead of the App Store). The iPhone app goes to TestFlight and App Review through `ios/APPSTORE`; see [docs/versioning.md](docs/versioning.md).
 
-The iPhone App Store screenshots follow the Cowdrey family standard ([`design/app-store/README.md` in bradleycowdrey/cowdrey-one](https://github.com/bradleycowdrey/cowdrey-one/blob/main/design/app-store/README.md)): each run of `.github/workflows/ios-appstore.yml` composes the simulator's dark-mode captures with `scripts/appstore-shots.mjs` and the family template in [`design/app-store`](design/app-store) (a word-for-word copy; change the master, then copy it here).
+The iPhone App Store screenshots follow the Cowdrey family standard, shared by every Cowdrey app: the app's catalog sky, an uppercase eyebrow, a Fraunces headline and a one-line subhead in Cowdrey One's type scale, above the real capture in a drawn iPhone. Each run of `.github/workflows/ios-appstore.yml` takes six simulator captures (main, find, travel, widgets, date, add) and turns them into store frames with the family compositor in [`scripts/store-frames`](scripts/store-frames); the copy for each frame is in [`scripts/store-frames/apps/meridian.json`](scripts/store-frames/apps/meridian.json). The compositor also writes `measure.json` (the type as drawn) and stops if any copy does not fit, so the type is never shrunk. The listing is iPhone only, so there are no iPad frames. The latest frames rendered for review are in [`docs/app-store`](docs/app-store).
 
-The Mac App Store screenshots are on the same standard: `.github/workflows/mac-appstore.yml` (in its upload mode) takes the self-test's renders (the menu bar panel, the widgets, the window) and `scripts/mac-store-shots.mjs` sets them on a MacBook's desktop with the template's `desktop()` and `device: 'macbook'`.
+```
+node scripts/store-frames/store-frames.js --config scripts/store-frames/apps/meridian.json \
+  --captures <folder of 01-main.png ... 06-add.png> --out docs/app-store --only iphone
+```
+
+The Mac App Store screenshots still use the earlier family template: `.github/workflows/mac-appstore.yml` (in its upload mode) takes the self-test's renders (the menu bar panel, the widgets, the window) and `scripts/mac-store-shots.mjs` sets them on a MacBook's desktop with `design/app-store/store-frame.mjs`.
 
 Optional secrets for Developer ID signing and notarization (removes the Gatekeeper prompt):
 `DEVELOPER_ID_P12` (base64 .p12), `DEVELOPER_ID_P12_PASSWORD`, `CODESIGN_IDENTITY`,
@@ -156,7 +161,9 @@ Widget/                   Mac widget extension
 ios/                      iPhone app and widgets
 android/                  Android app and widget
 docs/                     Sideloading and versioning notes; index.html forwards to bradcowdrey.com/meridian
-design/app-store/         App Store screenshot template (the Cowdrey family standard) and its fonts
+scripts/store-frames/     App Store store-frame compositor (the Cowdrey family standard), its fonts and Meridian's copy
+docs/app-store/           The iPhone store frames rendered for review, with measure.json
+design/app-store/         The earlier template, still used for the Mac App Store pictures
 ```
 
 ## Terms and privacy
@@ -168,4 +175,4 @@ Using Meridian means agreeing to the [Terms of Use and Privacy](TERMS.md) (also 
 MIT © 2026 Bradley Cowdrey · [bradcowdrey.com](https://bradcowdrey.com)
 
 Bundles the [Inter](https://rsms.me/inter/) typeface by Rasmus Andersson under the SIL Open Font License 1.1 (`Resources/Fonts/Inter-LICENSE.txt`).
-The App Store screenshots are set in Fraunces and Instrument Sans, both under the SIL Open Font License 1.1 (`design/app-store/Fraunces-LICENSE.txt`, `design/app-store/Instrument-Sans-LICENSE.txt`).
+The iPhone App Store screenshots are set in Fraunces and Inter, both under the SIL Open Font License 1.1 (`scripts/store-frames/fonts/Fraunces-LICENSE.txt`, `scripts/store-frames/fonts/Inter-LICENSE.txt`). The Mac App Store screenshots are set in Fraunces and Instrument Sans, both under the SIL Open Font License 1.1 (`design/app-store/Fraunces-LICENSE.txt`, `design/app-store/Instrument-Sans-LICENSE.txt`).

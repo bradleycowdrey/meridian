@@ -1,0 +1,72 @@
+{
+ "app": "Meridian",
+ "slug": "meridian",
+ "sky": [
+  "#4A7DB8",
+  "#16243A"
+ ],
+ "captures": "../../../ios/fastlane/screenshots/en-US",
+ "out": "../../../docs/app-store",
+ "iphone": [
+  {
+   "id": "world",
+   "eyebrow": "World clock",
+   "headline": [
+    "Every time zone",
+    "at a glance."
+   ],
+   "subhead": "Cities, photos and hours side by side.",
+   "capture": "01-main.png"
+  },
+  {
+   "id": "find",
+   "eyebrow": "Meetings",
+   "headline": [
+    "Find a time",
+    "that works."
+   ],
+   "subhead": "See when everyone is working.",
+   "capture": "02-find.png"
+  },
+  {
+   "id": "travel",
+   "eyebrow": "Time travel",
+   "headline": [
+    "Plan ahead",
+    "in every city."
+   ],
+   "subhead": "Drag the hours and every city follows.",
+   "capture": "03-travel.png"
+  },
+  {
+   "id": "widgets",
+   "eyebrow": "Widgets",
+   "headline": [
+    "Your cities on",
+    "your Home Screen."
+   ],
+   "subhead": "Lock Screen too, in the order you set.",
+   "capture": "04-widgets.png"
+  },
+  {
+   "id": "date",
+   "eyebrow": "Any date",
+   "headline": [
+    "Go to any",
+    "moment."
+   ],
+   "subhead": "Pick a date and time, see it everywhere.",
+   "capture": "05-date.png"
+  },
+  {
+   "id": "search",
+   "eyebrow": "Cities",
+   "headline": [
+    "Search 34,000",
+    "cities."
+   ],
+   "subhead": "Offline, with holidays in every country.",
+   "capture": "06-add.png"
+  }
+ ]
+}

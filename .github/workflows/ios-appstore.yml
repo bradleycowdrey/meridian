@@ -3,13 +3,15 @@ name: iPhone App Store
 # App Store screenshots and listing for the iPhone app, and (when ios/APPSTORE changes) the App Store build.
 #   Push to main (iPhone files): takes the App Store screenshots (6.9-inch iPhone) and publishes them,
 #     with the listing text, to the ci-appstore branch for review. Nothing goes to Apple.
-#     The pictures are composed on the Cowdrey family standard (design/app-store/store-frame.mjs, a copy of
-#     the master in bradleycowdrey/cowdrey-one) by scripts/appstore-shots.mjs, with Node and Playwright Chromium.
+#     The raw captures become store frames on the Cowdrey family standard (scripts/store-frames: the family
+#     compositor, its fonts and apps/meridian.json, the copy) before they are published or uploaded.
 #   ios/APPSTORE changed to "1.0.0 submit": also builds, signs (Apple Distribution certificate, with
 #     App Store profiles fetched through the App Store Connect API key),
 #     uploads the build, screenshots and listing, and submits for review.
 #   ios/APPSTORE changed to "1.0.0 test": the same, without submitting for review.
 #   ios/APPSTORE changed to "2.0 beta": builds and uploads to TestFlight only (no App Store version).
+#   Anything that talks to App Store Connect runs only on main (a manual run on another branch only
+#   makes the screenshots).
 # Secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (the .p8 file's contents, Admin role),
 #          IOS_DIST_P12, IOS_DIST_P12_PASSWORD (Apple Distribution certificate, base64 .p12),
 #          APP_REVIEW_EMAIL, APP_REVIEW_PHONE (optional; ios/fastlane/metadata/review_information has them).
@@ -17,7 +19,7 @@ on:
   push:
     branches: [main]
     paths: ["ios/**", "Widget/**", "Sources/Meridian/Shared/**", "Sources/Meridian/Model/Place.swift",
-            "Sources/Meridian/Model/CityDirectory.swift", "scripts/appstore-shots.mjs", "design/app-store/**",
+            "Sources/Meridian/Model/CityDirectory.swift", "scripts/store-frames/**",
             ".github/workflows/ios-appstore.yml"]
   workflow_dispatch:
 
@@ -87,20 +89,23 @@ jobs:
           xcrun simctl status_bar "$DEVICE" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
           xcrun simctl install "$DEVICE" "$APP"
           n=1
-          for screen in main travel widgets date add; do
+          # The order and names must match scripts/store-frames/apps/meridian.json.
+          for screen in main find travel widgets date add; do
             xcrun simctl terminate "$DEVICE" $ID 2>/dev/null
             SIMCTL_CHILD_TZ=America/Los_Angeles xcrun simctl launch "$DEVICE" $ID -screenshots -screen $screen >> "$OUT/launch.txt" 2>&1
             sleep 7
             xcrun simctl io "$DEVICE" screenshot "$SHOTS/0${n}-$screen.png"
             n=$((n + 1))
           done
-          # Store frames on the Cowdrey family standard: headline, sub-line, ground and iPhone round each
-          # raw capture (same file names, 1320 x 2868 RGB). The raw captures are kept for QA only, never uploaded.
+          # Store frames on the Cowdrey family standard: eyebrow, headline, subhead, the app's sky and the
+          # iPhone round each raw capture (iphone-<n>-<id>.png, 1320 x 2868 RGB), measured into measure.json.
+          # The raw captures are kept for QA only, never uploaded.
           mkdir -p "$OUT/raw"; cp "$SHOTS"/*.png "$OUT/raw/"
           FRAMES="$RUNNER_TEMP/frames"; rm -rf "$FRAMES"; mkdir -p "$FRAMES"
-          if node scripts/appstore-shots.mjs "$SHOTS" "$FRAMES" 2>&1 | tee "$OUT/frames.log" \
+          if node scripts/store-frames/store-frames.js --config scripts/store-frames/apps/meridian.json \
+               --captures "$SHOTS" --out "$FRAMES" --only iphone 2>&1 | tee "$OUT/frames.log" \
              && [ "$(ls "$FRAMES"/*.png | wc -l)" -eq "$(ls "$SHOTS"/*.png | wc -l)" ]; then
-            rm -f "$SHOTS"/*.png; cp "$FRAMES"/*.png "$SHOTS/"
+            rm -f "$SHOTS"/*.png; cp "$FRAMES"/*.png "$SHOTS/"; cp "$FRAMES/measure.json" "$OUT/measure.json"
           else
             echo "::error::Composing the store frames failed (frames.log)"; exit 1
           fi
@@ -116,10 +121,10 @@ jobs:
           sleep 7; xcrun simctl io "$DEVICE" screenshot "$OUT/qa-large-text.png"
           xcrun simctl ui "$DEVICE" content_size large
           sips -g pixelWidth -g pixelHeight "$SHOTS"/*.png > "$OUT/screenshot-sizes.txt"
-          ls "$SHOTS"/*.png | wc -l | grep -q 5
+          [ "$(ls "$SHOTS"/*.png | wc -l)" -eq 6 ]
 
       - name: TestFlight access (internal testers)
-        if: env.TESTFLIGHT == 'true'
+        if: github.ref == 'refs/heads/main' && env.TESTFLIGHT == 'true'
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -132,7 +137,7 @@ jobs:
           rm -f fastlane/api_key.json
 
       - name: App Store status (and each version's name put back to its build's)
-        if: env.STATUS == 'true'
+        if: github.ref == 'refs/heads/main' && env.STATUS == 'true'
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -145,7 +150,7 @@ jobs:
           rm -f fastlane/api_key.json
 
       - name: Check App Store secrets
-        if: env.IS_TAG == 'true'
+        if: github.ref == 'refs/heads/main' && env.IS_TAG == 'true'
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -158,7 +163,7 @@ jobs:
           if [ -n "$missing" ]; then echo "Missing secrets:$missing" | tee "$OUT/release.txt"; exit 1; fi
 
       - name: Import the Apple Distribution certificate
-        if: env.IS_TAG == 'true'
+        if: github.ref == 'refs/heads/main' && env.IS_TAG == 'true'
         env:
           P12: ${{ secrets.IOS_DIST_P12 }}
           P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
@@ -166,7 +171,7 @@ jobs:
         run: scripts/import-signing-cert.sh 2>&1 | tee "$OUT/certificate.txt"
 
       - name: Build and sign (App Store profiles)
-        if: env.IS_TAG == 'true'
+        if: github.ref == 'refs/heads/main' && env.IS_TAG == 'true'
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -189,7 +194,7 @@ jobs:
           grep -q "group.com.bradcowdrey.meridian" "$OUT/signature.txt"
 
       - name: Upload to App Store Connect
-        if: env.IS_TAG == 'true'
+        if: github.ref == 'refs/heads/main' && env.IS_TAG == 'true'
         env:
           APP_REVIEW_EMAIL: ${{ secrets.APP_REVIEW_EMAIL }}
           APP_REVIEW_PHONE: ${{ secrets.APP_REVIEW_PHONE }}

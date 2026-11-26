@@ -25,32 +25,43 @@ export const THEMES = {
   md: { // Cowdrey.MD blue
     ground: ['#101C45', '#0A1230', '#050917'], glow: 'rgba(74, 116, 242, .24)', floor: 'rgba(28, 61, 174, .28)',
     ink: '#F6F7FB', sub: '#C4CEEA', base: '#070C1D',
+    desk: ['#1E2C78', '#3A55C4', '#8EA2EE'],
   },
   pdf: { // Cowdrey.PDF raspberry
     ground: ['#3E0C20', '#220812', '#12060B'], glow: 'rgba(198, 31, 82, .26)', floor: 'rgba(150, 18, 60, .30)',
     ink: '#FFF7F8', sub: '#EBC3D0', base: '#12060B',
+    desk: ['#561331', '#9C2758', '#E07A98'],
   },
   meridian: { // Meridian steel blue
     ground: ['#0F2136', '#0A1626', '#050B14'], glow: 'rgba(74, 125, 184, .26)', floor: 'rgba(30, 64, 110, .32)',
     ink: '#F5F8FC', sub: '#C3D3E7', base: '#050B14',
+    desk: ['#0C2B31', '#1E5560', '#5E9297'],
   },
   twodegrees: { // Two Degrees sky blue
     ground: ['#0C2A4E', '#081C37', '#040E1E'], glow: 'rgba(114, 170, 233, .26)', floor: 'rgba(32, 66, 148, .34)',
     ink: '#F5F9FF', sub: '#C6DBF5', base: '#040E1E',
+    desk: ['#2C5EAE', '#72AAE9', '#F6B48E'],
   },
   bearings: { // Bearings compass blue
     ground: ['#0D2442', '#08182E', '#040B17'], glow: 'rgba(61, 116, 176, .28)', floor: 'rgba(20, 52, 96, .34)',
     ink: '#F5F8FC', sub: '#C2D4EA', base: '#040B17',
+    desk: ['#0E3A63', '#2378B8', '#A4CDE6'],
   },
   goldenhour: { // Golden Hour dusk
     ground: ['#261C47', '#170F2E', '#0B0717'], glow: 'rgba(255, 170, 96, .22)', floor: 'rgba(194, 112, 90, .30)',
     ink: '#FFF8F1', sub: '#F0CFB8', base: '#0B0717',
+    desk: ['#6A3510', '#C27420', '#F4C55A'],
   },
   one: { // Cowdrey One clay
     ground: ['#3A2015', '#24140C', '#130A06'], glow: 'rgba(201, 131, 91, .26)', floor: 'rgba(147, 81, 47, .32)',
     ink: '#FFF8F3', sub: '#EED3C2', base: '#130A06',
+    desk: ['#5C2818', '#A4502F', '#E3987A'],
   },
 };
+
+// theme.desk: the MacBook desktop's wallpaper (desktop() below), [top, middle, bottom], in the app's own colours and
+// lighter than the page's ground, so the screen reads as a screen and every app's desktop is its own at thumbnail
+// size. A theme without desk gets a wallpaper worked out from the hue of its ground.
 
 // Sizes in output pixels. The copy keeps room for two headline lines, or one headline line and a sub-line that
 // wraps once; the device's top edge is fixed.
@@ -206,15 +217,18 @@ export async function compose(browser, kind, story, theme, fonts) {
 // type: the Apple menu, the app's name in bold, File Edit View Window Help; on the right the app's menu-bar extra if
 // it has one, Wi-Fi, a full battery, Control Center and the clock) and the app's real windows on it. Everything is
 // in points; pass it as story.png with story.device = 'macbook'.
-//   windows: [{ png, x, y, w, h, title, chrome, lights }] the window's outer box in points (x or y left out: centred
-//     below the menu bar). chrome 'window' (default) gives a 28 pt macOS title bar (traffic lights and the title) with
-//     png under it; 'none' shows png as the whole window (an app that draws its own title bar; lights: true adds the
-//     traffic lights at its top left). Both have 10 pt corners, a fine rim and macOS's shadow.
+//   windows: [{ png, x, y, w, h, title, chrome, lights, scale }] the window's outer box in points (x or y left out:
+//     centred below the menu bar; x, y place the enlarged box when scale > 1). chrome 'window' (default) gives a
+//     28 pt macOS title bar (traffic lights and the title) with png under it; 'none' shows png as the whole window
+//     (an app that draws its own title bar; lights: true adds the traffic lights at its top left). Both have 10 pt
+//     corners, a fine rim and macOS's shadow.
+//     scale (default 1): windows are shown at their real point size (capture at 2x); a window narrower than 600 pt
+//     may be enlarged up to 1.5x (scale 1 to 1.5) so it reads; any other scale is refused.
 //   extras: [{ png, x, y, w, h, radius }] widgets on the desktop under the windows (radius in points, default 22).
 //   menuExtra: { text, icon } the app's menu-bar item, e.g. { text: '55° · 13°', icon: 'sun' }; icon is 'sun',
 //     an <svg> string drawn in white (currentColor) or a PNG Buffer.
-//   clock: 'Wed Nov 25  9:41 AM'. dock: false (default; the Dock hidden) or { icon: png } for a Dock holding the
-//     app's icon with its running dot.
+//   clock: MAC_CLOCK by default, the same on every app; apps do not pass their own.
+//   dock: false (default; the Dock hidden) or { icon: png } for a Dock holding the app's icon with its running dot.
 //   fonts: { instrument } (base64 of instrument-sans.woff2); left out, it is read from beside this file if there.
 const APPLE = `<svg viewBox="0 0 100 100"><defs><mask id="bite"><rect width="100" height="100" fill="#fff"/>
   <circle cx="91" cy="60" r="17"/><circle cx="48" cy="95.5" r="8"/><circle cx="48" cy="27" r="8"/></mask></defs>
@@ -232,9 +246,19 @@ const ICONS = {
     <rect x="1" y="9.1" width="16" height="5.4" rx="2.7"/><circle cx="5.2" cy="4.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="12.8" cy="11.8" r="1.7" fill="currentColor" stroke="none"/></svg>`,
 };
 
-// The wallpaper's colours, from the hue of the theme's ground: a deep tone at the top through a lighter middle to a
-// soft, slightly warmer light low down.
+// The one menu-bar clock of the family: every app's desktop shows this time.
+export const MAC_CLOCK = 'Wed Nov 25  9:41 AM';
+
+// The wallpaper: theme.desk [top, middle, bottom] with a soft light at the top right and the bottom colour glowing
+// low on the left; without desk, the colours come from the hue of the theme's ground: a deep tone at the top through
+// a lighter middle to a soft, slightly warmer light low down.
 function wallpaperCss(theme) {
+  if (theme.desk) {
+    const [t, m, b] = theme.desk, [br, bg, bb] = hexRgb(b);
+    return `radial-gradient(ellipse 70% 55% at 78% 28%, rgba(255,255,255,.14), transparent 70%),
+    radial-gradient(ellipse 75% 45% at 18% 96%, rgba(${br},${bg},${bb},.55), transparent 70%),
+    linear-gradient(180deg, ${t} 0%, ${m} 55%, ${b} 100%)`;
+  }
   const [r, g, b] = hexRgb(theme.ground[0]).map((v) => v / 255);
   const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
   let h = 0;
@@ -258,9 +282,11 @@ export function desktopHtml(o) {
   const lights = `<span class="lights"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></span>`;
   const extras = (o.extras || []).map((e) => { const p = place(e);
     return `<div class="wid" style="left:${p.x}px;top:${p.y}px;width:${e.w}px;height:${e.h}px;border-radius:${e.radius ?? 22}px"><img src="${url(e.png)}"></div>`; }).join('');
-  const windows = (o.windows || []).map((w) => { const p = place(w), bare = w.chrome === 'none';
+  const windows = (o.windows || []).map((w) => { const k = w.scale ?? 1, bare = w.chrome === 'none';
+    if (!(k === 1 || (k > 1 && k <= 1.5 && w.w < 600))) throw new Error(`desktop: window scale ${k} (${w.w} pt wide): windows are shown at scale 1; only one narrower than 600 pt may be enlarged, up to 1.5`);
+    const p = place({ ...w, w: w.w * k, h: w.h * k });
     const top = bare ? (w.lights ? lights : '') : `<div class="tb">${lights}<span>${esc(w.title ?? o.app)}</span></div>`;
-    return `<div class="win" style="left:${p.x}px;top:${p.y}px;width:${w.w}px;height:${w.h}px">${top}
+    return `<div class="win" style="left:${p.x}px;top:${p.y}px;width:${w.w}px;height:${w.h}px${k === 1 ? '' : `;transform:scale(${k});transform-origin:0 0`}">${top}
       <img src="${url(w.png)}" style="top:${bare ? 0 : TB}px;height:${bare ? w.h : w.h - TB}px"></div>`; }).join('');
   let extra = '';
   if (o.menuExtra) {
@@ -304,7 +330,7 @@ body { position: relative; -webkit-font-smoothing: antialiased; background: ${wa
 ${extras}${windows}${dock}
 <div class="bar"><span class="apple">${APPLE}</span><span class="menus"><b>${esc(o.app)}</b>${['File', 'Edit', 'View', 'Window', 'Help'].map((m) => `<span>${m}</span>`).join('')}</span>
   <span class="right">${extra}<span class="st wifi">${ICONS.wifi}</span><span class="st batt">${ICONS.battery}</span><span class="st cc">${ICONS.control}</span>
-  <span class="st" style="white-space:pre">${esc(o.clock)}</span></span></div>
+  <span class="st" style="white-space:pre">${esc(o.clock ?? MAC_CLOCK)}</span></span></div>
 </body></html>`;
 }
 

@@ -4,7 +4,7 @@
 // template, design/app-store/store-frame.mjs (a word-for-word copy of the master; never edit it here), in Meridian's
 // steel blue.
 //
-//   node scripts/mac-store-shots.mjs <selftest dir> <out dir> [--clock 'Wed 25 Nov  20:36']
+//   node scripts/mac-store-shots.mjs <selftest dir> <out dir>
 //
 // <selftest dir> is what `Meridian --selftest <dir>` wrote. It reads:
 //   store-panel.png        the menu bar panel at 2x (falls back to menubar-panel.png, 1x)
@@ -18,8 +18,10 @@
 // the steel-blue ground, and a MacBook whose screen is a desktop (desktop()) with Meridian's globe in the menu bar
 // and the app's renders on it at their own point size: the panel hung from the menu bar (where macOS puts it, against
 // the screen's right edge), the widgets on the desktop, the window. The renders are only placed, never painted over.
-// The menu bar's clock is the time the renders were made (store-panel.png's time, in this machine's time zone, as
-// the app showed it), or --clock.
+// The menu bar's clock is the family's one clock (the template's MAC_CLOCK, desktop()'s default): never passed here.
+//
+// Each picture shows something different: 01 the panel hung from the menu bar; 02 the three widgets as one centred
+// group; 03 the whole window beside the large and medium widgets (every city's Working / Off hours tag); 04 the window alone.
 //
 // A missing optional input skips that picture. It always makes at least 3, and stops with an error if it can't
 // (no panel at all). Earlier PNGs in <out dir> are removed first, so a skipped picture can't linger and be uploaded.
@@ -34,10 +36,10 @@ import { compose, desktop, THEMES, MACBOOK } from '../design/app-store/store-fra
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const [DW] = MACBOOK.desktop, BAR = MACBOOK.menuBar;   // the desktop, in points
+const [DW, DH] = MACBOOK.desktop, BAR = MACBOOK.menuBar;   // the desktop, in points
 const APP = 'Meridian';
 const PANEL_GAP = 4;    // the menu bar panel's top, below the menu bar
-const WIDGET_GAP = 20;  // between widgets on the desktop
+const WIDGET_GAP = 24;  // between widgets on the desktop
 
 // The four stories: headline and sub-line (one headline line, so the copy stays above the MacBook).
 const COPY = {
@@ -61,12 +63,8 @@ function playwright() {
   fail('Playwright not found (npm install playwright, then npx playwright install chromium)');
 }
 
-const args = process.argv.slice(2);
-const ci = args.indexOf('--clock');
-let clockArg = null;
-if (ci >= 0) { clockArg = args[ci + 1]; args.splice(ci, 2); }
-const [src, outDir] = args;
-if (!src || !outDir || clockArg === undefined) fail("usage: node scripts/mac-store-shots.mjs <selftest dir> <out dir> [--clock 'Wed 25 Nov  20:36']");
+const [src, outDir] = process.argv.slice(2);
+if (!src || !outDir) fail('usage: node scripts/mac-store-shots.mjs <selftest dir> <out dir>');
 
 // ---------------------------------------------------------------------------------------------
 // Inputs: each render with its size in points.
@@ -129,14 +127,6 @@ async function pickWindow(check) {
 
 const pt = (r) => { const [w, h] = size(r.png); return { png: r.png, w: w / r.scale, h: h / r.scale }; };
 
-// The menu bar's clock as macOS shows it in Meridian's locale (the app's own "Wed 25 Nov, 20:36"): 'Wed 25 Nov  20:36'.
-function clockFor(date) {
-  const day = date.toLocaleDateString('en-GB', { weekday: 'short' });
-  const dm = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-  return `${day} ${dm}  ${time}`;
-}
-
 // ---------------------------------------------------------------------------------------------
 // The desktops, in points (1512 x 982, the menu bar 32 high, its middle 190 left to the notch).
 
@@ -146,24 +136,37 @@ const widget = (w, x, y) => ({ png: w.png, x, y, w: w.w, h: w.h });
 
 const scenes = {
   menuBar: ({ panel }) => ({ windows: [hung(panel)] }),
-  // The large widget on the left; the medium over the small on the right, as on a desktop; the group centred.
+  // Two columns of the same width, centred on the desktop: the large widget on the left; on the right the medium
+  // over the small, the small centred under it and the column centred against the large.
   widgets: ({ large, medium, small }) => {
     const first = large || medium, column = [large ? medium : null, small].filter(Boolean);
     const colW = Math.max(0, ...column.map((w) => w.w));
     const colH = column.reduce((a, w) => a + w.h, 0) + WIDGET_GAP * Math.max(0, column.length - 1);
     const groupW = first.w + (column.length ? WIDGET_GAP + colW : 0), groupH = Math.max(first.h, colH);
-    const x0 = Math.round((DW - groupW) / 2), y0 = Math.round(BAR + (MACBOOK.desktop[1] - BAR - groupH) / 2);
-    const extras = [widget(first, x0, y0 + (groupH - first.h) / 2)];
+    const x0 = Math.round((DW - groupW) / 2), y0 = Math.round(BAR + (DH - BAR - groupH) / 2);
+    const extras = [widget(first, x0, Math.round(y0 + (groupH - first.h) / 2))];
+    const cx = x0 + first.w + WIDGET_GAP;
     let y = y0 + (groupH - colH) / 2;
-    for (const w of column) { extras.push(widget(w, x0 + first.w + WIDGET_GAP, y)); y += w.h + WIDGET_GAP; }
+    for (const w of column) { extras.push(widget(w, Math.round(cx + (colW - w.w) / 2), Math.round(y))); y += w.h + WIDGET_GAP; }
     return { extras };
   },
-  // The panel open from the menu bar, and the large widget on the desktop beside it.
-  workingHours: ({ panel, large }) => {
-    const p = hung(panel), gap = 56;
-    return { windows: [p], extras: [widget(large, Math.round(p.x - gap - large.w), Math.round(p.y + (p.h - large.h) / 2))] };
+  // The whole window, every city with its Working / Off hours tag, and beside it a column of the large widget over
+  // the medium (the tags again, with their icons): one group, centred on the desktop.
+  workingHours: ({ window, large, medium }) => {
+    const column = [large, medium].filter(Boolean), gap = 48;
+    const colW = Math.max(...column.map((w) => w.w));
+    const colH = column.reduce((a, w) => a + w.h, 0) + WIDGET_GAP * (column.length - 1);
+    const groupW = window.w + gap + colW, groupH = Math.max(window.h, colH);
+    const x0 = Math.round((DW - groupW) / 2), y0 = Math.round(BAR + (DH - BAR - groupH) / 2);
+    const extras = [];
+    let y = y0 + (groupH - colH) / 2;
+    for (const w of column) { extras.push(widget(w, x0 + window.w + gap, Math.round(y))); y += w.h + WIDGET_GAP; }
+    return {
+      windows: [{ png: window.png, x: x0, y: Math.round(y0 + (groupH - window.h) / 2), w: window.w, h: window.h, chrome: 'none', lights: true }],
+      extras,
+    };
   },
-  // The desktop window (its title bar hidden, so only the traffic lights over its header), centred.
+  // The desktop window on its own (its own toolbar, so only the traffic lights over its header), centred.
   window: ({ window }) => ({ windows: [{ png: window.png, w: window.w, h: window.h, chrome: 'none', lights: true }] }),
 };
 
@@ -186,12 +189,10 @@ try {
   log(`window: ${windowP ? windowP.from : 'missing'}`);
   const r = { panel: pt(panelPick), large: largeP && pt(largeP), medium: mediumP && pt(mediumP), small: smallP && pt(smallP), window: windowP && pt(windowP) };
 
-  const clock = clockArg || clockFor(fs.statSync(path.join(src, panelPick.from.split(' ')[0])).mtime);
-  log(`clock: ${clock}`);
 
   const shots = [['01-menu-bar.png', 'menuBar']];
   if (r.large || r.medium) shots.push(['02-widgets.png', 'widgets']);
-  if (r.large) shots.push(['03-working-hours.png', 'workingHours']);
+  if (r.large && r.window) shots.push(['03-working-hours.png', 'workingHours']);
   if (r.window) shots.push(['04-window.png', 'window']);
   // Never fewer than three: the panel again, for the stories left out.
   const extra = [['05-working-hours.png', 'workingHours'], ['06-plan.png', 'window']];
@@ -199,13 +200,13 @@ try {
     const [name, story] = extra.shift();
     if (!shots.some(([, s]) => s === story)) shots.push([name, story]);
   }
-  const panelOnly = (story) => (story === 'workingHours' && !r.large) || (story === 'window' && !r.window);
+  const panelOnly = (story) => (story === 'workingHours' && !(r.large && r.window)) || (story === 'window' && !r.window);
 
   fs.mkdirSync(outDir, { recursive: true });
   for (const n of fs.readdirSync(outDir)) if (n.toLowerCase().endsWith('.png')) fs.rmSync(path.join(outDir, n));
   for (const [name, story] of shots.slice(0, 5)) {
     const scene = panelOnly(story) ? scenes.menuBar(r) : scenes[story](r);
-    const screen = await desktop(browser, { theme, app: APP, clock, fonts: FONTS, menuExtra: { text: '', icon: GLOBE }, ...scene });
+    const screen = await desktop(browser, { theme, app: APP, fonts: FONTS, menuExtra: { text: '', icon: GLOBE }, ...scene });
     const [head, sub] = COPY[story];
     const out = await compose(browser, 'mac', { head, sub, device: 'macbook', png: screen, title: APP, file: name }, theme, FONTS);
     fs.writeFileSync(path.join(outDir, name), out);

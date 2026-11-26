@@ -1,0 +1,9 @@
+device:     iPhone 16 Pro (DA1C9012-81EC-4C70-B52A-068AEAFBA1DE) (Shutdown) 
+terms mean 26
+main mean 54
+travel mean 47
+edit mean 21
+add mean 9
+settings mean 22
+date mean 34
+find mean 58

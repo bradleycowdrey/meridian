@@ -6,7 +6,8 @@ import WidgetKit
 /// steps through every size (with and without the city search open), records the window size
 /// against the size the content needs, saves a PNG of each, writes report.txt, then quits.
 /// It also writes larger renders for the Mac App Store screenshots (store-panel.png,
-/// store-window.png, store-widget-*.png), which scripts/mac-store-shots.mjs composes.
+/// store-window.png, store-work-window.png, store-widget-*.png, store-work-widget-*.png), which
+/// scripts/mac-store-shots.mjs composes.
 /// Inert unless that launch argument is present.
 @MainActor
 enum SelfTest {
@@ -114,6 +115,71 @@ enum SelfTest {
         }
         guard sampled > 0 else { return (false, "no pixels read") }
         return (worst.isEmpty, worst)
+    }
+
+    /// The cities of the "See who's at work" picture (scripts/mac-store-shots.mjs), with a city photo
+    /// each, around the world: the picture takes four that are at work and one that isn't.
+    private static let workPool: [(String, String)] = [
+        ("Honolulu", "Pacific/Honolulu"), ("San Francisco", "America/Los_Angeles"), ("Denver", "America/Denver"),
+        ("Chicago", "America/Chicago"), ("New York", "America/New_York"), ("Sao Paulo", "America/Sao_Paulo"),
+        ("London", "Europe/London"), ("Paris", "Europe/Paris"), ("Berlin", "Europe/Berlin"), ("Cairo", "Africa/Cairo"),
+        ("Nairobi", "Africa/Nairobi"), ("Dubai", "Asia/Dubai"), ("Mumbai", "Asia/Kolkata"), ("Bangkok", "Asia/Bangkok"),
+        ("Singapore", "Asia/Singapore"), ("Hong Kong", "Asia/Hong_Kong"), ("Seoul", "Asia/Seoul"), ("Tokyo", "Asia/Tokyo"),
+        ("Sydney", "Australia/Sydney"), ("Auckland", "Pacific/Auckland"),
+    ]
+    /// Set by storeWorkWindow: those cities as the widget gets them, and which of them are working.
+    private static var workSnapshot: WidgetSnapshot?
+    private static var workingNames: Set<String> = []
+
+    /// Writes store-work-window.png: the window showing five cities other than yours, four of them
+    /// at work and one in its off hours, west to east, at the first moment from now (now, or a
+    /// whole hour ahead) when four of them are working. Your cities are put back after.
+    private static func storeWorkWindow(store: ZoneStore, content: NSView, dir: URL, travelHours: Int) async -> String {
+        let yours = store.places
+        let pool: [Place] = workPool.compactMap { name, zone in
+            guard !yours.contains(where: { $0.name == name || $0.timeZoneID == zone }) else { return nil }
+            if let entry = CityDirectory.all.first(where: { $0.name == name && $0.timeZoneID == zone }) {
+                return Place(name: name, timeZoneID: zone, countryCode: entry.countryCode,
+                             latitude: entry.latitude, longitude: entry.longitude)
+            }
+            return Place(name: name, timeZoneID: zone)
+        }
+        let anchor = TimeMath.hourAnchor(store.now)
+        for hours in 0..<96 {
+            let at = hours == 0 ? store.now : anchor.addingTimeInterval(Double(hours) * 3600)
+            let offset = { (p: Place) in p.timeZone.secondsFromGMT(for: at) }
+            // One city per UTC offset, at work; then four of them spread from west to east.
+            var working: [Place] = []
+            for p in pool.sorted(by: { offset($0) < offset($1) }) where store.isWorking(p, at: at)
+                && !working.contains(where: { offset($0) == offset(p) }) { working.append(p) }
+            guard working.count >= 4 else { continue }
+            let four = (0..<4).map { working[Int((Double($0) * Double(working.count - 1) / 3).rounded())] }
+            // And one in its off hours (not a weekend or holiday), as near the four as can be.
+            let lo = offset(four.first!), hi = offset(four.last!)
+            let off = pool.filter {
+                WorkWeek.offLabel($0, at: at, start: store.workStart, end: store.workEnd) == "Off hours"
+            }.min { a, b in
+                let da = min(abs(offset(a) - lo), abs(offset(a) - hi)), db = min(abs(offset(b) - lo), abs(offset(b) - hi))
+                return da < db
+            }
+            let cities = (four + (off.map { [$0] } ?? [])).sorted { offset($0) < offset($1) }
+            store.places = cities
+            store.offsetHours = hours
+            try? await Task.sleep(for: .seconds(2))
+            content.layoutSubtreeIfNeeded()
+            var line = writeStorePNG(of: content, scale: 2, to: dir.appendingPathComponent("store-work-window.png"))
+            // The hours ahead it shows (0: now, the menu bar's time), for scripts/mac-store-shots.mjs.
+            try? "\(hours)\n".write(to: dir.appendingPathComponent("store-work.txt"), atomically: true, encoding: .utf8)
+            workSnapshot = WidgetSnapshot.load()
+            workingNames = Set(four.map(\.name))
+            line += " (\(hours == 0 ? "now" : "+\(hours) h"); \(cities.map { "\($0.name)\(store.isWorking($0, at: at) ? "" : " off")" }.joined(separator: ", ")))"
+            if hours != 0 && hours == travelHours { line += " (the same hour as store-window-travel.png)" }
+            store.places = yours
+            store.offsetHours = 0
+            try? await Task.sleep(for: .seconds(1))
+            return line
+        }
+        return "store-work-window.png: no hour in four days with four of its cities at work"
     }
 
     nonisolated static func log(_ message: @autoclosure () -> String) {
@@ -227,6 +293,12 @@ enum SelfTest {
                          + " (+\(best) h, \(bestCount) of \(store.places.count) cities working)")
             store.offsetHours = 0
             try? await Task.sleep(for: .seconds(1))
+            // "See who's at work": the same window with other cities, chosen so that most of them
+            // are at work at the moment shown (store-work-window.png), and their widgets
+            // (store-work-widget-*.png, below). The moment is now when four or more of these cities
+            // are working now (so it is the menu bar's time), else the first whole hour ahead when
+            // they are. Your cities are put back straight after.
+            lines.append(await storeWorkWindow(store: store, content: content, dir: dir, travelHours: best))
         } else {
             lines.append("store-window.png: no window")
         }
@@ -280,6 +352,40 @@ enum SelfTest {
             if let tiff = renderer.nsImage?.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
                let png = rep.representation(using: .png, properties: [:]), (try? png.write(to: dir.appendingPathComponent(file))) != nil {
                 lines.append("\(file) \(rep.pixelsWide)x\(rep.pixelsHigh)")
+            } else {
+                lines.append("\(file): not written")
+            }
+        }
+        // More faces for the Mac App Store's widget picture (and the menu bar one): each of your
+        // cities on its own small widget, your cities two by two on medium ones, and the cities of
+        // "See who's at work" (a widget given its own cities) at every size.
+        var faceSets: [(String, WidgetSnapshot, WidgetFamily, CGSize)] = []
+        func part(_ base: WidgetSnapshot, _ cities: ArraySlice<WidgetSnapshot.City>) -> WidgetSnapshot {
+            var copy = base; copy.cities = Array(cities); return copy
+        }
+        for i in snapshot.cities.indices {
+            faceSets.append(("store-widget-small-\(i + 1).png", part(snapshot, snapshot.cities[i...i]), .systemSmall, faces[0].2))
+        }
+        if snapshot.cities.count > 2 {
+            faceSets.append(("store-widget-medium-2.png", part(snapshot, snapshot.cities.dropFirst(2)), .systemMedium, faces[1].2))
+        }
+        if let work = workSnapshot {
+            faceSets.append(("store-work-widget-large.png", work, .systemLarge, faces[2].2))
+            let working = work.cities.filter { workingNames.contains($0.name) }
+            for (i, pair) in stride(from: 0, to: working.count, by: 2).enumerated() {
+                faceSets.append(("store-work-widget-medium-\(i + 1).png",
+                                 part(work, working[pair..<min(pair + 2, working.count)]), .systemMedium, faces[1].2))
+            }
+            for (i, city) in working.enumerated() {
+                faceSets.append(("store-work-widget-small-\(i + 1).png", part(work, [city][...]), .systemSmall, faces[0].2))
+            }
+        }
+        for (file, face, family, size) in faceSets {
+            let renderer = ImageRenderer(content: WidgetFacePreview(snapshot: face, date: store.now, family: family, size: size))
+            renderer.scale = storeWidgetScale
+            if let tiff = renderer.nsImage?.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+               let png = rep.representation(using: .png, properties: [:]), (try? png.write(to: dir.appendingPathComponent(file))) != nil {
+                lines.append("\(file) \(rep.pixelsWide)x\(rep.pixelsHigh): \(face.cities.map(\.name).joined(separator: ", "))")
             } else {
                 lines.append("\(file): not written")
             }

@@ -6,7 +6,7 @@ import WidgetKit
 /// steps through every size (with and without the city search open), records the window size
 /// against the size the content needs, saves a PNG of each, writes report.txt, then quits.
 /// It also writes larger renders for the Mac App Store screenshots (store-panel.png,
-/// store-window.png, store-widget-*.png), which scripts/mac-store-shots.py composes.
+/// store-window.png, store-widget-*.png), which scripts/mac-store-shots.mjs composes.
 /// Inert unless that launch argument is present.
 @MainActor
 enum SelfTest {
@@ -42,7 +42,7 @@ enum SelfTest {
                 view.cacheDisplay(in: view.bounds, to: rep)
                 try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("menubar-panel.png"))
             }
-            // The same panel at 2x, for the Mac App Store screenshots (scripts/mac-store-shots.py).
+            // The same panel at 2x, for the Mac App Store screenshots (scripts/mac-store-shots.mjs).
             storeShot = writeStorePNG(of: view, scale: 2, to: dir.appendingPathComponent("store-panel.png"))
         }
         panel.orderOut(nil)
@@ -50,8 +50,32 @@ enum SelfTest {
             + " expected x \(Int(expected)) (screen \(Int(visible.minX))..\(Int(visible.maxX))) \(ok ? "OK" : "WRONG"); \(storeShot)"
     }
 
+    /// Opens the menu bar panel, writes it at 2x to `file` (for the Mac App Store screenshots) and
+    /// closes it. Returns a line for report.txt.
+    private static func storePanel(dir: URL, desktop: NSWindow?, file: String) async -> String {
+        func buttons(in view: NSView) -> [NSButton] {
+            (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons(in: $0) }
+        }
+        guard let itemWindow = NSApp.windows.first(where: { String(describing: type(of: $0)).contains("StatusBarWindow") }),
+              let content = itemWindow.contentView, let button = buttons(in: content).first ?? (content.superview.flatMap { buttons(in: $0).first })
+        else { return "\(file): no menu bar item found" }
+        // The item may still count its panel as open (the check before only ordered it out), so a
+        // first click can close it: click until it shows.
+        var opened: NSWindow?
+        for _ in 0..<3 where opened == nil {
+            button.performClick(nil)
+            try? await Task.sleep(for: .seconds(2))
+            opened = NSApp.windows.first(where: { $0.isVisible && $0 !== desktop && $0 !== itemWindow && $0.frame.width > 300 })
+        }
+        guard let panel = opened, let view = panel.contentView else { return "\(file): panel did not open" }
+        view.layoutSubtreeIfNeeded()
+        let line = writeStorePNG(of: view, scale: 2, to: dir.appendingPathComponent(file))
+        panel.orderOut(nil)
+        return line
+    }
+
     /// Scale of the widget renders made for the App Store screenshots: above the 2x of a Retina
-    /// desktop, so scripts/mac-store-shots.py can place them larger and still downsample.
+    /// desktop, so scripts/mac-store-shots.mjs can place them at their point size and still downsample.
     private static let storeWidgetScale: CGFloat = 3
 
     /// Draws `view` into a bitmap at `scale` pixels per point, whatever the scale of the display
@@ -170,9 +194,39 @@ enum SelfTest {
         let sizeBefore = store.uiSize
         store.uiSize = .large
         try? await Task.sleep(for: .seconds(1.5))
+        // The store renders (window, panel, widgets) all show one minute, the menu bar's clock in the
+        // screenshots: start them just after the minute turns (and the app's clock with it).
+        for _ in 0..<70 {
+            if Calendar.current.component(.second, from: Date()) <= 1,
+               Calendar.current.component(.minute, from: store.now) == Calendar.current.component(.minute, from: Date()) { break }
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+        let storeMinute = store.now
         if let content = host.window?.contentView {
             content.layoutSubtreeIfNeeded()
             lines.append(writeStorePNG(of: content, scale: 2, to: dir.appendingPathComponent("store-window.png")))
+            // The time the window shows, as the Mac menu bar writes it ("Wed Nov 25  8:36 PM"), so
+            // the screenshots' menu bar shows the same time as the app.
+            let clock = DateFormatter()
+            clock.locale = Locale(identifier: "en_US_POSIX")
+            clock.dateFormat = "EEE MMM d'  'h:mm a"
+            try? (clock.string(from: store.now) + "\n").write(to: dir.appendingPathComponent("store-clock.txt"), atomically: true, encoding: .utf8)
+            // The same window after dragging the hours along: travelled to the hour, 2 to 23 hours
+            // ahead, when the most of your cities are in their working hours (the first such hour).
+            let anchor = TimeMath.hourAnchor(store.now)
+            var best = 2, bestCount = -1
+            for hours in 2...23 {
+                let at = anchor.addingTimeInterval(Double(hours) * 3600)
+                let count = store.places.filter { store.isWorking($0, at: at) }.count
+                if count > bestCount { best = hours; bestCount = count }
+            }
+            store.offsetHours = best
+            try? await Task.sleep(for: .seconds(2))
+            content.layoutSubtreeIfNeeded()
+            lines.append(writeStorePNG(of: content, scale: 2, to: dir.appendingPathComponent("store-window-travel.png"))
+                         + " (+\(best) h, \(bestCount) of \(store.places.count) cities working)")
+            store.offsetHours = 0
+            try? await Task.sleep(for: .seconds(1))
         } else {
             lines.append("store-window.png: no window")
         }
@@ -182,6 +236,12 @@ enum SelfTest {
         // Menu bar panel: click Meridian's menu bar item; the panel should open centred under it
         // (moved sideways only as far as needed to stay on screen).
         lines.append(await menuBarPanelCheck(dir: dir, desktop: host.window))
+        // The panel again at Large, at 2x, for the Mac App Store screenshots (store-panel-large.png).
+        store.uiSize = .large
+        try? await Task.sleep(for: .seconds(1.5))
+        lines.append(await storePanel(dir: dir, desktop: host.window, file: "store-panel-large.png"))
+        store.uiSize = sizeBefore
+        try? await Task.sleep(for: .seconds(1.5))
 
         // Desktop widget faces, at the macOS widget sizes, from the file the app just wrote.
         let faces: [(String, WidgetFamily, CGSize)] = [
@@ -224,6 +284,8 @@ enum SelfTest {
                 lines.append("\(file): not written")
             }
         }
+        let sameMinute = Calendar.current.isDate(storeMinute, equalTo: store.now, toGranularity: .minute)
+        lines.append("store renders: \(sameMinute ? "one minute throughout" : "the minute turned during them (store-clock.txt may not match)")")
         try? lines.joined(separator: "\n").write(to: dir.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
         NSApp.terminate(nil)
     }
